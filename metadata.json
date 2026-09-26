@@ -1,0 +1,6 @@
+{
+  "name": "Bhakti Jewels - Wholesale B2B Bullion & Fine Jewellery",
+  "description": "Exclusive wholesale B2B platform for certified bullion dealers & fine jewellery retailers featuring live spot rates, BIS hallmarked inventory, and batch RFQ management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
