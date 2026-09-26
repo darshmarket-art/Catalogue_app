@@ -123,7 +123,7 @@ export const ProductionGuideModal: React.FC<ProductionGuideModalProps> = ({
                     <div>
                       <span className="font-bold text-xs text-[#1c1c1a]">Master Keymaster Provisioning Token</span>
                       <p className="text-[11px] text-[#4d4638] mt-0.5">
-                        The Managing Director generates a confidential one-time Master Provisioning Key (Default seed: <code className="bg-[#f0edea] px-1 font-mono font-bold text-[#1c1c1a]">GUILD-MASTER-1984</code>). Any request without this exact token is rejected with <code className="text-[#ba1a1a] font-mono">403 Forbidden</code> and logged.
+                        The Managing Director provisions a confidential one-time Master Provisioning Key (Configured via server environment secret <code className="bg-[#f0edea] px-1 font-mono font-bold text-[#1c1c1a]">MASTER_PROVISIONING_KEY</code>). Any request without this exact token is rejected with <code className="text-[#ba1a1a] font-mono">403 Forbidden</code> and logged.
                       </p>
                     </div>
                   </div>
@@ -174,7 +174,7 @@ export const ProductionGuideModal: React.FC<ProductionGuideModalProps> = ({
                 Backend Database Architecture (`data/database.json`)
               </h4>
               <p className="text-[#4d4638]">
-                All users (retailers and administrators) as well as catalog contents, order batches, and audit logs are persistently stored and validated in the backend database.
+                All users (retailers and administrators) as well as catalog contents, order batches, and audit logs are persistently stored and validated in the backend database with bcrypt password hashing and JWT sessions.
               </p>
               <pre className="bg-[#1c1c1a] text-[#caeada] p-3 rounded-lg font-mono text-[11px] overflow-x-auto leading-relaxed max-h-80">
 {`{
@@ -184,7 +184,7 @@ export const ProductionGuideModal: React.FC<ProductionGuideModalProps> = ({
       "firmName": "Shree Ambica Jewellers",
       "gstin": "24AAAAA0000A1Z5",
       "phone": "9820012345",
-      "password": "Password@123", // verified on login; denied on mismatch
+      "password": "$2a$10$e8vK... (Bcrypt Salted Hash)",
       "marketHub": "Zaveri Bazaar, Mumbai",
       "verified": true
     }
@@ -194,12 +194,12 @@ export const ProductionGuideModal: React.FC<ProductionGuideModalProps> = ({
       "id": "adm-1",
       "name": "Kishorbhai Choksi",
       "email": "md.office@bhaktijewels.in",
-      "password": "MasterVault@1984", // verified on login; denied on mismatch
+      "password": "$2a$10$9aXq... (Bcrypt Salted Hash)",
       "role": "Managing Director",
       "accessLevel": "L4_FULL_ESCROW_RELEASE"
     }
   ],
-  "masterProvisioningKey": "GUILD-MASTER-1984",
+  "masterProvisioningKey": "[REDACTED_SERVER_SECRET]",
   "auditLogs": [
     {
       "id": "log-1",

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
+import { api } from '../api';
 
 interface QuotationModalProps {
   isOpen: boolean;
@@ -34,6 +35,13 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
   const totalGrossWeight = items.reduce((sum, i) => sum + i.grossWt, 0);
 
   const handleSendWhatsApp = () => {
+    // Record functional inquiry telemetry
+    api.recordInquiry({
+      clientFirm,
+      itemsCount: selectedCount,
+      totalNetWeight: parseFloat(totalNetWeight.toFixed(3))
+    }).catch(() => {});
+
     const summary = `*BHAKTI JEWELS — WHOLESALE GRAM-BASIS REQUISITION*\n` +
       `*Client:* ${clientFirm} (${clientCity})\n` +
       `*Settlement Basis:* Pure Net Gold Weight (No Fiat Price Lock)\n` +

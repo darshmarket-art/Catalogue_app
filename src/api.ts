@@ -112,12 +112,44 @@ export const api = {
         inquiries: 384,
         bookedOrders: 142,
         bookedWeightKg: 28.650,
-        liveVisitors: 48,
+        liveVisitors: 1,
         todayVisitors: 1420,
-        verifiedMerchants: 2,
-        guestRetailers: 12,
+        verifiedMerchants: 1,
+        guestRetailers: 0,
         pendingDrafts: 3
       };
+    }
+  },
+
+  async trackView(): Promise<void> {
+    try {
+      await fetch('/api/analytics/track-view', { method: 'POST' });
+    } catch {
+      // silent
+    }
+  },
+
+  async recordInquiry(payload?: { clientFirm?: string; itemsCount?: number; totalNetWeight?: number }): Promise<void> {
+    try {
+      await fetch('/api/analytics/track-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {})
+      });
+    } catch {
+      // silent
+    }
+  },
+
+  async sendHeartbeat(sessionId: string, isVerified: boolean): Promise<void> {
+    try {
+      await fetch('/api/analytics/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, isVerified })
+      });
+    } catch {
+      // silent
     }
   },
 

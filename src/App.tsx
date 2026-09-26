@@ -49,6 +49,42 @@ export default function App() {
     items: []
   });
 
+  // Manage session ID for real-time visitor telemetry
+  const getSessionId = () => {
+    let sid = sessionStorage.getItem('bhakti_session_id');
+    if (!sid) {
+      sid = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem('bhakti_session_id', sid);
+    }
+    return sid;
+  };
+
+  const handleNavigate = (screen: ActiveScreen) => {
+    setCurrentScreen(screen);
+    api.trackView();
+    if (screen === 'admin-hub') {
+      api.getAnalytics().then(setAnalytics).catch(() => {});
+    }
+  };
+
+  // Visitor Engagement Heartbeat & Telemetry (Every 15s)
+  useEffect(() => {
+    const sid = getSessionId();
+    const isVerified = Boolean(currentMerchant || isAdminLoggedIn);
+
+    api.trackView();
+    api.sendHeartbeat(sid, isVerified);
+
+    const interval = setInterval(() => {
+      api.sendHeartbeat(sid, Boolean(currentMerchant || isAdminLoggedIn));
+      if (currentScreen === 'admin-hub') {
+        api.getAnalytics().then(setAnalytics).catch(() => {});
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [currentMerchant, isAdminLoggedIn, currentScreen]);
+
   // Fetch Initial Data from persistent database
   useEffect(() => {
     const fetchData = async () => {
@@ -122,6 +158,9 @@ export default function App() {
   const handleConfirmOrder = async () => {
     try {
       await api.confirmOrder();
+      // Immediately refresh live analytics (booked count & weight)
+      const updated = await api.getAnalytics();
+      setAnalytics(updated);
     } catch {
       // quiet fallback
     }
@@ -131,6 +170,17 @@ export default function App() {
   const handleGenerateWhatsAppPO = () => {
     const totalNet = orders.reduce((sum, item) => sum + (item.totalNetGold || 0), 0);
     const store = currentMerchant ? currentMerchant.storeName : 'Shree Ambica Jewellers';
+
+    // Record inquiry telemetry
+    api.recordInquiry({
+      clientFirm: store,
+      itemsCount: orders.length,
+      totalNetWeight: parseFloat(totalNet.toFixed(3))
+    }).then(async () => {
+      const updated = await api.getAnalytics();
+      setAnalytics(updated);
+    }).catch(() => {});
+
     const msg = `*BHAKTI JEWELS B2B WHOLESALE MANIFEST (GRAM BASIS)*\n` +
       `*Store:* ${store}\n` +
       `*Settlement Terms:* Pure Fine Gold Gram Settlement (No Fiat Price Lock)\n` +
@@ -199,13 +249,13 @@ export default function App() {
   };
 
   const handleFilterCategoryInCatalogue = (_catName: string) => {
-    setCurrentScreen('catalogue');
+    handleNavigate('catalogue');
   };
 
   const handleLogout = () => {
     setCurrentMerchant(null);
     setIsAdminLoggedIn(false);
-    setCurrentScreen('welcome');
+    handleNavigate('welcome');
   };
 
   const shouldShowBottomNav = ['catalogue', 'categories', 'orders', 'admin-hub'].includes(currentScreen);
@@ -215,7 +265,7 @@ export default function App() {
       {/* Persistent Header */}
       <Header
         currentScreen={currentScreen}
-        onNavigate={setCurrentScreen}
+        onNavigate={handleNavigate}
         onOpenGuide={() => setIsGuideOpen(true)}
         isAdminLoggedIn={isAdminLoggedIn}
         currentMerchant={currentMerchant}
@@ -225,7 +275,7 @@ export default function App() {
       {/* Main View Container */}
       <main className="flex-1 w-full pt-16 md:pt-18">
         {currentScreen === 'welcome' && (
-          <WelcomeScreen onNavigate={setCurrentScreen} />
+          <WelcomeScreen onNavigate={handleNavigate} />
         )}
 
         {currentScreen === 'catalogue' && (
@@ -233,14 +283,14 @@ export default function App() {
             products={products}
             onAddToOrder={handleAddToOrder}
             onOpenQuotation={handleOpenQuotation}
-            onNavigateCategories={() => setCurrentScreen('categories')}
+            onNavigateCategories={() => handleNavigate('categories')}
           />
         )}
 
         {currentScreen === 'categories' && (
           <CategoriesScreen
             categories={categories}
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onFilterCategoryInCatalogue={handleFilterCategoryInCatalogue}
           />
         )}
@@ -251,13 +301,13 @@ export default function App() {
             onRemoveItem={handleRemoveOrderItem}
             onConfirmOrder={handleConfirmOrder}
             onGenerateWhatsAppPO={handleGenerateWhatsAppPO}
-            onNavigateCatalogue={() => setCurrentScreen('catalogue')}
+            onNavigateCatalogue={() => handleNavigate('catalogue')}
           />
         )}
 
         {currentScreen === 'retailer-auth' && (
           <RetailerAuthScreen
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onLoginSuccess={(user) => {
               setCurrentMerchant(user);
             }}
@@ -266,7 +316,7 @@ export default function App() {
 
         {currentScreen === 'admin-login' && (
           <AdminLoginScreen
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onAdminLoginSuccess={() => {
               setIsAdminLoggedIn(true);
             }}
@@ -276,7 +326,7 @@ export default function App() {
         {currentScreen === 'admin-hub' && (
           <AdminHubScreen
             analytics={analytics}
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onOpenGuide={() => setIsGuideOpen(true)}
           />
         )}
@@ -284,14 +334,14 @@ export default function App() {
         {currentScreen === 'new-product' && (
           <NewProductScreen
             categories={categories}
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onProductCreated={handleProductCreated}
           />
         )}
 
         {currentScreen === 'add-category' && (
           <AddCategoryScreen
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onCategoryCreated={handleCategoryCreated}
           />
         )}
@@ -301,7 +351,7 @@ export default function App() {
       {shouldShowBottomNav && (
         <BottomNav
           currentScreen={currentScreen}
-          onNavigate={setCurrentScreen}
+          onNavigate={handleNavigate}
           orderCount={orders.length}
           isAdminLoggedIn={isAdminLoggedIn}
         />
