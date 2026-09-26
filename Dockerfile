@@ -1,5 +1,5 @@
-# Use official Node.js 20 LTS slim image
-FROM node:20-slim
+# Use official Node.js 22 LTS slim image (required for Vite 8)
+FROM node:22-slim
 
 # Set working directory inside the container
 WORKDIR /app
@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy dependency manifests
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (use legacy-peer-deps to avoid React 19 tree conflicts)
+RUN npm install --legacy-peer-deps
 
 # Copy application source code
 COPY . .

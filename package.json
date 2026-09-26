@@ -23,7 +23,7 @@
     "dotenv": "^17.2.3",
     "motion": "^12.23.24",
     "tsx": "^4.21.0",
-    "typescript": "^5.8.2"
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
