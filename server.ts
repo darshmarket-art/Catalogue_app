@@ -6,17 +6,27 @@ import { createStore } from './server/store';
 import { createApp } from './server/app';
 import { seedDemoCatalogue } from './server/seed';
 import { migrateLegacyBuyers } from './server/migrate';
-import { renderIndexHtml } from './server/merchant';
+import { parseMerchant, renderIndexHtml } from './server/merchant';
+import { createBlobs } from './server/blobs';
 import { logger } from './server/logger';
 
 async function startServer() {
   const config = loadConfig();
   const store = createStore(config);
+  const blobs = createBlobs(config);
+
+  // A merchant.json in the merchant's bucket overrides the copy shipped in the image, so branding can change
+  // without a rebuild. An invalid file stops the server rather than silently serving the wrong config.
+  const stored = await blobs.get('merchant.json');
+  if (stored) {
+    config.merchant = parseMerchant(JSON.parse(stored.data.toString('utf-8')), 'merchant.json in storage', config.merchant.id);
+    logger.info('Loaded merchant config from storage');
+  }
   const migrated = await migrateLegacyBuyers(store);
   if (migrated > 0) logger.info(`Moved ${migrated} buyer account(s) to the buyers collection`);
   if (config.seedDemoCatalogue) await seedDemoCatalogue(store, config.merchant.id);
 
-  const app = createApp(config, store);
+  const app = createApp(config, store, blobs);
 
   // index.html is rendered per merchant (title, link preview, colours, embedded config) before it is sent.
   if (!config.isProduction) {
@@ -46,6 +56,9 @@ async function startServer() {
 
   if (!process.env.JWT_SECRET && !config.isProduction) {
     logger.warn('JWT_SECRET not set: using a temporary secret, sessions reset on every restart');
+  }
+  if (config.isProduction && !config.storageBucket) {
+    logger.warn('STORAGE_BUCKET not set: photo upload is disabled');
   }
   if (!config.masterProvisioningKey) {
     logger.warn('MASTER_PROVISIONING_KEY not set: admin account creation is disabled');

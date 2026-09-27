@@ -1,12 +1,6 @@
 import { z } from 'zod';
 import { ADMIN_ROLES } from '../shared/roles';
-
-export const httpUrl = z
-  .string()
-  .max(2048)
-  .refine((v) => /^https?:\/\//i.test(v) && URL.canParse(v), 'Must be an http(s) URL');
-
-export const optionalUrl = httpUrl.optional().or(z.literal('').transform(() => undefined));
+import { photoRef } from './media';
 
 export const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(max);
 
@@ -37,6 +31,11 @@ export const retailerLoginSchema = z.object({
   authMode: z.string().optional()
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().trim().min(1).max(128),
+  newPassword: trimmed(128, 8)
+});
+
 export const adminLoginSchema = z.object({
   adminId: trimmed(254),
   password: z.string().trim().min(1).max(128)
@@ -57,7 +56,8 @@ export const categorySchema = z.object({
   minTargetWt: z.coerce.number().min(0).max(100000).optional(),
   maxTargetWt: z.coerce.number().min(0).max(100000).optional(),
   eligibleKarats: z.array(trimmed(30)).max(10).optional(),
-  image: optionalUrl
+  /** Exactly one photo per category. */
+  image: photoRef.refine((v) => v !== '', 'Add a photo for the category.')
 });
 
 export const cartItemSchema = z.object({
@@ -81,6 +81,14 @@ export const productViewsSchema = z.object({
   sessionId,
   skus: z.array(trimmed(60)).min(1).max(50)
 });
+
+const activityEvent = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('dwell'), sku: trimmed(60), ms: z.coerce.number().int().min(1).max(5 * 60 * 1000) }),
+  z.object({ type: z.literal('search'), term: trimmed(80, 2) }),
+  z.object({ type: z.literal('select'), sku: trimmed(60) })
+]);
+
+export const activitySchema = z.object({ sessionId, events: z.array(activityEvent).min(1).max(60) });
 
 export const ORDER_STATUSES = ['new', 'confirmed', 'dispatched', 'cancelled'] as const;
 

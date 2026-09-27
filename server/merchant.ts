@@ -76,6 +76,20 @@ const promotion = z.object({
   note: text(40)
 });
 
+/** An extra detail a merchant records on every product (e.g. "Collection", "Finish"), on top of the sector's own fields. */
+const productField = z
+  .object({
+    key: z.string().regex(/^[a-z][a-zA-Z0-9]{0,29}$/, 'Start with a lower-case letter; letters and digits only'),
+    label: text(40),
+    type: z.enum(['text', 'number', 'select']).default('text'),
+    options: z.array(text(60)).min(1).max(20).optional(),
+    required: z.boolean().default(false),
+    unit: text(12).optional()
+  })
+  .refine((f) => f.type !== 'select' || (f.options?.length ?? 0) > 0, { message: 'A "select" field needs options', path: ['options'] });
+
+export type ProductField = z.infer<typeof productField>;
+
 export const merchantSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]{2,40}$/, 'Lower-case letters, digits and dashes only'),
   sector: z.enum(['jewellery']),
@@ -116,6 +130,13 @@ export const merchantSchema = z.object({
     bookedNote: text(240).optional()
   }),
 
+  /** Extra product details this merchant records; shown on the product form, card and detail sheet. */
+  productFields: z
+    .array(productField)
+    .max(10)
+    .default([])
+    .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, 'Each product field needs a unique key'),
+
   /** Banner carousel on the Categories screen; hidden when empty. */
   promotions: z.array(promotion).max(5).default([]),
 
@@ -132,6 +153,17 @@ export const merchantSchema = z.object({
 
 export type MerchantConfig = z.infer<typeof merchantSchema>;
 
+/** Validates a parsed merchant.json; `source` names where it came from in the error message. */
+export function parseMerchant(raw: unknown, source: string, expectedId?: string): MerchantConfig {
+  const result = merchantSchema.safeParse(raw);
+  if (!result.success) {
+    const problems = result.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
+    throw new Error(`Invalid merchant config ${source}:\n - ${problems.join('\n - ')}`);
+  }
+  if (expectedId && result.data.id !== expectedId) throw new Error(`${source}: id "${result.data.id}" does not match "${expectedId}"`);
+  return result.data;
+}
+
 /** Loads and validates merchants/<id>/merchant.json. The id comes from the MERCHANT env var. */
 export function loadMerchant(env: NodeJS.ProcessEnv = process.env, root: string = process.cwd()): MerchantConfig {
   const id = env.MERCHANT?.trim() || 'bhakti';
@@ -140,13 +172,7 @@ export function loadMerchant(env: NodeJS.ProcessEnv = process.env, root: string 
   const file = path.resolve(root, 'merchants', id, 'merchant.json');
   if (!fs.existsSync(file)) throw new Error(`Merchant config not found: ${file}`);
 
-  const result = merchantSchema.safeParse(JSON.parse(fs.readFileSync(file, 'utf-8')));
-  if (!result.success) {
-    const problems = result.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
-    throw new Error(`Invalid merchant config ${file}:\n - ${problems.join('\n - ')}`);
-  }
-  if (result.data.id !== id) throw new Error(`merchant.json id "${result.data.id}" does not match its folder "${id}"`);
-  return result.data;
+  return parseMerchant(JSON.parse(fs.readFileSync(file, 'utf-8')), file, id);
 }
 
 const escapeHtml = (s: string) =>

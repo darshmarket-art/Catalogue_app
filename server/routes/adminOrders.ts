@@ -4,9 +4,10 @@ import type { Store } from '../store';
 import { user } from '../auth';
 import { HttpError, audit, handler, parse } from '../http';
 import { orderListSchema, orderStatusSchema } from '../schemas';
+import type { Media } from '../media';
 
 /** The merchant's view of the orders their buyers have placed. */
-export function adminOrderRoutes(store: Store, requireAdmin: RequestHandler) {
+export function adminOrderRoutes(store: Store, media: Media, requireAdmin: RequestHandler) {
   const router = Router();
   router.use(requireAdmin);
 
@@ -16,7 +17,9 @@ export function adminOrderRoutes(store: Store, requireAdmin: RequestHandler) {
       const { limit, status } = parse(orderListSchema, req.query);
       // Newest first; the status filter is applied afterwards so Firestore needs no composite index.
       const recent = await store.list('purchaseOrders', { orderBy: { field: 'timestamp', direction: 'desc' }, limit: 500 });
-      const data = (status ? recent.filter((o) => o.status === status) : recent).slice(0, limit);
+      const data = (status ? recent.filter((o) => o.status === status) : recent)
+        .slice(0, limit)
+        .map((o) => ({ ...o, items: (o.items ?? []).map((i: Record<string, any>) => media.presentItem(i)) }));
       res.json({ status: 'success', count: data.length, data });
     })
   );

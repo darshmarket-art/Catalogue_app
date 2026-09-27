@@ -7,10 +7,15 @@ export interface Product {
   grossWt: number;
   netWt: number;
   stoneWt?: number;
-  priceEstimate?: number;
+  priceMode?: 'weight' | 'fixed' | 'on_request';
+  fixedPrice?: number;
   makingChargePerGram?: number;
+  /** First photo, as a private link. */
   image: string;
-  angles?: string[];
+  /** One to three photos, as private links (or plain http links for imported data). */
+  images: string[];
+  /** Merchant-defined details (see productFields in merchant.json). */
+  extra?: Record<string, string | number>;
   stockStatus: 'Ready in Vault' | 'Made-to-Order' | string;
   leadDays?: number;
   huid?: string;
@@ -63,6 +68,47 @@ export interface AnalyticsData {
 
 export type OrderStatus = 'new' | 'confirmed' | 'dispatched' | 'cancelled';
 
+export interface PastOrder {
+  poId: string;
+  status: OrderStatus;
+  totalNetGrams: number;
+  itemCount: number;
+  items: Array<Pick<OrderItem, 'id' | 'title' | 'sku' | 'purity' | 'totalNetGold' | 'batchQty' | 'qtyUnit' | 'image'>>;
+  timestamp: string;
+}
+
+export interface VisitorSummary {
+  id: string;
+  kind: 'verified' | 'guest';
+  name: string;
+  lastSeen: string;
+  activeSeconds: number;
+  sessions: number;
+  productsViewed: number;
+  dwellSeconds: number;
+  searches: number;
+  selections: number;
+  addedToCart: number;
+}
+
+export interface VisitorDetail extends VisitorSummary {
+  products: Array<{ sku: string; title: string; seconds: number; lastAt: string }>;
+  searchTerms: Array<{ term: string; count: number; lastAt: string }>;
+  picked: Array<{ sku: string; title: string; count: number; lastAt: string }>;
+}
+
+export type VisitorKind = 'all' | 'verified' | 'guest';
+
+export interface BuyerRow {
+  phone: string;
+  firmName: string;
+  ownerName: string;
+  gstin: string;
+  marketHub: string;
+  createdAt: string;
+  mustChangePassword: boolean;
+}
+
 export interface AdminOrder {
   poId: string;
   status: OrderStatus;
@@ -85,4 +131,7 @@ export type ActiveScreen =
   | 'new-product'
   | 'add-category'
   | 'admin-orders'
+  | 'admin-visitors'
+  | 'admin-buyers'
+  | 'change-password'
   | 'retailer-auth';

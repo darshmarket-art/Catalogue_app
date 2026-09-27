@@ -18,6 +18,7 @@ export interface AuthedUser {
   id: string;
   name: string;
   role?: string;
+  mustChangePassword?: boolean;
 }
 
 export function signToken(config: Config, claims: TokenClaims, expiresIn: string): string {
@@ -47,7 +48,9 @@ async function resolveUser(store: Store, claims: TokenClaims): Promise<AuthedUse
       : null;
   }
   const buyer = await store.get('buyers', claims.sub);
-  return buyer && buyer.verified ? { type: 'retailer', id: buyer.phone, name: buyer.firmName } : null;
+  return buyer && buyer.verified
+    ? { type: 'retailer', id: buyer.phone, name: buyer.firmName, mustChangePassword: Boolean(buyer.mustChangePassword) }
+    : null;
 }
 
 export function createAuth(config: Config, store: Store) {

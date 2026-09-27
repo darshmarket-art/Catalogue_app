@@ -17,7 +17,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const isCatalogueActive = currentScreen === 'catalogue';
   const isCategoriesActive = currentScreen === 'categories';
   const isOrdersActive = currentScreen === 'orders';
-  const isAdminActive = currentScreen === 'admin-hub' || currentScreen === 'admin-orders' || currentScreen === 'admin-login' || currentScreen === 'new-product' || currentScreen === 'add-category';
+  const isAdminActive = ['admin-hub', 'admin-orders', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-buyers'].includes(currentScreen);
 
   return (
     <nav className="fixed bottom-0 w-full z-50 pb-safe bg-surface/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(28,28,26,0.06)] border-t border-outline-variant/30">

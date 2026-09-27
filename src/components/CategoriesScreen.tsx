@@ -5,6 +5,8 @@ import { sector } from '../sector';
 
 interface CategoriesScreenProps {
   categories: Category[];
+  isAdmin: boolean;
+  onEditCategory: (category: Category) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onFilterCategoryInCatalogue: (categoryName: string) => void;
 }
@@ -41,6 +43,8 @@ const PROMO_LOOKS = {
 
 export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   categories,
+  isAdmin,
+  onEditCategory,
   onNavigate: _onNavigate,
   onFilterCategoryInCatalogue
 }) => {
@@ -181,6 +185,12 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
         </div>
       )}
 
+      {filteredCategories.length === 0 && (
+        <p className="py-10 text-center font-sans text-xs text-outline">
+          {categories.length === 0 ? 'No categories have been added yet.' : 'No categories match your search.'}
+        </p>
+      )}
+
       {/* Categories Cards Listing */}
       <div className="flex flex-col gap-3.5 my-2">
         {filteredCategories.map((cat) => (
@@ -198,6 +208,18 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               
+              {isAdmin && (
+                <button
+                  type="button"
+                  aria-label={`Edit ${cat.name}`}
+                  onClick={() => onEditCategory(cat)}
+                  className="absolute top-2.5 right-2.5 z-10 px-2.5 py-1 rounded-full bg-white/95 text-primary font-sans text-[11px] font-bold flex items-center gap-1 shadow-sm active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[14px]">edit</span>
+                  Edit
+                </button>
+              )}
+
               {cat.eligibleKarats[0] && (
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                   <span className="bg-white/95 backdrop-blur-md text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">

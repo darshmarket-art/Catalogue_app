@@ -5,17 +5,35 @@ import type { RequestHandler } from 'express';
 import type { Config } from '../config';
 import type { Store } from '../store';
 import type { createAuth } from '../auth';
-import { audit, handler, newId, parse } from '../http';
-import { heartbeatSchema, inquirySchema, productViewsSchema } from '../schemas';
+import { HttpError, audit, handler, newId, parse } from '../http';
+import { activitySchema, heartbeatSchema, inquirySchema, productViewsSchema } from '../schemas';
+import { actorFor, bumpVisitor, logActivity } from '../visitors';
 import { dayKey, loadDaily, recordDaily, sumDays, trendLabel } from '../stats';
 
 // Visitors ping every 15s; a session counts as live for three missed beats' worth of grace.
 const LIVE_WINDOW_MS = 45 * 1000;
+const HEARTBEAT_MS = 15 * 1000;
 const SESSION_TTL_MS = 2 * 24 * 60 * 60 * 1000;
 const VIEW_EVENT_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const EXPORT_ROW_LIMIT = 5000;
 
 // Spreadsheet apps execute cells starting with these characters as formulas.
+const VISITOR_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+const visitorSummary = (v: Record<string, any>) => ({
+  id: v.actorId,
+  kind: v.kind,
+  name: v.name,
+  lastSeen: new Date(v.lastSeen).toISOString(),
+  activeSeconds: Math.round((Number(v.activeMs) || 0) / 1000),
+  sessions: Number(v.sessions) || 0,
+  productsViewed: Number(v.views) || 0,
+  dwellSeconds: Math.round((Number(v.dwellMs) || 0) / 1000),
+  searches: Number(v.searches) || 0,
+  selections: Number(v.selections) || 0,
+  addedToCart: Number(v.addedToCart) || 0
+});
+
 function csvCell(value: unknown): string {
   let text = String(value ?? '');
   if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
@@ -29,6 +47,8 @@ export function analyticsRoutes(
   auth: Pick<ReturnType<typeof createAuth>, 'tokenType' | 'optionalUser'>
 ) {
   const router = Router();
+
+  const publicCatalogue = config.merchant.catalogueAccess === 'public';
 
   const trackingLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -45,6 +65,7 @@ export function analyticsRoutes(
     handler(async (req, res) => {
       const { sessionId, skus } = parse(productViewsSchema, req.body);
       if (auth.tokenType(req) === 'admin') return res.json({ status: 'success', counted: 0 });
+      const actor = actorFor(await auth.optionalUser(req), sessionId, publicCatalogue);
 
       const day = dayKey();
       const now = Date.now();
@@ -61,7 +82,10 @@ export function analyticsRoutes(
         })
       );
       const counted = results.filter(Boolean).length;
-      if (counted > 0) await recordDaily(store, { views: counted });
+      if (counted > 0) {
+        await recordDaily(store, { views: counted });
+        if (actor) await bumpVisitor(store, actor, { views: counted });
+      }
       res.json({ status: 'success', counted });
     })
   );
@@ -108,6 +132,8 @@ export function analyticsRoutes(
         const earlier = await store.get('sessions', sessionId);
         if (earlier) {
           await store.delete('sessions', sessionId);
+          // The admin's own browsing before they signed in must not show up as a guest visitor.
+          if (earlier.actorId === sessionId) await store.delete('visitors', sessionId);
           await recordDaily(store, { visitors: -1, verifiedVisitors: earlier.everVerified ? -1 : 0 }, new Date(earlier.firstSeen));
         }
       } else {
@@ -115,6 +141,12 @@ export function analyticsRoutes(
         const now = Date.now();
         const expireAt = new Date(now + SESSION_TTL_MS);
         const existing = await store.get('sessions', sessionId);
+
+        // Time actually spent in the app: the gap since the last ping, capped so a closed laptop does not count.
+        const activeMs = existing ? Math.min(Math.max(now - existing.lastPing, 0), 2 * HEARTBEAT_MS) : 0;
+        const actor = actorFor(await auth.optionalUser(req), sessionId, publicCatalogue);
+        // A visit is counted once per person, even when the browser tab was already open as a guest before they signed in.
+        if (actor) await bumpVisitor(store, actor, { activeMs, sessions: existing?.actorId === actor.id ? 0 : 1 });
 
         const isNew =
           !existing &&
@@ -124,6 +156,7 @@ export function analyticsRoutes(
             lastPing: now,
             isVerified: verified,
             everVerified: verified,
+            actorId: actor?.id ?? null,
             expireAt
           }));
 
@@ -134,6 +167,7 @@ export function analyticsRoutes(
           await store.update('sessions', sessionId, {
             lastPing: now,
             isVerified: verified,
+            actorId: actor?.id ?? null,
             expireAt,
             ...(firstVerification ? { everVerified: true } : {})
           });
@@ -141,6 +175,87 @@ export function analyticsRoutes(
         }
       }
       res.json({ status: 'success' });
+    })
+  );
+
+  // What each buyer looks at: time on each product, searches and selections. Admin browsing is excluded.
+  router.post(
+    '/analytics/activity',
+    trackingLimiter,
+    handler(async (req, res) => {
+      const { sessionId, events } = parse(activitySchema, req.body);
+      const actor = actorFor(await auth.optionalUser(req), sessionId, publicCatalogue);
+      if (!actor) return res.json({ status: 'success', recorded: 0 });
+
+      const totals = { dwellMs: 0, searches: 0, selections: 0 };
+      for (const event of events) {
+        await logActivity(store, actor, event);
+        if (event.type === 'dwell') totals.dwellMs += event.ms;
+        else if (event.type === 'search') totals.searches += 1;
+        else if (event.type === 'select') totals.selections += 1;
+      }
+      await bumpVisitor(store, actor, totals);
+      res.json({ status: 'success', recorded: events.length });
+    })
+  );
+
+  // The people behind the Admin Hub counts. "guest" only exists when the catalogue is public.
+  router.get(
+    '/admin/visitors',
+    requireAdmin,
+    handler(async (req, res) => {
+      const kind = ['verified', 'guest'].includes(String(req.query.kind)) ? String(req.query.kind) : 'all';
+      const since = Date.now() - VISITOR_WINDOW_MS;
+      const rows = (await store.list('visitors', { where: [{ field: 'lastSeen', op: '>', value: since }] }))
+        .filter((v) => kind === 'all' || v.kind === kind)
+        .sort((a, b) => b.lastSeen - a.lastSeen)
+        .slice(0, 200);
+      res.json({ status: 'success', windowDays: 30, count: rows.length, data: rows.map(visitorSummary) });
+    })
+  );
+
+  router.get(
+    '/admin/visitors/:actorId',
+    requireAdmin,
+    handler(async (req, res) => {
+      const visitor = await store.get('visitors', req.params.actorId);
+      if (!visitor) throw new HttpError(404, 'Visitor not found.');
+      const [events, products] = await Promise.all([
+        store.list('activityEvents', { where: [{ field: 'actorId', op: '==', value: visitor.actorId }] }),
+        store.list('products')
+      ]);
+      const bySku = new Map(products.map((p) => [p.sku, p]));
+      const titleOf = (sku: string) => bySku.get(sku)?.title ?? sku;
+      events.sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+
+      const viewed = new Map<string, { sku: string; title: string; seconds: number; lastAt: string }>();
+      const searched = new Map<string, { term: string; count: number; lastAt: string }>();
+      const picked = new Map<string, { sku: string; title: string; count: number; lastAt: string }>();
+      for (const e of events) {
+        if (e.type === 'dwell') {
+          const row = viewed.get(e.sku) ?? { sku: e.sku, title: titleOf(e.sku), seconds: 0, lastAt: e.ts };
+          row.seconds += Math.round(e.ms / 1000);
+          viewed.set(e.sku, row);
+        } else if (e.type === 'search') {
+          const key = String(e.term).toLowerCase();
+          const row = searched.get(key) ?? { term: e.term, count: 0, lastAt: e.ts };
+          row.count += 1;
+          searched.set(key, row);
+        } else if (e.type === 'select' || e.type === 'cart') {
+          const row = picked.get(e.sku) ?? { sku: e.sku, title: titleOf(e.sku), count: 0, lastAt: e.ts };
+          row.count += 1;
+          picked.set(e.sku, row);
+        }
+      }
+      res.json({
+        status: 'success',
+        data: {
+          ...visitorSummary(visitor),
+          products: [...viewed.values()].sort((a, b) => b.seconds - a.seconds).slice(0, 50),
+          searchTerms: [...searched.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt)).slice(0, 50),
+          picked: [...picked.values()].sort((a, b) => b.count - a.count).slice(0, 50)
+        }
+      });
     })
   );
 

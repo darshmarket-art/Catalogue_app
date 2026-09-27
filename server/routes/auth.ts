@@ -1,13 +1,15 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import type { Config } from '../config';
 import type { Store } from '../store';
-import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, verifyPassword } from '../auth';
+import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, user, verifyPassword } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import {
   adminLoginSchema,
   adminRegisterSchema,
+  changePasswordSchema,
   retailerLoginSchema,
   retailerSignupSchema
 } from '../schemas';
@@ -17,7 +19,7 @@ const HOUR = 60 * 60 * 1000;
 
 const limited = (message: string) => ({ status: 'error', message });
 
-export function authRoutes(config: Config, store: Store) {
+export function authRoutes(config: Config, store: Store, requireRetailer: RequestHandler) {
   const router = Router();
 
   const loginLimiter = rateLimit({
@@ -50,7 +52,8 @@ export function authRoutes(config: Config, store: Store) {
     gstin: m.gstin,
     phone: m.phone,
     marketHub: m.marketHub,
-    verified: m.verified
+    verified: m.verified,
+    mustChangePassword: Boolean(m.mustChangePassword)
   });
 
   router.post(
@@ -115,6 +118,24 @@ export function authRoutes(config: Config, store: Store) {
         token: signToken(config, { type: 'retailer', sub: buyer.phone }, RETAILER_TOKEN_TTL),
         user: buyerView(buyer)
       });
+    })
+  );
+
+  router.post(
+    '/retailer/change-password',
+    loginLimiter,
+    requireRetailer,
+    handler(async (req, res) => {
+      const body = parse(changePasswordSchema, req.body);
+      const buyer = await store.get('buyers', user(res).id);
+      if (!buyer || !(await verifyPassword(body.currentPassword, buyer.password))) {
+        throw new HttpError(401, 'Your current password is not correct.');
+      }
+      if (body.newPassword === body.currentPassword) throw new HttpError(400, 'Choose a password different from the current one.');
+
+      await store.update('buyers', buyer.phone, { password: await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS), mustChangePassword: false });
+      await audit(store, req, 'RETAILER_PASSWORD_CHANGED', `Password changed by ${buyer.firmName} (${buyer.phone}).`);
+      res.json({ status: 'success', message: 'Password updated.' });
     })
   );
 

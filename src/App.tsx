@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ActiveScreen, Product, Category, OrderItem, AnalyticsData } from './types';
+import { ActiveScreen, Product, Category, OrderItem, AnalyticsData, VisitorKind } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
 import { sector } from './sector';
@@ -15,6 +15,9 @@ import { AdminHubScreen } from './components/AdminHubScreen';
 import { AdminOrdersScreen } from './components/AdminOrdersScreen';
 import { NewProductScreen } from './components/NewProductScreen';
 import { AddCategoryScreen } from './components/AddCategoryScreen';
+import { AdminVisitorsScreen } from './components/AdminVisitorsScreen';
+import { AdminBuyersScreen } from './components/AdminBuyersScreen';
+import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import { QuotationModal } from './components/QuotationModal';
 
 export default function App() {
@@ -43,6 +46,12 @@ export default function App() {
     newOrders: 0
   });
   const [analyticsUpdatedAt, setAnalyticsUpdatedAt] = useState<Date | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [visitorKind, setVisitorKind] = useState<VisitorKind>('all');
+  // Set when the owner has reset this buyer's password: they must choose a new one before using the catalogue.
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [currentMerchant, setCurrentMerchant] = useState<{ storeName: string; phone: string } | null>(null);
@@ -81,6 +90,7 @@ export default function App() {
       .then((session) => {
         if (session?.type === 'retailer') {
           setCurrentMerchant(session.user);
+          setMustChangePassword(session.mustChangePassword);
           api.getOrders().then((result) => setOrders(result.items));
         } else if (session?.type === 'admin') {
           setIsAdminLoggedIn(true);
@@ -182,9 +192,12 @@ export default function App() {
   };
 
   // Confirm Order (Pure Gram Settlement Allocation)
-  const handleConfirmOrder = async (): Promise<{ poId: string } | null> => {
+  const handleConfirmOrder = async (): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null> => {
     try {
-      return await api.confirmOrder();
+      const result = await api.confirmOrder();
+      // The server has turned the batch into an order; the next batch starts empty.
+      setOrders([]);
+      return result;
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
@@ -225,10 +238,17 @@ export default function App() {
     setIsQuotationOpen(true);
   };
 
-  // New Product created: resolves true only when the server accepted it
-  const handleProductCreated = async (newProd: Partial<Product>): Promise<boolean> => {
+  // Product saved (new or edited): resolves true only when the server accepted it
+  const handleProductSaved = async (prod: Partial<Product>, id?: string): Promise<boolean> => {
     try {
-      const created = await api.createProduct(newProd);
+      if (id) {
+        const updated = await api.updateProduct(id, prod);
+        setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        // A product can move between categories, so take the counts from the server.
+        api.getCategories().then((cats) => cats.length > 0 && setCategories(cats));
+        return true;
+      }
+      const created = await api.createProduct(prod);
       setProducts((prev) => [created, ...prev]);
       // The server counts designs per category; keep the on-screen count in step without a reload.
       setCategories((prev) => prev.map((c) => (c.name === created.category ? { ...c, designCount: c.designCount + 1 } : c)));
@@ -239,10 +259,29 @@ export default function App() {
     }
   };
 
-  // New Category created: resolves true only when the server accepted it
-  const handleCategoryCreated = async (newCat: Partial<Category>): Promise<boolean> => {
+  const handleProductDeleted = async (product: Product): Promise<boolean> => {
     try {
-      const created = await api.createCategory(newCat);
+      await api.deleteProduct(product.id);
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      setCategories((prev) => prev.map((c) => (c.name === product.category ? { ...c, designCount: Math.max(0, c.designCount - 1) } : c)));
+      return true;
+    } catch (err) {
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the product.');
+      return false;
+    }
+  };
+
+  // Category saved (new or edited): resolves true only when the server accepted it
+  const handleCategorySaved = async (cat: Partial<Category>, id?: string): Promise<boolean> => {
+    try {
+      if (id) {
+        const updated = await api.updateCategory(id, cat);
+        setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+        // A rename carries the category's products along.
+        api.getProducts().then((prods) => prods.length > 0 && setProducts(prods));
+        return true;
+      }
+      const created = await api.createCategory(cat);
       setCategories((prev) => [...prev, created]);
       return true;
     } catch (err) {
@@ -251,8 +290,31 @@ export default function App() {
     }
   };
 
-  const handleFilterCategoryInCatalogue = (_catName: string) => {
+  const handleCategoryDeleted = async (category: Category): Promise<boolean> => {
+    try {
+      await api.deleteCategory(category.id);
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      return true;
+    } catch (err) {
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the category.');
+      return false;
+    }
+  };
+
+  const handleFilterCategoryInCatalogue = (catName: string) => {
+    // Promotion banners pass their own headline, which is not always a category: only filter on real categories.
+    setCategoryFilter(categories.some((c) => c.name === catName) ? catName : null);
     handleNavigate('catalogue');
+  };
+
+  const openProductForm = (product: Product | null) => {
+    setEditingProduct(product);
+    handleNavigate('new-product');
+  };
+
+  const openCategoryForm = (category: Category | null) => {
+    setEditingCategory(category);
+    handleNavigate('add-category');
   };
 
   const handleLogout = () => {
@@ -260,23 +322,33 @@ export default function App() {
     setOrders([]);
     setCurrentMerchant(null);
     setIsAdminLoggedIn(false);
+    setMustChangePassword(false);
+    setEditingProduct(null);
+    setEditingCategory(null);
+    setCategoryFilter(null);
     handleNavigate('welcome');
   };
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers'];
+  const buyerOnlyScreens: ActiveScreen[] = ['change-password'];
   let screen: ActiveScreen = currentScreen;
   if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? 'catalogue' : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
   const activeScreen: ActiveScreen =
-    adminScreens.includes(screen) && !isAdminLoggedIn
-      ? 'admin-login'
-      : memberScreens.includes(screen) && !isSignedIn
-        ? 'retailer-auth'
-        : screen;
+    currentMerchant && mustChangePassword
+      ? 'change-password'
+      : adminScreens.includes(screen) && !isAdminLoggedIn
+        ? 'admin-login'
+        : (memberScreens.includes(screen) || buyerOnlyScreens.includes(screen)) && !isSignedIn
+          ? 'retailer-auth'
+          : buyerOnlyScreens.includes(screen) && !currentMerchant
+            ? 'catalogue'
+            : screen;
 
-  const shouldShowBottomNav = ['catalogue', 'categories', 'orders', 'admin-hub'].includes(activeScreen);
+  const shouldShowBottomNav =
+    ['catalogue', 'categories', 'orders', 'admin-hub'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
 
   if (booting) return <div className="min-h-screen bg-surface" />;
 
@@ -290,6 +362,7 @@ export default function App() {
           isAdminLoggedIn={isAdminLoggedIn}
           currentMerchant={currentMerchant}
           onLogout={handleLogout}
+          isEditing={(activeScreen === 'new-product' && editingProduct !== null) || (activeScreen === 'add-category' && editingCategory !== null)}
         />
       )}
 
@@ -302,6 +375,10 @@ export default function App() {
         {activeScreen === 'catalogue' && (
           <CatalogueScreen
             products={products}
+            isAdmin={isAdminLoggedIn}
+            categoryFilter={categoryFilter}
+            onClearCategoryFilter={() => setCategoryFilter(null)}
+            onEditProduct={openProductForm}
             onAddToOrder={handleAddToOrder}
             onOpenQuotation={handleOpenQuotation}
             onNavigateCategories={() => handleNavigate('categories')}
@@ -311,6 +388,8 @@ export default function App() {
         {activeScreen === 'categories' && (
           <CategoriesScreen
             categories={categories}
+            isAdmin={isAdminLoggedIn}
+            onEditCategory={openCategoryForm}
             onNavigate={handleNavigate}
             onFilterCategoryInCatalogue={handleFilterCategoryInCatalogue}
           />
@@ -329,8 +408,9 @@ export default function App() {
         {activeScreen === 'retailer-auth' && (
           <RetailerAuthScreen
             onNavigate={(next) => handleNavigate(next, true)}
-            onLoginSuccess={(user) => {
+            onLoginSuccess={(user, mustChange) => {
               setCurrentMerchant(user);
+              setMustChangePassword(mustChange);
               handleNavigate('catalogue', true);
               api.getOrders().then((result) => setOrders(result.items));
             }}
@@ -349,26 +429,58 @@ export default function App() {
 
         {activeScreen === 'admin-orders' && <AdminOrdersScreen />}
 
+        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen initialKind={visitorKind} />}
+
+        {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
+
+        {activeScreen === 'change-password' && (
+          <ChangePasswordScreen
+            required={mustChangePassword}
+            onDone={() => {
+              setMustChangePassword(false);
+              alert('Your password has been changed.');
+              handleNavigate('catalogue', true);
+            }}
+            onCancel={() => handleNavigate('catalogue')}
+          />
+        )}
+
         {activeScreen === 'admin-hub' && (
           <AdminHubScreen
             analytics={analytics}
             updatedAt={analyticsUpdatedAt}
             onNavigate={handleNavigate}
+            onOpenVisitors={(kind) => {
+              setVisitorKind(kind);
+              handleNavigate('admin-visitors');
+            }}
           />
         )}
 
         {activeScreen === 'new-product' && (
           <NewProductScreen
+            key={editingProduct?.id ?? 'new'}
             categories={categories}
-            onNavigate={handleNavigate}
-            onProductCreated={handleProductCreated}
+            editing={editingProduct}
+            onNavigate={(next) => {
+              if (next !== 'add-category') setEditingProduct(null);
+              handleNavigate(next);
+            }}
+            onSave={handleProductSaved}
+            onDelete={handleProductDeleted}
           />
         )}
 
         {activeScreen === 'add-category' && (
           <AddCategoryScreen
-            onNavigate={handleNavigate}
-            onCategoryCreated={handleCategoryCreated}
+            key={editingCategory?.id ?? 'new'}
+            editing={editingCategory}
+            onNavigate={(next) => {
+              setEditingCategory(null);
+              handleNavigate(next);
+            }}
+            onSave={handleCategorySaved}
+            onDelete={handleCategoryDeleted}
           />
         )}
       </main>

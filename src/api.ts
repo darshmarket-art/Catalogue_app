@@ -1,4 +1,16 @@
-import { Product, Category, OrderItem, AnalyticsData, AdminOrder, OrderStatus } from './types';
+import {
+  Product,
+  Category,
+  OrderItem,
+  AnalyticsData,
+  AdminOrder,
+  OrderStatus,
+  PastOrder,
+  VisitorSummary,
+  VisitorDetail,
+  VisitorKind,
+  BuyerRow
+} from './types';
 import { merchant } from './merchant';
 
 export class ApiError extends Error {
@@ -46,7 +58,7 @@ export const setAuthToken = (token: string | null) => {
 export const hasStoredSession = () => authToken !== null;
 
 export type RestoredSession =
-  | { type: 'retailer'; user: { storeName: string; phone: string } }
+  | { type: 'retailer'; user: { storeName: string; phone: string }; mustChangePassword: boolean }
   | { type: 'admin' }
   | null;
 
@@ -114,6 +126,30 @@ export function trackProductView(sku: string) {
   flushTimer ??= window.setTimeout(flushProductViews, 2000);
 }
 
+type ActivityEvent = { type: 'dwell'; sku: string; ms: number } | { type: 'search'; term: string } | { type: 'select'; sku: string };
+const pendingEvents: ActivityEvent[] = [];
+const pendingDwell = new Map<string, number>();
+
+/** Sends what the visitor has looked at since the last flush. Never blocks or breaks the UI. */
+export function flushActivity() {
+  for (const [sku, ms] of pendingDwell) pendingEvents.push({ type: 'dwell', sku, ms });
+  pendingDwell.clear();
+  if (pendingEvents.length === 0) return;
+  const events = pendingEvents.splice(0, 60);
+  // Signed-in buyers are recorded under their account; in a public catalogue a guest is recorded by browser session.
+  fetch('/api/analytics/activity', {
+    method: 'POST',
+    keepalive: true,
+    headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+    body: JSON.stringify({ sessionId: getSessionId(), events })
+  }).catch(() => {});
+}
+
+/** Time a product was on screen (milliseconds); merged per product and sent with the next flush. */
+export const trackDwell = (sku: string, ms: number) => pendingDwell.set(sku, (pendingDwell.get(sku) ?? 0) + ms);
+export const trackSearch = (term: string) => pendingEvents.push({ type: 'search', term });
+export const trackSelect = (sku: string) => pendingEvents.push({ type: 'select', sku });
+
 export const api = {
   /** Re-checks a stored token with the server; quietly forgets it if it is no longer valid. */
   async restoreSession(): Promise<RestoredSession> {
@@ -123,7 +159,9 @@ export const api = {
       if (res.status === 401) setAuthToken(null);
       if (!res.ok) return null;
       const json = await res.json();
-      return json.type === 'admin' ? { type: 'admin' } : { type: 'retailer', user: json.user };
+      return json.type === 'admin'
+        ? { type: 'admin' }
+        : { type: 'retailer', user: json.user, mustChangePassword: Boolean(json.mustChangePassword) };
     } catch {
       return null;
     }
@@ -141,6 +179,31 @@ export const api = {
     return (await post('/api/categories', cat)).data;
   },
 
+  async updateCategory(id: string, cat: Partial<Category>): Promise<Category> {
+    return (await request(`/api/categories/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(cat) })).data;
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    await request(`/api/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  /** Sends the original photo, untouched, to the merchant's storage. Returns the stored reference and a display link. */
+  async uploadPhoto(file: File): Promise<{ ref: string; url: string }> {
+    const res = await fetch('/api/admin/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+      body: file
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      setAuthToken(null);
+      onUnauthorized?.();
+      throw new ApiError(401, 'Your session has expired.', true);
+    }
+    if (!res.ok || json.status === 'error') throw new ApiError(res.status, json.message || 'The photo could not be uploaded.');
+    return json.data;
+  },
+
   async getProducts(params?: { search?: string; category?: string; purity?: string }): Promise<Product[]> {
     try {
       const query = new URLSearchParams(params as Record<string, string>).toString();
@@ -152,6 +215,42 @@ export const api = {
 
   async createProduct(prod: Partial<Product>): Promise<Product> {
     return (await post('/api/products', prod)).data;
+  },
+
+  async updateProduct(id: string, prod: Partial<Product>): Promise<Product> {
+    return (await request(`/api/products/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(prod) })).data;
+  },
+
+  async deleteProduct(id: string): Promise<void> {
+    await request(`/api/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  async getOrderHistory(): Promise<PastOrder[]> {
+    try {
+      return (await request('/api/orders/history')).data;
+    } catch {
+      return [];
+    }
+  },
+
+  async getVisitors(kind: VisitorKind): Promise<VisitorSummary[]> {
+    return (await request(`/api/admin/visitors?kind=${kind}`)).data;
+  },
+
+  async getVisitor(id: string): Promise<VisitorDetail> {
+    return (await request(`/api/admin/visitors/${encodeURIComponent(id)}`)).data;
+  },
+
+  async getBuyers(): Promise<BuyerRow[]> {
+    return (await request('/api/admin/buyers')).data;
+  },
+
+  async resetBuyerPassword(phone: string): Promise<{ firmName: string; temporaryPassword: string }> {
+    return (await post(`/api/admin/buyers/${encodeURIComponent(phone)}/reset-password`)).data;
+  },
+
+  async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
+    await post('/api/auth/retailer/change-password', payload);
   },
 
   async getOrders(): Promise<{ items: OrderItem[]; totalWeight: number; totalPieces: number }> {

@@ -281,12 +281,12 @@ describe('catalogue', () => {
     expect(page.body.count).toBe(6);
   });
 
-  it('lets admins add products, rejecting non-http image URLs', async () => {
+  it('lets admins add products, rejecting non-http photo links', async () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    const base = { title: 'New Haar', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5' };
-    const bad = await request(app).post('/api/products').set(auth).send({ ...base, image: 'javascript:alert(1)' });
+    const base = { title: 'New Haar', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5', images: ['https://example.com/haar.jpg'] };
+    const bad = await request(app).post('/api/products').set(auth).send({ ...base, images: ['javascript:alert(1)'] });
     expect(bad.status).toBe(400);
     const ok = await request(app).post('/api/products').set(auth).send(base);
     expect(ok.status).toBe(201);
@@ -709,7 +709,14 @@ describe('session restore (/api/auth/me)', () => {
 });
 
 describe('jewellery products (nothing invented)', () => {
-  const full = { title: 'Test Haar', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5' };
+  const full = {
+    title: 'Test Haar',
+    category: 'Bridal Chokers & Haar',
+    purity: '22K 916',
+    grossWt: '50',
+    stoneWt: '5',
+    images: ['https://example.com/haar.jpg']
+  };
 
   it('stores only what the merchant entered: no random HUID, price or making charge', async () => {
     const app = await build();
@@ -717,8 +724,8 @@ describe('jewellery products (nothing invented)', () => {
     const res = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send(full);
     expect(res.status).toBe(201);
     expect(res.body.data.netWt).toBe(45);
-    for (const invented of ['huid', 'priceEstimate', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
-    expect(res.body.data.image).toMatch(/^data:image\/svg\+xml/);
+    for (const invented of ['huid', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
+    expect(res.body.data.priceMode).toBe('on_request');
     expect(res.body.data.sku).toMatch(/^SKU-/);
   });
 
@@ -728,8 +735,8 @@ describe('jewellery products (nothing invented)', () => {
     const res = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
-      .send({ ...full, huid: 'HM/C-123456', priceEstimate: '250000', makingChargePerGram: '400', sku: 'MY-SKU-1' });
-    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', priceEstimate: 250000, makingChargePerGram: 400, sku: 'MY-SKU-1' });
+      .send({ ...full, huid: 'HM/C-123456', priceMode: 'fixed', fixedPrice: '250000', sku: 'MY-SKU-1' });
+    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', priceMode: 'fixed', fixedPrice: 250000, sku: 'MY-SKU-1' });
   });
 
   it('requires the details a jeweller must state, and rejects impossible weights', async () => {
@@ -758,7 +765,7 @@ describe('jewellery products (nothing invented)', () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    await request(app).post('/api/categories').set(auth).send({ name: 'Brand New Line' });
+    await request(app).post('/api/categories').set(auth).send({ name: 'Brand New Line', image: 'https://example.com/line.jpg' });
     let cats = (await request(app).get('/api/categories').set(auth)).body.data;
     expect(cats.find((c: any) => c.name === 'Brand New Line').designCount).toBe(0);
     expect(cats.find((c: any) => c.name === 'Bridal Chokers & Haar').designCount).toBe(2);
@@ -768,11 +775,14 @@ describe('jewellery products (nothing invented)', () => {
     expect(cats.find((c: any) => c.name === 'Brand New Line').designCount).toBe(1);
   });
 
-  it('a new category gets a neutral placeholder photo and no invented purities', async () => {
+  it('a new category has exactly one photo and no invented purities', async () => {
     const app = await build();
     const { token } = await createAdmin(app);
-    const res = await request(app).post('/api/categories').set('Authorization', `Bearer ${token}`).send({ name: 'Lockets' });
-    expect(res.body.data.image).toMatch(/^data:image\/svg\+xml/);
+    const auth = { Authorization: `Bearer ${token}` };
+    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Lockets' })).status).toBe(400);
+    const res = await request(app).post('/api/categories').set(auth).send({ name: 'Lockets', image: 'https://example.com/l.jpg' });
+    expect(res.status).toBe(201);
+    expect(res.body.data.image).toBe('https://example.com/l.jpg');
     expect(res.body.data.eligibleKarats).toEqual([]);
   });
 

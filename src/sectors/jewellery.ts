@@ -1,4 +1,4 @@
-import { PURITY_KEYS, PURITY_LABELS } from '../../shared/jewellery';
+import { PRICE_MODES, PURITY_KEYS, PURITY_LABELS } from '../../shared/jewellery';
 import type { OrderItem, Product } from '../types';
 
 /**
@@ -9,10 +9,29 @@ export const jewelleryPack = {
   id: 'jewellery' as const,
 
   purities: PURITY_KEYS.map((key) => ({ key, ...PURITY_LABELS[key] })),
+  /** How a piece can be priced, as the merchant chooses on the product form. */
+  priceModes: PRICE_MODES.map((key) => ({
+    key,
+    ...{
+      weight: { title: 'By weight', sub: 'Gram basis, optional making charge' },
+      fixed: { title: 'Fixed price', sub: 'One price for the piece' },
+      on_request: { title: 'On request', sub: 'Buyer asks for a quote' }
+    }[key]
+  })),
   stockStatuses: [
     { key: 'Ready in Vault', icon: 'verified' },
     { key: 'Made-to-Order', icon: 'hourglass_empty' }
   ],
+
+  /** The price line shown on a product card and its detail sheet, or null when there is nothing to show. */
+  priceLabel(product: Product): string | null {
+    const money = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+    if (product.priceMode === 'fixed' && product.fixedPrice) return money(product.fixedPrice);
+    if (product.priceMode === 'weight') {
+      return product.makingChargePerGram ? `By weight + ${money(product.makingChargePerGram)}/g making` : 'By weight';
+    }
+    return 'Price on request';
+  },
 
   copy: {
     tradingModel: 'Pure Gram Basis',

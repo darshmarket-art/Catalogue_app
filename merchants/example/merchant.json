@@ -36,6 +36,11 @@
     "poPrefix": "PO-ACME"
   },
 
+  "productFields": [
+    { "key": "collection", "label": "Collection", "type": "text" },
+    { "key": "finish", "label": "Finish", "type": "select", "options": ["Matte", "Polished", "Antique"] }
+  ],
+
   "welcome": {
     "features": [
       {

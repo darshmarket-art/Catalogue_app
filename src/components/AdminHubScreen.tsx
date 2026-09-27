@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { ActiveScreen, AnalyticsData } from '../types';
+import { ActiveScreen, AnalyticsData, VisitorKind } from '../types';
 import { api } from '../api';
+import { merchant } from '../merchant';
 
 interface AdminHubScreenProps {
   analytics: AnalyticsData;
   updatedAt: Date | null;
   onNavigate: (screen: ActiveScreen) => void;
+  onOpenVisitors: (kind: VisitorKind) => void;
 }
 
 export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
   analytics,
   updatedAt,
-  onNavigate
+  onNavigate,
+  onOpenVisitors
 }) => {
+  const showGuests = merchant.catalogueAccess === 'public';
   const [downloading, setDownloading] = useState(false);
   const verifiedShare =
     analytics.todayVisitors > 0 ? Math.round((analytics.verifiedToday / analytics.todayVisitors) * 100) : 0;
@@ -117,6 +121,24 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
         </span>
       </button>
 
+      {/* Buyers shortcut */}
+      <button
+        type="button"
+        onClick={() => onNavigate('admin-buyers')}
+        className="w-full p-3.5 rounded-xl bg-white shadow-xs border border-outline-variant/40 flex items-center justify-between text-left active:scale-[0.99] transition-all"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+            <span className="material-symbols-outlined text-[20px]">groups</span>
+          </div>
+          <div>
+            <h2 className="font-serif text-[15px] text-on-surface font-bold leading-tight">Buyers</h2>
+            <p className="font-sans text-xs text-outline">See accounts and help with forgotten passwords</p>
+          </div>
+        </div>
+        <span className="material-symbols-outlined text-outline text-[20px]">chevron_right</span>
+      </button>
+
       {/* Product Listing & Upload Action Card */}
       <div className="p-4 rounded-xl bg-white shadow-xs border border-outline-variant/40 flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
@@ -129,7 +151,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
                 Product Listing & Upload
               </h2>
               <p className="font-sans text-xs text-outline">
-                Upload category designs directly to live B2B catalogue
+                Add designs to the live catalogue. Open any design to edit or delete it.
               </p>
             </div>
           </div>
@@ -138,31 +160,17 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <button
-            onClick={() => onNavigate('new-product')}
-            className="py-3 px-3 rounded-lg bg-primary hover:bg-primary-container text-white font-sans text-xs font-semibold flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 transition-all text-center"
-            type="button"
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[19px]">photo_camera</span>
-              <span>Take Photo</span>
-            </div>
-            <span className="text-[10px] text-white/80 font-normal">AI Karat & Edge Detect</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('new-product')}
-            className="py-3 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-sans text-xs font-semibold flex flex-col items-center justify-center gap-1 active:scale-95 transition-all text-center border border-outline-variant/40"
-            type="button"
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-primary text-[19px]">collections</span>
-              <span>Select from Gallery</span>
-            </div>
-            <span className="text-[10px] text-outline font-normal">Bulk Batch Upload</span>
-          </button>
-        </div>
+        <button
+          onClick={() => onNavigate('new-product')}
+          className="py-3 px-3 rounded-lg bg-primary hover:bg-primary-container text-white font-sans text-xs font-semibold flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 transition-all text-center"
+          type="button"
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[19px]">add_a_photo</span>
+            <span>Add a Design</span>
+          </div>
+          <span className="text-[10px] text-white/80 font-normal">Take or pick photos, then fill in the details</span>
+        </button>
 
         <div className="pt-1 flex items-center justify-between border-t border-surface-container">
           <span className="text-xs text-outline font-sans">Need a new wholesale segment?</span>
@@ -185,7 +193,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
               <h2 className="font-serif text-[15px] text-on-surface font-bold">Visitor Engagement</h2>
             </div>
             <p className="font-sans text-xs text-outline mt-0.5">
-              Live sessions across verified & guest buyers, refreshed every 15 seconds{updatedAt ? ` • updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}
+              Live sessions across {showGuests ? 'verified & guest buyers' : 'verified buyers'}, refreshed every 15 seconds{updatedAt ? ` • updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}
             </p>
           </div>
           <span className="px-2.5 py-1 rounded-full bg-secondary/15 text-secondary font-mono text-[10px] font-bold flex items-center gap-1.5 shadow-2xs">
@@ -194,8 +202,13 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between">
+        <div className={`grid gap-2 ${showGuests ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <button
+            type="button"
+            data-testid="block-all"
+            onClick={() => onOpenVisitors('all')}
+            className="text-left p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between active:scale-[0.98] transition-all"
+          >
             <span className="text-[9px] font-sans text-outline uppercase tracking-wider font-semibold">
               Total Tracked
             </span>
@@ -208,9 +221,14 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
                 {analytics.todayVisitors} Today
               </span>
             </div>
-          </div>
+          </button>
 
-          <div className="p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between">
+          <button
+            type="button"
+            data-testid="block-verified"
+            onClick={() => onOpenVisitors('verified')}
+            className="text-left p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between active:scale-[0.98] transition-all"
+          >
             <span className="text-[9px] font-sans text-primary uppercase tracking-wider font-semibold">
               Verified Merchants
             </span>
@@ -223,9 +241,15 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
                 {verifiedShare}% ({analytics.verifiedToday} Today)
               </span>
             </div>
-          </div>
+          </button>
 
-          <div className="p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between">
+          {showGuests && (
+          <button
+            type="button"
+            data-testid="block-guest"
+            onClick={() => onOpenVisitors('guest')}
+            className="text-left p-2.5 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between active:scale-[0.98] transition-all"
+          >
             <span className="text-[9px] font-sans text-tertiary uppercase tracking-wider font-semibold">
               Guest Retailers
             </span>
@@ -238,8 +262,10 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
                 {analytics.todayVisitors > 0 ? 100 - verifiedShare : 0}% ({Math.max(analytics.todayVisitors - analytics.verifiedToday, 0)} Today)
               </span>
             </div>
-          </div>
+          </button>
+          )}
         </div>
+        <p className="font-sans text-[11px] text-outline">Tap a block to see each buyer's activity: designs viewed and for how long, searches and selections.</p>
       </div>
 
       {/* Export Visitor Audit */}

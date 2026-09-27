@@ -1,116 +1,128 @@
 import React, { useState } from 'react';
 import { ActiveScreen, Category, Product } from '../types';
 import { sector } from '../sector';
+import { merchant } from '../merchant';
+import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 
 interface NewProductScreenProps {
   categories: Category[];
+  /** The product being edited, or null when adding a new one. */
+  editing: Product | null;
   onNavigate: (screen: ActiveScreen) => void;
-  onProductCreated: (newProduct: Partial<Product>) => Promise<boolean>;
+  onSave: (product: Partial<Product>, id?: string) => Promise<boolean>;
+  onDelete: (product: Product) => Promise<boolean>;
 }
 
 const inputBox =
   'bg-surface-container-low p-2.5 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white';
 
-const isHttpUrl = (v: string) => /^https?:\/\/\S+$/i.test(v);
+const card = 'bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3';
+const cardTitle = 'font-mono text-[10px] uppercase tracking-wider text-outline font-bold';
 
-export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, onNavigate, onProductCreated }) => {
-  const [title, setTitle] = useState('');
-  const [sku, setSku] = useState('');
-  const [category, setCategory] = useState('');
-  const [grossWt, setGrossWt] = useState('');
-  const [stoneWt, setStoneWt] = useState('');
-  const [purity, setPurity] = useState('');
-  const [huid, setHuid] = useState('');
-  const [makingCharge, setMakingCharge] = useState('');
-  const [price, setPrice] = useState('');
-  const [stockStatus, setStockStatus] = useState(sector.stockStatuses[0].key);
-  const [imageUrl, setImageUrl] = useState('');
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [publishedSuccess, setPublishedSuccess] = useState(false);
+export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, editing, onNavigate, onSave, onDelete }) => {
+  const [title, setTitle] = useState(editing?.title ?? '');
+  const [sku, setSku] = useState(editing?.sku ?? '');
+  const [category, setCategory] = useState(editing?.category ?? '');
+  const [grossWt, setGrossWt] = useState(editing ? String(editing.grossWt) : '');
+  const [stoneWt, setStoneWt] = useState(editing?.stoneWt ? String(editing.stoneWt) : '');
+  const [purity, setPurity] = useState(editing?.purity ?? '');
+  const [huid, setHuid] = useState(editing?.huid ?? '');
+  const [priceMode, setPriceMode] = useState<NonNullable<Product['priceMode']>>(editing?.priceMode ?? 'on_request');
+  const [makingCharge, setMakingCharge] = useState(editing?.makingChargePerGram ? String(editing.makingChargePerGram) : '');
+  const [fixedPrice, setFixedPrice] = useState(editing?.fixedPrice ? String(editing.fixedPrice) : '');
+  const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
+  const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
+  const [extra, setExtra] = useState<Record<string, string>>(
+    Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)]))
+  );
+  const [uploading, setUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const gross = parseFloat(grossWt);
   const stone = parseFloat(stoneWt) || 0;
   const net = Number.isFinite(gross) ? Math.max(0, gross - stone) : null;
+  const missingExtra = merchant.productFields.find((f) => f.required && !(extra[f.key] ?? '').trim());
 
-  const problem = !title.trim()
-    ? 'Enter a product title'
-    : !category
-      ? 'Choose a category'
-      : !purity
-        ? 'Choose the purity'
-        : !(gross > 0)
-          ? 'Enter the gross weight'
-          : stone >= gross
-            ? 'Stone weight must be less than gross weight'
-            : imageUrl.trim() && !isHttpUrl(imageUrl.trim())
-              ? 'The photo link must start with http:// or https://'
-              : null;
+  const problem = uploading
+    ? 'Photo is uploading…'
+    : photos.length === 0
+      ? 'Add at least one photo'
+      : !title.trim()
+        ? 'Enter a product title'
+        : !category
+          ? 'Choose a category'
+          : !purity
+            ? 'Choose the purity'
+            : !(gross > 0)
+              ? 'Enter the gross weight'
+              : stone >= gross
+                ? 'Stone weight must be less than gross weight'
+                : priceMode === 'fixed' && !(parseFloat(fixedPrice) > 0)
+                  ? 'Enter the fixed price'
+                  : missingExtra
+                    ? `Enter ${missingExtra.label}`
+                    : null;
 
-  const handlePublish = async () => {
+  const handleSave = async () => {
     if (problem) return;
-    setIsPublishing(true);
+    setIsSaving(true);
     const num = (v: string) => (v.trim() === '' ? undefined : parseFloat(v));
-    const ok = await onProductCreated({
-      title: title.trim(),
-      ...(sku.trim() ? { sku: sku.trim() } : {}),
-      category,
-      purity,
-      grossWt: gross,
-      stoneWt: stone,
-      ...(huid.trim() ? { huid: huid.trim() } : {}),
-      ...(num(makingCharge) !== undefined ? { makingChargePerGram: num(makingCharge) } : {}),
-      ...(num(price) !== undefined ? { priceEstimate: num(price) } : {}),
-      stockStatus,
-      ...(imageUrl.trim() ? { image: imageUrl.trim() } : {})
-    });
+    const extraOut = Object.fromEntries(Object.entries(extra).filter(([, v]) => v.trim() !== ''));
+    const ok = await onSave(
+      {
+        title: title.trim(),
+        ...(sku.trim() ? { sku: sku.trim() } : {}),
+        category,
+        purity,
+        grossWt: gross,
+        stoneWt: stone,
+        ...(huid.trim() ? { huid: huid.trim() } : {}),
+        priceMode,
+        ...(priceMode === 'weight' && num(makingCharge) !== undefined ? { makingChargePerGram: num(makingCharge) } : {}),
+        ...(priceMode === 'fixed' ? { fixedPrice: num(fixedPrice) } : {}),
+        stockStatus,
+        images: photos.map((p) => p.ref),
+        extra: extraOut
+      } as Partial<Product>,
+      editing?.id
+    );
     if (ok) {
-      setPublishedSuccess(true);
+      setSaved(true);
       setTimeout(() => onNavigate('catalogue'), 900);
     } else {
-      setIsPublishing(false);
+      setIsSaving(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!editing) return;
+    if (!window.confirm(`Delete "${editing.title}" from the catalogue? This cannot be undone.`)) return;
+    setIsSaving(true);
+    if (await onDelete(editing)) onNavigate('catalogue');
+    else setIsSaving(false);
   };
 
   return (
     <div className="flex flex-col w-full pb-32 max-w-lg mx-auto px-4 pt-3 space-y-4">
-      {publishedSuccess && (
+      {saved && (
         <div className="bg-secondary-container text-on-secondary-fixed p-3 rounded-lg text-xs font-sans border border-secondary flex items-center gap-1.5 animate-fade-in">
           <span className="material-symbols-outlined text-[18px]">done_all</span>
-          <span>Published to the live catalogue.</span>
+          <span>{editing ? 'Changes saved.' : 'Published to the live catalogue.'}</span>
         </div>
       )}
 
-      {/* Photo */}
-      <div className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-outline font-bold">Photo</span>
-        <div className="flex gap-3 items-start">
-          <div className="w-24 h-28 rounded-xl bg-surface-container overflow-hidden shrink-0 border border-outline-variant/40 flex items-center justify-center">
-            {isHttpUrl(imageUrl.trim()) ? (
-              <img alt="Preview" className="w-full h-full object-cover" src={imageUrl.trim()} referrerPolicy="no-referrer" />
-            ) : (
-              <span className="material-symbols-outlined text-[28px] text-outline">add_a_photo</span>
-            )}
-          </div>
-          <div className="flex flex-col space-y-1 flex-1 min-w-0">
-            <label className="text-xs font-sans font-semibold text-on-surface">Photo link (optional)</label>
-            <input
-              className={inputBox}
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://…"
-              inputMode="url"
-            />
-            <p className="text-[11px] font-sans text-outline leading-snug">
-              Uploading photos from your phone is coming soon. Until then, paste a link to the photo. Products without a
-              photo show a grey placeholder.
-            </p>
-          </div>
-        </div>
+      {/* Photos */}
+      <div className={card}>
+        <span className={cardTitle}>
+          Photos <span className="text-primary">*</span>
+        </span>
+        <PhotoPicker photos={photos} onChange={setPhotos} max={3} onBusyChange={setUploading} />
       </div>
 
       {/* Core details */}
-      <div className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-outline font-bold">Product details</span>
+      <div className={card}>
+        <span className={cardTitle}>Product details</span>
 
         <div className="flex flex-col space-y-1">
           <label className="text-xs font-sans font-semibold text-on-surface">
@@ -120,7 +132,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         </div>
 
         <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">SKU (optional)</label>
+          <label className="text-xs font-sans font-semibold text-on-surface">SKU {editing ? '' : '(optional)'}</label>
           <input
             className={`${inputBox} font-mono`}
             value={sku}
@@ -155,7 +167,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       </div>
 
       {/* Weights */}
-      <div className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
+      <div className={card}>
         <div className="flex items-center gap-1.5">
           <span className="material-symbols-outlined text-[19px] text-primary">scale</span>
           <span className="text-xs font-sans font-bold text-on-surface">Weight</span>
@@ -181,8 +193,8 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       </div>
 
       {/* Purity & hallmark */}
-      <div className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-outline font-bold">
+      <div className={card}>
+        <span className={cardTitle}>
           Purity <span className="text-primary">*</span>
         </span>
         <div className="grid grid-cols-2 gap-2">
@@ -212,24 +224,82 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         </div>
       </div>
 
-      {/* Pricing (optional) */}
-      <div className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-outline font-bold">Pricing (optional)</span>
-        <div className="grid grid-cols-2 gap-3">
+      {/* Pricing */}
+      <div className={card}>
+        <span className={cardTitle}>Pricing</span>
+        <div className="grid grid-cols-1 gap-2">
+          {sector.priceModes.map((mode) => (
+            <button
+              key={mode.key}
+              type="button"
+              onClick={() => setPriceMode(mode.key)}
+              className={`p-2.5 rounded-lg flex items-center justify-between text-left transition-all border ${
+                priceMode === mode.key
+                  ? 'bg-primary-fixed/30 border-primary-container/60'
+                  : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container-high'
+              }`}
+            >
+              <div className="flex flex-col">
+                <span className="font-sans text-xs font-bold text-on-surface">{mode.title}</span>
+                <span className="text-[10px] text-outline">{mode.sub}</span>
+              </div>
+              <span className="material-symbols-outlined text-[18px] text-primary">
+                {priceMode === mode.key ? 'radio_button_checked' : 'radio_button_unchecked'}
+              </span>
+            </button>
+          ))}
+        </div>
+        {priceMode === 'weight' && (
           <div className="flex flex-col space-y-1">
-            <label className="text-[11px] font-sans text-outline">Making charge per gram</label>
+            <label className="text-[11px] font-sans text-outline">Making charge per gram (₹, optional)</label>
             <input className={`${inputBox} font-mono`} value={makingCharge} onChange={(e) => setMakingCharge(e.target.value)} inputMode="decimal" placeholder="—" />
           </div>
+        )}
+        {priceMode === 'fixed' && (
           <div className="flex flex-col space-y-1">
-            <label className="text-[11px] font-sans text-outline">Price estimate</label>
-            <input className={`${inputBox} font-mono`} value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder="—" />
+            <label className="text-[11px] font-sans text-outline">
+              Price (₹) <span className="text-primary">*</span>
+            </label>
+            <input className={`${inputBox} font-mono`} value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} inputMode="decimal" placeholder="0" />
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Merchant-defined details */}
+      {merchant.productFields.length > 0 && (
+        <div className={card}>
+          <span className={cardTitle}>More details</span>
+          {merchant.productFields.map((field) => (
+            <div key={field.key} className="flex flex-col space-y-1">
+              <label className="text-xs font-sans font-semibold text-on-surface">
+                {field.label}
+                {field.unit ? ` (${field.unit})` : ''} {field.required && <span className="text-primary">*</span>}
+              </label>
+              {field.type === 'select' ? (
+                <select className={inputBox} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
+                  <option value="">Select</option>
+                  {field.options?.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={inputBox}
+                  value={extra[field.key] ?? ''}
+                  inputMode={field.type === 'number' ? 'decimal' : 'text'}
+                  onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Stock */}
-      <div className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3 mb-2">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-outline font-bold">Availability</span>
+      <div className={`${card} mb-2`}>
+        <span className={cardTitle}>Availability</span>
         <div className="grid grid-cols-2 gap-2">
           {sector.stockStatuses.map((s) => (
             <button
@@ -249,6 +319,18 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         </div>
       </div>
 
+      {editing && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={isSaving}
+          className="w-full py-2.5 rounded-lg border border-error/40 text-error font-sans text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-error-container/40 disabled:opacity-40"
+        >
+          <span className="material-symbols-outlined text-[18px]">delete</span>
+          <span>Delete this product</span>
+        </button>
+      )}
+
       {/* Publish bar */}
       <aside className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-outline-variant/40 shadow-xl">
         <div className="max-w-lg mx-auto h-18 px-4 flex items-center justify-between gap-3">
@@ -256,17 +338,17 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
             <span className="text-[9px] font-mono uppercase tracking-wider text-outline">Status</span>
             <span className={`font-mono text-xs font-bold flex items-center gap-1 ${problem ? 'text-outline' : 'text-secondary'}`}>
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${problem ? 'bg-outline-variant' : 'bg-secondary'}`}></span>
-              <span className="truncate">{problem ?? 'Ready to publish'}</span>
+              <span className="truncate">{problem ?? (editing ? 'Ready to save' : 'Ready to publish')}</span>
             </span>
           </div>
 
           <button
-            onClick={handlePublish}
-            disabled={isPublishing || problem !== null}
+            onClick={handleSave}
+            disabled={isSaving || problem !== null}
             className="flex-1 h-11 rounded-lg bg-secondary hover:bg-secondary-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-sans text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
           >
-            <span className="material-symbols-outlined text-[18px]">publish</span>
-            <span>{isPublishing ? 'Publishing...' : 'Publish to Catalogue'}</span>
+            <span className="material-symbols-outlined text-[18px]">{editing ? 'save' : 'publish'}</span>
+            <span>{isSaving ? 'Saving...' : editing ? 'Save Changes' : 'Publish to Catalogue'}</span>
           </button>
         </div>
       </aside>

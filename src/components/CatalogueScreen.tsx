@@ -1,9 +1,17 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { trackProductView } from '../api';
+import { trackProductView, trackSearch, trackSelect } from '../api';
+import { setOnScreen, clearOnScreen } from '../attention';
+import { sector } from '../sector';
+import { ProductDetailSheet } from './ProductDetailSheet';
 
 interface CatalogueScreenProps {
   products: Product[];
+  isAdmin: boolean;
+  /** Only show designs from this category (set from the Categories screen). */
+  categoryFilter: string | null;
+  onClearCategoryFilter: () => void;
+  onEditProduct: (product: Product) => void;
   onAddToOrder: (product: Product, quantity: number) => void;
   onOpenQuotation: (selectedCount: number, netWeight: number, items: Product[]) => void;
   onNavigateCategories: () => void;
@@ -11,6 +19,10 @@ interface CatalogueScreenProps {
 
 export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   products,
+  isAdmin,
+  categoryFilter,
+  onClearCategoryFilter,
+  onEditProduct,
   onAddToOrder,
   onOpenQuotation,
   onNavigateCategories
@@ -21,7 +33,17 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [selectedPurityFilter, setSelectedPurityFilter] = useState<string>('all');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [openProductId, setOpenProductId] = useState<string | null>(null);
   const gridRef = useRef<HTMLElement>(null);
+  const openProduct = products.find((p) => p.id === openProductId) ?? null;
+
+  // What a buyer searches for tells the owner what they are after. Recorded once they pause typing.
+  useEffect(() => {
+    const term = searchQuery.trim();
+    if (term.length < 2) return;
+    const timer = setTimeout(() => trackSearch(term), 1500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -33,10 +55,11 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       
       const matchesPurity =
         selectedPurityFilter === 'all' || p.purity.includes(selectedPurityFilter);
+      const matchesCategory = !categoryFilter || p.category === categoryFilter;
 
-      return matchesSearch && matchesPurity;
+      return matchesSearch && matchesPurity && matchesCategory;
     });
-  }, [products, searchQuery, selectedPurityFilter]);
+  }, [products, searchQuery, selectedPurityFilter, categoryFilter]);
 
   useEffect(() => {
     const grid = gridRef.current;
@@ -55,6 +78,32 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [filteredProducts]);
+
+  // Which cards are on screen right now, so time spent looking at each product can be measured.
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || !('IntersectionObserver' in window)) return;
+    const seen = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const sku = (entry.target as HTMLElement).dataset.sku;
+          if (!sku) continue;
+          setOnScreen(sku, entry.isIntersecting);
+          if (entry.isIntersecting) seen.add(sku);
+          else seen.delete(sku);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => observer.observe(el));
+    return () => {
+      observer.disconnect();
+      seen.forEach((sku) => setOnScreen(sku, false));
+    };
+  }, [filteredProducts]);
+
+  useEffect(() => clearOnScreen, []);
 
   // Selected Items Calculation
   const { selectedCount, totalNetWeight } = useMemo(() => {
@@ -77,6 +126,8 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
         next.delete(id);
       } else {
         next.add(id);
+        const picked = products.find((p) => p.id === id);
+        if (picked) trackSelect(picked.sku);
       }
       return next;
     });
@@ -141,6 +192,17 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
             </button>
           </div>
         </div>
+
+        {categoryFilter && (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 bg-primary-fixed/40 text-primary font-sans text-[11px] font-bold pl-2.5 pr-1 py-1 rounded-full">
+              {categoryFilter}
+              <button aria-label="Show all designs" onClick={onClearCategoryFilter} className="w-5 h-5 rounded-full hover:bg-primary-fixed flex items-center justify-center">
+                <span className="material-symbols-outlined text-[14px]">close</span>
+              </button>
+            </span>
+          </div>
+        )}
 
         {/* Filter Drawer / Badges */}
         {showFilterDrawer && (
@@ -245,12 +307,20 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
               <div>
                 {/* Product Image Container with Overlays */}
                 <div className="relative w-full aspect-square bg-surface-container rounded-lg overflow-hidden mb-2">
-                  <img
-                    alt={prod.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    src={prod.image}
-                    referrerPolicy="no-referrer"
-                  />
+                  <button type="button" aria-label={`View ${prod.title}`} onClick={() => setOpenProductId(prod.id)} className="block w-full h-full">
+                    <img
+                      alt={prod.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      src={prod.image}
+                      referrerPolicy="no-referrer"
+                    />
+                  </button>
+                  {prod.images.length > 1 && (
+                    <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-0.5 pointer-events-none">
+                      <span className="material-symbols-outlined text-[11px]">photo_library</span>
+                      {prod.images.length}
+                    </span>
+                  )}
                   <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded font-mono text-[9px] font-bold text-primary shadow-xs border border-primary-container/20">
                     {prod.purity}
                   </span>
@@ -279,8 +349,13 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                     SKU: {prod.sku}
                   </span>
                   <h2 className="font-serif text-[13px] leading-tight font-bold text-on-surface line-clamp-1 mt-0.5">
-                    {prod.title}
+                    <button type="button" onClick={() => setOpenProductId(prod.id)} className="text-left">
+                      {prod.title}
+                    </button>
                   </h2>
+                  <span className="font-mono text-[10px] text-primary font-semibold block mt-0.5 line-clamp-1">
+                    {sector.priceLabel(prod)}
+                  </span>
                 </div>
 
                 {/* Micro Spec Grid */}
@@ -341,6 +416,23 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
           );
         })}
       </section>
+
+      <ProductDetailSheet
+        product={openProduct}
+        isAdmin={isAdmin}
+        onClose={() => setOpenProductId(null)}
+        onEdit={(p) => {
+          setOpenProductId(null);
+          onEditProduct(p);
+        }}
+        onAddToOrder={onAddToOrder}
+      />
+
+      {filteredProducts.length === 0 && (
+        <p className="px-4 pb-10 text-center font-sans text-xs text-outline">
+          {products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search.'}
+        </p>
+      )}
 
       {/* Floating Quick Action Pill for WhatsApp Wholesale Quotation */}
       {selectedCount > 0 && (

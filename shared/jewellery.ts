@@ -15,6 +15,10 @@ export const PURITY_LABELS: Record<PurityKey, { title: string; sub: string }> = 
 export const STOCK_STATUSES = ['Ready in Vault', 'Made-to-Order', 'Draft'] as const;
 export type StockStatus = (typeof STOCK_STATUSES)[number];
 
+/** How a piece is priced: by weight (gram basis, optional making charge), a fixed price, or on request. */
+export const PRICE_MODES = ['weight', 'fixed', 'on_request'] as const;
+export type PriceMode = (typeof PRICE_MODES)[number];
+
 const round3 = (n: number) => parseFloat(n.toFixed(3));
 
 /** Net metal weight in grams: gross weight minus stones / tare. */

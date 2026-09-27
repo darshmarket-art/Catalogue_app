@@ -1,15 +1,73 @@
-import React, { useState } from 'react';
-import { OrderItem } from '../types';
+import React, { useEffect, useState } from 'react';
+import { OrderItem, PastOrder } from '../types';
+import { api } from '../api';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
 
 interface OrdersScreenProps {
   orders: OrderItem[];
   onRemoveItem: (id: string) => void;
-  onConfirmOrder: () => Promise<{ poId: string } | null>;
+  onConfirmOrder: () => Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null>;
   onGenerateWhatsAppPO: () => void;
   onNavigateCatalogue: () => void;
 }
+
+const STATUS_LOOKS: Record<string, string> = {
+  new: 'bg-primary-fixed text-on-tertiary-fixed',
+  confirmed: 'bg-secondary-fixed text-on-secondary-fixed',
+  dispatched: 'bg-secondary text-white',
+  cancelled: 'bg-surface-container-high text-outline'
+};
+
+const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
+  if (orders === null) return <p className="text-center text-xs text-outline py-8">Loading your orders…</p>;
+  if (orders.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40 shadow-xs my-4">
+        <span className="material-symbols-outlined text-4xl text-outline mb-2">history</span>
+        <h3 className="font-serif text-base font-bold text-on-surface">No past orders yet</h3>
+        <p className="text-xs text-outline mt-1">Orders you confirm will be listed here.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3" data-testid="past-orders">
+      {orders.map((order) => (
+        <div key={order.poId} className="bg-white rounded-xl shadow-xs border border-outline-variant/40 p-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col min-w-0">
+              <span className="font-mono text-xs font-bold text-on-surface truncate">{order.poId}</span>
+              <span className="font-sans text-[11px] text-outline">
+                {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+              </span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase ${STATUS_LOOKS[order.status] ?? STATUS_LOOKS.new}`}>
+              {order.status}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {order.items.map((item) => (
+              <div key={item.id} className="flex items-center gap-2">
+                <img src={item.image} alt="" className="w-9 h-9 rounded object-cover bg-surface-container flex-shrink-0" referrerPolicy="no-referrer" />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="font-sans text-xs font-semibold text-on-surface truncate">{item.title}</span>
+                  <span className="font-mono text-[10px] text-outline">{item.sku}</span>
+                </div>
+                <span className="font-mono text-[11px] text-on-surface whitespace-nowrap">
+                  {item.batchQty} {item.qtyUnit} · {item.totalNetGold.toFixed(3)} g
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between pt-1.5 border-t border-surface-container text-[11px] font-sans text-outline">
+            <span>{order.itemCount} items</span>
+            <span className="font-mono font-bold text-primary">{order.totalNetGrams.toFixed(3)} g net</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   orders,
@@ -20,6 +78,15 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
 }) => {
   const [isBooked, setIsBooked] = useState(false);
   const [confirmedPO, setConfirmedPO] = useState<string | null>(null);
+  const [bookedGrams, setBookedGrams] = useState(0);
+  const [bookedMessage, setBookedMessage] = useState('');
+  const [tab, setTab] = useState<'current' | 'past'>('current');
+  const [history, setHistory] = useState<PastOrder[] | null>(null);
+
+  // Past orders are fetched when the tab is opened, and again after a new order is booked.
+  useEffect(() => {
+    if (tab === 'past') api.getOrderHistory().then(setHistory);
+  }, [tab, confirmedPO]);
 
   const totalNetGold = orders.reduce((sum, item) => sum + (item.totalNetGold || 0), 0);
   const totalPieces = orders.reduce((sum, item) => sum + (item.batchQty || 1), 0);
@@ -28,6 +95,8 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     const result = await onConfirmOrder();
     if (!result) return;
     setIsBooked(true);
+    setBookedGrams(result.totalNetGrams);
+    setBookedMessage(result.whatsappMessage);
     setConfirmedPO(result.poId);
   };
 
@@ -78,6 +147,21 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-1 p-1 mb-3 bg-surface-container rounded-lg">
+        {(['current', 'past'] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`py-1.5 rounded-md font-sans text-xs font-bold transition-all ${
+              tab === key ? 'bg-white text-primary shadow-xs' : 'text-outline'
+            }`}
+          >
+            {key === 'current' ? 'Current batch' : 'Past orders'}
+          </button>
+        ))}
+      </div>
+
       {/* Confirmation Success Banner */}
       {confirmedPO && (
         <div className="bg-secondary-container border border-secondary rounded-xl p-3.5 text-on-secondary-fixed mb-3 animate-fade-in shadow-sm">
@@ -86,13 +170,23 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
             <span>{sector.copy.orders.bookedBanner}: {confirmedPO}</span>
           </div>
           <p className="text-xs mt-1 text-on-secondary-fixed-variant">
-            {sector.copy.orders.bookedText(totalNetGold.toFixed(3))} {merchant.orders.bookedNote ?? 'booked.'}
+            {sector.copy.orders.bookedText(bookedGrams.toFixed(3))} {merchant.orders.bookedNote ?? 'booked.'}
           </p>
+          <a
+            href={`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(bookedMessage)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-white text-xs font-sans font-bold"
+          >
+            <span className="material-symbols-outlined text-[16px]">send</span>
+            Send confirmation on WhatsApp
+          </a>
         </div>
       )}
 
-      {/* Items List */}
-      {orders.length === 0 ? (
+      {tab === 'past' ? (
+        <PastOrders orders={history} />
+      ) : orders.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40 shadow-xs my-4">
           <span className="material-symbols-outlined text-4xl text-outline mb-2">shopping_bag</span>
           <h3 className="font-serif text-base font-bold text-on-surface">{sector.copy.orders.emptyTitle}</h3>

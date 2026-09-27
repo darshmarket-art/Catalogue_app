@@ -12,6 +12,9 @@ export interface Config {
   storeKind: StoreKind;
   dataFile: string;
   seedDemoCatalogue: boolean;
+  /** Cloud Storage bucket for photos and merchant.json. Unset in development (files go to uploadsDir). */
+  storageBucket: string | null;
+  uploadsDir: string;
   rateLimit: { auth: number; adminRegister: number; api: number; analytics: number };
 }
 
@@ -59,6 +62,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     storeKind,
     dataFile: env.DATA_FILE || 'data/local-db.json',
     seedDemoCatalogue: env.SEED_DEMO_CATALOGUE ? env.SEED_DEMO_CATALOGUE === 'true' : !isProduction,
+    storageBucket: env.STORAGE_BUCKET?.trim() || null,
+    uploadsDir: env.UPLOADS_DIR || 'data/uploads',
     rateLimit: { auth: 10, adminRegister: 5, api: 1000, analytics: 300 }
   };
 }

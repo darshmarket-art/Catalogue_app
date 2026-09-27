@@ -6,7 +6,7 @@ import { sector } from '../sector';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onLoginSuccess: (user: { storeName: string; phone: string }) => void;
+  onLoginSuccess: (user: { storeName: string; phone: string }, mustChangePassword: boolean) => void;
 }
 
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
@@ -48,10 +48,13 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
 
       if (res.status === 'success') {
         setSuccessMessage(`Authenticated as ${res.user.storeName}. Directing to Wholesale Portal...`);
-        onLoginSuccess({
-          storeName: res.user.storeName,
-          phone: res.user.phone
-        });
+        onLoginSuccess(
+          {
+            storeName: res.user.storeName,
+            phone: res.user.phone
+          },
+          Boolean(res.user.mustChangePassword)
+        );
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Access Denied: Incorrect credentials');
@@ -77,10 +80,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
       });
 
       setSuccessMessage('Trade account created successfully! Automatically signing you in...');
-      onLoginSuccess({
-        storeName: res.user.storeName,
-        phone: res.user.phone
-      });
+      onLoginSuccess({ storeName: res.user.storeName, phone: res.user.phone }, false);
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed. Please check your details.');
     } finally {

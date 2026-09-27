@@ -9,6 +9,8 @@ interface HeaderProps {
   isAdminLoggedIn: boolean;
   currentMerchant: { storeName: string; phone: string } | null;
   onLogout: () => void;
+  /** True while an existing product or category is being edited. */
+  isEditing: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,14 +18,20 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   isAdminLoggedIn,
   currentMerchant,
-  onLogout
+  onLogout,
+  isEditing
 }) => {
-  const isSubScreen = ['new-product', 'add-category', 'admin-orders', 'admin-login', 'retailer-auth'].includes(currentScreen);
-  const isAdminView = currentScreen === 'admin-hub' || currentScreen === 'new-product' || currentScreen === 'add-category' || currentScreen === 'admin-orders';
+  const adminSubScreens = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers'];
+  const isSubScreen = [...adminSubScreens, 'admin-login', 'retailer-auth', 'change-password'].includes(currentScreen);
+  const isAdminView = currentScreen === 'admin-hub' || adminSubScreens.includes(currentScreen);
 
   const handleBack = () => {
-    if (currentScreen === 'new-product' || currentScreen === 'add-category' || currentScreen === 'admin-orders') {
+    if (isEditing && (currentScreen === 'new-product' || currentScreen === 'add-category')) {
+      onNavigate(currentScreen === 'new-product' ? 'catalogue' : 'categories');
+    } else if (adminSubScreens.includes(currentScreen)) {
       onNavigate('admin-hub');
+    } else if (currentScreen === 'change-password') {
+      onNavigate('catalogue');
     } else if (currentScreen === 'admin-login' || currentScreen === 'retailer-auth') {
       onNavigate('welcome');
     } else {
@@ -75,9 +83,12 @@ export const Header: React.FC<HeaderProps> = ({
           {isSubScreen && (
             <div className="flex flex-col min-w-0 ml-1">
               <h1 className="font-serif text-[16px] md:text-[18px] font-bold text-on-surface leading-tight truncate">
-                {currentScreen === 'new-product' && 'New Product Listing'}
-                {currentScreen === 'add-category' && 'Add New Category'}
+                {currentScreen === 'new-product' && (isEditing ? 'Edit Product' : 'New Product Listing')}
+                {currentScreen === 'add-category' && (isEditing ? 'Edit Category' : 'Add New Category')}
                 {currentScreen === 'admin-orders' && 'Orders'}
+                {currentScreen === 'admin-visitors' && 'Visitor Engagement'}
+                {currentScreen === 'admin-buyers' && 'Buyers'}
+                {currentScreen === 'change-password' && 'Account'}
                 {currentScreen === 'admin-login' && 'Admin Console'}
                 {currentScreen === 'retailer-auth' && 'B2B Retailer Gateway'}
               </h1>
@@ -98,9 +109,9 @@ export const Header: React.FC<HeaderProps> = ({
           {currentMerchant ? (
             <div className="flex items-center gap-1">
               <button
-                onClick={() => onNavigate('retailer-auth')}
+                onClick={() => onNavigate('change-password')}
                 className="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-fixed text-xs font-sans font-bold flex items-center gap-1 border border-secondary/30"
-                title="Account Settings"
+                title="Account and password"
               >
                 <span className="material-symbols-outlined text-[16px]">verified</span>
                 <span className="max-w-[90px] truncate hidden sm:inline">{currentMerchant.storeName}</span>

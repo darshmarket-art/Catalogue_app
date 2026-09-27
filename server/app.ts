@@ -12,11 +12,16 @@ import { orderRoutes } from './routes/orders';
 import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
+import { adminBuyerRoutes } from './routes/adminBuyers';
+import { mediaRoute, photoUploadRoutes } from './routes/photos';
+import { createBlobs, type Blobs } from './blobs';
+import { createMedia } from './media';
 
-export function createApp(config: Config, store: Store) {
+export function createApp(config: Config, store: Store, blobs: Blobs = createBlobs(config)) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
+  const media = createMedia(config.jwtSecret);
 
   app.disable('x-powered-by');
   // Cloud Run terminates TLS in front of the container; trust exactly one proxy hop for client IPs.
@@ -76,14 +81,24 @@ export function createApp(config: Config, store: Store) {
     if (me.type === 'admin') {
       res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
     } else {
-      res.json({ status: 'success', type: 'retailer', user: { storeName: me.name, phone: me.id } });
+      res.json({
+        status: 'success',
+        type: 'retailer',
+        user: { storeName: me.name, phone: me.id },
+        mustChangePassword: Boolean(me.mustChangePassword)
+      });
     }
   });
 
-  app.use('/api/auth', authRoutes(config, store));
-  app.use('/api', catalogueRoutes(store, pack, auth.requireAdmin, catalogueGuard));
-  app.use('/api/orders', orderRoutes(store, config.merchant, pack, auth.requireRetailer));
-  app.use('/api/admin/orders', adminOrderRoutes(store, auth.requireAdmin));
+  // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
+  app.get('/media/:file', mediaRoute(blobs, media));
+
+  app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
+  app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard }));
+  app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer));
+  app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin));
+  app.use('/api/admin/buyers', adminBuyerRoutes(store, auth.requireAdmin));
+  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));
 
   app.use('/api', notFoundApi);
