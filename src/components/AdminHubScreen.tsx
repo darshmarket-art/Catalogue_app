@@ -91,14 +91,6 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
 
         <div className="flex flex-wrap gap-2 pt-1">
           <button
-            onClick={() => onNavigate('add-category')}
-            type="button"
-            className="px-3.5 py-1.5 rounded-full border border-primary-container/50 bg-primary-fixed/20 text-primary font-sans text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-[15px]">add_circle</span>
-            Add Category
-          </button>
-          <button
             onClick={() => onNavigate('admin-orders')}
             type="button"
             className="px-3.5 py-1.5 rounded-full border border-outline-variant/60 bg-surface text-on-surface font-sans text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
