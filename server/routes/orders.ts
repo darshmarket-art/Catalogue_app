@@ -87,10 +87,17 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, requireRetai
       const poId = `${merchant.orders.poPrefix}-${Math.floor(100000 + Math.random() * 900000)}`;
       const bookedAt = new Date().toISOString();
 
+      // Snapshot of who ordered, so the merchant can contact them even if the account changes later.
+      const buyer = await store.get('merchants', owner.id);
+
       await store.set('purchaseOrders', poId, {
         poId,
+        status: 'new',
         retailerId: owner.id,
         firmName: owner.name,
+        buyer: buyer
+          ? { firmName: buyer.firmName, ownerName: buyer.ownerName, phone: buyer.phone, gstin: buyer.gstin, marketHub: buyer.marketHub }
+          : null,
         totalNetGrams: totalNet,
         itemCount: items.length,
         items: items.map(publicItem),

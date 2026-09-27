@@ -93,6 +93,30 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
         </div>
       </div>
 
+      {/* Orders shortcut */}
+      <button
+        type="button"
+        onClick={() => onNavigate('admin-orders')}
+        className="w-full p-3.5 rounded-xl bg-white shadow-xs border border-outline-variant/40 flex items-center justify-between text-left active:scale-[0.99] transition-all"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+            <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+          </div>
+          <div>
+            <h2 className="font-serif text-[15px] text-on-surface font-bold leading-tight">Orders</h2>
+            <p className="font-sans text-xs text-outline">Review and dispatch buyer orders</p>
+          </div>
+        </div>
+        <span
+          className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold ${
+            analytics.newOrders > 0 ? 'bg-primary-fixed text-on-tertiary-fixed' : 'bg-secondary-fixed text-on-secondary-fixed'
+          }`}
+        >
+          {analytics.newOrders} New
+        </span>
+      </button>
+
       {/* Product Listing & Upload Action Card */}
       <div className="p-4 rounded-xl bg-white shadow-xs border border-outline-variant/40 flex flex-col gap-2.5">
         <div className="flex items-center justify-between">

@@ -148,10 +148,11 @@ export function analyticsRoutes(
     '/analytics',
     requireAdmin,
     handler(async (_req, res) => {
-      const [stats, live, drafts] = await Promise.all([
+      const [stats, live, drafts, newOrders] = await Promise.all([
         loadDaily(store, 14),
         store.list('sessions', { where: [{ field: 'lastPing', op: '>', value: Date.now() - LIVE_WINDOW_MS }] }),
-        store.list('products', { where: [{ field: 'stockStatus', op: '==', value: 'Draft' }] })
+        store.list('products', { where: [{ field: 'stockStatus', op: '==', value: 'Draft' }] }),
+        store.list('purchaseOrders', { where: [{ field: 'status', op: '==', value: 'new' }] })
       ]);
 
       const week = (field: string) => sumDays(stats, field, 0, 7);
@@ -172,7 +173,8 @@ export function analyticsRoutes(
           guestRetailers: live.length - liveVerified,
           todayVisitors: sumDays(stats, 'visitors', 0, 1),
           verifiedToday: sumDays(stats, 'verifiedVisitors', 0, 1),
-          pendingDrafts: drafts.length
+          pendingDrafts: drafts.length,
+          newOrders: newOrders.length
         }
       });
     })

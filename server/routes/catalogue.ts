@@ -10,11 +10,12 @@ const DEFAULT_IMAGE =
 const byCreatedAt = (dir: 1 | -1) => (a: any, b: any) =>
   dir * String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
 
-export function catalogueRoutes(store: Store, requireAdmin: RequestHandler) {
+export function catalogueRoutes(store: Store, requireAdmin: RequestHandler, readGuard: RequestHandler) {
   const router = Router();
 
   router.get(
     '/categories',
+    readGuard,
     handler(async (_req, res) => {
       const data = (await store.list('categories')).sort(byCreatedAt(1));
       res.json({ status: 'success', count: data.length, data });
@@ -49,6 +50,7 @@ export function catalogueRoutes(store: Store, requireAdmin: RequestHandler) {
 
   router.get(
     '/products',
+    readGuard,
     handler(async (req, res) => {
       const { limit, offset } = parse(paginationSchema, req.query);
       const { search, category, purity } = req.query;

@@ -73,10 +73,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
       {/* Primary CTA Buttons */}
       <div className="w-full flex flex-col space-y-2.5 mt-2">
         <button
-          onClick={() => onNavigate('retailer-auth')}
+          onClick={() => onNavigate(merchant.catalogueAccess === 'public' ? 'catalogue' : 'retailer-auth')}
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-primary-fixed-dim to-primary-container text-on-surface font-sans font-bold text-[14px] flex items-center justify-center space-x-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all"
         >
-          <span className="material-symbols-outlined text-[19px]">lock</span>
+          <span className="material-symbols-outlined text-[19px]">{merchant.catalogueAccess === 'public' ? 'lock_open' : 'lock'}</span>
           <span className="tracking-wide uppercase">ENTER WHOLESALE PORTAL</span>
           <span className="material-symbols-outlined text-[19px]">arrow_forward</span>
         </button>

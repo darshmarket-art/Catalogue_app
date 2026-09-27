@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ActiveScreen, Product, Category, OrderItem, AnalyticsData } from './types';
-import { api, ApiError, setAuthToken } from './api';
+import { api, ApiError, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -11,6 +11,7 @@ import { OrdersScreen } from './components/OrdersScreen';
 import { RetailerAuthScreen } from './components/RetailerAuthScreen';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
 import { AdminHubScreen } from './components/AdminHubScreen';
+import { AdminOrdersScreen } from './components/AdminOrdersScreen';
 import { NewProductScreen } from './components/NewProductScreen';
 import { AddCategoryScreen } from './components/AddCategoryScreen';
 import { QuotationModal } from './components/QuotationModal';
@@ -32,12 +33,14 @@ export default function App() {
     verifiedToday: 0,
     verifiedMerchants: 0,
     guestRetailers: 0,
-    pendingDrafts: 0
+    pendingDrafts: 0,
+    newOrders: 0
   });
   const [analyticsUpdatedAt, setAnalyticsUpdatedAt] = useState<Date | null>(null);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [currentMerchant, setCurrentMerchant] = useState<{ storeName: string; phone: string } | null>(null);
+  const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
   
   // Quotation Modal state
   const [isQuotationOpen, setIsQuotationOpen] = useState(false);
@@ -54,6 +57,15 @@ export default function App() {
   const handleNavigate = (screen: ActiveScreen) => {
     setCurrentScreen(screen);
   };
+
+  // Any request that finds the token expired or revoked signs the user out once, with a clear message.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      alert('Your session has expired. Please sign in again.');
+      handleLogout();
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   // Presence heartbeat: tells the server this visitor is here (paused while the tab is hidden).
   // Re-runs on sign-in so a guest session is upgraded to verified straight away.
@@ -84,13 +96,7 @@ export default function App() {
           setAnalytics(data);
           setAnalyticsUpdatedAt(new Date());
         })
-        .catch((err) => {
-          if (err instanceof ApiError && err.status === 401) {
-            alert('Your admin session has expired. Please sign in again.');
-            handleLogout();
-            setCurrentScreen('admin-login');
-          }
-        });
+        .catch(() => {});
     };
 
     refresh();
@@ -102,48 +108,35 @@ export default function App() {
     };
   }, [currentScreen, isAdminLoggedIn]);
 
-  // Fetch Initial Data from persistent database
+  // Catalogue data. A members-only catalogue is loaded after sign-in and cleared on sign-out.
   useEffect(() => {
+    if (merchant.catalogueAccess === 'login' && !isSignedIn) {
+      setCategories([]);
+      setProducts([]);
+      return;
+    }
     const fetchData = async () => {
-      try {
-        const [catsData, prodsData] = await Promise.all([api.getCategories(), api.getProducts()]);
-
-        if (catsData.length > 0) setCategories(catsData);
-        if (prodsData.length > 0) setProducts(prodsData);
-      } catch (err) {
-        console.error('Failed to load initial data:', err);
-      }
+      const [catsData, prodsData] = await Promise.all([api.getCategories(), api.getProducts()]);
+      if (catsData.length > 0) setCategories(catsData);
+      if (prodsData.length > 0) setProducts(prodsData);
     };
-
     fetchData();
-  }, []);
+  }, [isSignedIn]);
 
-  // Add Item to Order
+  // Add Item to Order (needs an account)
   const handleAddToOrder = async (product: Product, quantity: number) => {
-    const localItem = (): OrderItem => ({
-      id: `ord-${Date.now()}`,
-      title: product.title,
-      sku: product.sku,
-      purity: product.purity,
-      totalNetGold: parseFloat((product.netWt * quantity).toFixed(3)),
-      batchQty: quantity,
-      qtyUnit: quantity > 1 ? 'Pcs' : 'Set',
-      unitWt: product.netWt,
-      unitDescription: `${product.netWt} g / pc`,
-      image: product.image,
-      note: `BIS Hallmarked • HUID: ${product.huid || 'N/A'}`
-    });
-
     try {
       const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity });
       setOrders((prev) => [...prev, newItem]);
     } catch (err) {
-      if (err instanceof ApiError && err.status !== 401) {
-        alert(err.message);
-        return;
+      if (err instanceof ApiError && !err.handled) {
+        if (err.status === 401) {
+          alert('Please sign in to your wholesale account to add items to your order.');
+          handleNavigate('retailer-auth');
+        } else {
+          alert(err.message);
+        }
       }
-      // Guests keep a local, unsaved batch until they sign in.
-      setOrders((prev) => [...prev, localItem()]);
     }
   };
 
@@ -162,11 +155,13 @@ export default function App() {
     try {
       return await api.confirmOrder();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        alert('Please sign in to your wholesale account to confirm this order.');
-        handleNavigate('retailer-auth');
-      } else if (err instanceof ApiError) {
-        alert(err.message);
+      if (err instanceof ApiError && !err.handled) {
+        if (err.status === 401) {
+          alert('Please sign in to your wholesale account to confirm this order.');
+          handleNavigate('retailer-auth');
+        } else {
+          alert(err.message);
+        }
       }
       return null;
     }
@@ -212,6 +207,7 @@ export default function App() {
       const created = await api.createProduct(newProd);
       setProducts((prev) => [created, ...prev]);
     } catch (err) {
+      if (err instanceof ApiError && err.handled) return;
       alert(err instanceof Error ? err.message : 'Could not publish the product.');
     }
   };
@@ -222,6 +218,7 @@ export default function App() {
       const created = await api.createCategory(newCat);
       setCategories((prev) => [...prev, created]);
     } catch (err) {
+      if (err instanceof ApiError && err.handled) return;
       alert(err instanceof Error ? err.message : 'Could not create the category.');
     }
   };
@@ -239,9 +236,8 @@ export default function App() {
   };
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
-  const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
-  const memberScreens: ActiveScreen[] = ['catalogue', 'categories', 'orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category'];
+  const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders'] : ['orders'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders'];
   const activeScreen: ActiveScreen =
     adminScreens.includes(currentScreen) && !isAdminLoggedIn
       ? 'admin-login'
@@ -315,6 +311,8 @@ export default function App() {
             }}
           />
         )}
+
+        {activeScreen === 'admin-orders' && <AdminOrdersScreen />}
 
         {activeScreen === 'admin-hub' && (
           <AdminHubScreen

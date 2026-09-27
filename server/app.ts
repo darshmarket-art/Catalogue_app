@@ -1,4 +1,5 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import type { Config } from './config';
@@ -8,6 +9,7 @@ import { errorHandler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
 import { orderRoutes } from './routes/orders';
+import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
 
 export function createApp(config: Config, store: Store) {
@@ -57,7 +59,11 @@ export function createApp(config: Config, store: Store) {
     })
   );
 
-  app.get('/api/rates', (_req, res) => {
+  // In "login" mode the catalogue is members-only; in "public" mode anyone may browse. Ordering always needs an account.
+  const catalogueGuard: RequestHandler =
+    config.merchant.catalogueAccess === 'public' ? (_req, _res, next) => next() : auth.requireUser;
+
+  app.get('/api/rates', catalogueGuard, (_req, res) => {
     res.json({
       status: 'success',
       data: {
@@ -84,8 +90,9 @@ export function createApp(config: Config, store: Store) {
   });
 
   app.use('/api/auth', authRoutes(config, store));
-  app.use('/api', catalogueRoutes(store, auth.requireAdmin));
+  app.use('/api', catalogueRoutes(store, auth.requireAdmin, catalogueGuard));
   app.use('/api/orders', orderRoutes(store, config.merchant, auth.requireRetailer));
+  app.use('/api/admin/orders', adminOrderRoutes(store, auth.requireAdmin));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));
 
   app.use('/api', notFoundApi);

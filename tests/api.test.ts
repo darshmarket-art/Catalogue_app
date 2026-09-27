@@ -17,11 +17,12 @@ const JWT_SECRET = 'x'.repeat(48);
 let store: MemoryStore;
 let config: Config;
 
-async function build(overrides: Partial<Config['rateLimit']> = {}) {
+async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'public' | 'login' = 'login') {
   config = {
     ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000, ...overrides }
   };
+  config.merchant = { ...config.merchant, catalogueAccess: access };
   store = new MemoryStore();
   await seedDemoCatalogue(store);
   return createApp(config, store);
@@ -268,12 +269,14 @@ describe('orders', () => {
 });
 
 describe('catalogue', () => {
-  it('serves the catalogue publicly with pagination', async () => {
+  it('serves the catalogue to signed-in users with pagination', async () => {
     const app = await build();
-    const all = await request(app).get('/api/products');
+    const { token } = await signupRetailer(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const all = await request(app).get('/api/products').set(auth);
     expect(all.status).toBe(200);
     expect(all.body.count).toBe(6);
-    const page = await request(app).get('/api/products?limit=2&offset=1');
+    const page = await request(app).get('/api/products?limit=2&offset=1').set(auth);
     expect(page.body.data).toHaveLength(2);
     expect(page.body.count).toBe(6);
   });
@@ -441,9 +444,9 @@ describe('platform', () => {
   it('exposes a health check and security headers, and no longer serves the production guide', async () => {
     const app = await build();
     expect((await request(app).get('/health')).body.status).toBe('ok');
-    const rates = await request(app).get('/api/rates');
-    expect(rates.headers['x-content-type-options']).toBe('nosniff');
-    expect(rates.headers['x-powered-by']).toBeUndefined();
+    const cfg = await request(app).get('/api/config');
+    expect(cfg.headers['x-content-type-options']).toBe('nosniff');
+    expect(cfg.headers['x-powered-by']).toBeUndefined();
     expect((await request(app).get('/api/production-guide')).status).toBe(404);
     expect((await request(app).get('/api/auth/admin/creation-process')).status).toBe(404);
   });
@@ -551,7 +554,7 @@ describe('merchant config', () => {
     expect(confirm.body.whatsappMessage).toContain('BHAKTI JEWELS');
     expect(confirm.body.escrowGuaranteeRef).toBeUndefined();
 
-    expect((await request(app).get('/api/rates')).body.data.deskPhone).toBe('+91 22 2340 8899');
+    expect((await request(app).get('/api/rates').set(auth)).body.data.deskPhone).toBe('+91 22 2340 8899');
     const csv = await request(app).get('/api/analytics/export').set('Authorization', `Bearer ${admin}`);
     expect(csv.headers['content-disposition']).toContain('bhakti_audit_ledger.csv');
   });
@@ -562,5 +565,114 @@ describe('merchant config', () => {
     const foreign = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, JWT_SECRET, { issuer: 'someone-else' });
     const res = await request(app).get('/api/admin/audit-logs').set('Authorization', `Bearer ${foreign}`);
     expect(res.status).toBe(401);
+  });
+});
+
+describe('catalogue access modes', () => {
+  const catalogueUrls = ['/api/products', '/api/categories', '/api/rates'];
+
+  it('login mode: the catalogue needs an account, but branding stays public', async () => {
+    const app = await build({}, 'login');
+    for (const url of catalogueUrls) expect((await request(app).get(url)).status, url).toBe(401);
+    expect((await request(app).get('/api/config')).status).toBe(200);
+
+    const { token } = await signupRetailer(app);
+    const { token: admin } = await createAdmin(app);
+    for (const url of catalogueUrls) {
+      expect((await request(app).get(url).set('Authorization', `Bearer ${token}`)).status, url).toBe(200);
+      expect((await request(app).get(url).set('Authorization', `Bearer ${admin}`)).status, url).toBe(200);
+    }
+  });
+
+  it('login mode: forged or expired tokens do not open the catalogue', async () => {
+    const app = await build({}, 'login');
+    const forged = jwt.sign({ type: 'retailer', sub: '9820000001' }, 'x'.repeat(48), { issuer: 'bhakti' });
+    expect((await request(app).get('/api/products').set('Authorization', `Bearer ${forged}`)).status).toBe(401);
+  });
+
+  it('public mode: anyone can browse, but ordering still needs an account', async () => {
+    const app = await build({}, 'public');
+    for (const url of catalogueUrls) expect((await request(app).get(url)).status, url).toBe(200);
+    expect((await request(app).get('/api/orders')).status).toBe(401);
+    expect((await request(app).post('/api/orders/items').send({ sku: 'B2B-KND-9082' })).status).toBe(401);
+    expect((await request(app).post('/api/orders/confirm')).status).toBe(401);
+  });
+
+  it('never opens admin routes, in either mode', async () => {
+    const app = await build({}, 'public');
+    for (const url of ['/api/analytics', '/api/admin/audit-logs', '/api/admin/orders']) {
+      expect((await request(app).get(url)).status, url).toBe(401);
+    }
+  });
+});
+
+describe('admin orders', () => {
+  const placeOrder = async (app: ReturnType<typeof createApp>, token: string, sku = 'B2B-COIN-0010', qty = 2) => {
+    const auth = { Authorization: `Bearer ${token}` };
+    await request(app).post('/api/orders/items').set(auth).send({ sku, batchQty: qty });
+    return (await request(app).post('/api/orders/confirm').set(auth)).body.poId as string;
+  };
+
+  it('is limited to admins', async () => {
+    const app = await build();
+    const { token } = await signupRetailer(app);
+    const poId = await placeOrder(app, token);
+    expect((await request(app).get('/api/admin/orders')).status).toBe(401);
+    expect((await request(app).get('/api/admin/orders').set('Authorization', `Bearer ${token}`)).status).toBe(403);
+    const patch = await request(app).patch(`/api/admin/orders/${poId}`).set('Authorization', `Bearer ${token}`).send({ status: 'dispatched' });
+    expect(patch.status).toBe(403);
+  });
+
+  it('lists orders newest first with the buyer’s contact details', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const first = await signupRetailer(app, 1);
+    const second = await signupRetailer(app, 2);
+    const po1 = await placeOrder(app, first.token);
+    await new Promise((r) => setTimeout(r, 5));
+    const po2 = await placeOrder(app, second.token, 'B2B-KND-9082', 1);
+
+    const res = await request(app).get('/api/admin/orders').set('Authorization', `Bearer ${admin}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.map((o: any) => o.poId)).toEqual([po2, po1]);
+    expect(res.body.data[0]).toMatchObject({
+      status: 'new',
+      firmName: 'Test Jewellers 2',
+      buyer: { phone: retailer(2).phone, firmName: 'Test Jewellers 2' },
+      itemCount: 1
+    });
+    expect(res.body.data[0].buyer.password).toBeUndefined();
+  });
+
+  it('changes status, records it in the audit log, and rejects bad input', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token } = await signupRetailer(app);
+    const poId = await placeOrder(app, token);
+    const auth = { Authorization: `Bearer ${admin}` };
+
+    const ok = await request(app).patch(`/api/admin/orders/${poId}`).set(auth).send({ status: 'dispatched' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.status).toBe('dispatched');
+    expect((await store.get('purchaseOrders', poId))!.status).toBe('dispatched');
+    expect((await store.list('auditLogs')).some((l) => l.event === 'ORDER_STATUS_CHANGED' && l.details.includes(poId))).toBe(true);
+
+    expect((await request(app).patch(`/api/admin/orders/${poId}`).set(auth).send({ status: 'shipped-ish' })).status).toBe(400);
+    expect((await request(app).patch('/api/admin/orders/PO-NOPE-000000').set(auth).send({ status: 'confirmed' })).status).toBe(404);
+
+    const filtered = await request(app).get('/api/admin/orders?status=new').set(auth);
+    expect(filtered.body.data).toEqual([]);
+  });
+
+  it('counts only new orders in the Admin Hub', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token } = await signupRetailer(app);
+    const poId = await placeOrder(app, token);
+    const auth = { Authorization: `Bearer ${admin}` };
+
+    expect((await request(app).get('/api/analytics').set(auth)).body.data.newOrders).toBe(1);
+    await request(app).patch(`/api/admin/orders/${poId}`).set(auth).send({ status: 'confirmed' });
+    expect((await request(app).get('/api/analytics').set(auth)).body.data.newOrders).toBe(0);
   });
 });

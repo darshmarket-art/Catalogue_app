@@ -1,7 +1,7 @@
 {
   "id": "example",
   "sector": "jewellery",
-  "catalogueAccess": "login",
+  "catalogueAccess": "public",
   "orderFlow": "direct",
 
   "brand": {

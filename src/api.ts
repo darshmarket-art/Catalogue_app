@@ -1,14 +1,23 @@
-import { Product, Category, OrderItem, BullionRates, AnalyticsData } from './types';
+import { Product, Category, OrderItem, BullionRates, AnalyticsData, AdminOrder, OrderStatus } from './types';
 import { merchant } from './merchant';
 
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    /** True when the app has already told the user (e.g. the session expired), so callers should stay quiet. */
+    public handled = false
   ) {
     super(message);
   }
 }
+
+let onUnauthorized: (() => void) | null = null;
+
+/** Called once when a signed-in user's token is rejected (expired, or the account was removed). */
+export const setUnauthorizedHandler = (fn: (() => void) | null) => {
+  onUnauthorized = fn;
+};
 
 // Held in memory only (not localStorage) so an XSS bug cannot lift a long-lived token.
 let authToken: string | null = null;
@@ -22,10 +31,16 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
   if (init.body) headers.set('Content-Type', 'application/json');
   if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
 
+  const usedToken = authToken;
   const res = await fetch(path, { ...init, headers });
   const json = await res.json().catch(() => ({}));
+  const sessionExpired = res.status === 401 && usedToken !== null && authToken === usedToken;
+  if (sessionExpired) {
+    authToken = null;
+    onUnauthorized?.();
+  }
   if (!res.ok || json.status === 'error') {
-    throw new ApiError(res.status, json.message || `Request failed (${res.status})`);
+    throw new ApiError(res.status, json.message || `Request failed (${res.status})`, sessionExpired);
   }
   return json as T;
 }
@@ -137,6 +152,14 @@ export const api = {
 
   async confirmOrder(): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
     return post('/api/orders/confirm');
+  },
+
+  async getAdminOrders(): Promise<AdminOrder[]> {
+    return (await request('/api/admin/orders?limit=100')).data;
+  },
+
+  async setOrderStatus(poId: string, status: OrderStatus): Promise<void> {
+    await request(`/api/admin/orders/${encodeURIComponent(poId)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   },
 
   async getAnalytics(): Promise<AnalyticsData> {

@@ -101,6 +101,15 @@ export const productViewsSchema = z.object({
   skus: z.array(trimmed(60)).min(1).max(50)
 });
 
+export const ORDER_STATUSES = ['new', 'confirmed', 'dispatched', 'cancelled'] as const;
+
+export const orderStatusSchema = z.object({ status: z.enum(ORDER_STATUSES) });
+
+export const orderListSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  status: z.enum(ORDER_STATUSES).optional()
+});
+
 export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(200),
   offset: z.coerce.number().int().min(0).default(0)

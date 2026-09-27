@@ -68,6 +68,21 @@ export interface AnalyticsData {
   verifiedMerchants: number;
   guestRetailers: number;
   pendingDrafts: number;
+  newOrders: number;
+}
+
+export type OrderStatus = 'new' | 'confirmed' | 'dispatched' | 'cancelled';
+
+export interface AdminOrder {
+  poId: string;
+  status: OrderStatus;
+  retailerId: string;
+  firmName: string;
+  buyer: { firmName: string; ownerName: string; phone: string; gstin: string; marketHub: string } | null;
+  totalNetGrams: number;
+  itemCount: number;
+  items: Array<{ id: string; title: string; sku: string; purity: string; totalNetGold: number; batchQty: number; qtyUnit: string }>;
+  timestamp: string;
 }
 
 export type ActiveScreen = 
@@ -79,4 +94,5 @@ export type ActiveScreen =
   | 'admin-hub'
   | 'new-product'
   | 'add-category'
+  | 'admin-orders'
   | 'retailer-auth';

@@ -54,14 +54,14 @@ async function resolveUser(store: Store, claims: TokenClaims): Promise<AuthedUse
 export function createAuth(config: Config, store: Store) {
   /** Enforces a valid token for the given account type; the user lands in res.locals.user. */
   const require =
-    (type: 'retailer' | 'admin'): RequestHandler =>
+    (type: 'retailer' | 'admin' | 'any'): RequestHandler =>
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const claims = readClaims(config, req);
         if (!claims) {
           return res.status(401).json({ status: 'error', message: 'Authentication required. Please sign in.' });
         }
-        if (claims.type !== type) {
+        if (type !== 'any' && claims.type !== type) {
           return res.status(403).json({ status: 'error', message: 'You do not have permission to perform this action.' });
         }
         const user = await resolveUser(store, claims);
@@ -84,7 +84,7 @@ export function createAuth(config: Config, store: Store) {
     return claims ? resolveUser(store, claims) : null;
   };
 
-  return { requireRetailer: require('retailer'), requireAdmin: require('admin'), tokenType, optionalUser };
+  return { requireRetailer: require('retailer'), requireAdmin: require('admin'), requireUser: require('any'), tokenType, optionalUser };
 }
 
 export const user = (res: Response) => res.locals.user as AuthedUser;

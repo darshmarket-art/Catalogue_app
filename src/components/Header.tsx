@@ -17,11 +17,11 @@ export const Header: React.FC<HeaderProps> = ({
   currentMerchant,
   onLogout
 }) => {
-  const isSubScreen = ['new-product', 'add-category', 'admin-login', 'retailer-auth'].includes(currentScreen);
-  const isAdminView = currentScreen === 'admin-hub' || currentScreen === 'new-product' || currentScreen === 'add-category';
+  const isSubScreen = ['new-product', 'add-category', 'admin-orders', 'admin-login', 'retailer-auth'].includes(currentScreen);
+  const isAdminView = currentScreen === 'admin-hub' || currentScreen === 'new-product' || currentScreen === 'add-category' || currentScreen === 'admin-orders';
 
   const handleBack = () => {
-    if (currentScreen === 'new-product' || currentScreen === 'add-category') {
+    if (currentScreen === 'new-product' || currentScreen === 'add-category' || currentScreen === 'admin-orders') {
       onNavigate('admin-hub');
     } else if (currentScreen === 'admin-login' || currentScreen === 'retailer-auth') {
       onNavigate('welcome');
@@ -76,6 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="font-serif text-[16px] md:text-[18px] font-bold text-on-surface leading-tight truncate">
                 {currentScreen === 'new-product' && 'New Product Listing'}
                 {currentScreen === 'add-category' && 'Add New Category'}
+                {currentScreen === 'admin-orders' && 'Orders'}
                 {currentScreen === 'admin-login' && 'Admin Console'}
                 {currentScreen === 'retailer-auth' && 'B2B Retailer Gateway'}
               </h1>
