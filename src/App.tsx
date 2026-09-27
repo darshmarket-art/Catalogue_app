@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ActiveScreen, Product, Category, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
+import { sector } from './sector';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -209,14 +210,7 @@ export default function App() {
       totalNetWeight: parseFloat(totalNet.toFixed(3))
     });
 
-    const msg = `*${merchant.brand.name.toUpperCase()} B2B WHOLESALE MANIFEST (GRAM BASIS)*\n` +
-      `*Store:* ${store}\n` +
-      `*Settlement Terms:* Pure Fine Gold Gram Settlement (No Fiat Price Lock)\n` +
-      `*Items in Batch:* ${orders.length} (${orders.reduce((s, i) => s + i.batchQty, 0)} Pcs)\n` +
-      `*Total Fine Gold Weight:* ${totalNet.toFixed(3)}g Net\n\n` +
-      `*Itemized Manifest:*\n` +
-      orders.map((o) => `• ${o.title} (${o.sku}) x ${o.batchQty} — ${o.totalNetGold}g`).join('\n') +
-      `\n\n_Please confirm vault allocation slot and physical 999.9 gold bullion handover._`;
+    const msg = sector.orderManifest({ brandName: merchant.brand.name, store, orders });
 
     window.open(`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -231,25 +225,29 @@ export default function App() {
     setIsQuotationOpen(true);
   };
 
-  // New Product created
-  const handleProductCreated = async (newProd: Partial<Product>) => {
+  // New Product created: resolves true only when the server accepted it
+  const handleProductCreated = async (newProd: Partial<Product>): Promise<boolean> => {
     try {
       const created = await api.createProduct(newProd);
       setProducts((prev) => [created, ...prev]);
+      // The server counts designs per category; keep the on-screen count in step without a reload.
+      setCategories((prev) => prev.map((c) => (c.name === created.category ? { ...c, designCount: c.designCount + 1 } : c)));
+      return true;
     } catch (err) {
-      if (err instanceof ApiError && err.handled) return;
-      alert(err instanceof Error ? err.message : 'Could not publish the product.');
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not publish the product.');
+      return false;
     }
   };
 
-  // New Category created
-  const handleCategoryCreated = async (newCat: Partial<Category>) => {
+  // New Category created: resolves true only when the server accepted it
+  const handleCategoryCreated = async (newCat: Partial<Category>): Promise<boolean> => {
     try {
       const created = await api.createCategory(newCat);
       setCategories((prev) => [...prev, created]);
+      return true;
     } catch (err) {
-      if (err instanceof ApiError && err.handled) return;
-      alert(err instanceof Error ? err.message : 'Could not create the category.');
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not create the category.');
+      return false;
     }
   };
 

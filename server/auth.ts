@@ -18,7 +18,6 @@ export interface AuthedUser {
   id: string;
   name: string;
   role?: string;
-  accessLevel?: string;
 }
 
 export function signToken(config: Config, claims: TokenClaims, expiresIn: string): string {
@@ -44,11 +43,11 @@ async function resolveUser(store: Store, claims: TokenClaims): Promise<AuthedUse
   if (claims.type === 'admin') {
     const admin = await store.get('admins', claims.sub);
     return admin
-      ? { type: 'admin', id: admin.email, name: admin.name, role: admin.role, accessLevel: admin.accessLevel }
+      ? { type: 'admin', id: admin.email, name: admin.name, role: admin.role }
       : null;
   }
-  const merchant = await store.get('merchants', claims.sub);
-  return merchant && merchant.verified ? { type: 'retailer', id: merchant.phone, name: merchant.firmName } : null;
+  const buyer = await store.get('buyers', claims.sub);
+  return buyer && buyer.verified ? { type: 'retailer', id: buyer.phone, name: buyer.firmName } : null;
 }
 
 export function createAuth(config: Config, store: Store) {

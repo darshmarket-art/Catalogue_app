@@ -5,13 +5,16 @@ import { loadConfig } from './server/config';
 import { createStore } from './server/store';
 import { createApp } from './server/app';
 import { seedDemoCatalogue } from './server/seed';
+import { migrateLegacyBuyers } from './server/migrate';
 import { renderIndexHtml } from './server/merchant';
 import { logger } from './server/logger';
 
 async function startServer() {
   const config = loadConfig();
   const store = createStore(config);
-  if (config.seedDemoCatalogue) await seedDemoCatalogue(store);
+  const migrated = await migrateLegacyBuyers(store);
+  if (migrated > 0) logger.info(`Moved ${migrated} buyer account(s) to the buyers collection`);
+  if (config.seedDemoCatalogue) await seedDemoCatalogue(store, config.merchant.id);
 
   const app = createApp(config, store);
 

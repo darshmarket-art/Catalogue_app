@@ -1,60 +1,57 @@
 import React, { useState } from 'react';
 import { ActiveScreen, Category } from '../types';
+import { sector } from '../sector';
 
 interface AddCategoryScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onCategoryCreated: (category: Partial<Category>) => void;
+  onCategoryCreated: (category: Partial<Category>) => Promise<boolean>;
 }
 
-export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
-  onNavigate,
-  onCategoryCreated
-}) => {
-  const [name, setName] = useState('Polki & Jadau Chokers');
-  const [slug, setSlug] = useState('CAT-POLKI-CHK');
-  const [isSlugLocked, setIsSlugLocked] = useState(true);
-  const [tags, setTags] = useState('Syndicate Polki, Jadau Kundan, Royal Antique');
-  const [minWt, setMinWt] = useState('25.000');
-  const [maxWt, setMaxWt] = useState('120.000');
-  const [selectedKarats, setSelectedKarats] = useState<string[]>(['22K (916)', '18K (750)']);
-  const [bannerImage] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuD8fUMUeyDOcI81c_MNREo4WjrnTgcmPQeMubgZU3xgavihWC3LQzcmB4noqTfyKe3KWUQv2aByK_jUOPPHMKHDakRas_y_XkveX0l8jZmnksZcAzDdNIQEQpKdLHSdKyi4Bg-AIL7JXTURdktHiuh2ga4gL-RLkt-0CxZYx1XdLzkC00eBR-vu9v4rjNmuVn2mTR1zQQu3NgR23MqNlzQ7CF4d6twD9H5_1bMWDMJS3YGfU6C5HOMj');
+const inputBox =
+  'w-full bg-surface-container-low px-3 py-2 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white';
+
+const isHttpUrl = (v: string) => /^https?:\/\/\S+$/i.test(v);
+
+export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ onNavigate, onCategoryCreated }) => {
+  const [name, setName] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [minWt, setMinWt] = useState('');
+  const [maxWt, setMaxWt] = useState('');
+  const [purities, setPurities] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleNameChange = (val: string) => {
-    setName(val);
-    if (isSlugLocked) {
-      const code = val.replace(/[^A-Z0-9]/gi, '-').replace(/-+/g, '-').toUpperCase();
-      setSlug(`CAT-${code.substring(0, 14)}`);
-    }
-  };
+  const min = parseFloat(minWt);
+  const max = parseFloat(maxWt);
+  const problem = !name.trim()
+    ? 'Enter a category name'
+    : imageUrl.trim() && !isHttpUrl(imageUrl.trim())
+      ? 'The photo link must start with http:// or https://'
+      : minWt && maxWt && min > max
+        ? 'The minimum weight cannot be more than the maximum'
+        : null;
 
-  const toggleKarat = (k: string) => {
-    setSelectedKarats((prev) =>
-      prev.includes(k) ? prev.filter((item) => item !== k) : [...prev, k]
-    );
-  };
+  const togglePurity = (key: string) =>
+    setPurities((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
-  const handleCreate = (asDraft: boolean) => {
+  const handleCreate = async () => {
+    if (problem) return;
     setSubmitting(true);
-    const newCat: Partial<Category> = {
-      name,
-      slug,
-      subtitle: tags || 'Curated wholesale collection',
-      image: bannerImage,
-      designCount: asDraft ? 0 : 12,
-      avgNetWt: `${minWt}g – ${maxWt}g`,
-      eligibleKarats: selectedKarats,
-      minTargetWt: parseFloat(minWt) || 20,
-      maxTargetWt: parseFloat(maxWt) || 100
-    };
-
-    onCategoryCreated(newCat);
-    setSuccess(true);
-    setTimeout(() => {
+    const ok = await onCategoryCreated({
+      name: name.trim(),
+      ...(subtitle.trim() ? { subtitle: subtitle.trim() } : {}),
+      ...(imageUrl.trim() ? { image: imageUrl.trim() } : {}),
+      ...(Number.isFinite(min) ? { minTargetWt: min } : {}),
+      ...(Number.isFinite(max) ? { maxTargetWt: max } : {}),
+      eligibleKarats: purities
+    });
+    if (ok) {
+      setSuccess(true);
+      setTimeout(() => onNavigate('categories'), 900);
+    } else {
       setSubmitting(false);
-      onNavigate('categories');
-    }, 1200);
+    }
   };
 
   return (
@@ -62,205 +59,95 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
       {success && (
         <div className="bg-secondary-container text-on-secondary-fixed p-3 rounded-lg text-xs font-sans border border-secondary flex items-center gap-1.5 animate-fade-in">
           <span className="material-symbols-outlined text-[18px]">done_all</span>
-          <span>Category created and synchronized with wholesale catalogue!</span>
+          <span>Category created.</span>
         </div>
       )}
 
-      {/* Intro Header */}
       <div className="flex flex-col space-y-1">
         <h2 className="font-serif text-[22px] font-bold text-on-surface">Create Category</h2>
         <p className="font-sans text-xs text-outline leading-relaxed">
-          Configure wholesale classification, gold purity constraints, and automated labour rules for retail partners.
+          Group your designs so buyers can browse them. The number of designs is counted automatically from the products you add.
         </p>
       </div>
 
-      {/* Visual Hero & Silhouette Section */}
+      {/* Photo */}
       <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-surface-container">
-          <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-primary text-[19px]">photo_library</span>
-            <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
-              Visual Hero & Silhouette
-            </h3>
-          </div>
-          <span className="font-mono text-[10px] text-primary font-bold bg-primary-fixed/40 px-2 py-0.5 rounded">
-            16:9 Banner
-          </span>
+        <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
+          <span className="material-symbols-outlined text-primary text-[19px]">photo_library</span>
+          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">Banner photo</h3>
         </div>
-
-        <div className="flex flex-col space-y-2">
-          <div className="relative w-full h-36 rounded-lg bg-surface-container overflow-hidden border border-outline-variant/40 shadow-xs group">
-            <img
-              alt="Polki Choker Banner"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              src={bannerImage}
-            />
-            <span className="absolute bottom-1.5 right-1.5 bg-white/90 text-primary text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shadow-xs">
-              16:9 JPG/WEBP
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-[11px] font-sans text-outline">
-              16:9 hero preview for retail line-sheets & PDF exports.
-            </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                className="bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-outline-variant/40"
-              >
-                <span className="material-symbols-outlined text-[15px]">upload_file</span>
-                <span>Upload / Replace</span>
-              </button>
-              <button
-                type="button"
-                className="text-primary hover:bg-primary-fixed/20 text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg border border-primary/30 flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[15px]">palette</span>
-                <span>Choose Icon</span>
-              </button>
-            </div>
-          </div>
+        <div className="relative w-full h-36 rounded-lg bg-surface-container overflow-hidden border border-outline-variant/40 flex items-center justify-center">
+          {isHttpUrl(imageUrl.trim()) ? (
+            <img alt="Category banner preview" className="w-full h-full object-cover" src={imageUrl.trim()} referrerPolicy="no-referrer" />
+          ) : (
+            <span className="text-[11px] font-sans text-outline">No photo yet</span>
+          )}
+        </div>
+        <div className="flex flex-col space-y-1">
+          <label className="text-xs font-sans font-semibold text-on-surface">Photo link (optional)</label>
+          <input className={inputBox} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" inputMode="url" />
+          <p className="text-[11px] font-sans text-outline">Uploading from your phone is coming soon; for now paste a link.</p>
         </div>
       </section>
 
-      {/* Category Details Section */}
+      {/* Details */}
       <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
         <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
           <span className="material-symbols-outlined text-primary text-[19px]">account_tree</span>
-          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
-            Category Details
-          </h3>
+          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">Category details</h3>
         </div>
 
         <div className="flex flex-col space-y-1">
           <label className="text-xs font-sans font-semibold text-on-surface">
-            Category Name <span className="text-primary">*</span>
+            Category name <span className="text-primary">*</span>
           </label>
-          <div className="bg-surface-container-low rounded-lg px-3 py-2 flex items-center gap-2 border border-outline-variant/40 focus-within:bg-white transition-colors">
-            <span className="material-symbols-outlined text-outline text-[17px]">
-              drive_file_rename_outline
-            </span>
-            <input
-              className="bg-transparent w-full text-xs font-sans text-on-surface focus:outline-none"
-              value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="e.g. Temple Antique Haar"
-            />
-          </div>
+          <input className={inputBox} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Temple Antique Haar" />
         </div>
 
         <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">Category Slug</label>
-          <div className="bg-surface-container-low rounded-lg px-3 py-2 flex items-center gap-1.5 border border-outline-variant/40">
-            <span className="font-mono text-xs font-bold text-primary">#</span>
-            <input
-              className="bg-transparent w-full font-mono text-xs text-on-surface focus:outline-none tracking-wider uppercase"
-              value={slug}
-              readOnly={isSlugLocked}
-              onChange={(e) => setSlug(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setIsSlugLocked(!isSlugLocked)}
-              className="text-outline hover:text-on-surface"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                {isSlugLocked ? 'lock' : 'lock_open'}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">
-            Description & Catalog Tags
-          </label>
-          <div className="bg-surface-container-low rounded-lg px-3 py-2 flex items-center gap-2 border border-outline-variant/40 focus-within:bg-white transition-colors">
-            <span className="material-symbols-outlined text-outline text-[17px]">label</span>
-            <input
-              className="bg-transparent w-full text-xs font-sans text-on-surface focus:outline-none"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g. Syndicate Uncut Polki, Meenakari, Bridal High-Ticket"
-            />
-          </div>
+          <label className="text-xs font-sans font-semibold text-on-surface">Short description (optional)</label>
+          <input className={inputBox} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Nakshi work, Mayur motifs" />
         </div>
       </section>
 
-      {/* Weight & Purity Constraints */}
+      {/* Weight & purity */}
       <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-surface-container">
-          <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-primary text-[19px]">scale</span>
-            <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
-              Weight & Purity Constraints
-            </h3>
-          </div>
-          <span className="font-mono text-[10px] text-secondary font-bold bg-secondary-fixed/60 px-2 py-0.5 rounded flex items-center gap-1">
-            <span className="material-symbols-outlined text-[13px]">verified</span>
-            BIS Hallmarked
-          </span>
+        <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
+          <span className="material-symbols-outlined text-primary text-[19px]">scale</span>
+          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">Typical weight & purity (optional)</h3>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col space-y-1">
-            <span className="text-[11px] font-sans text-outline">Min Target Wt.</span>
-            <div className="bg-surface-container-low rounded-lg p-2 flex items-center justify-between border border-outline-variant/40">
-              <input
-                className="bg-transparent w-full font-mono text-xs font-bold text-on-surface focus:outline-none"
-                value={minWt}
-                onChange={(e) => setMinWt(e.target.value)}
-              />
-              <span className="font-mono text-[11px] text-outline">gm</span>
-            </div>
+            <span className="text-[11px] font-sans text-outline">Lightest piece (g)</span>
+            <input className={`${inputBox} font-mono`} value={minWt} onChange={(e) => setMinWt(e.target.value)} inputMode="decimal" placeholder="—" />
           </div>
-
           <div className="flex flex-col space-y-1">
-            <span className="text-[11px] font-sans text-outline">Max Target Wt.</span>
-            <div className="bg-surface-container-low rounded-lg p-2 flex items-center justify-between border border-outline-variant/40">
-              <input
-                className="bg-transparent w-full font-mono text-xs font-bold text-on-surface focus:outline-none"
-                value={maxWt}
-                onChange={(e) => setMaxWt(e.target.value)}
-              />
-              <span className="font-mono text-[11px] text-outline">gm</span>
-            </div>
+            <span className="text-[11px] font-sans text-outline">Heaviest piece (g)</span>
+            <input className={`${inputBox} font-mono`} value={maxWt} onChange={(e) => setMaxWt(e.target.value)} inputMode="decimal" placeholder="—" />
           </div>
         </div>
 
         <div className="flex flex-col space-y-1.5 pt-1">
-          <span className="text-[11px] font-sans text-outline font-semibold">
-            Eligible Karat Standards (Multi-Select)
-          </span>
+          <span className="text-[11px] font-sans text-outline font-semibold">Purities sold in this category</span>
           <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: '22K (916)', title: '22K (916)', sub: 'Standard Primary' },
-              { id: '24K (999)', title: '24K (999)', sub: 'Bullion Grade' },
-              { id: '18K (750)', title: '18K (750)', sub: 'Diamond Jadau' },
-              { id: '14K (585)', title: '14K (585)', sub: 'Export Grade' }
-            ].map((k) => {
-              const checked = selectedKarats.includes(k.id);
+            {sector.purities.map((p) => {
+              const checked = purities.includes(p.key);
               return (
                 <button
-                  key={k.id}
+                  key={p.key}
                   type="button"
-                  onClick={() => toggleKarat(k.id)}
-                  className={`p-2 rounded-lg flex items-center justify-between text-left transition-all border ${
+                  onClick={() => togglePurity(p.key)}
+                  className={`p-2 rounded-lg flex items-center gap-1.5 text-left transition-all border ${
                     checked
                       ? 'bg-primary-fixed/30 border-primary-container/50 shadow-2xs'
                       : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container-high'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[17px] text-primary">
-                      {checked ? 'check_circle' : 'radio_button_unchecked'}
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="font-mono text-[11px] font-bold text-on-surface">{k.title}</span>
-                      <span className="text-[9px] font-sans text-outline">{k.sub}</span>
-                    </div>
-                  </div>
+                  <span className="material-symbols-outlined text-[17px] text-primary">
+                    {checked ? 'check_circle' : 'radio_button_unchecked'}
+                  </span>
+                  <span className="font-mono text-[11px] font-bold text-on-surface">{p.title}</span>
                 </button>
               );
             })}
@@ -268,35 +155,21 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
         </div>
       </section>
 
-      {/* Action Tray */}
+      {/* Action */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-outline-variant/40 flex flex-col space-y-2.5">
-        <div className="flex items-center justify-between text-xs font-sans text-secondary font-semibold">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-secondary"></span>
-            Ready to Register • Auto-sync to B2B Catalog
-          </span>
+        <div className={`flex items-center gap-1.5 text-xs font-sans font-semibold ${problem ? 'text-outline' : 'text-secondary'}`}>
+          <span className={`w-2 h-2 rounded-full ${problem ? 'bg-outline-variant' : 'bg-secondary'}`}></span>
+          {problem ?? 'Ready to create'}
         </div>
-
-        <div className="flex flex-col space-y-2 pt-1">
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => handleCreate(false)}
-            className="w-full py-3 bg-secondary hover:bg-secondary-dark text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
-          >
-            <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
-            <span>{submitting ? 'Registering...' : 'Create Category & Publish'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleCreate(true)}
-            className="w-full py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-xs font-sans font-semibold flex items-center justify-center gap-1 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">save</span>
-            <span>Save as Internal Draft</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={submitting || problem !== null}
+          onClick={handleCreate}
+          className="w-full py-3 bg-secondary hover:bg-secondary-dark disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
+        >
+          <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
+          <span>{submitting ? 'Creating...' : 'Create Category'}</span>
+        </button>
       </div>
     </div>
   );

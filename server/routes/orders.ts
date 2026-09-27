@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import type { Store } from '../store';
 import type { MerchantConfig } from '../merchant';
+import type { SectorPack } from '../sectors';
 import { user } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { cartItemSchema } from '../schemas';
@@ -12,7 +13,7 @@ type CartItem = Record<string, any>;
 const publicItem = ({ ownerId: _owner, createdAt: _created, ...item }: CartItem) => item;
 const sumNet = (items: CartItem[]) => items.reduce((sum, i) => sum + (i.totalNetGold || 0), 0);
 
-export function orderRoutes(store: Store, merchant: MerchantConfig, requireRetailer: RequestHandler) {
+export function orderRoutes(store: Store, merchant: MerchantConfig, pack: SectorPack, requireRetailer: RequestHandler) {
   const router = Router();
   router.use(requireRetailer);
 
@@ -46,18 +47,19 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, requireRetai
       if (!product) throw new HttpError(404, `No catalogue item found for SKU ${body.sku}.`);
 
       const id = newId('ord');
+      const line = pack.cartLine(product, body.batchQty);
       const item: CartItem = {
         id,
         ownerId: user(res).id,
         title: product.title,
         sku: product.sku,
-        purity: product.purity,
-        totalNetGold: parseFloat((product.netWt * body.batchQty).toFixed(3)),
+        purity: line.purity,
+        totalNetGold: line.totalNetGold,
         batchQty: body.batchQty,
         qtyUnit: body.qtyUnit || (body.batchQty > 1 ? 'Pcs' : 'Set'),
-        unitWt: product.netWt,
-        unitDescription: `${product.netWt} g / pc`,
-        note: body.note || `BIS Hallmarked • HUID: ${product.huid}`,
+        unitWt: line.unitWt,
+        unitDescription: line.unitDescription,
+        note: body.note || line.note,
         image: product.image,
         createdAt: new Date().toISOString()
       };
@@ -88,7 +90,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, requireRetai
       const bookedAt = new Date().toISOString();
 
       // Snapshot of who ordered, so the merchant can contact them even if the account changes later.
-      const buyer = await store.get('merchants', owner.id);
+      const buyer = await store.get('buyers', owner.id);
 
       await store.set('purchaseOrders', poId, {
         poId,
@@ -113,7 +115,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, requireRetai
         settlementBasis: 'GRAM_WEIGHT',
         totalNetGrams: totalNet,
         itemCount: items.length,
-        whatsappMessage: `*${merchant.brand.name.toUpperCase()} B2B WHOLESALE CONFIRMATION (GRAM BASIS)*\n*PO:* ${poId}\n*Total Fine Gold Weight:* ${totalNet.toFixed(3)}g Net\n*Items in Batch:* ${items.length}\n*Settlement Terms:* Pure Fine Gold Gram Settlement (999.9 Bullion Bar Handover or Gold Metal Loan Credit)\n*Dispatch Vault:* Sequel / BVC Armoured Logistics\nKindly confirm dispatch slot.`
+        whatsappMessage: pack.confirmationMessage({ brandName: merchant.brand.name, poId, totalNet, itemCount: items.length })
       });
     })
   );

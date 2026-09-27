@@ -7,7 +7,8 @@ export interface Product {
   grossWt: number;
   netWt: number;
   stoneWt?: number;
-  priceEstimate: number;
+  priceEstimate?: number;
+  makingChargePerGram?: number;
   image: string;
   angles?: string[];
   stockStatus: 'Ready in Vault' | 'Made-to-Order' | string;
@@ -42,17 +43,6 @@ export interface OrderItem {
   unitDescription: string;
   note: string;
   image: string;
-}
-
-export interface BullionRates {
-  mcx24k: number;
-  changePercent: string;
-  gold916: number;
-  gold750: number;
-  silver999: number;
-  lastSync: string;
-  deskPhone: string;
-  activeSessionLocks: number;
 }
 
 export interface AnalyticsData {

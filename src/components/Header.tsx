@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
+import { sector } from '../sector';
 
 interface HeaderProps {
   currentScreen: ActiveScreen;
@@ -64,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 ) : (
                   <span className="text-[10px] font-sans tracking-wide text-outline truncate hidden sm:inline">
-                    Wholesale B2B • Pure Gram Basis
+                    {merchant.brand.tagline} • {sector.copy.tradingModel}
                   </span>
                 )}
               </div>
@@ -87,8 +88,8 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Pure Gram Basis Ticker Indicator */}
         <div className="hidden lg:flex items-center gap-2 bg-surface-container px-3 py-1 rounded-full border border-outline-variant/50 text-xs">
           <span className="w-2 h-2 rounded-full bg-secondary"></span>
-          <span className="font-mono font-semibold text-on-surface">Pure Gram Settlement</span>
-          <span className="text-primary font-mono font-bold text-[11px]">916 / 999.9 Purity</span>
+          <span className="font-mono font-semibold text-on-surface">{sector.copy.headerTicker.label}</span>
+          <span className="text-primary font-mono font-bold text-[11px]">{sector.copy.headerTicker.badge}</span>
         </div>
 
         {/* Action Controls */}

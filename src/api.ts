@@ -1,4 +1,4 @@
-import { Product, Category, OrderItem, BullionRates, AnalyticsData, AdminOrder, OrderStatus } from './types';
+import { Product, Category, OrderItem, AnalyticsData, AdminOrder, OrderStatus } from './types';
 import { merchant } from './merchant';
 
 export class ApiError extends Error {
@@ -126,23 +126,6 @@ export const api = {
       return json.type === 'admin' ? { type: 'admin' } : { type: 'retailer', user: json.user };
     } catch {
       return null;
-    }
-  },
-
-  async getRates(): Promise<BullionRates> {
-    try {
-      return (await request('/api/rates')).data;
-    } catch {
-      return {
-        mcx24k: 72480,
-        changePercent: '+0.42%',
-        gold916: 66420,
-        gold750: 54360,
-        silver999: 84600,
-        lastSync: '14:05:22 IST',
-        deskPhone: merchant.contact.deskPhone,
-        activeSessionLocks: 28
-      };
     }
   },
 

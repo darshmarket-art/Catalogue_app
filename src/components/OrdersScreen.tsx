@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { OrderItem } from '../types';
 import { merchant } from '../merchant';
+import { sector } from '../sector';
 
 interface OrdersScreenProps {
   orders: OrderItem[];
@@ -40,18 +41,18 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
           </div>
           <div className="flex flex-col">
             <span className="font-mono text-[10px] uppercase font-bold text-primary tracking-wider">
-              Pure Gram-Basis Settlement
+              {sector.copy.orders.banner.title}
             </span>
             <span className="text-[12px] font-sans font-semibold text-on-surface">
-              Settlement via Fine Gold Weight (Physical / GML)
+              {sector.copy.orders.banner.subtitle}
             </span>
           </div>
         </div>
         <div className="text-right">
           <span className="font-mono text-[11px] font-bold text-secondary bg-secondary-fixed px-2 py-0.5 rounded">
-            NET WT BASIS
+            {sector.copy.orders.banner.badge}
           </span>
-          <span className="text-[9px] block text-outline mt-0.5">Zero Price Slippage</span>
+          <span className="text-[9px] block text-outline mt-0.5">{sector.copy.orders.banner.note}</span>
         </div>
       </div>
 
@@ -67,7 +68,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 Order Summary
               </h1>
               <span className="font-sans text-[11px] text-outline truncate">
-                Wholesale Gram Allocation & Dispatch Verification
+                {sector.copy.orders.summarySubtitle}
               </span>
             </div>
           </div>
@@ -82,10 +83,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
         <div className="bg-secondary-container border border-secondary rounded-xl p-3.5 text-on-secondary-fixed mb-3 animate-fade-in shadow-sm">
           <div className="flex items-center gap-2 font-bold text-sm">
             <span className="material-symbols-outlined text-[20px] text-secondary">verified</span>
-            <span>Gram Allocation Booked: {confirmedPO}</span>
+            <span>{sector.copy.orders.bookedBanner}: {confirmedPO}</span>
           </div>
           <p className="text-xs mt-1 text-on-secondary-fixed-variant">
-            Batch verified on pure gram settlement terms: {totalNetGold.toFixed(3)}g fine gold allocation {merchant.orders.bookedNote ?? 'booked.'}
+            {sector.copy.orders.bookedText(totalNetGold.toFixed(3))} {merchant.orders.bookedNote ?? 'booked.'}
           </p>
         </div>
       )}
@@ -94,9 +95,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       {orders.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40 shadow-xs my-4">
           <span className="material-symbols-outlined text-4xl text-outline mb-2">shopping_bag</span>
-          <h3 className="font-serif text-base font-bold text-on-surface">Wholesale Batch is Empty</h3>
+          <h3 className="font-serif text-base font-bold text-on-surface">{sector.copy.orders.emptyTitle}</h3>
           <p className="text-xs text-outline mt-1 max-w-xs mx-auto">
-            Browse our hallmarked 22K and 24K collections to add designs to your wholesale batch.
+            {sector.copy.orders.emptyText}
           </p>
           <button
             onClick={onNavigateCatalogue}
@@ -134,7 +135,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   <div className="flex items-center justify-between mt-auto pt-1">
                     <div className="flex flex-col">
                       <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
-                        Total Net Gold
+                        {sector.copy.orders.lineWeightLabel}
                       </span>
                       <span className="font-mono text-[14px] font-bold text-primary tracking-tight">
                         {item.totalNetGold.toFixed(3)}{' '}
@@ -155,7 +156,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
 
               {/* Unit Wt Strip */}
               <div className="bg-surface-container-low px-3 py-1 flex items-center justify-between text-xs border-t border-outline-variant/30">
-                <span className="text-outline text-[11px] font-sans">Unit Net Weight:</span>
+                <span className="text-outline text-[11px] font-sans">{sector.copy.orders.unitWeightLabel}</span>
                 <span className="font-mono text-[11px] font-semibold text-on-surface">
                   {item.unitDescription || `${item.unitWt.toFixed(3)} g / pc`}
                 </span>
@@ -164,10 +165,12 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
               {/* Note / Hallmark Detail and Delete */}
               <div className="px-3 py-1.5 bg-surface-container flex items-center justify-between">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined text-[15px] text-primary-container">verified</span>
-                  <span className="text-[11px] font-sans text-on-surface-variant truncate">
-                    {item.note || 'BIS Hallmarked • 916 HUID Laser Inscribed'}
-                  </span>
+                  {item.note && (
+                    <>
+                      <span className="material-symbols-outlined text-[15px] text-primary-container">verified</span>
+                      <span className="text-[11px] font-sans text-on-surface-variant truncate">{item.note}</span>
+                    </>
+                  )}
                 </div>
                 <button
                   onClick={() => onRemoveItem(item.id)}
@@ -186,7 +189,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-surface-container-low p-2.5 rounded-lg flex flex-col">
                 <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
-                  Total Net Gold Weight
+                  {sector.copy.orders.totalWeightLabel}
                 </span>
                 <span className="font-mono text-base font-bold text-primary tracking-tight">
                   {totalNetGold.toFixed(3)}{' '}
@@ -195,7 +198,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
               </div>
               <div className="bg-surface-container-low p-2.5 rounded-lg flex flex-col">
                 <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
-                  Dispatch Batch
+                  {sector.copy.orders.dispatchLabel}
                 </span>
                 <span className="font-mono text-base font-bold text-on-surface tracking-tight">
                   {orders.length} Items{' '}
@@ -216,10 +219,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
               <span className="material-symbols-outlined text-[22px]">send</span>
               <div className="flex flex-col items-start text-left min-w-0">
                 <span className="font-sans text-xs font-bold tracking-tight text-white leading-tight">
-                  Generate WhatsApp Gram Purchase Order & PDF
+                  {sector.copy.orders.whatsappCta.title}
                 </span>
                 <span className="font-sans text-[10px] text-white/80 leading-tight">
-                  Pure gram-basis invoice sheet for bullion settlement
+                  {sector.copy.orders.whatsappCta.subtitle}
                 </span>
               </div>
             </button>
@@ -240,7 +243,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   {isBooked ? 'check_circle' : 'verified'}
                 </span>
                 <span className="font-sans text-xs font-bold uppercase tracking-wider">
-                  {isBooked ? 'Gram Allocation Booked' : 'Confirm Batch & Book Gram Allocation'}
+                  {isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta}
                 </span>
               </div>
             </button>
@@ -250,7 +253,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
           <div className="flex items-center justify-center gap-1.5 pt-2 pb-6 text-center text-outline">
             <span className="material-symbols-outlined text-[15px] text-secondary">encrypted</span>
             <span className="font-sans text-[11px]">
-              {merchant.orders.guaranteeLine ?? 'Pure Gram Weight Guarantee'}
+              {merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}
             </span>
           </div>
         </div>

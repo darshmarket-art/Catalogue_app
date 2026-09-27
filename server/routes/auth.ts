@@ -6,7 +6,6 @@ import type { Store } from '../store';
 import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, verifyPassword } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import {
-  ACCESS_LEVELS,
   adminLoginSchema,
   adminRegisterSchema,
   retailerLoginSchema,
@@ -44,7 +43,7 @@ export function authRoutes(config: Config, store: Store) {
     message: limited('Too many provisioning attempts. Please try again later.')
   });
 
-  const merchantView = (m: Record<string, any>) => ({
+  const buyerView = (m: Record<string, any>) => ({
     id: m.id,
     storeName: m.firmName,
     ownerName: m.ownerName,
@@ -62,13 +61,13 @@ export function authRoutes(config: Config, store: Store) {
       const gstin = body.gstin || 'PENDING-VERIFY';
 
       if (gstin !== 'PENDING-VERIFY') {
-        const dup = await store.list('merchants', { where: [{ field: 'gstin', op: '==', value: gstin }], limit: 1 });
+        const dup = await store.list('buyers', { where: [{ field: 'gstin', op: '==', value: gstin }], limit: 1 });
         if (dup.length > 0) {
           throw new HttpError(409, 'A wholesale account with this Phone or GSTIN is already registered. Please sign in.');
         }
       }
 
-      const merchant = {
+      const buyer = {
         id: newId('merch'),
         firmName: body.firmName,
         gstin,
@@ -80,16 +79,16 @@ export function authRoutes(config: Config, store: Store) {
         createdAt: new Date().toISOString()
       };
 
-      if (!(await store.create('merchants', merchant.phone, merchant))) {
+      if (!(await store.create('buyers', buyer.phone, buyer))) {
         throw new HttpError(409, 'A wholesale account with this Phone or GSTIN is already registered. Please sign in.');
       }
-      await audit(store, req, 'RETAILER_SIGNUP_SUCCESS', `Firm registered: ${merchant.firmName} (Phone: ${merchant.phone})`);
+      await audit(store, req, 'RETAILER_SIGNUP_SUCCESS', `Firm registered: ${buyer.firmName} (Phone: ${buyer.phone})`);
 
       res.status(201).json({
         status: 'success',
-        token: signToken(config, { type: 'retailer', sub: merchant.phone }, RETAILER_TOKEN_TTL),
+        token: signToken(config, { type: 'retailer', sub: buyer.phone }, RETAILER_TOKEN_TTL),
         message: 'Wholesale account created successfully! You are now authenticated.',
-        user: merchantView(merchant)
+        user: buyerView(buyer)
       });
     })
   );
@@ -103,18 +102,18 @@ export function authRoutes(config: Config, store: Store) {
         throw new HttpError(501, 'WhatsApp OTP sign-in is not available yet. Please sign in with your password.');
       }
 
-      const merchant = await store.get('merchants', body.phone);
-      const ok = await verifyPassword(body.password, merchant?.password);
-      if (!merchant || !ok) {
+      const buyer = await store.get('buyers', body.phone);
+      const ok = await verifyPassword(body.password, buyer?.password);
+      if (!buyer || !ok) {
         await audit(store, req, 'RETAILER_LOGIN_FAILED', `Failed login attempt for phone ${body.phone}.`);
         throw new HttpError(401, 'Access Denied: Incorrect phone number or password.');
       }
 
-      await audit(store, req, 'RETAILER_LOGIN_SUCCESS', `Firm authenticated: ${merchant.firmName} (Phone: ${merchant.phone})`);
+      await audit(store, req, 'RETAILER_LOGIN_SUCCESS', `Firm authenticated: ${buyer.firmName} (Phone: ${buyer.phone})`);
       res.json({
         status: 'success',
-        token: signToken(config, { type: 'retailer', sub: merchant.phone }, RETAILER_TOKEN_TTL),
-        user: merchantView(merchant)
+        token: signToken(config, { type: 'retailer', sub: buyer.phone }, RETAILER_TOKEN_TTL),
+        user: buyerView(buyer)
       });
     })
   );
@@ -139,7 +138,6 @@ export function authRoutes(config: Config, store: Store) {
         email: body.email,
         password: await bcrypt.hash(body.password, BCRYPT_ROUNDS),
         role: body.role,
-        accessLevel: ACCESS_LEVELS[body.role],
         createdAt: new Date().toISOString()
       };
 
@@ -152,7 +150,7 @@ export function authRoutes(config: Config, store: Store) {
         status: 'success',
         sessionToken: signToken(config, { type: 'admin', sub: admin.email }, ADMIN_TOKEN_TTL),
         message: 'Admin account provisioned successfully! You may now authenticate.',
-        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, accessLevel: admin.accessLevel }
+        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
       });
     })
   );
@@ -175,7 +173,7 @@ export function authRoutes(config: Config, store: Store) {
       res.json({
         status: 'success',
         sessionToken: signToken(config, { type: 'admin', sub: admin.email }, ADMIN_TOKEN_TTL),
-        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, accessLevel: admin.accessLevel }
+        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
       });
     })
   );

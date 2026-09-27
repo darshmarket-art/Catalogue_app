@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
+import { sector } from '../sector';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -100,7 +101,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
         </div>
         <h2 className="font-serif text-[20px] font-bold text-on-surface tracking-wider leading-none">{merchant.brand.name.toUpperCase()}</h2>
         <span className="font-mono text-[11px] text-primary tracking-widest uppercase mt-0.5 font-semibold">
-          B2B Retailer Gateway • Pure Gram Basis
+          B2B Retailer Gateway • {sector.copy.tradingModel}
         </span>
       </div>
 

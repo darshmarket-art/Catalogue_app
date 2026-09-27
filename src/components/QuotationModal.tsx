@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
+import { sector } from '../sector';
 
 interface QuotationModalProps {
   isOpen: boolean;
@@ -49,18 +50,14 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
       totalNetWeight: parseFloat(totalNetWeight.toFixed(3))
     }).catch(() => {});
 
-    const summary = `*${merchant.brand.name.toUpperCase()} — WHOLESALE GRAM-BASIS REQUISITION*\n` +
-      `*Client:* ${clientFirm}${clientCity ? ` (${clientCity})` : ''}\n` +
-      `*Settlement Basis:* Pure Net Gold Weight (No Fiat Price Lock)\n` +
-      `*Total Items:* ${selectedCount} Pieces\n` +
-      `*Total Net Gold:* ${totalNetWeight.toFixed(3)}g Net\n` +
-      `  • 22K (916) Net Wt: ${weight22k.toFixed(3)}g\n` +
-      `  • 24K (999.9) Pure Wt: ${weight24k.toFixed(3)}g\n` +
-      `  • Total Gross Weight: ${totalGrossWeight.toFixed(3)}g\n\n` +
-      `*Itemized SKU Manifest:*\n` +
-      items.map(it => `• ${it.title} (${it.sku}) — Net: ${it.netWt}g [${it.purity}]`).join('\n') +
-      `\n\n*Settlement Terms:* Physical 999.9 Bullion Bar Handover or Bullion Banking Gold Metal Loan Credit.\n` +
-      `_Generated via ${merchant.brand.name} B2B Members Terminal_`;
+    const summary = sector.quotationMessage({
+      brandName: merchant.brand.name,
+      clientFirm,
+      clientCity,
+      items,
+      selectedCount,
+      totalNetWeight
+    });
 
     const encoded = encodeURIComponent(summary);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');

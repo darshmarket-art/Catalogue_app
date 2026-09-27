@@ -1,23 +1,26 @@
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import type { Store } from '../store';
-import { handler, newId, parse } from '../http';
-import { categorySchema, paginationSchema, productSchema } from '../schemas';
-
-const DEFAULT_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDUObQwsOoUT558zd-xq-IRhGUCH3gngnq1CIAJLIn1z1ktCuUgA6vDbd7k0XHEoUENtL9-abjc03ckpFPzrpgn0zi1qrOH9A9yS8oUmcAtc7F9UiucB-QXDrdBXh3wJdsVdX_WSduNHoK9YH5tul8lRn3Kn6EhWljP3GWGyI2QfH9xZPq10TteaS8hZb4sd_u23E7vT3LBRPsUSuklfuu5EC8AiX-S9GMuEvJdApdGBbyOQ87ExOiW';
+import type { SectorPack } from '../sectors';
+import { PLACEHOLDER_IMAGE } from '../placeholder';
+import { HttpError, handler, newId, parse } from '../http';
+import { categorySchema, paginationSchema } from '../schemas';
 
 const byCreatedAt = (dir: 1 | -1) => (a: any, b: any) =>
   dir * String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
 
-export function catalogueRoutes(store: Store, requireAdmin: RequestHandler, readGuard: RequestHandler) {
+export function catalogueRoutes(store: Store, pack: SectorPack, requireAdmin: RequestHandler, readGuard: RequestHandler) {
   const router = Router();
 
+  // The number of designs in a category is counted from the products, never stored, so it cannot drift.
   router.get(
     '/categories',
     readGuard,
     handler(async (_req, res) => {
-      const data = (await store.list('categories')).sort(byCreatedAt(1));
+      const [categories, products] = await Promise.all([store.list('categories'), store.list('products')]);
+      const counts = new Map<string, number>();
+      for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...c, designCount: counts.get(c.name) ?? 0 }));
       res.json({ status: 'success', count: data.length, data });
     })
   );
@@ -35,16 +38,15 @@ export function catalogueRoutes(store: Store, requireAdmin: RequestHandler, read
         slug: body.slug || `CAT-${body.name.replace(/[^A-Z0-9]/gi, '-').toUpperCase()}`,
         name: body.name,
         subtitle: body.subtitle || 'Curated wholesale collection',
-        designCount: 0,
         avgNetWt: `${min}g – ${max}g`,
-        image: body.image || DEFAULT_IMAGE,
-        eligibleKarats: body.eligibleKarats?.length ? body.eligibleKarats : ['22K 916'],
+        image: body.image || PLACEHOLDER_IMAGE,
+        eligibleKarats: body.eligibleKarats ?? [],
         minTargetWt: min,
         maxTargetWt: max,
         createdAt: new Date().toISOString()
       };
       await store.set('categories', id, category);
-      res.status(201).json({ status: 'success', message: 'Category created successfully', data: category });
+      res.status(201).json({ status: 'success', message: 'Category created successfully', data: { ...category, designCount: 0 } });
     })
   );
 
@@ -77,31 +79,15 @@ export function catalogueRoutes(store: Store, requireAdmin: RequestHandler, read
     '/products',
     requireAdmin,
     handler(async (req, res) => {
-      const body = parse(productSchema, req.body);
-      const gross = body.grossWt ?? 40;
-      const stone = body.stoneWt ?? 0;
-      const net = Math.max(0, gross - stone);
-      const id = newId('item');
+      const input = parse(pack.productSchema, req.body);
 
-      const product = {
-        id,
-        sku:
-          body.sku ||
-          `B2B-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: body.title,
-        category: body.category || 'Bridal Chokers & Haar',
-        purity: body.purity || '22K 916',
-        grossWt: gross,
-        netWt: parseFloat(net.toFixed(3)),
-        stoneWt: stone,
-        makingChargePerGram: 420,
-        priceEstimate: Math.round(net * 7200),
-        image: body.image || body.angles?.[0] || DEFAULT_IMAGE,
-        angles: body.angles ?? [],
-        stockStatus: body.stockStatus || 'Ready in Vault',
-        huid: `HM/C-${Math.floor(100000 + Math.random() * 900000)}`,
-        createdAt: new Date().toISOString()
-      };
+      if (input.sku) {
+        const existing = await store.list('products', { where: [{ field: 'sku', op: '==', value: input.sku }], limit: 1 });
+        if (existing.length > 0) throw new HttpError(409, `A product with SKU ${input.sku} already exists.`);
+      }
+
+      const id = newId('item');
+      const product = pack.buildProduct(input, { id, now: new Date().toISOString() });
       await store.set('products', id, product);
       res.status(201).json({ status: 'success', message: 'Product listed successfully to live catalogue', data: product });
     })

@@ -1,23 +1,16 @@
 import { z } from 'zod';
+import { ADMIN_ROLES } from '../shared/roles';
 
-const httpUrl = z
+export const httpUrl = z
   .string()
   .max(2048)
   .refine((v) => /^https?:\/\//i.test(v) && URL.canParse(v), 'Must be an http(s) URL');
 
-const optionalUrl = httpUrl.optional().or(z.literal('').transform(() => undefined));
+export const optionalUrl = httpUrl.optional().or(z.literal('').transform(() => undefined));
 
-const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(max);
+export const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(max);
 
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-
-export const ADMIN_ROLES = ['Managing Director', 'Inventory Controller', 'Bullion Desk Director'] as const;
-
-export const ACCESS_LEVELS: Record<(typeof ADMIN_ROLES)[number], string> = {
-  'Managing Director': 'L4_FULL_ESCROW_RELEASE',
-  'Inventory Controller': 'L3_INVENTORY_DISPATCH',
-  'Bullion Desk Director': 'L3_GRAM_SETTLEMENT'
-};
 
 const phone = z
   .string()
@@ -53,7 +46,7 @@ export const adminRegisterSchema = z.object({
   name: trimmed(100).optional(),
   email: z.string().trim().toLowerCase().email().max(254),
   password: trimmed(128, 10),
-  role: z.enum(ADMIN_ROLES).default('Inventory Controller'),
+  role: z.enum(ADMIN_ROLES).default('staff'),
   masterProvisioningKey: z.string().trim().min(1).max(256)
 });
 
@@ -65,18 +58,6 @@ export const categorySchema = z.object({
   maxTargetWt: z.coerce.number().min(0).max(100000).optional(),
   eligibleKarats: z.array(trimmed(30)).max(10).optional(),
   image: optionalUrl
-});
-
-export const productSchema = z.object({
-  title: trimmed(200),
-  sku: trimmed(60).optional(),
-  category: trimmed(100).optional(),
-  purity: trimmed(30).optional(),
-  grossWt: z.coerce.number().min(0).max(100000).optional(),
-  stoneWt: z.coerce.number().min(0).max(100000).optional(),
-  stockStatus: trimmed(50).optional(),
-  image: optionalUrl,
-  angles: z.array(httpUrl).max(10).optional()
 });
 
 export const cartItemSchema = z.object({

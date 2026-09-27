@@ -16,15 +16,8 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   onNavigateCategories
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(['item-1', 'item-2', 'item-4']));
-  const [quantities, setQuantities] = useState<Record<string, number>>({
-    'item-1': 1,
-    'item-2': 1,
-    'item-3': 5,
-    'item-4': 1,
-    'item-5': 1,
-    'item-6': 1
-  });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [selectedPurityFilter, setSelectedPurityFilter] = useState<string>('all');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);

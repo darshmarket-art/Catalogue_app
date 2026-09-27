@@ -9,12 +9,14 @@ import { errorHandler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
 import { orderRoutes } from './routes/orders';
+import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
 
 export function createApp(config: Config, store: Store) {
   const app = express();
   const auth = createAuth(config, store);
+  const pack = getSectorPack(config.merchant.sector);
 
   app.disable('x-powered-by');
   // Cloud Run terminates TLS in front of the container; trust exactly one proxy hop for client IPs.
@@ -63,27 +65,6 @@ export function createApp(config: Config, store: Store) {
   const catalogueGuard: RequestHandler =
     config.merchant.catalogueAccess === 'public' ? (_req, _res, next) => next() : auth.requireUser;
 
-  app.get('/api/rates', catalogueGuard, (_req, res) => {
-    res.json({
-      status: 'success',
-      data: {
-        settlementType: 'PURE_GRAM_BASIS',
-        goldPurityStandards: {
-          '24K': '999.9 Fine Gold Assay Bar',
-          '22K': '916 Hallmarked Luxury Jewellery',
-          '18K': '750 Diamond & Polki Setting',
-          '14K': '585 Export Lightweight Standard'
-        },
-        mcx24k: 72480, // reference benchmark for valuation only
-        gold916: 66420,
-        gold750: 54360,
-        silver999: 84600,
-        lastSync: new Date().toLocaleTimeString('en-IN', { hour12: false }) + ' IST',
-        deskPhone: config.merchant.contact.deskPhone
-      }
-    });
-  });
-
   // Public by design: everything in the merchant config is shown to visitors anyway.
   app.get('/api/config', (_req, res) => {
     res.json({ status: 'success', data: config.merchant });
@@ -93,15 +74,15 @@ export function createApp(config: Config, store: Store) {
   app.get('/api/auth/me', auth.requireUser, (_req, res) => {
     const me = user(res);
     if (me.type === 'admin') {
-      res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role, accessLevel: me.accessLevel } });
+      res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
     } else {
       res.json({ status: 'success', type: 'retailer', user: { storeName: me.name, phone: me.id } });
     }
   });
 
   app.use('/api/auth', authRoutes(config, store));
-  app.use('/api', catalogueRoutes(store, auth.requireAdmin, catalogueGuard));
-  app.use('/api/orders', orderRoutes(store, config.merchant, auth.requireRetailer));
+  app.use('/api', catalogueRoutes(store, pack, auth.requireAdmin, catalogueGuard));
+  app.use('/api/orders', orderRoutes(store, config.merchant, pack, auth.requireRetailer));
   app.use('/api/admin/orders', adminOrderRoutes(store, auth.requireAdmin));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));
 

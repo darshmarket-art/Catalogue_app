@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Category, ActiveScreen } from '../types';
 import { merchant } from '../merchant';
+import { sector } from '../sector';
 
 interface CategoriesScreenProps {
   categories: Category[];
@@ -104,22 +105,12 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
             search
           </span>
           <input
-            className="w-full pl-10 pr-24 py-2.5 bg-surface-container-low rounded-lg text-on-surface text-xs font-sans border border-outline-variant/40 focus:outline-none focus:bg-white transition-all shadow-xs"
-            placeholder="Search 22K, 18K, Polki, Diamond or Bullion..."
+            className="w-full pl-10 pr-3 py-2.5 bg-surface-container-low rounded-lg text-on-surface text-xs font-sans border border-outline-variant/40 focus:outline-none focus:bg-white transition-all shadow-xs"
+            placeholder={sector.copy.categorySearchPlaceholder}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <div className="absolute right-1.5 top-1.5 flex items-center">
-            <button
-              onClick={() => showToast('Categories sorted by Vault Popularity')}
-              className="px-2 py-1 bg-surface-container rounded text-on-surface-variant text-[11px] font-sans font-semibold flex items-center gap-1 hover:bg-surface-container-high"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[15px]">tune</span>
-              <span>Sort</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -207,11 +198,13 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               
-              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                <span className="bg-white/95 backdrop-blur-md text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">
-                  {cat.eligibleKarats[0] || '22K 916 BIS'}
-                </span>
-              </div>
+              {cat.eligibleKarats[0] && (
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                  <span className="bg-white/95 backdrop-blur-md text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">
+                    {cat.eligibleKarats[0]}
+                  </span>
+                </div>
+              )}
 
               <div className="absolute bottom-2.5 left-3 right-3 text-white">
                 <h3 className="font-serif text-[17px] font-bold leading-tight drop-shadow-sm">

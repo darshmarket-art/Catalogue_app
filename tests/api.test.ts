@@ -8,6 +8,7 @@ import { loadConfig, type Config } from '../server/config';
 import { MemoryStore } from '../server/store';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
+import { migrateLegacyBuyers } from '../server/migrate';
 import { daysAgo } from '../server/stats';
 import { loadMerchant, renderIndexHtml, themeCss, THEME_TOKENS } from '../server/merchant';
 
@@ -24,7 +25,7 @@ async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'publ
   };
   config.merchant = { ...config.merchant, catalogueAccess: access };
   store = new MemoryStore();
-  await seedDemoCatalogue(store);
+  await seedDemoCatalogue(store, 'bhakti');
   return createApp(config, store);
 }
 
@@ -42,7 +43,7 @@ async function signupRetailer(app: ReturnType<typeof createApp>, n = 1) {
 async function createAdmin(app: ReturnType<typeof createApp>, email = 'boss@bhaktijewels.in') {
   const res = await request(app)
     .post('/api/auth/admin/register')
-    .send({ email, password: 'AdminPass@2026', role: 'Managing Director', masterProvisioningKey: MASTER_KEY });
+    .send({ email, password: 'AdminPass@2026', role: 'owner', masterProvisioningKey: MASTER_KEY });
   return { token: res.body.sessionToken as string, res };
 }
 
@@ -158,13 +159,12 @@ describe('admin provisioning', () => {
     const app = await build();
     const res = await request(app)
       .post('/api/auth/admin/register')
-      .send({ email: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'Inventory Controller', masterProvisioningKey: MASTER_KEY });
+      .send({ email: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: MASTER_KEY });
     expect(res.status).toBe(201);
     const login = await request(app)
       .post('/api/auth/admin/login')
-      .send({ adminId: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'Managing Director' });
-    expect(login.body.admin.role).toBe('Inventory Controller');
-    expect(login.body.admin.accessLevel).toBe('L3_INVENTORY_DISPATCH');
+      .send({ adminId: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'owner' });
+    expect(login.body.admin.role).toBe('staff');
   });
 
   it('stores only bcrypt hashes', async () => {
@@ -172,7 +172,7 @@ describe('admin provisioning', () => {
     await createAdmin(app);
     await signupRetailer(app);
     const [admin] = await store.list('admins');
-    const [merchant] = await store.list('merchants');
+    const [merchant] = await store.list('buyers');
     expect(admin.password).toMatch(/^\$2[aby]\$/);
     expect(merchant.password).toMatch(/^\$2[aby]\$/);
   });
@@ -285,9 +285,10 @@ describe('catalogue', () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    const bad = await request(app).post('/api/products').set(auth).send({ title: 'X', image: 'javascript:alert(1)' });
+    const base = { title: 'New Haar', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5' };
+    const bad = await request(app).post('/api/products').set(auth).send({ ...base, image: 'javascript:alert(1)' });
     expect(bad.status).toBe(400);
-    const ok = await request(app).post('/api/products').set(auth).send({ title: 'New Haar', grossWt: '50', stoneWt: '5' });
+    const ok = await request(app).post('/api/products').set(auth).send(base);
     expect(ok.status).toBe(201);
     expect(ok.body.data.netWt).toBe(45);
   });
@@ -554,7 +555,6 @@ describe('merchant config', () => {
     expect(confirm.body.whatsappMessage).toContain('BHAKTI JEWELS');
     expect(confirm.body.escrowGuaranteeRef).toBeUndefined();
 
-    expect((await request(app).get('/api/rates').set(auth)).body.data.deskPhone).toBe('+91 22 2340 8899');
     const csv = await request(app).get('/api/analytics/export').set('Authorization', `Bearer ${admin}`);
     expect(csv.headers['content-disposition']).toContain('bhakti_audit_ledger.csv');
   });
@@ -569,7 +569,7 @@ describe('merchant config', () => {
 });
 
 describe('catalogue access modes', () => {
-  const catalogueUrls = ['/api/products', '/api/categories', '/api/rates'];
+  const catalogueUrls = ['/api/products', '/api/categories'];
 
   it('login mode: the catalogue needs an account, but branding stays public', async () => {
     const app = await build({}, 'login');
@@ -696,14 +696,163 @@ describe('session restore (/api/auth/me)', () => {
     expect(JSON.stringify(retailerMe.body)).not.toMatch(/password|\$2[aby]\$/);
 
     const adminMe = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${admin}`);
-    expect(adminMe.body).toMatchObject({ type: 'admin', admin: { email: 'boss@bhaktijewels.in', role: 'Managing Director' } });
+    expect(adminMe.body).toMatchObject({ type: 'admin', admin: { email: 'boss@bhaktijewels.in', role: 'owner' } });
     expect(JSON.stringify(adminMe.body)).not.toMatch(/password|\$2[aby]\$/);
   });
 
   it('stops working as soon as the account is removed', async () => {
     const app = await build();
     const { token } = await signupRetailer(app);
-    await store.delete('merchants', retailer(1).phone);
+    await store.delete('buyers', retailer(1).phone);
     expect((await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`)).status).toBe(401);
+  });
+});
+
+describe('jewellery products (nothing invented)', () => {
+  const full = { title: 'Test Haar', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5' };
+
+  it('stores only what the merchant entered: no random HUID, price or making charge', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const res = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send(full);
+    expect(res.status).toBe(201);
+    expect(res.body.data.netWt).toBe(45);
+    for (const invented of ['huid', 'priceEstimate', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
+    expect(res.body.data.image).toMatch(/^data:image\/svg\+xml/);
+    expect(res.body.data.sku).toMatch(/^SKU-/);
+  });
+
+  it('keeps a HUID, price and making charge when the merchant provides them', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const res = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...full, huid: 'HM/C-123456', priceEstimate: '250000', makingChargePerGram: '400', sku: 'MY-SKU-1' });
+    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', priceEstimate: 250000, makingChargePerGram: 400, sku: 'MY-SKU-1' });
+  });
+
+  it('requires the details a jeweller must state, and rejects impossible weights', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const post = (body: object) => request(app).post('/api/products').set(auth).send(body);
+    expect((await post({ ...full, purity: undefined })).status).toBe(400);
+    expect((await post({ ...full, purity: '99K' })).status).toBe(400);
+    expect((await post({ ...full, grossWt: undefined })).status).toBe(400);
+    expect((await post({ ...full, category: undefined })).status).toBe(400);
+    const heavyStone = await post({ ...full, grossWt: '10', stoneWt: '10' });
+    expect(heavyStone.status).toBe(400);
+    expect(heavyStone.body.message).toMatch(/Stone weight/);
+  });
+
+  it('refuses a duplicate SKU', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    expect((await request(app).post('/api/products').set(auth).send({ ...full, sku: 'DUP-1' })).status).toBe(201);
+    expect((await request(app).post('/api/products').set(auth).send({ ...full, sku: 'DUP-1' })).status).toBe(409);
+  });
+
+  it('counts designs per category from the products themselves', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    await request(app).post('/api/categories').set(auth).send({ name: 'Brand New Line' });
+    let cats = (await request(app).get('/api/categories').set(auth)).body.data;
+    expect(cats.find((c: any) => c.name === 'Brand New Line').designCount).toBe(0);
+    expect(cats.find((c: any) => c.name === 'Bridal Chokers & Haar').designCount).toBe(2);
+
+    await request(app).post('/api/products').set(auth).send({ ...full, category: 'Brand New Line' });
+    cats = (await request(app).get('/api/categories').set(auth)).body.data;
+    expect(cats.find((c: any) => c.name === 'Brand New Line').designCount).toBe(1);
+  });
+
+  it('a new category gets a neutral placeholder photo and no invented purities', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const res = await request(app).post('/api/categories').set('Authorization', `Bearer ${token}`).send({ name: 'Lockets' });
+    expect(res.body.data.image).toMatch(/^data:image\/svg\+xml/);
+    expect(res.body.data.eligibleKarats).toEqual([]);
+  });
+
+  it('order lines carry only a HUID note when the product has one', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token } = await signupRetailer(app);
+    await request(app).post('/api/products').set('Authorization', `Bearer ${admin}`).send({ ...full, sku: 'NOTE-1', huid: 'HM/C-999' });
+    await request(app).post('/api/products').set('Authorization', `Bearer ${admin}`).send({ ...full, sku: 'NOTE-2' });
+    const auth = { Authorization: `Bearer ${token}` };
+    const withHuid = await request(app).post('/api/orders/items').set(auth).send({ sku: 'NOTE-1' });
+    const without = await request(app).post('/api/orders/items').set(auth).send({ sku: 'NOTE-2' });
+    expect(withHuid.body.data.note).toBe('HUID: HM/C-999');
+    expect(without.body.data.note).toBe('');
+  });
+
+  it('each merchant seeds its own demo catalogue', async () => {
+    const bhakti = new MemoryStore();
+    await seedDemoCatalogue(bhakti, 'bhakti');
+    const example = new MemoryStore();
+    await seedDemoCatalogue(example, 'example');
+    const empty = new MemoryStore();
+    await seedDemoCatalogue(empty, 'no-such-merchant');
+
+    expect((await bhakti.list('products')).length).toBe(6);
+    expect((await example.list('products')).map((p) => p.sku).sort()).toEqual(['AG-BG-001', 'AG-NK-001', 'AG-NK-002']);
+    expect(await empty.list('products')).toEqual([]);
+  });
+
+  it('no longer serves invented gold rates', async () => {
+    const app = await build();
+    const { token } = await signupRetailer(app);
+    expect((await request(app).get('/api/rates').set('Authorization', `Bearer ${token}`)).status).toBe(404);
+  });
+});
+
+describe('roles and legacy data', () => {
+  it('only accepts owner or staff, defaulting to staff', async () => {
+    const app = await build();
+    const register = (extra: object) =>
+      request(app)
+        .post('/api/auth/admin/register')
+        .send({ email: `r${Math.random().toString(36).slice(2, 7)}@example.com`, password: 'AdminPass@2026', masterProvisioningKey: MASTER_KEY, ...extra });
+    expect((await register({ role: 'Managing Director' })).status).toBe(400);
+    expect((await register({ role: 'god-mode' })).status).toBe(400);
+    expect((await register({ role: 'owner' })).body.admin.role).toBe('owner');
+    expect((await register({})).body.admin.role).toBe('staff');
+  });
+
+  it('no longer stores or returns access levels', async () => {
+    const app = await build();
+    const { res } = await createAdmin(app);
+    expect(res.body.admin.accessLevel).toBeUndefined();
+    const [admin] = await store.list('admins');
+    expect(admin.accessLevel).toBeUndefined();
+  });
+
+  it('moves buyer accounts from the old "merchants" collection, once and without overwriting', async () => {
+    const legacyStore = new MemoryStore();
+    const app = await build();
+    void app;
+    const bcrypt = (await import('bcryptjs')).default;
+    const hash = await bcrypt.hash('OldAccount@123', 10);
+    const account = { id: 'merch-old', firmName: 'Legacy Jewellers', gstin: 'PENDING-VERIFY', ownerName: 'Old Owner', phone: '9820099999', password: hash, marketHub: 'X', verified: true, createdAt: '2026-01-01T00:00:00.000Z' };
+    await legacyStore.set('merchants', account.phone, account);
+
+    expect(await migrateLegacyBuyers(legacyStore)).toBe(1);
+    expect((await legacyStore.get('buyers', account.phone))!.firmName).toBe('Legacy Jewellers');
+    expect(await migrateLegacyBuyers(legacyStore)).toBe(0); // safe to run on every start
+
+    // an account created since the rename is never overwritten
+    await legacyStore.set('buyers', '9820088888', { ...account, phone: '9820088888', firmName: 'New Name' });
+    await legacyStore.set('merchants', '9820088888', { ...account, phone: '9820088888', firmName: 'Old Name' });
+    await migrateLegacyBuyers(legacyStore);
+    expect((await legacyStore.get('buyers', '9820088888'))!.firmName).toBe('New Name');
+
+    // and the moved account can sign in
+    config = { ...config };
+    const liveApp = createApp(config, legacyStore);
+    const login = await request(liveApp).post('/api/auth/retailer/login').send({ phone: account.phone, password: 'OldAccount@123' });
+    expect(login.status).toBe(200);
   });
 });

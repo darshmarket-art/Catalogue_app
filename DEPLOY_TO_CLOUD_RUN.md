@@ -56,7 +56,7 @@ Continuous deployment from GitHub (Cloud Build trigger on `main`) works with the
 
 ## 3. First run
 
-1. Open the site, go to the Admin Console and create the first administrator with the Master Provisioning Key.
+1. Open the site, go to the Admin Console and create the first administrator with the Master Provisioning Key. Choose the **Owner** role for the business owner; anyone they add can be **Staff**.
 2. Add categories and products from the Admin Hub. The demo catalogue is **not** loaded in production; set `SEED_DEMO_CATALOGUE=true` only for a staging environment.
 3. Retailers sign up themselves from the Retailer Gateway.
 
@@ -79,6 +79,12 @@ To add a merchant:
 3. Run locally with `MERCHANT=<new-id> npm run dev`, or deploy with `--build-arg MERCHANT=<new-id>` (the Dockerfile default is `bhakti`).
 
 Each merchant gets its own Cloud Run service, Firestore database and secrets, so their data is never shared.
+
+Two more things live in the merchant folder or are chosen by it:
+- `merchants/<id>/seed.json` (optional) holds demo categories and products. It is loaded only in development, or in a deployment with `SEED_DEMO_CATALOGUE=true`. A merchant without one simply starts with an empty catalogue.
+- `sector` selects the sector pack (currently `jewellery`): the product fields and validation live in `server/sectors/` and the on-screen wording and WhatsApp message templates in `src/sectors/`. Nothing about a product (HUID, price, photo) is ever invented; it is stored only if the merchant enters it.
+
+Buyer accounts are kept in the `buyers` collection. Accounts created before the rename (in `merchants`) are copied across automatically on start, and the old documents are left untouched.
 ## 6. Local development
 
 ```powershell

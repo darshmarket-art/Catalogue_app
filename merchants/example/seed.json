@@ -1,0 +1,67 @@
+{
+  "categories": [
+    {
+      "id": "ex-cat-1",
+      "slug": "CAT-NECKLACES",
+      "name": "Necklaces",
+      "subtitle": "Everyday and occasion necklaces",
+      "avgNetWt": "10g – 60g",
+      "image": "https://placehold.co/800x450/1e3a8a/ffffff/png?text=Necklaces",
+      "eligibleKarats": ["22K 916", "18K 750"],
+      "minTargetWt": 10,
+      "maxTargetWt": 60
+    },
+    {
+      "id": "ex-cat-2",
+      "slug": "CAT-BANGLES",
+      "name": "Bangles",
+      "subtitle": "Plain and patterned bangles",
+      "avgNetWt": "15g – 50g",
+      "image": "https://placehold.co/800x450/3b5bb5/ffffff/png?text=Bangles",
+      "eligibleKarats": ["22K 916"],
+      "minTargetWt": 15,
+      "maxTargetWt": 50
+    }
+  ],
+  "products": [
+    {
+      "id": "ex-item-1",
+      "sku": "AG-NK-001",
+      "title": "Classic Rope Necklace",
+      "category": "Necklaces",
+      "purity": "22K 916",
+      "grossWt": 24.5,
+      "netWt": 24.5,
+      "stoneWt": 0,
+      "image": "https://placehold.co/600x600/dbe4ff/1e3a8a/png?text=Rope+Necklace",
+      "angles": [],
+      "stockStatus": "Ready in Vault"
+    },
+    {
+      "id": "ex-item-2",
+      "sku": "AG-NK-002",
+      "title": "Layered Chain Necklace",
+      "category": "Necklaces",
+      "purity": "18K 750",
+      "grossWt": 31.2,
+      "netWt": 30.1,
+      "stoneWt": 1.1,
+      "image": "https://placehold.co/600x600/a9bdf5/1e3a8a/png?text=Layered+Chain",
+      "angles": [],
+      "stockStatus": "Made-to-Order"
+    },
+    {
+      "id": "ex-item-3",
+      "sku": "AG-BG-001",
+      "title": "Plain Gold Bangle",
+      "category": "Bangles",
+      "purity": "22K 916",
+      "grossWt": 18,
+      "netWt": 18,
+      "stoneWt": 0,
+      "image": "https://placehold.co/600x600/dbe4ff/1e3a8a/png?text=Plain+Bangle",
+      "angles": [],
+      "stockStatus": "Ready in Vault"
+    }
+  ]
+}
