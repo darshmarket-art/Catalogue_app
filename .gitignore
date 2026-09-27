@@ -8,3 +8,5 @@ coverage/
 .env*
 !.env.example
 data/
+# Downloaded automatically by tesseract.js (scripts/extract-weights.mjs) into the working directory
+*.traineddata

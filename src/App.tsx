@@ -367,7 +367,8 @@ export default function App() {
       )}
 
       {/* Main View Container */}
-      <main className={`flex-1 w-full ${activeScreen === 'welcome' ? '' : 'pt-16 md:pt-18'}`}>
+      {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
+      <main key={activeScreen} className={`flex-1 w-full animate-page-in ${activeScreen === 'welcome' ? '' : 'pt-16 md:pt-18'}`}>
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}
