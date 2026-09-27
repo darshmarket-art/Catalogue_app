@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product } from '../types';
+import { trackProductView } from '../api';
 
 interface CatalogueScreenProps {
   products: Product[];
@@ -27,6 +28,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [selectedPurityFilter, setSelectedPurityFilter] = useState<string>('all');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const gridRef = useRef<HTMLElement>(null);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -42,6 +44,24 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       return matchesSearch && matchesPurity;
     });
   }, [products, searchQuery, selectedPurityFilter]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const sku = (entry.target as HTMLElement).dataset.sku;
+          if (sku) trackProductView(sku);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [filteredProducts]);
 
   // Selected Items Calculation
   const { selectedCount, totalNetWeight } = useMemo(() => {
@@ -218,7 +238,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       </section>
 
       {/* Product Catalogue 2-Column Grid */}
-      <section className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 px-4 pb-20">
+      <section ref={gridRef} className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 px-4 pb-20">
         {filteredProducts.map((prod) => {
           const isSelected = selectedIds.has(prod.id);
           const qty = quantities[prod.id] || 1;
@@ -226,6 +246,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
           return (
             <article
               key={prod.id}
+              data-sku={prod.sku}
               className="product-card group relative bg-white rounded-xl p-2.5 shadow-sm border border-[#d1c5b3]/40 hover:shadow-md transition-shadow flex flex-col justify-between"
             >
               <div>

@@ -4,7 +4,6 @@ import { ActiveScreen } from '../types';
 interface HeaderProps {
   currentScreen: ActiveScreen;
   onNavigate: (screen: ActiveScreen) => void;
-  onOpenGuide: () => void;
   isAdminLoggedIn: boolean;
   currentMerchant: { storeName: string; phone: string } | null;
   onLogout: () => void;
@@ -13,7 +12,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   currentScreen,
   onNavigate,
-  onOpenGuide,
   isAdminLoggedIn,
   currentMerchant,
   onLogout
@@ -24,10 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   const handleBack = () => {
     if (currentScreen === 'new-product' || currentScreen === 'add-category') {
       onNavigate('admin-hub');
-    } else if (currentScreen === 'admin-login') {
-      onNavigate('catalogue');
-    } else if (currentScreen === 'retailer-auth') {
-      onNavigate('catalogue');
+    } else if (currentScreen === 'admin-login' || currentScreen === 'retailer-auth') {
+      onNavigate('welcome');
     } else {
       onNavigate('welcome');
     }
@@ -97,15 +93,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={onOpenGuide}
-            className="flex items-center gap-1 text-[11px] font-semibold bg-[#e8c16f]/30 hover:bg-[#e8c16f]/50 text-[#715509] px-2.5 py-1.5 rounded-lg border border-[#8c6d23]/30 transition-all active:scale-95"
-            title="Production Architecture & Admin Creation Guide"
-          >
-            <span className="material-symbols-outlined text-[16px]">menu_book</span>
-            <span className="hidden sm:inline">Production Guide</span>
-          </button>
-
           {/* Retailer Account or Logout */}
           {currentMerchant ? (
             <div className="flex items-center gap-1">

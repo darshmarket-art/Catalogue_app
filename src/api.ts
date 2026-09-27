@@ -1,12 +1,83 @@
 import { Product, Category, OrderItem, BullionRates, AnalyticsData } from './types';
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
+// Held in memory only (not localStorage) so an XSS bug cannot lift a long-lived token.
+let authToken: string | null = null;
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+};
+
+async function request<T = any>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (init.body) headers.set('Content-Type', 'application/json');
+  if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+
+  const res = await fetch(path, { ...init, headers });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.status === 'error') {
+    throw new ApiError(res.status, json.message || `Request failed (${res.status})`);
+  }
+  return json as T;
+}
+
+const post = (path: string, body?: unknown) =>
+  request(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+
+let memorySessionId: string | null = null;
+
+/** Anonymous per-tab visitor id used for presence and unique-view counting. */
+export function getSessionId(): string {
+  try {
+    let sid = sessionStorage.getItem('bhakti_session_id');
+    if (!sid) {
+      sid = `sess-${crypto.randomUUID()}`;
+      sessionStorage.setItem('bhakti_session_id', sid);
+    }
+    return sid;
+  } catch {
+    memorySessionId ??= `sess-${crypto.randomUUID()}`;
+    return memorySessionId;
+  }
+}
+
+const seenSkus = new Set<string>();
+const pendingSkus = new Set<string>();
+let flushTimer: number | undefined;
+
+async function flushProductViews() {
+  flushTimer = undefined;
+  const skus = [...pendingSkus];
+  pendingSkus.clear();
+  for (let i = 0; i < skus.length; i += 50) {
+    try {
+      await post('/api/analytics/product-views', { sessionId: getSessionId(), skus: skus.slice(i, i + 50) });
+    } catch {
+      // telemetry must never break the UI
+    }
+  }
+}
+
+/** Records that a product card was seen; batched, and sent at most once per SKU per page load. */
+export function trackProductView(sku: string) {
+  if (seenSkus.has(sku)) return;
+  seenSkus.add(sku);
+  pendingSkus.add(sku);
+  flushTimer ??= window.setTimeout(flushProductViews, 2000);
+}
+
 export const api = {
   async getRates(): Promise<BullionRates> {
     try {
-      const res = await fetch('/api/rates');
-      if (!res.ok) throw new Error('Failed to fetch rates');
-      const json = await res.json();
-      return json.data;
+      return (await request('/api/rates')).data;
     } catch {
       return {
         mcx24k: 72480,
@@ -23,133 +94,67 @@ export const api = {
 
   async getCategories(): Promise<Category[]> {
     try {
-      const res = await fetch('/api/categories');
-      if (!res.ok) throw new Error('Failed to fetch categories');
-      const json = await res.json();
-      return json.data;
+      return (await request('/api/categories')).data;
     } catch {
       return [];
     }
   },
 
   async createCategory(cat: Partial<Category>): Promise<Category> {
-    const res = await fetch('/api/categories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cat)
-    });
-    const json = await res.json();
-    return json.data;
+    return (await post('/api/categories', cat)).data;
   },
 
   async getProducts(params?: { search?: string; category?: string; purity?: string }): Promise<Product[]> {
     try {
       const query = new URLSearchParams(params as Record<string, string>).toString();
-      const res = await fetch(`/api/products?${query}`);
-      if (!res.ok) throw new Error('Failed to fetch products');
-      const json = await res.json();
-      return json.data;
+      return (await request(`/api/products?${query}`)).data;
     } catch {
       return [];
     }
   },
 
   async createProduct(prod: Partial<Product>): Promise<Product> {
-    const res = await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(prod)
-    });
-    const json = await res.json();
-    return json.data;
+    return (await post('/api/products', prod)).data;
   },
 
   async getOrders(): Promise<{ items: OrderItem[]; totalWeight: number; totalPieces: number }> {
     try {
-      const res = await fetch('/api/orders');
-      if (!res.ok) throw new Error('Failed to fetch orders');
-      const json = await res.json();
-      return {
-        items: json.data,
-        totalWeight: json.totalWeightNetGrams,
-        totalPieces: json.totalPieces
-      };
+      const json = await request('/api/orders');
+      return { items: json.data, totalWeight: json.totalWeightNetGrams, totalPieces: json.totalPieces };
     } catch {
       return { items: [], totalWeight: 0, totalPieces: 0 };
     }
   },
 
-  async addOrderItem(item: Partial<OrderItem>): Promise<OrderItem> {
-    const res = await fetch('/api/orders/items', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    });
-    const json = await res.json();
-    return json.data;
+  async addOrderItem(item: { sku: string; batchQty: number; qtyUnit?: string; note?: string }): Promise<OrderItem> {
+    return (await post('/api/orders/items', item)).data;
   },
 
   async removeOrderItem(id: string): Promise<void> {
-    await fetch(`/api/orders/items/${id}`, { method: 'DELETE' });
+    await request(`/api/orders/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   async confirmOrder(): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
-    const res = await fetch('/api/orders/confirm', { method: 'POST' });
-    const json = await res.json();
-    return json;
+    return post('/api/orders/confirm');
   },
 
   async getAnalytics(): Promise<AnalyticsData> {
-    try {
-      const res = await fetch('/api/analytics');
-      if (!res.ok) throw new Error('Failed to fetch analytics');
-      const json = await res.json();
-      return json.data;
-    } catch {
-      return {
-        views: 12480,
-        viewsTrend: '+18.4%',
-        inquiries: 384,
-        bookedOrders: 142,
-        bookedWeightKg: 28.650,
-        liveVisitors: 1,
-        todayVisitors: 1420,
-        verifiedMerchants: 1,
-        guestRetailers: 0,
-        pendingDrafts: 3
-      };
-    }
-  },
-
-  async trackView(): Promise<void> {
-    try {
-      await fetch('/api/analytics/track-view', { method: 'POST' });
-    } catch {
-      // silent
-    }
+    return (await request('/api/analytics')).data;
   },
 
   async recordInquiry(payload?: { clientFirm?: string; itemsCount?: number; totalNetWeight?: number }): Promise<void> {
     try {
-      await fetch('/api/analytics/track-inquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload || {})
-      });
+      await post('/api/analytics/track-inquiry', payload || {});
     } catch {
-      // silent
+      // telemetry must never break the UI
     }
   },
 
-  async sendHeartbeat(sessionId: string, isVerified: boolean): Promise<void> {
+  async sendHeartbeat(): Promise<void> {
     try {
-      await fetch('/api/analytics/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, isVerified })
-      });
+      await post('/api/analytics/heartbeat', { sessionId: getSessionId() });
     } catch {
-      // silent
+      // telemetry must never break the UI
     }
   },
 
@@ -161,41 +166,20 @@ export const api = {
     password: string;
     marketHub: string;
   }) {
-    const res = await fetch('/api/auth/retailer/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json();
-    if (!res.ok || json.status === 'error') {
-      throw new Error(json.message || 'Signup failed');
-    }
+    const json = await post('/api/auth/retailer/signup', payload);
+    setAuthToken(json.token);
     return json;
   },
 
-  async loginRetailer(payload: { phone: string; password?: string; authMode?: string }) {
-    const res = await fetch('/api/auth/retailer/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json();
-    if (!res.ok || json.status === 'error') {
-      throw new Error(json.message || 'Access Denied: Invalid credentials');
-    }
+  async loginRetailer(payload: { phone: string; password: string }) {
+    const json = await post('/api/auth/retailer/login', payload);
+    setAuthToken(json.token);
     return json;
   },
 
-  async loginAdmin(payload: { adminId: string; password: string; otpCode?: string; role?: string }) {
-    const res = await fetch('/api/auth/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json();
-    if (!res.ok || json.status === 'error') {
-      throw new Error(json.message || 'Access Denied: Invalid Master Security Key');
-    }
+  async loginAdmin(payload: { adminId: string; password: string }) {
+    const json = await post('/api/auth/admin/login', payload);
+    setAuthToken(json.sessionToken);
     return json;
   },
 
@@ -206,25 +190,26 @@ export const api = {
     role: string;
     masterProvisioningKey: string;
   }) {
-    const res = await fetch('/api/auth/admin/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json();
-    if (!res.ok || json.status === 'error') {
-      throw new Error(json.message || 'Admin creation rejected');
-    }
-    return json;
+    // Provisioning does not sign the new admin in; they authenticate on the login form.
+    return post('/api/auth/admin/register', payload);
   },
 
   async getAuditLogs() {
     try {
-      const res = await fetch('/api/admin/audit-logs');
-      const json = await res.json();
-      return json.data || [];
+      return (await request('/api/admin/audit-logs')).data || [];
     } catch {
       return [];
     }
+  },
+
+  async downloadAuditExport(): Promise<void> {
+    const res = await fetch('/api/analytics/export', { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
+    if (!res.ok) throw new ApiError(res.status, 'Export failed. Please sign in again.');
+    const url = URL.createObjectURL(await res.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bhakti_audit_ledger.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   }
 };

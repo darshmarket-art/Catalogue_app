@@ -1,0 +1,453 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import request from 'supertest';
+import jwt from 'jsonwebtoken';
+import { loadConfig, type Config } from '../server/config';
+import { MemoryStore } from '../server/store';
+import { createApp } from '../server/app';
+import { seedDemoCatalogue } from '../server/seed';
+import { daysAgo } from '../server/stats';
+
+const MASTER_KEY = 'test-master-provisioning-key';
+const JWT_SECRET = 'x'.repeat(48);
+
+let store: MemoryStore;
+let config: Config;
+
+async function build(overrides: Partial<Config['rateLimit']> = {}) {
+  config = {
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
+    rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000, ...overrides }
+  };
+  store = new MemoryStore();
+  await seedDemoCatalogue(store);
+  return createApp(config, store);
+}
+
+const retailer = (n = 1) => ({
+  firmName: `Test Jewellers ${n}`,
+  phone: `98200000${String(n).padStart(2, '0')}`,
+  password: 'StrongPass@1'
+});
+
+async function signupRetailer(app: ReturnType<typeof createApp>, n = 1) {
+  const res = await request(app).post('/api/auth/retailer/signup').send(retailer(n));
+  return { token: res.body.token as string, res };
+}
+
+async function createAdmin(app: ReturnType<typeof createApp>, email = 'boss@bhaktijewels.in') {
+  const res = await request(app)
+    .post('/api/auth/admin/register')
+    .send({ email, password: 'AdminPass@2026', role: 'Managing Director', masterProvisioningKey: MASTER_KEY });
+  return { token: res.body.sessionToken as string, res };
+}
+
+describe('config', () => {
+  it('refuses to start in production without strong secrets', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/JWT_SECRET/);
+    expect(() => loadConfig({ NODE_ENV: 'production', JWT_SECRET: 'short', MASTER_PROVISIONING_KEY: 'short' })).toThrow(
+      /JWT_SECRET/
+    );
+  });
+
+  it('refuses a non-Firestore store in production', () => {
+    expect(() =>
+      loadConfig({ NODE_ENV: 'production', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY, STORE: 'file' })
+    ).toThrow(/firestore/);
+  });
+
+  it('accepts a complete production configuration', () => {
+    const cfg = loadConfig({ NODE_ENV: 'production', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY });
+    expect(cfg.storeKind).toBe('firestore');
+    expect(cfg.seedDemoCatalogue).toBe(false);
+  });
+});
+
+describe('authorization', () => {
+  let app: ReturnType<typeof createApp>;
+  beforeEach(async () => {
+    app = await build();
+  });
+
+  it('rejects anonymous access to admin and retailer routes', async () => {
+    for (const [method, path] of [
+      ['get', '/api/admin/audit-logs'],
+      ['get', '/api/analytics'],
+      ['get', '/api/analytics/export'],
+      ['post', '/api/products'],
+      ['post', '/api/categories'],
+      ['get', '/api/orders'],
+      ['post', '/api/orders/confirm']
+    ] as const) {
+      const res = await request(app)[method](path);
+      expect(res.status, `${method} ${path}`).toBe(401);
+    }
+  });
+
+  it('forbids retailers from admin routes', async () => {
+    const { token } = await signupRetailer(app);
+    for (const path of ['/api/admin/audit-logs', '/api/analytics', '/api/analytics/export']) {
+      const res = await request(app).get(path).set('Authorization', `Bearer ${token}`);
+      expect(res.status, path).toBe(403);
+    }
+    const create = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send({ title: 'x' });
+    expect(create.status).toBe(403);
+  });
+
+  it('forbids admins from retailer cart routes', async () => {
+    const { token } = await createAdmin(app);
+    const res = await request(app).get('/api/orders').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects tokens signed with a different secret, and unsigned tokens', async () => {
+    await createAdmin(app);
+    const forged = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, 'another-secret-another-secret-1234', {
+      issuer: 'bhakti-jewels'
+    });
+    const unsigned = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, '', { algorithm: 'none', issuer: 'bhakti-jewels' });
+    for (const token of [forged, unsigned]) {
+      const res = await request(app).get('/api/admin/audit-logs').set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(401);
+    }
+  });
+
+  it('revokes access immediately when the account is deleted', async () => {
+    const { token } = await createAdmin(app);
+    await store.delete('admins', 'boss@bhaktijewels.in');
+    const res = await request(app).get('/api/admin/audit-logs').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(401);
+  });
+
+  it('lets admins read audit logs, analytics and the CSV export', async () => {
+    const { token } = await createAdmin(app);
+    for (const path of ['/api/admin/audit-logs', '/api/analytics', '/api/analytics/export']) {
+      const res = await request(app).get(path).set('Authorization', `Bearer ${token}`);
+      expect(res.status, path).toBe(200);
+    }
+  });
+});
+
+describe('admin provisioning', () => {
+  it('rejects a wrong master key and never logs the submitted key', async () => {
+    const app = await build();
+    const wrong = 'not-the-real-key-abc';
+    const res = await request(app)
+      .post('/api/auth/admin/register')
+      .send({ email: 'x@bhaktijewels.in', password: 'AdminPass@2026', masterProvisioningKey: wrong });
+    expect(res.status).toBe(403);
+    const logs = await store.list('auditLogs');
+    expect(JSON.stringify(logs)).not.toContain(wrong);
+    expect(logs.some((l) => l.event === 'ADMIN_CREATION_FAILED_INVALID_TOKEN')).toBe(true);
+  });
+
+  it('is disabled when no master key is configured', async () => {
+    await build();
+    const disabled = createApp({ ...config, masterProvisioningKey: null }, store);
+    const res = await request(disabled)
+      .post('/api/auth/admin/register')
+      .send({ email: 'x@bhaktijewels.in', password: 'AdminPass@2026', masterProvisioningKey: 'anything' });
+    expect(res.status).toBe(403);
+  });
+
+  it('derives the role from the account, ignoring what the client claims at login', async () => {
+    const app = await build();
+    const res = await request(app)
+      .post('/api/auth/admin/register')
+      .send({ email: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'Inventory Controller', masterProvisioningKey: MASTER_KEY });
+    expect(res.status).toBe(201);
+    const login = await request(app)
+      .post('/api/auth/admin/login')
+      .send({ adminId: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'Managing Director' });
+    expect(login.body.admin.role).toBe('Inventory Controller');
+    expect(login.body.admin.accessLevel).toBe('L3_INVENTORY_DISPATCH');
+  });
+
+  it('stores only bcrypt hashes', async () => {
+    const app = await build();
+    await createAdmin(app);
+    await signupRetailer(app);
+    const [admin] = await store.list('admins');
+    const [merchant] = await store.list('merchants');
+    expect(admin.password).toMatch(/^\$2[aby]\$/);
+    expect(merchant.password).toMatch(/^\$2[aby]\$/);
+  });
+});
+
+describe('retailer accounts', () => {
+  it('rejects duplicate phones and returns identical errors for unknown phone and wrong password', async () => {
+    const app = await build();
+    await signupRetailer(app);
+    const dup = await request(app).post('/api/auth/retailer/signup').send(retailer(1));
+    expect(dup.status).toBe(409);
+
+    const wrongPw = await request(app).post('/api/auth/retailer/login').send({ phone: retailer(1).phone, password: 'nope-nope-1' });
+    const unknown = await request(app).post('/api/auth/retailer/login').send({ phone: '9999999999', password: 'nope-nope-1' });
+    expect(wrongPw.status).toBe(401);
+    expect(unknown.status).toBe(401);
+    expect(unknown.body.message).toBe(wrongPw.body.message);
+  });
+
+  it('does not allow passwordless WhatsApp sign-in', async () => {
+    const app = await build();
+    await signupRetailer(app);
+    const res = await request(app).post('/api/auth/retailer/login').send({ phone: retailer(1).phone, password: 'x', authMode: 'wa' });
+    expect(res.status).toBe(501);
+    expect(res.body.token).toBeUndefined();
+  });
+
+  it('validates input', async () => {
+    const app = await build();
+    const res = await request(app).post('/api/auth/retailer/signup').send({ firmName: 'A', phone: '12', password: 'short' });
+    expect(res.status).toBe(400);
+  });
+
+  it('rate limits repeated failed logins', async () => {
+    const app = await build({ auth: 3 });
+    const statuses: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post('/api/auth/retailer/login').send({ phone: '9999999999', password: 'wrong-pass-1' });
+      statuses.push(res.status);
+    }
+    expect(statuses.slice(0, 3)).toEqual([401, 401, 401]);
+    expect(statuses.slice(3)).toEqual([429, 429]);
+  });
+});
+
+describe('orders', () => {
+  it('keeps each retailer’s cart private', async () => {
+    const app = await build();
+    const a = (await signupRetailer(app, 1)).token;
+    const b = (await signupRetailer(app, 2)).token;
+
+    const added = await request(app)
+      .post('/api/orders/items')
+      .set('Authorization', `Bearer ${a}`)
+      .send({ sku: 'B2B-KND-9082', batchQty: 2 });
+    expect(added.status).toBe(201);
+
+    const listA = await request(app).get('/api/orders').set('Authorization', `Bearer ${a}`);
+    const listB = await request(app).get('/api/orders').set('Authorization', `Bearer ${b}`);
+    expect(listA.body.count).toBe(1);
+    expect(listB.body.count).toBe(0);
+
+    const steal = await request(app).delete(`/api/orders/items/${added.body.data.id}`).set('Authorization', `Bearer ${b}`);
+    expect(steal.status).toBe(404);
+    const remove = await request(app).delete(`/api/orders/items/${added.body.data.id}`).set('Authorization', `Bearer ${a}`);
+    expect(remove.status).toBe(200);
+  });
+
+  it('computes weights from the catalogue, not from client-supplied values', async () => {
+    const app = await build();
+    const { token } = await signupRetailer(app);
+    const res = await request(app)
+      .post('/api/orders/items')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ sku: 'B2B-KND-9082', batchQty: 2, totalNetGold: 0.001, unitWt: 0.001, purity: '1K' });
+    expect(res.body.data.totalNetGold).toBe(85);
+    expect(res.body.data.purity).toBe('22K 916');
+  });
+
+  it('rejects unknown SKUs and empty confirmations, and books a PO otherwise', async () => {
+    const app = await build();
+    const { token } = await signupRetailer(app);
+    const auth = { Authorization: `Bearer ${token}` };
+
+    expect((await request(app).post('/api/orders/items').set(auth).send({ sku: 'NOPE' })).status).toBe(404);
+    expect((await request(app).post('/api/orders/confirm').set(auth)).status).toBe(400);
+
+    await request(app).post('/api/orders/items').set(auth).send({ sku: 'B2B-COIN-0010', batchQty: 3 });
+    const confirm = await request(app).post('/api/orders/confirm').set(auth);
+    expect(confirm.status).toBe(200);
+    expect(confirm.body.totalNetGrams).toBe(30);
+    expect(await store.list('purchaseOrders')).toHaveLength(1);
+  });
+});
+
+describe('catalogue', () => {
+  it('serves the catalogue publicly with pagination', async () => {
+    const app = await build();
+    const all = await request(app).get('/api/products');
+    expect(all.status).toBe(200);
+    expect(all.body.count).toBe(6);
+    const page = await request(app).get('/api/products?limit=2&offset=1');
+    expect(page.body.data).toHaveLength(2);
+    expect(page.body.count).toBe(6);
+  });
+
+  it('lets admins add products, rejecting non-http image URLs', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const bad = await request(app).post('/api/products').set(auth).send({ title: 'X', image: 'javascript:alert(1)' });
+    expect(bad.status).toBe(400);
+    const ok = await request(app).post('/api/products').set(auth).send({ title: 'New Haar', grossWt: '50', stoneWt: '5' });
+    expect(ok.status).toBe(201);
+    expect(ok.body.data.netWt).toBe(45);
+  });
+});
+
+describe('analytics', () => {
+  const stats = async (app: ReturnType<typeof createApp>, adminToken: string) =>
+    (await request(app).get('/api/analytics').set('Authorization', `Bearer ${adminToken}`)).body.data;
+
+  it('starts from zero, with no fabricated baseline numbers', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const data = await stats(app, token);
+    expect(data).toMatchObject({
+      views: 0,
+      inquiries: 0,
+      bookedOrders: 0,
+      bookedWeightKg: 0,
+      liveVisitors: 0,
+      todayVisitors: 0,
+      verifiedToday: 0,
+      viewsTrend: '0%'
+    });
+  });
+
+  it('counts a product view once per visitor session per day, and ignores admin browsing', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const send = (sessionId: string, skus: string[], bearer?: string) => {
+      const req = request(app).post('/api/analytics/product-views');
+      if (bearer) req.set('Authorization', `Bearer ${bearer}`);
+      return req.send({ sessionId, skus });
+    };
+
+    expect((await send('visitor-aaaa1111', ['B2B-KND-9082', 'B2B-TMP-4410'])).body.counted).toBe(2);
+    expect((await send('visitor-aaaa1111', ['B2B-KND-9082', 'B2B-COIN-0010'])).body.counted).toBe(1);
+    expect((await send('visitor-bbbb2222', ['B2B-KND-9082'])).body.counted).toBe(1);
+    expect((await send('admin-session-1', ['B2B-KND-9082'], admin)).body.counted).toBe(0);
+
+    expect((await stats(app, admin)).views).toBe(4);
+  });
+
+  it('attributes inquiries to the signed-in firm, not to what the client claims', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token } = await signupRetailer(app);
+
+    await request(app)
+      .post('/api/analytics/track-inquiry')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientFirm: 'Someone Else Ltd', itemsCount: 3, totalNetWeight: 120 });
+    await request(app).post('/api/analytics/track-inquiry').send({ clientFirm: 'Walk-in Jewellers' });
+
+    const inquiries = await store.list('inquiries');
+    expect(inquiries.map((i) => i.firmName).sort()).toEqual(['Test Jewellers 1', 'Walk-in Jewellers']);
+    expect((await stats(app, admin)).inquiries).toBe(2);
+  });
+
+  it('counts confirmed orders and their weight', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token } = await signupRetailer(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    await request(app).post('/api/orders/items').set(auth).send({ sku: 'B2B-COIN-0010', batchQty: 5 });
+    await request(app).post('/api/orders/confirm').set(auth);
+
+    const data = await stats(app, admin);
+    expect(data.bookedOrders).toBe(1);
+    expect(data.bookedWeightKg).toBe(0.05);
+  });
+
+  it('tracks live visitors, unique visitors today, and verified vs guest', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token: retailerToken } = await signupRetailer(app);
+    const beat = (sessionId: string, bearer?: string) => {
+      const req = request(app).post('/api/analytics/heartbeat');
+      if (bearer) req.set('Authorization', `Bearer ${bearer}`);
+      return req.send({ sessionId });
+    };
+
+    await beat('guest-session-1');
+    await beat('guest-session-1'); // repeat pings are not new visitors
+    await beat('guest-session-2');
+    await beat('retailer-session-1', retailerToken);
+    await beat('admin-session-1', admin); // admins are not visitors
+    await beat('admin-session-2'); // an admin's tab is a guest until they sign in...
+    await beat('admin-session-2', admin); // ...and is taken back out once they do
+
+    let data = await stats(app, admin);
+    expect(data.liveVisitors).toBe(3);
+    expect(data.verifiedMerchants).toBe(1);
+    expect(data.guestRetailers).toBe(2);
+    expect(data.todayVisitors).toBe(3);
+    expect(data.verifiedToday).toBe(1);
+
+    // A guest who signs in mid-session becomes verified, and is counted as verified once.
+    await beat('guest-session-2', retailerToken);
+    await beat('guest-session-2', retailerToken);
+    data = await stats(app, admin);
+    expect(data.todayVisitors).toBe(3);
+    expect(data.verifiedToday).toBe(2);
+    expect(data.verifiedMerchants).toBe(2);
+  });
+
+  it('drops visitors from the live count once their heartbeats stop', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    await request(app).post('/api/analytics/heartbeat').send({ sessionId: 'guest-session-1' });
+    expect((await stats(app, admin)).liveVisitors).toBe(1);
+
+    await store.update('sessions', 'guest-session-1', { lastPing: Date.now() - 60_000 });
+    const data = await stats(app, admin);
+    expect(data.liveVisitors).toBe(0);
+    expect(data.todayVisitors).toBe(1);
+  });
+
+  it('computes the views trend against the previous 7 days, and ignores older days', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    await store.set('dailyStats', daysAgo(8), { day: daysAgo(8), views: 10 });
+    await store.set('dailyStats', daysAgo(20), { day: daysAgo(20), views: 999 });
+    await request(app).post('/api/analytics/product-views').send({
+      sessionId: 'visitor-aaaa1111',
+      skus: Array.from({ length: 20 }, (_, i) => `SKU-${i}`)
+    });
+
+    const data = await stats(app, admin);
+    expect(data.views).toBe(20);
+    expect(data.viewsTrend).toBe('+100.0%');
+  });
+
+  it('validates tracking payloads and rate limits them', async () => {
+    const app = await build({ analytics: 3 });
+    const bad = await request(app).post('/api/analytics/heartbeat').send({ sessionId: 'x' });
+    expect(bad.status).toBe(400);
+    const send = () => request(app).post('/api/analytics/heartbeat').send({ sessionId: 'guest-session-9' });
+    expect((await send()).status).toBe(200);
+    expect((await send()).status).toBe(200);
+    expect((await send()).status).toBe(429);
+  });
+
+  it('quotes user-supplied text safely in the CSV export', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    await request(app).post('/api/analytics/track-inquiry').send({ clientFirm: '=HYPERLINK("http://evil","x")' });
+    const res = await request(app).get('/api/analytics/export').set('Authorization', `Bearer ${token}`);
+    expect(res.text).toContain('""http://evil""');
+    expect(res.text.split('\n').every((line) => !/^"[=+\-@]/.test(line))).toBe(true);
+  });
+});
+
+describe('platform', () => {
+  it('exposes a health check and security headers, and no longer serves the production guide', async () => {
+    const app = await build();
+    expect((await request(app).get('/healthz')).body.status).toBe('ok');
+    const rates = await request(app).get('/api/rates');
+    expect(rates.headers['x-content-type-options']).toBe('nosniff');
+    expect(rates.headers['x-powered-by']).toBeUndefined();
+    expect((await request(app).get('/api/production-guide')).status).toBe(404);
+    expect((await request(app).get('/api/auth/admin/creation-process')).status).toBe(404);
+  });
+
+  it('answers unknown API paths with JSON 404 and malformed JSON with 400', async () => {
+    const app = await build();
+    expect((await request(app).get('/api/nope')).status).toBe(404);
+    const bad = await request(app).post('/api/auth/retailer/login').set('Content-Type', 'application/json').send('{bad');
+    expect(bad.status).toBe(400);
+  });
+});

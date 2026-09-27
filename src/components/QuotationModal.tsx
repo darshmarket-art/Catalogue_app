@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { api } from '../api';
 
@@ -8,6 +8,7 @@ interface QuotationModalProps {
   selectedCount: number;
   totalNetWeight: number;
   items: Product[];
+  defaultFirm?: string;
 }
 
 export const QuotationModal: React.FC<QuotationModalProps> = ({
@@ -15,11 +16,16 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
   onClose,
   selectedCount,
   totalNetWeight,
-  items
+  items,
+  defaultFirm = ''
 }) => {
-  const [clientFirm, setClientFirm] = useState('Shree Ambica Jewellers');
-  const [clientCity, setClientCity] = useState('Zaveri Bazaar, Mumbai');
+  const [clientFirm, setClientFirm] = useState(defaultFirm);
+  const [clientCity, setClientCity] = useState('');
   const [sentNotice, setSentNotice] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setClientFirm((current) => current || defaultFirm);
+  }, [isOpen, defaultFirm]);
 
   if (!isOpen) return null;
 
@@ -43,7 +49,7 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
     }).catch(() => {});
 
     const summary = `*BHAKTI JEWELS — WHOLESALE GRAM-BASIS REQUISITION*\n` +
-      `*Client:* ${clientFirm} (${clientCity})\n` +
+      `*Client:* ${clientFirm}${clientCity ? ` (${clientCity})` : ''}\n` +
       `*Settlement Basis:* Pure Net Gold Weight (No Fiat Price Lock)\n` +
       `*Total Items:* ${selectedCount} Pieces\n` +
       `*Total Net Gold:* ${totalNetWeight.toFixed(3)}g Net\n` +

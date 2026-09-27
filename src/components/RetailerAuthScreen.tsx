@@ -12,19 +12,18 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
   onLoginSuccess
 }) => {
   const [activeTab, setActiveTab] = useState<'signin' | 'register'>('signin');
-  const [authMethod, setAuthMethod] = useState<'pass' | 'wa'>('pass');
   
   // Login fields
-  const [phone, setPhone] = useState('9820012345');
-  const [password, setPassword] = useState('Password@123');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Signup fields
-  const [firmName, setFirmName] = useState('Mahalaxmi Jewellers');
-  const [signupGstin, setSignupGstin] = useState('27AAAAA1234A1Z5');
-  const [signupOwner, setSignupOwner] = useState('Rajeshbhai Soni');
-  const [signupPhone, setSignupPhone] = useState('9820055555');
-  const [signupPassword, setSignupPassword] = useState('TradePass@2026');
+  const [firmName, setFirmName] = useState('');
+  const [signupGstin, setSignupGstin] = useState('');
+  const [signupOwner, setSignupOwner] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
   const [signupMarketHub, setSignupMarketHub] = useState('Zaveri Bazaar, Mumbai');
   const [showSignupPassword, setShowSignupPassword] = useState(false);
 
@@ -42,8 +41,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
     try {
       const res = await api.loginRetailer({
         phone: phone.trim(),
-        password: password.trim(),
-        authMode: authMethod
+        password: password.trim()
       });
 
       if (res.status === 'success') {
@@ -130,21 +128,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
         </div>
       )}
 
-      {/* Quick Test Helper Card */}
-      <div className="mb-4 bg-[#f0edea] p-2.5 rounded-lg border border-[#d1c5b3]/40 text-left text-[11px]">
-        <div className="flex items-center justify-between text-[#715509] font-bold font-mono text-[10px] uppercase">
-          <span>Demo Credentials in Database</span>
-          <span className="text-[#486458]">Persistent</span>
-        </div>
-        <div className="mt-1 flex flex-col gap-0.5 text-[#4d4638] font-mono text-[10px]">
-          <div>• Registered Phone: <span className="font-bold text-[#1c1c1a]">9820012345</span></div>
-          <div>• Valid Passkey: <span className="font-bold text-[#1c1c1a]">Password@123</span></div>
-          <div className="text-[#7f7666] italic font-sans text-[10px] mt-0.5">
-            (Enter any other password to test the &quot;Access Denied&quot; rejection response)
-          </div>
-        </div>
-      </div>
-
       {/* Mode Switcher */}
       <div className="w-full bg-[#ebe8e4] p-1 rounded-xl flex items-center shadow-inner mb-4">
         <button
@@ -183,37 +166,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
       {/* Tab 1: Sign In */}
       {activeTab === 'signin' && (
         <form onSubmit={handleSignIn} className="bg-white rounded-xl p-5 shadow-sm border border-[#d1c5b3]/40 flex flex-col space-y-4">
-          {/* Method Selector: WhatsApp OTP vs Password */}
-          <div className="flex items-center justify-between pb-1">
-            <span className="font-sans text-[11px] uppercase tracking-wider text-[#7f7666] font-semibold">
-              Authentication Mode
-            </span>
-            <div className="flex items-center space-x-1 bg-[#f6f3ef] p-0.5 rounded-lg border border-[#d1c5b3]/30">
-              <button
-                onClick={() => setAuthMethod('wa')}
-                className={`px-2.5 py-1 text-[11px] font-sans rounded transition-colors ${
-                  authMethod === 'wa'
-                    ? 'bg-white text-[#715509] shadow-xs font-bold'
-                    : 'text-[#4d4638]'
-                }`}
-                type="button"
-              >
-                WhatsApp OTP
-              </button>
-              <button
-                onClick={() => setAuthMethod('pass')}
-                className={`px-2.5 py-1 text-[11px] font-sans rounded transition-colors ${
-                  authMethod === 'pass'
-                    ? 'bg-white text-[#715509] shadow-xs font-bold'
-                    : 'text-[#4d4638]'
-                }`}
-                type="button"
-              >
-                Password
-              </button>
-            </div>
-          </div>
-
           {/* Registered Mobile Input */}
           <div className="flex flex-col space-y-1">
             <label className="text-xs font-sans text-[#1c1c1a] font-semibold flex items-center justify-between">
@@ -232,7 +184,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
                 className="w-full bg-transparent px-3 py-2.5 text-[#1c1c1a] font-mono text-xs focus:outline-none tracking-wide"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="9820012345"
+                placeholder="10-digit mobile number"
                 type="tel"
                 required
               />
@@ -240,8 +192,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           </div>
 
           {/* Password Mode */}
-          {authMethod === 'pass' ? (
-            <div className="flex flex-col space-y-1">
+                      <div className="flex flex-col space-y-1">
               <label className="text-xs font-sans text-[#1c1c1a] font-semibold flex items-center justify-between">
                 <span>Vault Security Password</span>
                 <span className="text-[10px] text-[#7f7666]">Strictly Checked</span>
@@ -267,21 +218,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="bg-[#c7e7d7]/40 p-3 rounded-lg flex items-start space-x-2.5 border border-[#486458]/20">
-              <span className="material-symbols-outlined text-[19px] text-[#486458] mt-0.5">
-                mark_chat_read
-              </span>
-              <div className="flex flex-col">
-                <span className="text-xs font-sans text-[#032017] font-semibold">
-                  1-Tap WhatsApp Verification
-                </span>
-                <p className="text-[11px] font-sans text-[#304c41] leading-tight mt-0.5">
-                  Authenticated session code is transmitted directly to your verified trade mobile via WhatsApp Business API.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Controls */}
           <div className="flex items-center justify-between pt-1">
@@ -295,7 +231,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
             </label>
             <button
               type="button"
-              onClick={() => alert('Password reset PIN sent to registered WhatsApp: 9820012345')}
+              onClick={() => alert('Please contact the Guild desk to reset your passkey.')}
               className="text-[11px] font-sans text-[#715509] hover:underline font-semibold"
             >
               Reset Passkey?
@@ -310,19 +246,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           >
             <span>{loading ? 'Verifying Vault Credentials...' : 'Enter Wholesale Portal'}</span>
             <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
-          </button>
-
-          {/* Instant WhatsApp Auth Button */}
-          <button
-            onClick={() => {
-              setAuthMethod('wa');
-              handleSignIn();
-            }}
-            type="button"
-            className="w-full py-2.5 bg-[#c7e7d7] text-[#032017] hover:bg-[#b0d9c4] rounded-lg text-xs font-sans font-semibold flex items-center justify-center space-x-2 active:scale-[0.99] transition-all border border-[#486458]/30"
-          >
-            <span className="material-symbols-outlined text-[18px] text-[#486458]">chat</span>
-            <span>Instant WhatsApp OTP Verification</span>
           </button>
 
           <div className="pt-2 border-t border-[#f0edea] flex flex-col items-center space-y-2">

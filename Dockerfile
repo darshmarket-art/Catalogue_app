@@ -1,25 +1,26 @@
-# Use official Node.js 22 LTS slim image (required for Vite 8)
-FROM node:22-slim
+# syntax=docker/dockerfile:1
 
-# Set working directory inside the container
+# ---- Build stage: full dependency tree, builds the client and bundles the server ----
+FROM node:22-slim AS build
 WORKDIR /app
-
-# Copy dependency manifests
-COPY package*.json ./
-
-# Install dependencies (use legacy-peer-deps to avoid React 19 tree conflicts)
-RUN npm install --legacy-peer-deps
-
-# Copy application source code
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci
 COPY . .
-
-# Build Vite client assets into /app/dist
 RUN npm run build
 
-# Cloud Run environment defaults
+# ---- Runtime stage: production dependencies and build output only ----
+FROM node:22-slim AS runtime
+WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
-EXPOSE 8080
 
-# Run server
-CMD ["npm", "start"]
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist-server ./dist-server
+
+# The official node image ships an unprivileged "node" user.
+USER node
+EXPOSE 8080
+CMD ["node", "dist-server/server.js"]

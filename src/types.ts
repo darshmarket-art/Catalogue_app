@@ -56,6 +56,7 @@ export interface BullionRates {
 }
 
 export interface AnalyticsData {
+  periodLabel: string;
   views: number;
   viewsTrend: string;
   inquiries: number;
@@ -63,6 +64,7 @@ export interface AnalyticsData {
   bookedWeightKg: number;
   liveVisitors: number;
   todayVisitors: number;
+  verifiedToday: number;
   verifiedMerchants: number;
   guestRetailers: number;
   pendingDrafts: number;

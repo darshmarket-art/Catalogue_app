@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
 import { ActiveScreen, AnalyticsData } from '../types';
+import { api } from '../api';
 
 interface AdminHubScreenProps {
   analytics: AnalyticsData;
+  updatedAt: Date | null;
   onNavigate: (screen: ActiveScreen) => void;
-  onOpenGuide: () => void;
 }
 
 export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
   analytics,
-  onNavigate,
-  onOpenGuide
+  updatedAt,
+  onNavigate
 }) => {
   const [downloading, setDownloading] = useState(false);
+  const verifiedShare =
+    analytics.todayVisitors > 0 ? Math.round((analytics.verifiedToday / analytics.todayVisitors) * 100) : 0;
 
   const handleExportCSV = () => {
     setDownloading(true);
-    // Trigger download of visitor audit CSV
-    window.location.href = '/api/analytics/export';
-    setTimeout(() => setDownloading(false), 1500);
+    api
+      .downloadAuditExport()
+      .catch((err) => alert(err.message))
+      .finally(() => setDownloading(false));
   };
 
   return (
@@ -35,14 +39,8 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="px-2.5 py-1 rounded bg-[#caeada] text-[#032017] font-mono text-xs font-bold shadow-2xs">
-            Week 18
+            {analytics.periodLabel}
           </span>
-          <button
-            onClick={onOpenGuide}
-            className="px-2.5 py-1 rounded bg-[#ffdf9e]/40 text-[#715509] border border-[#8c6d23]/30 font-sans text-xs font-semibold hover:bg-[#ffdf9e]"
-          >
-            System Specs
-          </button>
         </div>
       </div>
 
@@ -163,7 +161,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
               <h2 className="font-serif text-[15px] text-[#1c1c1a] font-bold">Visitor Engagement</h2>
             </div>
             <p className="font-sans text-xs text-[#7f7666] mt-0.5">
-              Live telemetry & SKU dwell tracking across verified & prospective buyers
+              Live sessions across verified & guest buyers, refreshed every 15 seconds{updatedAt ? ` • updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}
             </p>
           </div>
           <span className="px-2.5 py-1 rounded-full bg-[#486458]/15 text-[#486458] font-mono text-[10px] font-bold flex items-center gap-1.5 shadow-2xs">
@@ -198,7 +196,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
                 <span className="text-[10px] text-[#7f7666] font-normal">Live</span>
               </span>
               <span className="font-mono text-[9px] text-[#715509] font-semibold mt-0.5 block">
-                75% (980 Today)
+                {verifiedShare}% ({analytics.verifiedToday} Today)
               </span>
             </div>
           </div>
@@ -213,7 +211,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({
                 <span className="text-[10px] text-[#7f7666] font-normal">Live</span>
               </span>
               <span className="font-mono text-[9px] text-[#775300] font-semibold mt-0.5 block">
-                25% (440 Today)
+                {analytics.todayVisitors > 0 ? 100 - verifiedShare : 0}% ({Math.max(analytics.todayVisitors - analytics.verifiedToday, 0)} Today)
               </span>
             </div>
           </div>

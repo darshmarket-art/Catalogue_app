@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ActiveScreen, Product, Category, OrderItem, AnalyticsData } from './types';
-import { api } from './api';
+import { api, ApiError, setAuthToken } from './api';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -12,7 +12,6 @@ import { AdminLoginScreen } from './components/AdminLoginScreen';
 import { AdminHubScreen } from './components/AdminHubScreen';
 import { NewProductScreen } from './components/NewProductScreen';
 import { AddCategoryScreen } from './components/AddCategoryScreen';
-import { ProductionGuideModal } from './components/ProductionGuideModal';
 import { QuotationModal } from './components/QuotationModal';
 
 export default function App() {
@@ -21,21 +20,23 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
-    views: 12480,
-    viewsTrend: '+18.4%',
-    inquiries: 384,
-    bookedOrders: 142,
-    bookedWeightKg: 28.650,
-    liveVisitors: 48,
-    todayVisitors: 1420,
-    verifiedMerchants: 2,
-    guestRetailers: 12,
-    pendingDrafts: 3
+    periodLabel: 'Last 7 days',
+    views: 0,
+    viewsTrend: '0%',
+    inquiries: 0,
+    bookedOrders: 0,
+    bookedWeightKg: 0,
+    liveVisitors: 0,
+    todayVisitors: 0,
+    verifiedToday: 0,
+    verifiedMerchants: 0,
+    guestRetailers: 0,
+    pendingDrafts: 0
   });
+  const [analyticsUpdatedAt, setAnalyticsUpdatedAt] = useState<Date | null>(null);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [currentMerchant, setCurrentMerchant] = useState<{ storeName: string; phone: string } | null>(null);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
   
   // Quotation Modal state
   const [isQuotationOpen, setIsQuotationOpen] = useState(false);
@@ -49,57 +50,65 @@ export default function App() {
     items: []
   });
 
-  // Manage session ID for real-time visitor telemetry
-  const getSessionId = () => {
-    let sid = sessionStorage.getItem('bhakti_session_id');
-    if (!sid) {
-      sid = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      sessionStorage.setItem('bhakti_session_id', sid);
-    }
-    return sid;
-  };
-
   const handleNavigate = (screen: ActiveScreen) => {
     setCurrentScreen(screen);
-    api.trackView();
-    if (screen === 'admin-hub') {
-      api.getAnalytics().then(setAnalytics).catch(() => {});
-    }
   };
 
-  // Visitor Engagement Heartbeat & Telemetry (Every 15s)
+  // Presence heartbeat: tells the server this visitor is here (paused while the tab is hidden).
+  // Re-runs on sign-in so a guest session is upgraded to verified straight away.
   useEffect(() => {
-    const sid = getSessionId();
-    const isVerified = Boolean(currentMerchant || isAdminLoggedIn);
-
-    api.trackView();
-    api.sendHeartbeat(sid, isVerified);
-
+    api.sendHeartbeat();
     const interval = setInterval(() => {
-      api.sendHeartbeat(sid, Boolean(currentMerchant || isAdminLoggedIn));
-      if (currentScreen === 'admin-hub') {
-        api.getAnalytics().then(setAnalytics).catch(() => {});
-      }
+      if (!document.hidden) api.sendHeartbeat();
     }, 15000);
+    const onVisible = () => {
+      if (!document.hidden) api.sendHeartbeat();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [currentMerchant, isAdminLoggedIn]);
 
-    return () => clearInterval(interval);
-  }, [currentMerchant, isAdminLoggedIn, currentScreen]);
+  // Admin Hub numbers: fetched on open, then every 15 seconds while the tab is visible.
+  useEffect(() => {
+    if (currentScreen !== 'admin-hub' || !isAdminLoggedIn) return;
+
+    const refresh = () => {
+      if (document.hidden) return;
+      api
+        .getAnalytics()
+        .then((data) => {
+          setAnalytics(data);
+          setAnalyticsUpdatedAt(new Date());
+        })
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 401) {
+            alert('Your admin session has expired. Please sign in again.');
+            handleLogout();
+            setCurrentScreen('admin-login');
+          }
+        });
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 15000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [currentScreen, isAdminLoggedIn]);
 
   // Fetch Initial Data from persistent database
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catsData, prodsData, ordersData, analyticsData] = await Promise.all([
-          api.getCategories(),
-          api.getProducts(),
-          api.getOrders(),
-          api.getAnalytics()
-        ]);
+        const [catsData, prodsData] = await Promise.all([api.getCategories(), api.getProducts()]);
 
         if (catsData.length > 0) setCategories(catsData);
         if (prodsData.length > 0) setProducts(prodsData);
-        if (ordersData.items.length > 0) setOrders(ordersData.items);
-        setAnalytics(analyticsData);
       } catch (err) {
         console.error('Failed to load initial data:', err);
       }
@@ -110,37 +119,30 @@ export default function App() {
 
   // Add Item to Order
   const handleAddToOrder = async (product: Product, quantity: number) => {
-    try {
-      const newItem = await api.addOrderItem({
-        title: product.title,
-        sku: product.sku,
-        purity: product.purity,
-        totalNetGold: parseFloat((product.netWt * quantity).toFixed(3)),
-        batchQty: quantity,
-        qtyUnit: quantity > 1 ? 'Pcs' : 'Set',
-        unitWt: product.netWt,
-        unitDescription: `${product.netWt} g / pc`,
-        image: product.image,
-        note: `BIS Hallmarked • 916 HUID: ${product.huid || 'HM/C-728190'}`
-      });
+    const localItem = (): OrderItem => ({
+      id: `ord-${Date.now()}`,
+      title: product.title,
+      sku: product.sku,
+      purity: product.purity,
+      totalNetGold: parseFloat((product.netWt * quantity).toFixed(3)),
+      batchQty: quantity,
+      qtyUnit: quantity > 1 ? 'Pcs' : 'Set',
+      unitWt: product.netWt,
+      unitDescription: `${product.netWt} g / pc`,
+      image: product.image,
+      note: `BIS Hallmarked • HUID: ${product.huid || 'N/A'}`
+    });
 
+    try {
+      const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity });
       setOrders((prev) => [...prev, newItem]);
-    } catch {
-      // client-side fallback
-      const newItem: OrderItem = {
-        id: `ord-${Date.now()}`,
-        title: product.title,
-        sku: product.sku,
-        purity: product.purity,
-        totalNetGold: parseFloat((product.netWt * quantity).toFixed(3)),
-        batchQty: quantity,
-        qtyUnit: quantity > 1 ? 'Pcs' : 'Set',
-        unitWt: product.netWt,
-        unitDescription: `${product.netWt} g / pc`,
-        image: product.image,
-        note: `BIS Hallmarked • 916 HUID: ${product.huid || 'HM/C-728190'}`
-      };
-      setOrders((prev) => [...prev, newItem]);
+    } catch (err) {
+      if (err instanceof ApiError && err.status !== 401) {
+        alert(err.message);
+        return;
+      }
+      // Guests keep a local, unsaved batch until they sign in.
+      setOrders((prev) => [...prev, localItem()]);
     }
   };
 
@@ -158,28 +160,27 @@ export default function App() {
   const handleConfirmOrder = async () => {
     try {
       await api.confirmOrder();
-      // Immediately refresh live analytics (booked count & weight)
-      const updated = await api.getAnalytics();
-      setAnalytics(updated);
-    } catch {
-      // quiet fallback
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        alert('Please sign in to your wholesale account to confirm this order.');
+        handleNavigate('retailer-auth');
+      } else if (err instanceof ApiError) {
+        alert(err.message);
+      }
     }
   };
 
   // WhatsApp PO generation
   const handleGenerateWhatsAppPO = () => {
     const totalNet = orders.reduce((sum, item) => sum + (item.totalNetGold || 0), 0);
-    const store = currentMerchant ? currentMerchant.storeName : 'Shree Ambica Jewellers';
+    const store = currentMerchant ? currentMerchant.storeName : 'Guest Jeweller';
 
     // Record inquiry telemetry
     api.recordInquiry({
       clientFirm: store,
       itemsCount: orders.length,
       totalNetWeight: parseFloat(totalNet.toFixed(3))
-    }).then(async () => {
-      const updated = await api.getAnalytics();
-      setAnalytics(updated);
-    }).catch(() => {});
+    });
 
     const msg = `*BHAKTI JEWELS B2B WHOLESALE MANIFEST (GRAM BASIS)*\n` +
       `*Store:* ${store}\n` +
@@ -208,21 +209,8 @@ export default function App() {
     try {
       const created = await api.createProduct(newProd);
       setProducts((prev) => [created, ...prev]);
-    } catch {
-      const fallbackProd: Product = {
-        id: `item-${Date.now()}`,
-        sku: newProd.sku || 'B2B-NEW',
-        title: newProd.title || 'New Jewellery Item',
-        category: newProd.category || 'Bridal Chokers & Haar',
-        purity: newProd.purity || '22K 916',
-        grossWt: newProd.grossWt || 40,
-        netWt: newProd.netWt || 38,
-        stoneWt: newProd.stoneWt || 2,
-        priceEstimate: 290000,
-        image: newProd.image || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUObQwsOoUT558zd-xq-IRhGUCH3gngnq1CIAJLIn1z1ktCuUgA6vDbd7k0XHEoUENtL9-abjc03ckpFPzrpgn0zi1qrOH9A9yS8oUmcAtc7F9UiucB-QXDrdBXh3wJdsVdX_WSduNHoK9YH5tul8lRn3Kn6EhWljP3GWGyI2QfH9xZPq10TteaS8hZb4sd_u23E7vT3LBRPsUSuklfuu5EC8AiX-S9GMuEvJdApdGBbyOQ87ExOiW',
-        stockStatus: newProd.stockStatus || 'Ready in Vault'
-      };
-      setProducts((prev) => [fallbackProd, ...prev]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not publish the product.');
     }
   };
 
@@ -231,20 +219,8 @@ export default function App() {
     try {
       const created = await api.createCategory(newCat);
       setCategories((prev) => [...prev, created]);
-    } catch {
-      const fallbackCat: Category = {
-        id: `cat-${Date.now()}`,
-        slug: newCat.slug || 'CAT-CUSTOM',
-        name: newCat.name || 'New Collection',
-        subtitle: newCat.subtitle || 'Curated wholesale designs',
-        designCount: 0,
-        avgNetWt: newCat.avgNetWt || '20g – 90g',
-        image: newCat.image || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUObQwsOoUT558zd-xq-IRhGUCH3gngnq1CIAJLIn1z1ktCuUgA6vDbd7k0XHEoUENtL9-abjc03ckpFPzrpgn0zi1qrOH9A9yS8oUmcAtc7F9UiucB-QXDrdBXh3wJdsVdX_WSduNHoK9YH5tul8lRn3Kn6EhWljP3GWGyI2QfH9xZPq10TteaS8hZb4sd_u23E7vT3LBRPsUSuklfuu5EC8AiX-S9GMuEvJdApdGBbyOQ87ExOiW',
-        eligibleKarats: newCat.eligibleKarats || ['22K 916'],
-        minTargetWt: newCat.minTargetWt || 20,
-        maxTargetWt: newCat.maxTargetWt || 100
-      };
-      setCategories((prev) => [...prev, fallbackCat]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not create the category.');
     }
   };
 
@@ -253,32 +229,46 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    setAuthToken(null);
+    setOrders([]);
     setCurrentMerchant(null);
     setIsAdminLoggedIn(false);
     handleNavigate('welcome');
   };
 
-  const shouldShowBottomNav = ['catalogue', 'categories', 'orders', 'admin-hub'].includes(currentScreen);
+  // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
+  const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
+  const memberScreens: ActiveScreen[] = ['catalogue', 'categories', 'orders'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category'];
+  const activeScreen: ActiveScreen =
+    adminScreens.includes(currentScreen) && !isAdminLoggedIn
+      ? 'admin-login'
+      : memberScreens.includes(currentScreen) && !isSignedIn
+        ? 'retailer-auth'
+        : currentScreen;
+
+  const shouldShowBottomNav = ['catalogue', 'categories', 'orders', 'admin-hub'].includes(activeScreen);
 
   return (
     <div className="min-h-screen bg-[#fcf9f5] text-[#1c1c1a] flex flex-col font-sans selection:bg-[#ffdf9e] selection:text-[#715509]">
       {/* Persistent Header */}
-      <Header
-        currentScreen={currentScreen}
-        onNavigate={handleNavigate}
-        onOpenGuide={() => setIsGuideOpen(true)}
-        isAdminLoggedIn={isAdminLoggedIn}
-        currentMerchant={currentMerchant}
-        onLogout={handleLogout}
-      />
+      {activeScreen !== 'welcome' && (
+        <Header
+          currentScreen={activeScreen}
+          onNavigate={handleNavigate}
+          isAdminLoggedIn={isAdminLoggedIn}
+          currentMerchant={currentMerchant}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main View Container */}
-      <main className="flex-1 w-full pt-16 md:pt-18">
-        {currentScreen === 'welcome' && (
+      <main className={`flex-1 w-full ${activeScreen === 'welcome' ? '' : 'pt-16 md:pt-18'}`}>
+        {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}
 
-        {currentScreen === 'catalogue' && (
+        {activeScreen === 'catalogue' && (
           <CatalogueScreen
             products={products}
             onAddToOrder={handleAddToOrder}
@@ -287,7 +277,7 @@ export default function App() {
           />
         )}
 
-        {currentScreen === 'categories' && (
+        {activeScreen === 'categories' && (
           <CategoriesScreen
             categories={categories}
             onNavigate={handleNavigate}
@@ -295,7 +285,7 @@ export default function App() {
           />
         )}
 
-        {currentScreen === 'orders' && (
+        {activeScreen === 'orders' && (
           <OrdersScreen
             orders={orders}
             onRemoveItem={handleRemoveOrderItem}
@@ -305,16 +295,17 @@ export default function App() {
           />
         )}
 
-        {currentScreen === 'retailer-auth' && (
+        {activeScreen === 'retailer-auth' && (
           <RetailerAuthScreen
             onNavigate={handleNavigate}
             onLoginSuccess={(user) => {
               setCurrentMerchant(user);
+              api.getOrders().then((result) => setOrders(result.items));
             }}
           />
         )}
 
-        {currentScreen === 'admin-login' && (
+        {activeScreen === 'admin-login' && (
           <AdminLoginScreen
             onNavigate={handleNavigate}
             onAdminLoginSuccess={() => {
@@ -323,15 +314,15 @@ export default function App() {
           />
         )}
 
-        {currentScreen === 'admin-hub' && (
+        {activeScreen === 'admin-hub' && (
           <AdminHubScreen
             analytics={analytics}
+            updatedAt={analyticsUpdatedAt}
             onNavigate={handleNavigate}
-            onOpenGuide={() => setIsGuideOpen(true)}
           />
         )}
 
-        {currentScreen === 'new-product' && (
+        {activeScreen === 'new-product' && (
           <NewProductScreen
             categories={categories}
             onNavigate={handleNavigate}
@@ -339,7 +330,7 @@ export default function App() {
           />
         )}
 
-        {currentScreen === 'add-category' && (
+        {activeScreen === 'add-category' && (
           <AddCategoryScreen
             onNavigate={handleNavigate}
             onCategoryCreated={handleCategoryCreated}
@@ -350,18 +341,12 @@ export default function App() {
       {/* Bottom Navigation */}
       {shouldShowBottomNav && (
         <BottomNav
-          currentScreen={currentScreen}
+          currentScreen={activeScreen}
           onNavigate={handleNavigate}
           orderCount={orders.length}
           isAdminLoggedIn={isAdminLoggedIn}
         />
       )}
-
-      {/* Production Guide Modal */}
-      <ProductionGuideModal
-        isOpen={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-      />
 
       {/* Quotation Preview Modal */}
       <QuotationModal
@@ -370,6 +355,7 @@ export default function App() {
         selectedCount={quotationData.selectedCount}
         totalNetWeight={quotationData.totalNetWeight}
         items={quotationData.items}
+        defaultFirm={currentMerchant?.storeName ?? ''}
       />
     </div>
   );

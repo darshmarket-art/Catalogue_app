@@ -7,22 +7,7 @@ interface WelcomeScreenProps {
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-between px-4 py-8 max-w-md mx-auto text-center bg-[#fcf9f5]">
-      {/* Guild & Establishment Header */}
-      <div className="flex flex-col items-center space-y-1.5 mt-2">
-        <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-[#f0edea] border border-[#d1c5b3]/50 shadow-xs">
-          <span className="material-symbols-outlined text-[15px] text-[#715509]">verified</span>
-          <span className="font-mono text-[11px] font-bold tracking-wider text-[#715509] uppercase">
-            EST. 1984 • JAIPUR & MUMBAI GUILD
-          </span>
-        </div>
-        <div className="flex items-center space-x-2 text-[11px] font-mono text-[#7f7666] tracking-wider uppercase font-semibold">
-          <span>MEMBERS TERMINAL</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#486458]"></span>
-          <span className="text-[#486458] font-bold">PURE GRAM BASIS SETTLEMENT</span>
-        </div>
-      </div>
-
+    <div className="min-h-screen flex flex-col items-center justify-between px-4 py-8 max-w-md mx-auto text-center bg-[#fcf9f5]">
       {/* Main Luxury Emblem & Brand Title */}
       <div className="flex flex-col items-center my-6 space-y-3">
         {/* Dark Obsidian Luxury Emblem Box */}
@@ -62,9 +47,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <span className="font-sans text-[13px] font-bold text-[#1c1c1a]">100% BIS Hallmarked</span>
-              <span className="font-mono text-[10px] bg-[#f0edea] text-[#715509] font-bold px-2 py-0.5 rounded">
-                916 & 999
-              </span>
             </div>
             <p className="font-sans text-[11px] text-[#7f7666] truncate mt-0.5">
               Assayed purity guaranteed with individual HUID laser inscriptions
@@ -109,28 +91,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Pure Gram Settlement Standard Banner */}
-      <div className="w-full bg-[#f0edea] rounded-lg py-2.5 px-3 border border-[#d1c5b3]/40 flex items-center justify-between my-3 text-left">
-        <div className="flex items-center space-x-2">
-          <span className="material-symbols-outlined text-[18px] text-[#715509]">precision_manufacturing</span>
-          <span className="font-mono text-[11px] font-bold text-[#1c1c1a] tracking-wider uppercase">
-            Settlement Standard
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="font-mono text-[12px] font-bold text-[#715509]">
-            Fine Gold Net Weight (0.001g)
-          </span>
-          <span className="font-mono text-[10px] font-bold text-[#486458] bg-[#caeada] px-1.5 py-0.5 rounded">
-            916 / 999.9
-          </span>
-        </div>
-      </div>
-
       {/* Primary CTA Buttons */}
       <div className="w-full flex flex-col space-y-2.5 mt-2">
         <button
-          onClick={() => onNavigate('catalogue')}
+          onClick={() => onNavigate('retailer-auth')}
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#e8c16f] to-[#8c6d23] text-[#1c1c1a] font-sans font-bold text-[14px] flex items-center justify-center space-x-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all"
         >
           <span className="material-symbols-outlined text-[19px]">lock</span>

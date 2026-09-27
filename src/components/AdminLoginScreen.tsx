@@ -15,19 +15,19 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
   
   // Login fields
   const [selectedRole, setSelectedRole] = useState<'owner' | 'bullion' | 'inventory'>('inventory');
-  const [adminId, setAdminId] = useState('mgr.dispatch@bhaktijewels.in');
-  const [masterPass, setMasterPass] = useState('Dispatch@2026');
+  const [adminId, setAdminId] = useState('');
+  const [masterPass, setMasterPass] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [otpDigits, setOtpDigits] = useState(['7', '4', '1', '9', '8', '3']);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [timerSeconds, setTimerSeconds] = useState(28);
   const [biometricStatus, setBiometricStatus] = useState<'ready' | 'verifying' | 'verified'>('ready');
 
   // Admin Account Creation fields
-  const [newAdminName, setNewAdminName] = useState('Devendra Varma');
-  const [newAdminEmail, setNewAdminEmail] = useState('d.varma@bhaktijewels.in');
-  const [newAdminPass, setNewAdminPass] = useState('VaultMaster@2026');
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPass, setNewAdminPass] = useState('');
   const [newAdminRole, setNewAdminRole] = useState('Inventory Controller');
-  const [provisioningToken, setProvisioningToken] = useState('GUILD-MASTER-1984');
+  const [provisioningToken, setProvisioningToken] = useState('');
   const [showNewAdminPass, setShowNewAdminPass] = useState(false);
 
   // States
@@ -46,18 +46,6 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
   const handleRoleChange = (role: 'owner' | 'bullion' | 'inventory') => {
     setSelectedRole(role);
     setErrorMsg(null);
-    if (role === 'owner') {
-      setAdminId('md.office@bhaktijewels.in');
-      setMasterPass('MasterVault@1984');
-    }
-    if (role === 'inventory') {
-      setAdminId('mgr.dispatch@bhaktijewels.in');
-      setMasterPass('Dispatch@2026');
-    }
-    if (role === 'bullion') {
-      setAdminId('rates.desk@bhaktijewels.in');
-      setMasterPass('BullionDesk@77');
-    }
   };
 
   const handleOtpChange = (index: number, val: string) => {
@@ -76,7 +64,6 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
     setBiometricStatus('verifying');
     setTimeout(() => {
       setBiometricStatus('verified');
-      setOtpDigits(['7', '4', '1', '9', '8', '3']);
     }, 600);
   };
 
@@ -88,12 +75,9 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
     setSuccessMsg(null);
 
     try {
-      const code = otpDigits.join('');
       const res = await api.loginAdmin({
         adminId: adminId.trim(),
-        password: masterPass.trim(),
-        otpCode: code,
-        role: selectedRole === 'owner' ? 'Managing Director' : selectedRole === 'bullion' ? 'Bullion Desk Director' : 'Inventory Controller'
+        password: masterPass.trim()
       });
 
       if (res.status === 'success') {
@@ -384,7 +368,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               Admin Provisioning Governance Workflow
             </span>
             <p className="text-[11px] text-[#4d4638] leading-tight">
-              Creating an administrative account requires the confidential <strong>Guild Master Provisioning Key</strong> issued by the Managing Director (Default: <code className="bg-white px-1 rounded font-mono font-bold text-[#1c1c1a]">GUILD-MASTER-1984</code>). Unauthorized attempts are permanently denied and logged.
+              Creating an administrative account requires the confidential <strong>Guild Master Provisioning Key</strong> issued by the Managing Director. Unauthorized attempts are permanently denied and logged.
             </p>
           </div>
 
@@ -457,7 +441,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               className="w-full bg-[#f6f3ef] px-3 py-2 rounded-lg text-xs font-mono uppercase tracking-wider text-[#715509] font-bold border border-[#8c6d23]/40 focus:outline-none focus:bg-white"
               value={provisioningToken}
               onChange={(e) => setProvisioningToken(e.target.value)}
-              placeholder="e.g. GUILD-MASTER-1984"
+              placeholder="Enter the provisioning key"
             />
           </div>
 
