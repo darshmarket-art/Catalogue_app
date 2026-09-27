@@ -19,12 +19,36 @@ export const setUnauthorizedHandler = (fn: (() => void) | null) => {
   onUnauthorized = fn;
 };
 
-// Held in memory only (not localStorage) so an XSS bug cannot lift a long-lived token.
-let authToken: string | null = null;
+// Kept in sessionStorage: it survives reloads and back/forward navigation, and disappears when the tab or
+// browser is closed. (Not localStorage, so it never outlives the visit; tokens also expire on the server.)
+const SESSION_KEY = 'catalogue_session';
+
+const readStoredToken = (): string | null => {
+  try {
+    return sessionStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+};
+
+let authToken: string | null = readStoredToken();
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
+  try {
+    if (token) sessionStorage.setItem(SESSION_KEY, token);
+    else sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // storage unavailable (private mode): the session then lasts until the page is reloaded
+  }
 };
+
+export const hasStoredSession = () => authToken !== null;
+
+export type RestoredSession =
+  | { type: 'retailer'; user: { storeName: string; phone: string } }
+  | { type: 'admin' }
+  | null;
 
 async function request<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
@@ -36,7 +60,7 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
   const json = await res.json().catch(() => ({}));
   const sessionExpired = res.status === 401 && usedToken !== null && authToken === usedToken;
   if (sessionExpired) {
-    authToken = null;
+    setAuthToken(null);
     onUnauthorized?.();
   }
   if (!res.ok || json.status === 'error') {
@@ -91,6 +115,20 @@ export function trackProductView(sku: string) {
 }
 
 export const api = {
+  /** Re-checks a stored token with the server; quietly forgets it if it is no longer valid. */
+  async restoreSession(): Promise<RestoredSession> {
+    if (!authToken) return null;
+    try {
+      const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${authToken}` } });
+      if (res.status === 401) setAuthToken(null);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.type === 'admin' ? { type: 'admin' } : { type: 'retailer', user: json.user };
+    } catch {
+      return null;
+    }
+  },
+
   async getRates(): Promise<BullionRates> {
     try {
       return (await request('/api/rates')).data;

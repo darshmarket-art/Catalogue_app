@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import type { Config } from './config';
 import type { Store } from './store';
-import { createAuth } from './auth';
+import { createAuth, user } from './auth';
 import { errorHandler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
@@ -87,6 +87,16 @@ export function createApp(config: Config, store: Store) {
   // Public by design: everything in the merchant config is shown to visitors anyway.
   app.get('/api/config', (_req, res) => {
     res.json({ status: 'success', data: config.merchant });
+  });
+
+  // Lets the app restore a signed-in session after a reload. The account is re-checked on every call.
+  app.get('/api/auth/me', auth.requireUser, (_req, res) => {
+    const me = user(res);
+    if (me.type === 'admin') {
+      res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role, accessLevel: me.accessLevel } });
+    } else {
+      res.json({ status: 'success', type: 'retailer', user: { storeName: me.name, phone: me.id } });
+    }
   });
 
   app.use('/api/auth', authRoutes(config, store));

@@ -84,7 +84,6 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
       if (res.status === 'success') {
         setSuccessMsg(`Session Authorized for ${res.admin.name} (${res.admin.role}). Directing to Admin Hub...`);
         onAdminLoginSuccess();
-        setTimeout(() => onNavigate('admin-hub'), 900);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Access Denied: Authentication failed.');

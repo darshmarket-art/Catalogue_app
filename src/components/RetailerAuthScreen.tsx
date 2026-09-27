@@ -51,7 +51,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           storeName: res.user.storeName,
           phone: res.user.phone
         });
-        setTimeout(() => onNavigate('catalogue'), 800);
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Access Denied: Incorrect credentials');
@@ -81,7 +80,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
         storeName: res.user.storeName,
         phone: res.user.phone
       });
-      setTimeout(() => onNavigate('catalogue'), 1000);
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed. Please check your details.');
     } finally {

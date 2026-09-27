@@ -676,3 +676,34 @@ describe('admin orders', () => {
     expect((await request(app).get('/api/analytics').set(auth)).body.data.newOrders).toBe(0);
   });
 });
+
+describe('session restore (/api/auth/me)', () => {
+  it('rejects anonymous callers and forged tokens', async () => {
+    const app = await build();
+    expect((await request(app).get('/api/auth/me')).status).toBe(401);
+    const forged = jwt.sign({ type: 'retailer', sub: '9820000001' }, 'x'.repeat(48), { issuer: 'bhakti' });
+    expect((await request(app).get('/api/auth/me').set('Authorization', `Bearer ${forged}`)).status).toBe(401);
+  });
+
+  it('describes a signed-in retailer and admin without leaking secrets', async () => {
+    const app = await build();
+    const { token } = await signupRetailer(app);
+    const { token: admin } = await createAdmin(app);
+
+    const retailerMe = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    expect(retailerMe.status).toBe(200);
+    expect(retailerMe.body).toMatchObject({ type: 'retailer', user: { storeName: 'Test Jewellers 1', phone: retailer(1).phone } });
+    expect(JSON.stringify(retailerMe.body)).not.toMatch(/password|\$2[aby]\$/);
+
+    const adminMe = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${admin}`);
+    expect(adminMe.body).toMatchObject({ type: 'admin', admin: { email: 'boss@bhaktijewels.in', role: 'Managing Director' } });
+    expect(JSON.stringify(adminMe.body)).not.toMatch(/password|\$2[aby]\$/);
+  });
+
+  it('stops working as soon as the account is removed', async () => {
+    const app = await build();
+    const { token } = await signupRetailer(app);
+    await store.delete('merchants', retailer(1).phone);
+    expect((await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`)).status).toBe(401);
+  });
+});

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ActiveScreen, Product, Category, OrderItem, AnalyticsData } from './types';
-import { api, ApiError, setAuthToken, setUnauthorizedHandler } from './api';
+import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -17,7 +17,12 @@ import { AddCategoryScreen } from './components/AddCategoryScreen';
 import { QuotationModal } from './components/QuotationModal';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ActiveScreen>('welcome');
+  // The current screen lives in the browser history too, so Back/Forward (and a reload) stay inside the app.
+  const [currentScreen, setCurrentScreen] = useState<ActiveScreen>(
+    () => (window.history.state?.screen as ActiveScreen | undefined) ?? 'welcome'
+  );
+  // True while a session saved earlier in this tab is being re-checked, so we never flash the login screen.
+  const [booting, setBooting] = useState(() => hasStoredSession());
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -54,9 +59,34 @@ export default function App() {
     items: []
   });
 
-  const handleNavigate = (screen: ActiveScreen) => {
+  const handleNavigate = (screen: ActiveScreen, replace = false) => {
     setCurrentScreen(screen);
+    if (replace) window.history.replaceState({ screen }, '');
+    else if (window.history.state?.screen !== screen) window.history.pushState({ screen }, '');
   };
+
+  useEffect(() => {
+    if (!window.history.state?.screen) window.history.replaceState({ screen: currentScreen }, '');
+    const onPop = (e: PopStateEvent) => setCurrentScreen((e.state?.screen as ActiveScreen | undefined) ?? 'welcome');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Restore a session saved earlier in this tab (survives reloads; ends when the tab is closed).
+  useEffect(() => {
+    if (!booting) return;
+    api
+      .restoreSession()
+      .then((session) => {
+        if (session?.type === 'retailer') {
+          setCurrentMerchant(session.user);
+          api.getOrders().then((result) => setOrders(result.items));
+        } else if (session?.type === 'admin') {
+          setIsAdminLoggedIn(true);
+        }
+      })
+      .finally(() => setBooting(false));
+  }, []);
 
   // Any request that finds the token expired or revoked signs the user out once, with a clear message.
   useEffect(() => {
@@ -238,14 +268,19 @@ export default function App() {
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders'] : ['orders'];
   const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders'];
+  let screen: ActiveScreen = currentScreen;
+  if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? 'catalogue' : 'admin-hub';
+  if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
   const activeScreen: ActiveScreen =
-    adminScreens.includes(currentScreen) && !isAdminLoggedIn
+    adminScreens.includes(screen) && !isAdminLoggedIn
       ? 'admin-login'
-      : memberScreens.includes(currentScreen) && !isSignedIn
+      : memberScreens.includes(screen) && !isSignedIn
         ? 'retailer-auth'
-        : currentScreen;
+        : screen;
 
   const shouldShowBottomNav = ['catalogue', 'categories', 'orders', 'admin-hub'].includes(activeScreen);
+
+  if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col font-sans selection:bg-primary-fixed selection:text-primary">
@@ -295,9 +330,10 @@ export default function App() {
 
         {activeScreen === 'retailer-auth' && (
           <RetailerAuthScreen
-            onNavigate={handleNavigate}
+            onNavigate={(next) => handleNavigate(next, true)}
             onLoginSuccess={(user) => {
               setCurrentMerchant(user);
+              handleNavigate('catalogue', true);
               api.getOrders().then((result) => setOrders(result.items));
             }}
           />
@@ -305,9 +341,10 @@ export default function App() {
 
         {activeScreen === 'admin-login' && (
           <AdminLoginScreen
-            onNavigate={handleNavigate}
+            onNavigate={(next) => handleNavigate(next, true)}
             onAdminLoginSuccess={() => {
               setIsAdminLoggedIn(true);
+              handleNavigate('admin-hub', true);
             }}
           />
         )}
