@@ -37,7 +37,7 @@ export async function audit(store: Store, req: Request | null, event: string, de
 }
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
-  if (req.path === '/healthz') return next();
+  if (req.path === '/health') return next();
   const started = Date.now();
   res.on('finish', () => {
     logger.info('request', {

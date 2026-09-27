@@ -5,6 +5,7 @@ import { loadConfig } from './server/config';
 import { createStore } from './server/store';
 import { createApp } from './server/app';
 import { seedDemoCatalogue } from './server/seed';
+import { renderIndexHtml } from './server/merchant';
 import { logger } from './server/logger';
 
 async function startServer() {
@@ -14,17 +15,29 @@ async function startServer() {
 
   const app = createApp(config, store);
 
+  // index.html is rendered per merchant (title, link preview, colours, embedded config) before it is sent.
   if (!config.isProduction) {
     // Imported lazily so the production bundle never needs the (dev-only) vite package.
     const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
+    const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'custom' });
     app.use(vite.middlewares);
+    app.get('*', async (req, res, next) => {
+      try {
+        const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        const html = renderIndexHtml(await vite.transformIndexHtml(req.originalUrl, template), config.merchant);
+        res.status(200).type('html').send(html);
+      } catch (err) {
+        next(err);
+      }
+    });
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
-    if (!fs.existsSync(distPath)) throw new Error(`Client build not found at ${distPath}. Run "npm run build" first.`);
-    app.use(express.static(distPath));
+    const indexFile = path.join(distPath, 'index.html');
+    if (!fs.existsSync(indexFile)) throw new Error(`Client build not found at ${distPath}. Run "npm run build" first.`);
+    const html = renderIndexHtml(fs.readFileSync(indexFile, 'utf-8'), config.merchant);
+    app.use(express.static(distPath, { index: false }));
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.type('html').send(html);
     });
   }
 
@@ -36,7 +49,7 @@ async function startServer() {
   }
 
   const server = app.listen(config.port, '0.0.0.0', () => {
-    logger.info(`Bhakti Jewels server listening on port ${config.port}`, { store: config.storeKind });
+    logger.info(`${config.merchant.brand.name} server listening on port ${config.port}`, { store: config.storeKind, merchant: config.merchant.id });
   });
 
   // Cloud Run sends SIGTERM before stopping an instance; finish in-flight requests first.

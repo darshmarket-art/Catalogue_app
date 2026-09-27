@@ -42,7 +42,7 @@ export function createApp(config: Config, store: Store) {
   app.use(requestLogger);
   app.use(express.json({ limit: '100kb' }));
 
-  app.get('/healthz', (_req, res) => {
+  app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
 
@@ -73,14 +73,19 @@ export function createApp(config: Config, store: Store) {
         gold750: 54360,
         silver999: 84600,
         lastSync: new Date().toLocaleTimeString('en-IN', { hour12: false }) + ' IST',
-        guildDeskPhone: '+91 22 2340 8899'
+        deskPhone: config.merchant.contact.deskPhone
       }
     });
   });
 
+  // Public by design: everything in the merchant config is shown to visitors anyway.
+  app.get('/api/config', (_req, res) => {
+    res.json({ status: 'success', data: config.merchant });
+  });
+
   app.use('/api/auth', authRoutes(config, store));
   app.use('/api', catalogueRoutes(store, auth.requireAdmin));
-  app.use('/api/orders', orderRoutes(store, auth.requireRetailer));
+  app.use('/api/orders', orderRoutes(store, config.merchant, auth.requireRetailer));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));
 
   app.use('/api', notFoundApi);

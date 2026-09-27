@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import type { Store } from '../store';
+import type { MerchantConfig } from '../merchant';
 import { user } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { cartItemSchema } from '../schemas';
@@ -11,7 +12,7 @@ type CartItem = Record<string, any>;
 const publicItem = ({ ownerId: _owner, createdAt: _created, ...item }: CartItem) => item;
 const sumNet = (items: CartItem[]) => items.reduce((sum, i) => sum + (i.totalNetGold || 0), 0);
 
-export function orderRoutes(store: Store, requireRetailer: RequestHandler) {
+export function orderRoutes(store: Store, merchant: MerchantConfig, requireRetailer: RequestHandler) {
   const router = Router();
   router.use(requireRetailer);
 
@@ -83,7 +84,7 @@ export function orderRoutes(store: Store, requireRetailer: RequestHandler) {
       if (items.length === 0) throw new HttpError(400, 'Your batch order is empty. Add items before confirming.');
 
       const totalNet = parseFloat(sumNet(items).toFixed(3));
-      const poId = `PO-BHAKTI-${Math.floor(100000 + Math.random() * 900000)}`;
+      const poId = `${merchant.orders.poPrefix}-${Math.floor(100000 + Math.random() * 900000)}`;
       const bookedAt = new Date().toISOString();
 
       await store.set('purchaseOrders', poId, {
@@ -105,8 +106,7 @@ export function orderRoutes(store: Store, requireRetailer: RequestHandler) {
         settlementBasis: 'GRAM_WEIGHT',
         totalNetGrams: totalNet,
         itemCount: items.length,
-        escrowGuaranteeRef: 'GUJ-BUL-ESCROW-2026-9921',
-        whatsappMessage: `*BHAKTI JEWELS B2B WHOLESALE CONFIRMATION (GRAM BASIS)*\n*PO:* ${poId}\n*Total Fine Gold Weight:* ${totalNet.toFixed(3)}g Net\n*Items in Batch:* ${items.length}\n*Settlement Terms:* Pure Fine Gold Gram Settlement (999.9 Bullion Bar Handover or Gold Metal Loan Credit)\n*Dispatch Vault:* Sequel / BVC Armoured Logistics\nKindly confirm dispatch slot.`
+        whatsappMessage: `*${merchant.brand.name.toUpperCase()} B2B WHOLESALE CONFIRMATION (GRAM BASIS)*\n*PO:* ${poId}\n*Total Fine Gold Weight:* ${totalNet.toFixed(3)}g Net\n*Items in Batch:* ${items.length}\n*Settlement Terms:* Pure Fine Gold Gram Settlement (999.9 Bullion Bar Handover or Gold Metal Loan Credit)\n*Dispatch Vault:* Sequel / BVC Armoured Logistics\nKindly confirm dispatch slot.`
       });
     })
   );

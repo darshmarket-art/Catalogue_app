@@ -1,3 +1,6 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
@@ -6,6 +9,7 @@ import { MemoryStore } from '../server/store';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
 import { daysAgo } from '../server/stats';
+import { loadMerchant, renderIndexHtml, themeCss, THEME_TOKENS } from '../server/merchant';
 
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
@@ -102,9 +106,9 @@ describe('authorization', () => {
   it('rejects tokens signed with a different secret, and unsigned tokens', async () => {
     await createAdmin(app);
     const forged = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, 'another-secret-another-secret-1234', {
-      issuer: 'bhakti-jewels'
+      issuer: 'bhakti'
     });
-    const unsigned = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, '', { algorithm: 'none', issuer: 'bhakti-jewels' });
+    const unsigned = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, '', { algorithm: 'none', issuer: 'bhakti' });
     for (const token of [forged, unsigned]) {
       const res = await request(app).get('/api/admin/audit-logs').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(401);
@@ -436,7 +440,7 @@ describe('analytics', () => {
 describe('platform', () => {
   it('exposes a health check and security headers, and no longer serves the production guide', async () => {
     const app = await build();
-    expect((await request(app).get('/healthz')).body.status).toBe('ok');
+    expect((await request(app).get('/health')).body.status).toBe('ok');
     const rates = await request(app).get('/api/rates');
     expect(rates.headers['x-content-type-options']).toBe('nosniff');
     expect(rates.headers['x-powered-by']).toBeUndefined();
@@ -449,5 +453,114 @@ describe('platform', () => {
     expect((await request(app).get('/api/nope')).status).toBe(404);
     const bad = await request(app).post('/api/auth/retailer/login').set('Content-Type', 'application/json').send('{bad');
     expect(bad.status).toBe(400);
+  });
+});
+
+describe('merchant config', () => {
+  const bhakti = loadMerchant({ MERCHANT: 'bhakti' });
+
+  const withTempMerchant = (id: string, mutate: (cfg: any) => void) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'merchant-'));
+    fs.mkdirSync(path.join(root, 'merchants', id), { recursive: true });
+    const cfg = JSON.parse(JSON.stringify(bhakti));
+    cfg.id = id;
+    mutate(cfg);
+    fs.writeFileSync(path.join(root, 'merchants', id, 'merchant.json'), JSON.stringify(cfg));
+    return root;
+  };
+
+  it('loads the shipped Bhakti config and serves it publicly at /api/config', async () => {
+    expect(bhakti.brand.name).toBe('Bhakti Jewels');
+    const app = await build();
+    const res = await request(app).get('/api/config');
+    expect(res.status).toBe(200);
+    expect(res.body.data.brand.name).toBe('Bhakti Jewels');
+    expect(res.body.data.catalogueAccess).toBe('login');
+  });
+
+  it('rejects unknown merchants, bad ids and invalid values with a clear message', () => {
+    expect(() => loadMerchant({ MERCHANT: 'does-not-exist' })).toThrow(/not found/);
+    expect(() => loadMerchant({ MERCHANT: '../etc' })).toThrow(/Invalid MERCHANT id/);
+
+    const badColour = withTempMerchant('acme', (c) => (c.theme.colors.primary = 'red'));
+    expect(() => loadMerchant({ MERCHANT: 'acme' }, badColour)).toThrow(/theme\.colors\.primary/);
+
+    const badWhatsapp = withTempMerchant('acme', (c) => (c.contact.whatsapp = '+91 22 2340'));
+    expect(() => loadMerchant({ MERCHANT: 'acme' }, badWhatsapp)).toThrow(/contact\.whatsapp/);
+
+    const unknownToken = withTempMerchant('acme', (c) => (c.theme.colors['not-a-token'] = '#112233'));
+    expect(() => loadMerchant({ MERCHANT: 'acme' }, unknownToken)).toThrow(/theme\.colors/);
+  });
+
+  it('accepts a valid config for another merchant, with a colour override', () => {
+    const root = withTempMerchant('acme', (c) => {
+      c.brand.name = 'Acme Gems';
+      c.theme.colors.primary = '#123456';
+    });
+    const acme = loadMerchant({ MERCHANT: 'acme' }, root);
+    expect(acme.brand.name).toBe('Acme Gems');
+    expect(themeCss(acme)).toBe(':root{--color-primary:#123456}');
+  });
+
+  it('only allows theme tokens that really exist in the stylesheet', () => {
+    const css = fs.readFileSync(path.resolve(__dirname, '../src/index.css'), 'utf-8');
+    const missing = THEME_TOKENS.filter((t) => !css.includes(`--color-${t}:`));
+    expect(missing).toEqual([]);
+  });
+
+  it('renders index.html per merchant and cannot be broken out of by config text', () => {
+    const evil = { ...bhakti, brand: { ...bhakti.brand, name: '</script><script>alert(1)</script>', seoTitle: 'A "quoted" <b>title</b>' } };
+    const html = renderIndexHtml(
+      '<title>{{SEO_TITLE}}</title>{{THEME_STYLE}}{{MERCHANT_CONFIG}}<meta content="{{THEME_COLOR}}">',
+      evil
+    );
+    expect(html).toContain('<title>A &quot;quoted&quot; &lt;b&gt;title&lt;/b&gt;</title>');
+    expect(html).not.toContain('</script><script>');
+    const embedded = /<script id="merchant-config" type="application\/json">([\s\S]*?)<\/script>/.exec(html)![1];
+    expect(JSON.parse(embedded).brand.name).toBe('</script><script>alert(1)</script>');
+    expect(html).not.toContain('{{');
+  });
+
+  it('validates promotions and treats them as optional', () => {
+    const bad = withTempMerchant('acme', (c) => (c.promotions[0].theme = 'neon'));
+    expect(() => loadMerchant({ MERCHANT: 'acme' }, bad)).toThrow(/promotions\.0\.theme/);
+
+    const tooMany = withTempMerchant('acme', (c) => (c.promotions = Array(6).fill(c.promotions[0])));
+    expect(() => loadMerchant({ MERCHANT: 'acme' }, tooMany)).toThrow(/promotions/);
+
+    const none = withTempMerchant('acme', (c) => delete c.promotions);
+    expect(loadMerchant({ MERCHANT: 'acme' }, none).promotions).toEqual([]);
+  });
+
+  it('ships a valid second merchant (example) that differs from Bhakti', () => {
+    const example = loadMerchant({ MERCHANT: 'example' });
+    expect(example.brand.name).toBe('Acme Gems');
+    expect(example.promotions).toEqual([]);
+    expect(themeCss(example)).toContain('--color-primary:#1e3a8a');
+    expect(JSON.stringify(example)).not.toMatch(/bhakti/i);
+  });
+
+  it('uses the merchant for order numbers, WhatsApp text, desk phone and export filename', async () => {
+    const app = await build();
+    const { token: admin } = await createAdmin(app);
+    const { token } = await signupRetailer(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    await request(app).post('/api/orders/items').set(auth).send({ sku: 'B2B-COIN-0010', batchQty: 1 });
+    const confirm = await request(app).post('/api/orders/confirm').set(auth);
+    expect(confirm.body.poId).toMatch(/^PO-BHAKTI-\d{6}$/);
+    expect(confirm.body.whatsappMessage).toContain('BHAKTI JEWELS');
+    expect(confirm.body.escrowGuaranteeRef).toBeUndefined();
+
+    expect((await request(app).get('/api/rates')).body.data.deskPhone).toBe('+91 22 2340 8899');
+    const csv = await request(app).get('/api/analytics/export').set('Authorization', `Bearer ${admin}`);
+    expect(csv.headers['content-disposition']).toContain('bhakti_audit_ledger.csv');
+  });
+
+  it('issues tokens tied to the merchant, so another merchant’s tokens are refused', async () => {
+    const app = await build();
+    await createAdmin(app);
+    const foreign = jwt.sign({ type: 'admin', sub: 'boss@bhaktijewels.in' }, JWT_SECRET, { issuer: 'someone-else' });
+    const res = await request(app).get('/api/admin/audit-logs').set('Authorization', `Bearer ${foreign}`);
+    expect(res.status).toBe(401);
   });
 });

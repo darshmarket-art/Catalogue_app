@@ -1,0 +1,92 @@
+{
+  "id": "bhakti",
+  "sector": "jewellery",
+  "catalogueAccess": "login",
+  "orderFlow": "direct",
+  "brand": {
+    "name": "Bhakti Jewels",
+    "tagline": "Wholesale B2B",
+    "description": "Exclusively for Certified Bullion Dealers & Fine Jewellery Retailers",
+    "logoUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VdGKDX2JJLvPQjLLA6lYX5K9TXr2ZztCAHkiZKCnWndAGu34Blgsa_33mjxJ8h2k1hUAJ9zIfaKO_nm0eyAhyQt8a-_HWBmr8RCBRlUp2RkTRqOFMFiEfz9qCZNvco4hciRATYoequNx184gY2_nXvcD1EbZRZ1HOoxRsu6lYEF-59C1beTq3p5SoWHDuhbE-CC-Qa21TeepZZrpI7RHAwwojW1Tb8-2bV-2oWodWSR7Ezmt98JOKYNQ",
+    "seoTitle": "Bhakti Jewels - Wholesale B2B Bullion & Fine Jewellery",
+    "seoDescription": "Exclusive wholesale B2B platform for certified bullion dealers & fine jewellery retailers featuring live spot rates, BIS hallmarked inventory, and batch RFQ management."
+  },
+  "theme": {
+    "colors": {}
+  },
+  "contact": {
+    "whatsapp": "912223408899",
+    "deskPhone": "+91 22 2340 8899",
+    "address": "Zaveri Bazaar, Kalbadevi, Mumbai 400002",
+    "showroomLabel": "Zaveri Bazaar Showroom"
+  },
+  "legal": {
+    "registrationLine": "BIS Reg. No. HM/C-728190 • GST Verified Enterprise"
+  },
+  "orders": {
+    "poPrefix": "PO-BHAKTI",
+    "guaranteeLine": "Pure Gram Weight Guarantee • Protected by Bhakti Wholesale Bullion Escrow",
+    "bookedNote": "registered with Gujarat Bullion Guild Escrow."
+  },
+  "promotions": [
+    {
+      "theme": "gold",
+      "tag": "Festive Wholesale Window",
+      "stampIcon": "verified",
+      "stampText": "BIS 916 Standard",
+      "title": "Akshaya Tritiya Pre-Booking",
+      "subtitle": "Guaranteed vault allocations • Pure fine gold net gram settlement",
+      "actionLabel": "Explore Pre-Book Lots",
+      "actionIcon": "local_offer",
+      "note": "Limited 150 kg Allocation"
+    },
+    {
+      "theme": "green",
+      "tag": "Jaipur Karigar Direct",
+      "stampIcon": "award_star",
+      "stampText": "Certified Uncut",
+      "title": "Exclusive Bridal Kundan Lots 2026",
+      "subtitle": "Syndicate Polki master sets • 22K 916 BIS with Basra seed pearls",
+      "actionLabel": "View Kundan Lots",
+      "actionIcon": "menu_book",
+      "note": "Wholesale Export Lots"
+    },
+    {
+      "theme": "brown",
+      "tag": "Assay Refinery Minted",
+      "stampIcon": "scale",
+      "stampText": "999.9 Fine Bars",
+      "title": "Minted 24K 999.9 Bullion Coins",
+      "subtitle": "Tamper-proof blister packs 1g to 100g • Certified fine gold net weights",
+      "actionLabel": "Select Gram Lots",
+      "actionIcon": "scale",
+      "note": "Ready Dispatch Stock"
+    }
+  ],
+  "welcome": {
+    "features": [
+      {
+        "icon": "verified",
+        "title": "100% BIS Hallmarked",
+        "description": "Assayed purity guaranteed with individual HUID laser inscriptions"
+      },
+      {
+        "icon": "scale",
+        "title": "Pure Gram-Basis Trading",
+        "badge": "NET WEIGHT",
+        "description": "Zero fiat rate slippage. Settle in fine gold weight (physical bullion or GML)"
+      },
+      {
+        "icon": "local_shipping",
+        "title": "Doorstep Armoured Vault",
+        "badge": "PAN-INDIA",
+        "description": "Insured transit via Sequel & BVC Logistics partners with OTP handover"
+      }
+    ],
+    "footerLine": "256-Bit Encrypted B2B Terminal"
+  },
+  "onboarding": {
+    "defaultMarketHub": "Zaveri Bazaar, Mumbai",
+    "marketHubPlaceholder": "e.g. Zaveri Bazaar, Karol Bagh, Manek Chowk"
+  }
+}

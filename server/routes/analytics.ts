@@ -194,7 +194,7 @@ export function analyticsRoutes(
       const logs = await store.list('auditLogs', { orderBy: { field: 'timestamp', direction: 'desc' }, limit: EXPORT_ROW_LIMIT });
       const rows = logs.map((l) => [l.timestamp, l.event, l.details, l.ip ?? ''].map(csvCell).join(','));
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="bhakti_audit_ledger.csv"');
+      res.setHeader('Content-Disposition', `attachment; filename="${config.merchant.id}_audit_ledger.csv"`);
       res.send(['Timestamp,Event_Type,Details,Session_IP', ...rows].join('\n'));
     })
   );

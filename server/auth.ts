@@ -5,8 +5,6 @@ import jwt from 'jsonwebtoken';
 import type { Config } from './config';
 import type { Store } from './store';
 
-const ISSUER = 'bhakti-jewels';
-
 export const RETAILER_TOKEN_TTL = '24h';
 export const ADMIN_TOKEN_TTL = '8h';
 
@@ -24,14 +22,14 @@ export interface AuthedUser {
 }
 
 export function signToken(config: Config, claims: TokenClaims, expiresIn: string): string {
-  return jwt.sign(claims, config.jwtSecret, { algorithm: 'HS256', issuer: ISSUER, expiresIn } as jwt.SignOptions);
+  return jwt.sign(claims, config.jwtSecret, { algorithm: 'HS256', issuer: config.merchant.id, expiresIn } as jwt.SignOptions);
 }
 
 function readClaims(config: Config, req: Request): TokenClaims | null {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return null;
   try {
-    const decoded = jwt.verify(header.slice(7), config.jwtSecret, { algorithms: ['HS256'], issuer: ISSUER });
+    const decoded = jwt.verify(header.slice(7), config.jwtSecret, { algorithms: ['HS256'], issuer: config.merchant.id });
     if (typeof decoded === 'string') return null;
     const { type, sub } = decoded as Partial<TokenClaims>;
     if ((type !== 'retailer' && type !== 'admin') || typeof sub !== 'string') return null;

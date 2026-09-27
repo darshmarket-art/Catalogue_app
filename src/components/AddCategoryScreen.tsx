@@ -60,7 +60,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
   return (
     <div className="flex flex-col w-full pb-32 max-w-lg mx-auto px-4 pt-3 space-y-4">
       {success && (
-        <div className="bg-[#c7e7d7] text-[#032017] p-3 rounded-lg text-xs font-sans border border-[#486458] flex items-center gap-1.5 animate-fade-in">
+        <div className="bg-secondary-container text-on-secondary-fixed p-3 rounded-lg text-xs font-sans border border-secondary flex items-center gap-1.5 animate-fade-in">
           <span className="material-symbols-outlined text-[18px]">done_all</span>
           <span>Category created and synchronized with wholesale catalogue!</span>
         </div>
@@ -68,53 +68,53 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
 
       {/* Intro Header */}
       <div className="flex flex-col space-y-1">
-        <h2 className="font-serif text-[22px] font-bold text-[#1c1c1a]">Create Category</h2>
-        <p className="font-sans text-xs text-[#7f7666] leading-relaxed">
+        <h2 className="font-serif text-[22px] font-bold text-on-surface">Create Category</h2>
+        <p className="font-sans text-xs text-outline leading-relaxed">
           Configure wholesale classification, gold purity constraints, and automated labour rules for retail partners.
         </p>
       </div>
 
       {/* Visual Hero & Silhouette Section */}
-      <section className="bg-white rounded-xl p-4 shadow-xs border border-[#d1c5b3]/40 flex flex-col space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-[#f0edea]">
+      <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-surface-container">
           <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[#715509] text-[19px]">photo_library</span>
-            <h3 className="text-xs font-sans font-bold text-[#1c1c1a] uppercase tracking-wider">
+            <span className="material-symbols-outlined text-primary text-[19px]">photo_library</span>
+            <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
               Visual Hero & Silhouette
             </h3>
           </div>
-          <span className="font-mono text-[10px] text-[#715509] font-bold bg-[#ffdf9e]/40 px-2 py-0.5 rounded">
+          <span className="font-mono text-[10px] text-primary font-bold bg-primary-fixed/40 px-2 py-0.5 rounded">
             16:9 Banner
           </span>
         </div>
 
         <div className="flex flex-col space-y-2">
-          <div className="relative w-full h-36 rounded-lg bg-[#f0edea] overflow-hidden border border-[#d1c5b3]/40 shadow-xs group">
+          <div className="relative w-full h-36 rounded-lg bg-surface-container overflow-hidden border border-outline-variant/40 shadow-xs group">
             <img
               alt="Polki Choker Banner"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               src={bannerImage}
             />
-            <span className="absolute bottom-1.5 right-1.5 bg-white/90 text-[#715509] text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shadow-xs">
+            <span className="absolute bottom-1.5 right-1.5 bg-white/90 text-primary text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shadow-xs">
               16:9 JPG/WEBP
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-[11px] font-sans text-[#7f7666]">
+            <p className="text-[11px] font-sans text-outline">
               16:9 hero preview for retail line-sheets & PDF exports.
             </p>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                className="bg-[#f0edea] hover:bg-[#ebe8e4] text-[#1c1c1a] text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-[#d1c5b3]/40"
+                className="bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-outline-variant/40"
               >
                 <span className="material-symbols-outlined text-[15px]">upload_file</span>
                 <span>Upload / Replace</span>
               </button>
               <button
                 type="button"
-                className="text-[#715509] hover:bg-[#ffdf9e]/20 text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg border border-[#715509]/30 flex items-center gap-1"
+                className="text-primary hover:bg-primary-fixed/20 text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg border border-primary/30 flex items-center gap-1"
               >
                 <span className="material-symbols-outlined text-[15px]">palette</span>
                 <span>Choose Icon</span>
@@ -125,24 +125,24 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
       </section>
 
       {/* Category Details Section */}
-      <section className="bg-white rounded-xl p-4 shadow-xs border border-[#d1c5b3]/40 flex flex-col space-y-3">
-        <div className="flex items-center gap-1.5 pb-2 border-b border-[#f0edea]">
-          <span className="material-symbols-outlined text-[#715509] text-[19px]">account_tree</span>
-          <h3 className="text-xs font-sans font-bold text-[#1c1c1a] uppercase tracking-wider">
+      <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
+        <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
+          <span className="material-symbols-outlined text-primary text-[19px]">account_tree</span>
+          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
             Category Details
           </h3>
         </div>
 
         <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-[#1c1c1a]">
-            Category Name <span className="text-[#715509]">*</span>
+          <label className="text-xs font-sans font-semibold text-on-surface">
+            Category Name <span className="text-primary">*</span>
           </label>
-          <div className="bg-[#f6f3ef] rounded-lg px-3 py-2 flex items-center gap-2 border border-[#d1c5b3]/40 focus-within:bg-white transition-colors">
-            <span className="material-symbols-outlined text-[#7f7666] text-[17px]">
+          <div className="bg-surface-container-low rounded-lg px-3 py-2 flex items-center gap-2 border border-outline-variant/40 focus-within:bg-white transition-colors">
+            <span className="material-symbols-outlined text-outline text-[17px]">
               drive_file_rename_outline
             </span>
             <input
-              className="bg-transparent w-full text-xs font-sans text-[#1c1c1a] focus:outline-none"
+              className="bg-transparent w-full text-xs font-sans text-on-surface focus:outline-none"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="e.g. Temple Antique Haar"
@@ -151,11 +151,11 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
         </div>
 
         <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-[#1c1c1a]">Category Slug</label>
-          <div className="bg-[#f6f3ef] rounded-lg px-3 py-2 flex items-center gap-1.5 border border-[#d1c5b3]/40">
-            <span className="font-mono text-xs font-bold text-[#715509]">#</span>
+          <label className="text-xs font-sans font-semibold text-on-surface">Category Slug</label>
+          <div className="bg-surface-container-low rounded-lg px-3 py-2 flex items-center gap-1.5 border border-outline-variant/40">
+            <span className="font-mono text-xs font-bold text-primary">#</span>
             <input
-              className="bg-transparent w-full font-mono text-xs text-[#1c1c1a] focus:outline-none tracking-wider uppercase"
+              className="bg-transparent w-full font-mono text-xs text-on-surface focus:outline-none tracking-wider uppercase"
               value={slug}
               readOnly={isSlugLocked}
               onChange={(e) => setSlug(e.target.value)}
@@ -163,7 +163,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
             <button
               type="button"
               onClick={() => setIsSlugLocked(!isSlugLocked)}
-              className="text-[#7f7666] hover:text-[#1c1c1a]"
+              className="text-outline hover:text-on-surface"
             >
               <span className="material-symbols-outlined text-[16px]">
                 {isSlugLocked ? 'lock' : 'lock_open'}
@@ -173,13 +173,13 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
         </div>
 
         <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-[#1c1c1a]">
+          <label className="text-xs font-sans font-semibold text-on-surface">
             Description & Catalog Tags
           </label>
-          <div className="bg-[#f6f3ef] rounded-lg px-3 py-2 flex items-center gap-2 border border-[#d1c5b3]/40 focus-within:bg-white transition-colors">
-            <span className="material-symbols-outlined text-[#7f7666] text-[17px]">label</span>
+          <div className="bg-surface-container-low rounded-lg px-3 py-2 flex items-center gap-2 border border-outline-variant/40 focus-within:bg-white transition-colors">
+            <span className="material-symbols-outlined text-outline text-[17px]">label</span>
             <input
-              className="bg-transparent w-full text-xs font-sans text-[#1c1c1a] focus:outline-none"
+              className="bg-transparent w-full text-xs font-sans text-on-surface focus:outline-none"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g. Syndicate Uncut Polki, Meenakari, Bridal High-Ticket"
@@ -189,15 +189,15 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
       </section>
 
       {/* Weight & Purity Constraints */}
-      <section className="bg-white rounded-xl p-4 shadow-xs border border-[#d1c5b3]/40 flex flex-col space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-[#f0edea]">
+      <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-surface-container">
           <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[#715509] text-[19px]">scale</span>
-            <h3 className="text-xs font-sans font-bold text-[#1c1c1a] uppercase tracking-wider">
+            <span className="material-symbols-outlined text-primary text-[19px]">scale</span>
+            <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
               Weight & Purity Constraints
             </h3>
           </div>
-          <span className="font-mono text-[10px] text-[#486458] font-bold bg-[#caeada]/60 px-2 py-0.5 rounded flex items-center gap-1">
+          <span className="font-mono text-[10px] text-secondary font-bold bg-secondary-fixed/60 px-2 py-0.5 rounded flex items-center gap-1">
             <span className="material-symbols-outlined text-[13px]">verified</span>
             BIS Hallmarked
           </span>
@@ -205,32 +205,32 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col space-y-1">
-            <span className="text-[11px] font-sans text-[#7f7666]">Min Target Wt.</span>
-            <div className="bg-[#f6f3ef] rounded-lg p-2 flex items-center justify-between border border-[#d1c5b3]/40">
+            <span className="text-[11px] font-sans text-outline">Min Target Wt.</span>
+            <div className="bg-surface-container-low rounded-lg p-2 flex items-center justify-between border border-outline-variant/40">
               <input
-                className="bg-transparent w-full font-mono text-xs font-bold text-[#1c1c1a] focus:outline-none"
+                className="bg-transparent w-full font-mono text-xs font-bold text-on-surface focus:outline-none"
                 value={minWt}
                 onChange={(e) => setMinWt(e.target.value)}
               />
-              <span className="font-mono text-[11px] text-[#7f7666]">gm</span>
+              <span className="font-mono text-[11px] text-outline">gm</span>
             </div>
           </div>
 
           <div className="flex flex-col space-y-1">
-            <span className="text-[11px] font-sans text-[#7f7666]">Max Target Wt.</span>
-            <div className="bg-[#f6f3ef] rounded-lg p-2 flex items-center justify-between border border-[#d1c5b3]/40">
+            <span className="text-[11px] font-sans text-outline">Max Target Wt.</span>
+            <div className="bg-surface-container-low rounded-lg p-2 flex items-center justify-between border border-outline-variant/40">
               <input
-                className="bg-transparent w-full font-mono text-xs font-bold text-[#1c1c1a] focus:outline-none"
+                className="bg-transparent w-full font-mono text-xs font-bold text-on-surface focus:outline-none"
                 value={maxWt}
                 onChange={(e) => setMaxWt(e.target.value)}
               />
-              <span className="font-mono text-[11px] text-[#7f7666]">gm</span>
+              <span className="font-mono text-[11px] text-outline">gm</span>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col space-y-1.5 pt-1">
-          <span className="text-[11px] font-sans text-[#7f7666] font-semibold">
+          <span className="text-[11px] font-sans text-outline font-semibold">
             Eligible Karat Standards (Multi-Select)
           </span>
           <div className="grid grid-cols-2 gap-2">
@@ -248,17 +248,17 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
                   onClick={() => toggleKarat(k.id)}
                   className={`p-2 rounded-lg flex items-center justify-between text-left transition-all border ${
                     checked
-                      ? 'bg-[#ffdf9e]/30 border-[#8c6d23]/50 shadow-2xs'
-                      : 'bg-[#f6f3ef] border-[#d1c5b3]/40 hover:bg-[#ebe8e4]'
+                      ? 'bg-primary-fixed/30 border-primary-container/50 shadow-2xs'
+                      : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container-high'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[17px] text-[#715509]">
+                    <span className="material-symbols-outlined text-[17px] text-primary">
                       {checked ? 'check_circle' : 'radio_button_unchecked'}
                     </span>
                     <div className="flex flex-col">
-                      <span className="font-mono text-[11px] font-bold text-[#1c1c1a]">{k.title}</span>
-                      <span className="text-[9px] font-sans text-[#7f7666]">{k.sub}</span>
+                      <span className="font-mono text-[11px] font-bold text-on-surface">{k.title}</span>
+                      <span className="text-[9px] font-sans text-outline">{k.sub}</span>
                     </div>
                   </div>
                 </button>
@@ -269,10 +269,10 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
       </section>
 
       {/* Action Tray */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#d1c5b3]/40 flex flex-col space-y-2.5">
-        <div className="flex items-center justify-between text-xs font-sans text-[#486458] font-semibold">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-outline-variant/40 flex flex-col space-y-2.5">
+        <div className="flex items-center justify-between text-xs font-sans text-secondary font-semibold">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#486458]"></span>
+            <span className="w-2 h-2 rounded-full bg-secondary"></span>
             Ready to Register • Auto-sync to B2B Catalog
           </span>
         </div>
@@ -282,7 +282,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
             type="button"
             disabled={submitting}
             onClick={() => handleCreate(false)}
-            className="w-full py-3 bg-[#486458] hover:bg-[#3a5247] text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
+            className="w-full py-3 bg-secondary hover:bg-secondary-dark text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
             <span>{submitting ? 'Registering...' : 'Create Category & Publish'}</span>
@@ -291,7 +291,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({
           <button
             type="button"
             onClick={() => handleCreate(true)}
-            className="w-full py-2 bg-[#f0edea] hover:bg-[#ebe8e4] text-[#1c1c1a] rounded-lg text-xs font-sans font-semibold flex items-center justify-center gap-1 transition-colors"
+            className="w-full py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-xs font-sans font-semibold flex items-center justify-center gap-1 transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">save</span>
             <span>Save as Internal Draft</span>

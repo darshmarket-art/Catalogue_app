@@ -36,6 +36,17 @@
   --color-inverse-surface: #31302e;
   --color-inverse-on-surface: #f3f0ec;
   
+  --color-on-secondary-fixed: #032017;
+  --color-on-secondary-fixed-variant: #304c41;
+  --color-secondary-dark: #3a5247;
+  --color-secondary-hover: #3d554a;
+  --color-secondary-deep: #1b2b23;
+  --color-tertiary-dark: #5b4300;
+  --color-on-tertiary-fixed: #261a00;
+  --color-brown-dark: #3d2e0b;
+  --color-brown-darker: #2e2613;
+  --color-brown-darkest: #241a05;
+
   --color-outline: #7f7666;
   --color-outline-variant: #d1c5b3;
   --color-error: #ba1a1a;

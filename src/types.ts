@@ -51,7 +51,7 @@ export interface BullionRates {
   gold750: number;
   silver999: number;
   lastSync: string;
-  guildDeskPhone: string;
+  deskPhone: string;
   activeSessionLocks: number;
 }
 

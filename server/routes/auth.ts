@@ -75,7 +75,7 @@ export function authRoutes(config: Config, store: Store) {
         ownerName: body.ownerName || 'Authorized Signatory',
         phone: body.phone,
         password: await bcrypt.hash(body.password, BCRYPT_ROUNDS),
-        marketHub: body.marketHub || 'Zaveri Bazaar, Mumbai',
+        marketHub: body.marketHub || config.merchant.onboarding.defaultMarketHub,
         verified: true,
         createdAt: new Date().toISOString()
       };
@@ -130,7 +130,7 @@ export function authRoutes(config: Config, store: Store) {
       }
       if (!safeEqual(body.masterProvisioningKey, config.masterProvisioningKey)) {
         await audit(store, req, 'ADMIN_CREATION_FAILED_INVALID_TOKEN', `Unauthorized admin creation attempt for ${body.email}.`);
-        throw new HttpError(403, 'Access Denied: Invalid Master Guild Provisioning Key. Unauthorized admin account creation is prohibited and logged.');
+        throw new HttpError(403, 'Access Denied: Invalid provisioning key. Unauthorized admin account creation is prohibited and logged.');
       }
 
       const admin = {
@@ -144,7 +144,7 @@ export function authRoutes(config: Config, store: Store) {
       };
 
       if (!(await store.create('admins', admin.email, admin))) {
-        throw new HttpError(409, 'An administrator with this email already exists in the Gujarat Bullion Guild directory.');
+        throw new HttpError(409, 'An administrator with this email already exists.');
       }
       await audit(store, req, 'ADMIN_ACCOUNT_CREATED', `New admin created: ${admin.name} (${admin.email}) with role: ${admin.role}`);
 

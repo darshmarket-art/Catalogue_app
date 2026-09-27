@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ActiveScreen, Product, Category, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, setAuthToken } from './api';
+import { merchant } from './merchant';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -157,9 +158,9 @@ export default function App() {
   };
 
   // Confirm Order (Pure Gram Settlement Allocation)
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = async (): Promise<{ poId: string } | null> => {
     try {
-      await api.confirmOrder();
+      return await api.confirmOrder();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         alert('Please sign in to your wholesale account to confirm this order.');
@@ -167,6 +168,7 @@ export default function App() {
       } else if (err instanceof ApiError) {
         alert(err.message);
       }
+      return null;
     }
   };
 
@@ -182,7 +184,7 @@ export default function App() {
       totalNetWeight: parseFloat(totalNet.toFixed(3))
     });
 
-    const msg = `*BHAKTI JEWELS B2B WHOLESALE MANIFEST (GRAM BASIS)*\n` +
+    const msg = `*${merchant.brand.name.toUpperCase()} B2B WHOLESALE MANIFEST (GRAM BASIS)*\n` +
       `*Store:* ${store}\n` +
       `*Settlement Terms:* Pure Fine Gold Gram Settlement (No Fiat Price Lock)\n` +
       `*Items in Batch:* ${orders.length} (${orders.reduce((s, i) => s + i.batchQty, 0)} Pcs)\n` +
@@ -191,7 +193,7 @@ export default function App() {
       orders.map((o) => `• ${o.title} (${o.sku}) x ${o.batchQty} — ${o.totalNetGold}g`).join('\n') +
       `\n\n_Please confirm vault allocation slot and physical 999.9 gold bullion handover._`;
 
-    window.open(`https://wa.me/912223408899?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   // Open Quotation Modal
@@ -250,7 +252,7 @@ export default function App() {
   const shouldShowBottomNav = ['catalogue', 'categories', 'orders', 'admin-hub'].includes(activeScreen);
 
   return (
-    <div className="min-h-screen bg-[#fcf9f5] text-[#1c1c1a] flex flex-col font-sans selection:bg-[#ffdf9e] selection:text-[#715509]">
+    <div className="min-h-screen bg-surface text-on-surface flex flex-col font-sans selection:bg-primary-fixed selection:text-primary">
       {/* Persistent Header */}
       {activeScreen !== 'welcome' && (
         <Header

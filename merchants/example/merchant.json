@@ -1,0 +1,59 @@
+{
+  "id": "example",
+  "sector": "jewellery",
+  "catalogueAccess": "login",
+  "orderFlow": "direct",
+
+  "brand": {
+    "name": "Acme Gems",
+    "tagline": "Trade Catalogue",
+    "description": "Wholesale jewellery for verified retailers across the region",
+    "logoUrl": "https://placehold.co/128x128/1e3a8a/ffffff/png?text=AG",
+    "seoTitle": "Acme Gems - Wholesale Jewellery Catalogue",
+    "seoDescription": "Browse the Acme Gems wholesale jewellery catalogue and place orders as a verified retailer."
+  },
+
+  "theme": {
+    "colors": {
+      "primary": "#1e3a8a",
+      "primary-container": "#3b5bb5",
+      "primary-fixed": "#dbe4ff",
+      "primary-fixed-dim": "#a9bdf5",
+      "tertiary-dark": "#172554",
+      "surface": "#f8fafc"
+    }
+  },
+
+  "contact": {
+    "whatsapp": "919999900000",
+    "deskPhone": "+91 99999 00000",
+    "instagramUrl": "https://www.instagram.com/example"
+  },
+
+  "legal": {},
+
+  "orders": {
+    "poPrefix": "PO-ACME"
+  },
+
+  "welcome": {
+    "features": [
+      {
+        "icon": "verified",
+        "title": "Hallmarked Jewellery",
+        "description": "Every piece is BIS hallmarked before dispatch"
+      },
+      {
+        "icon": "local_shipping",
+        "title": "Insured Delivery",
+        "badge": "PAN-INDIA",
+        "description": "Tracked and insured shipping to your shop"
+      }
+    ]
+  },
+
+  "onboarding": {
+    "defaultMarketHub": "Your city",
+    "marketHubPlaceholder": "e.g. your market or city"
+  }
+}

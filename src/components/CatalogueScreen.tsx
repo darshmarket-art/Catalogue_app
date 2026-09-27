@@ -120,7 +120,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     <div className="flex flex-col w-full pb-32 max-w-4xl mx-auto">
       {/* Toast Notification */}
       {addedNotice && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#1c1c1a] text-[#fcf9f5] px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-sans animate-fade-in border border-[#8c6d23]/40">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-sans animate-fade-in border border-primary-container/40">
           <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
           <span>Added {addedNotice} to Wholesale Batch Order!</span>
         </div>
@@ -129,9 +129,9 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       {/* Filter & Rapid Search Bar */}
       <section className="px-4 pt-3 pb-2 flex flex-col gap-2.5">
         <div className="relative flex items-center">
-          <span className="material-symbols-outlined absolute left-3 text-[18px] text-[#7f7666]">search</span>
+          <span className="material-symbols-outlined absolute left-3 text-[18px] text-outline">search</span>
           <input
-            className="w-full bg-white text-[#1c1c1a] font-sans text-xs pl-9 pr-24 py-2.5 rounded-lg shadow-xs border border-[#d1c5b3]/40 focus:outline-none focus:bg-[#f6f3ef] transition-colors"
+            className="w-full bg-white text-on-surface font-sans text-xs pl-9 pr-24 py-2.5 rounded-lg shadow-xs border border-outline-variant/40 focus:outline-none focus:bg-surface-container-low transition-colors"
             placeholder="Search by SKU, design code, or weight range..."
             type="text"
             value={searchQuery}
@@ -140,7 +140,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
           <div className="absolute right-2 flex items-center gap-1">
             <button
               onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-              className="flex items-center gap-1 bg-[#f0edea] px-2.5 py-1 rounded text-[#4d4638] font-sans text-[11px] font-semibold active:scale-95 transition-transform hover:bg-[#ebe8e4]"
+              className="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded text-on-surface-variant font-sans text-[11px] font-semibold active:scale-95 transition-transform hover:bg-surface-container-high"
               type="button"
             >
               <span className="material-symbols-outlined text-[15px]">tune</span>
@@ -151,14 +151,14 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
         {/* Filter Drawer / Badges */}
         {showFilterDrawer && (
-          <div className="bg-white p-3 rounded-lg border border-[#d1c5b3]/60 shadow-sm flex flex-col gap-2 animate-fade-in">
+          <div className="bg-white p-3 rounded-lg border border-outline-variant/60 shadow-sm flex flex-col gap-2 animate-fade-in">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#715509] uppercase tracking-wider font-mono">
+              <span className="text-[11px] font-bold text-primary uppercase tracking-wider font-mono">
                 Purity & Karat Filter
               </span>
               <button
                 onClick={() => setSelectedPurityFilter('all')}
-                className="text-[10px] text-[#7f7666] hover:underline"
+                className="text-[10px] text-outline hover:underline"
               >
                 Reset
               </button>
@@ -170,8 +170,8 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                   onClick={() => setSelectedPurityFilter(purity)}
                   className={`px-3 py-1 rounded text-xs font-mono font-semibold transition-all ${
                     selectedPurityFilter === purity
-                      ? 'bg-[#715509] text-white shadow-xs'
-                      : 'bg-[#f0edea] text-[#4d4638] hover:bg-[#ebe8e4]'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                   }`}
                 >
                   {purity === 'all' ? 'All Karats' : purity}
@@ -179,7 +179,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
               ))}
               <button
                 onClick={onNavigateCategories}
-                className="ml-auto text-xs text-[#486458] font-sans font-semibold flex items-center gap-1 hover:underline"
+                className="ml-auto text-xs text-secondary font-sans font-semibold flex items-center gap-1 hover:underline"
               >
                 <span>Browse by Category</span>
                 <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
@@ -190,24 +190,24 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       </section>
 
       {/* B2B Wholesale Bulk Actions Banner */}
-      <section className="mx-4 mt-1 mb-3 p-3 rounded-xl bg-[#f6f3ef] border border-[#d1c5b3]/50 shadow-xs flex flex-col gap-2.5">
+      <section className="mx-4 mt-1 mb-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant/50 shadow-xs flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-5 h-5 rounded bg-[#715509] flex items-center justify-center text-white">
+            <div className="w-5 h-5 rounded bg-primary flex items-center justify-center text-white">
               <span className="material-symbols-outlined text-[15px]">done_all</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-sans text-[12px] font-bold text-[#1c1c1a] truncate">
+              <span className="font-sans text-[12px] font-bold text-on-surface truncate">
                 Wholesale Batch Selection
               </span>
-              <span className="font-mono text-[11px] text-[#715509] font-bold">
+              <span className="font-mono text-[11px] text-primary font-bold">
                 {selectedCount} items selected • Net Gold: {totalNetWeight}g
               </span>
             </div>
           </div>
           <button
             onClick={toggleSelectAll}
-            className="font-sans text-[11px] text-[#486458] font-bold px-2.5 py-1 rounded bg-[#c7e7d7]/50 hover:bg-[#c7e7d7] transition-colors"
+            className="font-sans text-[11px] text-secondary font-bold px-2.5 py-1 rounded bg-secondary-container/50 hover:bg-secondary-container transition-colors"
             type="button"
           >
             {selectedIds.size === filteredProducts.length && filteredProducts.length > 0
@@ -219,7 +219,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
         <div className="grid grid-cols-2 gap-2 pt-1">
           <button
             onClick={() => onOpenQuotation(selectedCount, totalNetWeight, getSelectedProductObjects())}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#486458] text-white font-sans text-xs font-semibold active:scale-95 transition-all shadow-xs hover:bg-[#3d554a]"
+            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-secondary text-white font-sans text-xs font-semibold active:scale-95 transition-all shadow-xs hover:bg-secondary-hover"
             type="button"
           >
             <span className="material-symbols-outlined text-[16px]">share</span>
@@ -228,7 +228,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
           <button
             onClick={() => onOpenQuotation(selectedCount, totalNetWeight, getSelectedProductObjects())}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#715509] text-white font-sans text-xs font-semibold active:scale-95 transition-all shadow-xs hover:bg-[#5b4300]"
+            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary text-white font-sans text-xs font-semibold active:scale-95 transition-all shadow-xs hover:bg-tertiary-dark"
             type="button"
           >
             <span className="material-symbols-outlined text-[16px]">assignment_turned_in</span>
@@ -247,18 +247,18 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
             <article
               key={prod.id}
               data-sku={prod.sku}
-              className="product-card group relative bg-white rounded-xl p-2.5 shadow-sm border border-[#d1c5b3]/40 hover:shadow-md transition-shadow flex flex-col justify-between"
+              className="product-card group relative bg-white rounded-xl p-2.5 shadow-sm border border-outline-variant/40 hover:shadow-md transition-shadow flex flex-col justify-between"
             >
               <div>
                 {/* Product Image Container with Overlays */}
-                <div className="relative w-full aspect-square bg-[#f0edea] rounded-lg overflow-hidden mb-2">
+                <div className="relative w-full aspect-square bg-surface-container rounded-lg overflow-hidden mb-2">
                   <img
                     alt={prod.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     src={prod.image}
                     referrerPolicy="no-referrer"
                   />
-                  <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded font-mono text-[9px] font-bold text-[#715509] shadow-xs border border-[#8c6d23]/20">
+                  <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded font-mono text-[9px] font-bold text-primary shadow-xs border border-primary-container/20">
                     {prod.purity}
                   </span>
                   <label className="cursor-pointer absolute top-1.5 right-1.5">
@@ -271,8 +271,8 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                     <div
                       className={`w-5 h-5 rounded flex items-center justify-center transition-colors shadow-xs ${
                         isSelected
-                          ? 'bg-[#715509] text-white'
-                          : 'bg-[#ebe8e4] text-transparent hover:bg-[#dcdad6]'
+                          ? 'bg-primary text-white'
+                          : 'bg-surface-container-high text-transparent hover:bg-surface-dim'
                       }`}
                     >
                       <span className="material-symbols-outlined text-[14px]">check</span>
@@ -282,29 +282,29 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
                 {/* SKU & Title */}
                 <div className="mb-1.5">
-                  <span className="font-mono text-[9px] text-[#7f7666] font-medium block leading-tight">
+                  <span className="font-mono text-[9px] text-outline font-medium block leading-tight">
                     SKU: {prod.sku}
                   </span>
-                  <h2 className="font-serif text-[13px] leading-tight font-bold text-[#1c1c1a] line-clamp-1 mt-0.5">
+                  <h2 className="font-serif text-[13px] leading-tight font-bold text-on-surface line-clamp-1 mt-0.5">
                     {prod.title}
                   </h2>
                 </div>
 
                 {/* Micro Spec Grid */}
-                <div className="grid grid-cols-2 gap-1 bg-[#f6f3ef] p-1 rounded-lg text-center mb-2 border border-[#d1c5b3]/40">
+                <div className="grid grid-cols-2 gap-1 bg-surface-container-low p-1 rounded-lg text-center mb-2 border border-outline-variant/40">
                   <div className="flex flex-col py-0.5">
-                    <span className="font-sans text-[8px] text-[#7f7666] font-medium uppercase tracking-wider">
+                    <span className="font-sans text-[8px] text-outline font-medium uppercase tracking-wider">
                       Gross
                     </span>
-                    <span className="font-mono text-[11px] font-bold text-[#1c1c1a]">
+                    <span className="font-mono text-[11px] font-bold text-on-surface">
                       {prod.grossWt.toFixed(2)}g
                     </span>
                   </div>
-                  <div className="flex flex-col bg-white rounded py-0.5 shadow-xs border border-[#715509]/20">
-                    <span className="font-sans text-[8px] text-[#715509] font-bold uppercase tracking-wider">
+                  <div className="flex flex-col bg-white rounded py-0.5 shadow-xs border border-primary/20">
+                    <span className="font-sans text-[8px] text-primary font-bold uppercase tracking-wider">
                       {prod.purity.includes('24K') ? 'Purity' : 'Net'}
                     </span>
-                    <span className="font-mono text-[11px] font-bold text-[#715509]">
+                    <span className="font-mono text-[11px] font-bold text-primary">
                       {prod.purity.includes('24K') ? '999.9' : `${prod.netWt.toFixed(2)}g`}
                     </span>
                   </div>
@@ -313,20 +313,20 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
               {/* Stepper & Action */}
               <div className="flex flex-col gap-1.5 pt-1">
-                <div className="flex items-center justify-between bg-[#f6f3ef] px-1.5 py-1 rounded">
+                <div className="flex items-center justify-between bg-surface-container-low px-1.5 py-1 rounded">
                   <button
                     onClick={() => updateQuantity(prod.id, -1)}
-                    className="w-5 h-5 flex items-center justify-center text-[#4d4638] hover:text-[#1c1c1a] active:scale-90"
+                    className="w-5 h-5 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
                     type="button"
                   >
                     <span className="material-symbols-outlined text-[13px]">remove</span>
                   </button>
-                  <span className="font-mono text-[11px] font-bold text-[#1c1c1a]">
+                  <span className="font-mono text-[11px] font-bold text-on-surface">
                     {qty}
                   </span>
                   <button
                     onClick={() => updateQuantity(prod.id, 1)}
-                    className="w-5 h-5 flex items-center justify-center text-[#4d4638] hover:text-[#1c1c1a] active:scale-90"
+                    className="w-5 h-5 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
                     type="button"
                   >
                     <span className="material-symbols-outlined text-[13px]">add</span>
@@ -335,7 +335,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
                 <button
                   onClick={() => handleAdd(prod)}
-                  className="w-full h-7 rounded bg-[#486458] hover:bg-[#3a5247] text-white font-sans text-[10px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs"
+                  className="w-full h-7 rounded bg-secondary hover:bg-secondary-dark text-white font-sans text-[10px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs"
                   type="button"
                 >
                   <span className="material-symbols-outlined text-[13px]">
@@ -352,23 +352,23 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       {/* Floating Quick Action Pill for WhatsApp Wholesale Quotation */}
       {selectedCount > 0 && (
         <aside className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md animate-fade-in">
-          <div className="bg-[#1c1c1a] text-[#f3f0ec] px-4 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-2 border border-[#8c6d23]/50">
+          <div className="bg-on-surface text-inverse-on-surface px-4 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-2 border border-primary-container/50">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-[#486458] flex items-center justify-center text-white flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white flex-shrink-0">
                 <span className="material-symbols-outlined text-[18px]">chat</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-mono text-[11px] font-bold text-[#ffdf9e] truncate">
+                <span className="font-mono text-[11px] font-bold text-primary-fixed truncate">
                   {selectedCount} Pcs ({totalNetWeight}g Net) Selected
                 </span>
-                <span className="font-sans text-[10px] text-[#f3f0ec]/80 truncate">
+                <span className="font-sans text-[10px] text-inverse-on-surface/80 truncate">
                   Tap to send Gram Requisition Slip to Retailer
                 </span>
               </div>
             </div>
             <button
               onClick={() => onOpenQuotation(selectedCount, totalNetWeight, getSelectedProductObjects())}
-              className="flex-shrink-0 bg-[#715509] hover:bg-[#8c6d23] text-white font-sans text-xs font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1 shadow-md"
+              className="flex-shrink-0 bg-primary hover:bg-primary-container text-white font-sans text-xs font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1 shadow-md"
               type="button"
             >
               <span>Send</span>

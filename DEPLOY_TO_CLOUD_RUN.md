@@ -62,14 +62,24 @@ Continuous deployment from GitHub (Cloud Build trigger on `main`) works with the
 
 ## 4. Operations
 
-- **Health check:** `GET /healthz`. Structured JSON logs go to Cloud Logging (filter on `severity`).
+- **Health check:** `GET /health` (not `/healthz`: Cloud Run reserves that path on run.app URLs). Structured JSON logs go to Cloud Logging (filter on `severity`).
 - **Alerts:** in Cloud Monitoring, create alerting policies for Cloud Run 5xx rate and request latency.
 - **Backups:** schedule Firestore exports, e.g. `gcloud firestore export gs://YOUR_BUCKET/backups` from Cloud Scheduler, or enable point-in-time recovery on the database.
 - **Admin Hub statistics:** the hub polls `GET /api/analytics` every 15 seconds while it is open. Totals live in `dailyStats` (one small document per day, kept indefinitely); the hub shows the last 7 days against the 7 before. Nothing runs in the background, so Cloud Run can still scale to zero when nobody has the app open.
 - **Analytics housekeeping:** add Firestore TTL policies on the `expireAt` field of the `sessions` collection (kept 2 days) and the `productViews` collection (kept 90 days) so they purge themselves.
 - **Rotating secrets:** add a new version in Secret Manager and redeploy. Changing `JWT_SECRET` signs everyone out.
 
-## 5. Local development
+## 5. Merchants (one deployment per merchant)
+
+Everything that is specific to a business lives in `merchants/<id>/merchant.json`: brand name and logo, colours, contact numbers, welcome-page cards, banner promotions, order-number prefix, and whether the catalogue is `public` or `login`. The server validates it at startup and refuses to start if it is invalid.
+
+To add a merchant:
+1. Copy `merchants/example/` to `merchants/<new-id>/` and set `"id"` to the same `<new-id>` (lower-case letters, digits and dashes).
+2. Edit the file. Any colour in `theme.colors` overrides the default palette (the allowed names are listed in `server/merchant.ts`).
+3. Run locally with `MERCHANT=<new-id> npm run dev`, or deploy with `--build-arg MERCHANT=<new-id>` (the Dockerfile default is `bhakti`).
+
+Each merchant gets its own Cloud Run service, Firestore database and secrets, so their data is never shared.
+## 6. Local development
 
 ```powershell
 copy .env.example .env   # optional; `npm run dev` loads it. JWT_SECRET is auto-generated per run when unset

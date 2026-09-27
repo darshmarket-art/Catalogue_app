@@ -13,12 +13,16 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
+# Which merchants/<id>/ config this deployment serves
+ARG MERCHANT=bhakti
+ENV MERCHANT=$MERCHANT
 
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
+COPY merchants ./merchants
 
 # The official node image ships an unprivileged "node" user.
 USER node

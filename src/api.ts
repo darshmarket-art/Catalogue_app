@@ -1,4 +1,5 @@
 import { Product, Category, OrderItem, BullionRates, AnalyticsData } from './types';
+import { merchant } from './merchant';
 
 export class ApiError extends Error {
   constructor(
@@ -37,10 +38,10 @@ let memorySessionId: string | null = null;
 /** Anonymous per-tab visitor id used for presence and unique-view counting. */
 export function getSessionId(): string {
   try {
-    let sid = sessionStorage.getItem('bhakti_session_id');
+    let sid = sessionStorage.getItem('catalogue_session_id');
     if (!sid) {
       sid = `sess-${crypto.randomUUID()}`;
-      sessionStorage.setItem('bhakti_session_id', sid);
+      sessionStorage.setItem('catalogue_session_id', sid);
     }
     return sid;
   } catch {
@@ -86,7 +87,7 @@ export const api = {
         gold750: 54360,
         silver999: 84600,
         lastSync: '14:05:22 IST',
-        guildDeskPhone: '+91 22 2340 8899',
+        deskPhone: merchant.contact.deskPhone,
         activeSessionLocks: 28
       };
     }
@@ -208,7 +209,7 @@ export const api = {
     const url = URL.createObjectURL(await res.blob());
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'bhakti_audit_ledger.csv';
+    link.download = `${merchant.id}_audit_ledger.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }

@@ -1,9 +1,11 @@
 import crypto from 'crypto';
+import { loadMerchant, type MerchantConfig } from './merchant';
 
 export type StoreKind = 'firestore' | 'file' | 'memory';
 
 export interface Config {
   port: number;
+  merchant: MerchantConfig;
   isProduction: boolean;
   jwtSecret: string;
   masterProvisioningKey: string | null;
@@ -50,6 +52,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   return {
     port: env.PORT ? parseInt(env.PORT, 10) : 3000,
+    merchant: loadMerchant(env),
     isProduction,
     jwtSecret,
     masterProvisioningKey: masterKey,
