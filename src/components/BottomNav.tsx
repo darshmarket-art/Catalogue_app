@@ -10,15 +10,15 @@ interface BottomNavProps {
 }
 
 /**
- * Screen ids are older than the names buyers see: the 'categories' screen is the Catalogue (home) and the
- * 'catalogue' screen is Products.
+ * Screen ids are older than the names buyers see: the 'categories' screen is Home and the
+ * 'catalogue' screen is the Catalogue tab (every design).
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate, orderCount, shortlistCount, isAdminLoggedIn }) => {
   const adminScreens: ActiveScreen[] = ['admin-hub', 'admin-orders', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
 
   const tabs: Array<{ screen: ActiveScreen; label: string; icon: string; active: boolean; badge?: number }> = [
-    { screen: 'categories', label: 'Catalogue', icon: 'grid_view', active: currentScreen === 'categories' },
-    { screen: 'catalogue', label: 'Products', icon: 'diamond', active: currentScreen === 'catalogue' },
+    { screen: 'categories', label: 'Home', icon: 'home', active: currentScreen === 'categories' },
+    { screen: 'catalogue', label: 'Catalogue', icon: 'diamond', active: currentScreen === 'catalogue' },
     // Buyers only: designs they have hearted
     ...(isAdminLoggedIn ? [] : [{ screen: 'shortlist' as const, label: 'Shortlist', icon: 'favorite', active: currentScreen === 'shortlist', badge: shortlistCount }]),
     { screen: 'orders', label: 'Orders', icon: 'receipt_long', active: currentScreen === 'orders', badge: orderCount },

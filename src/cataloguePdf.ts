@@ -40,6 +40,12 @@ function squareJpeg(img: HTMLImageElement): string | null {
 export async function downloadCataloguePdf(category: Category, products: Product[], onProgress?: (done: number, total: number) => void) {
   const items = products.filter((p) => p.category === category.name);
   if (items.length === 0) throw new Error('This collection has no designs yet.');
+  return downloadDesignsPdf(category.name, items, onProgress);
+}
+
+/** The same PDF for designs the owner picked by hand. `title` appears top right and in the file name. */
+export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void) {
+  if (items.length === 0) throw new Error('Pick at least one design first.');
 
   const { jsPDF } = await import('jspdf');
   const [r, g, b] = themeColour();
@@ -73,7 +79,7 @@ export async function downloadCataloguePdf(category: Category, products: Product
     doc.setFontSize(17);
     doc.text(brand.toUpperCase(), margin, 17);
     doc.setFontSize(11);
-    doc.text(`${category.name} · ${items.length} ${items.length === 1 ? 'design' : 'designs'}`, W - margin, 17, { align: 'right' });
+    doc.text(`${title} · ${items.length} ${items.length === 1 ? 'design' : 'designs'}`, W - margin, 17, { align: 'right' });
     doc.setDrawColor(r, g, b);
     doc.setLineWidth(0.4);
     doc.line(margin, 21, W - margin, 21);
@@ -115,5 +121,5 @@ export async function downloadCataloguePdf(category: Category, products: Product
   }
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  doc.save(`${safe(brand)}-${safe(category.name)}.pdf`);
+  doc.save(`${safe(brand)}-${safe(title)}.pdf`);
 }

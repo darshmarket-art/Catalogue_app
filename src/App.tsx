@@ -398,7 +398,7 @@ export default function App() {
   const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
   const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
   let screen: ActiveScreen = currentScreen;
-  // Home is the Catalogue ('categories' screen); Products is the 'catalogue' screen.
+  // Home is the 'categories' screen; the Catalogue tab is the 'catalogue' screen.
   if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
   const activeScreen: ActiveScreen =

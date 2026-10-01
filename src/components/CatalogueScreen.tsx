@@ -3,7 +3,7 @@ import { Product, Purity } from '../types';
 import { trackProductView, trackSearch, trackSelect } from '../api';
 import { setOnScreen, clearOnScreen } from '../attention';
 import { ProductDetailSheet } from './ProductDetailSheet';
-import { PhotoViewer } from './PhotoViewer';
+import { downloadDesignsPdf } from '../cataloguePdf';
 
 interface CatalogueScreenProps {
   products: Product[];
@@ -45,7 +45,10 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>('default');
   const [openProductId, setOpenProductId] = useState<string | null>(null);
-  const [zoomProduct, setZoomProduct] = useState<Product | null>(null);
+  // Admin only: pick designs by hand and turn them into one PDF
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [pdfStatus, setPdfStatus] = useState<string | null>(null);
   const gridRef = useRef<HTMLElement>(null);
   const openProduct = products.find((p) => p.id === openProductId) ?? null;
   const hearted = useMemo(() => new Set(shortlist), [shortlist]);
@@ -115,6 +118,35 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     setTimeout(() => setAddedNotice(null), 1800);
   };
 
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const stopSelecting = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
+
+  const makePdf = async () => {
+    const chosen = products.filter((p) => picked.has(p.id));
+    setPdfStatus('Preparing the PDF…');
+    try {
+      await downloadDesignsPdf('Selection', chosen, (done, total) => setPdfStatus(`Preparing the PDF… ${done} of ${total} photos`));
+      setPdfStatus('PDF downloaded');
+      stopSelecting();
+    } catch (err) {
+      setPdfStatus(err instanceof Error ? err.message : 'Could not create the PDF.');
+    }
+    setTimeout(() => setPdfStatus(null), 3500);
+  };
+
+  /** Tapping a design opens its details; while the owner is picking designs it ticks them instead. */
+  const openOrPick = (prod: Product) => (selecting ? togglePick(prod.id) : setOpenProductId(prod.id));
+
   const toggleHeart = (prod: Product) => {
     if (!hearted.has(prod.sku)) trackSelect(prod.sku);
     onToggleShortlist(prod);
@@ -122,6 +154,12 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
   return (
     <div className="flex flex-col w-full pb-28 max-w-6xl mx-auto">
+      {pdfStatus && (
+        <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg text-sm font-sans animate-fade-in">
+          {pdfStatus}
+        </div>
+      )}
+
       {addedNotice && (
         <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-sans animate-fade-in">
           <span className="material-symbols-outlined text-success-container text-[18px]">check_circle</span>
@@ -160,6 +198,16 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
               </button>
             )}
           </div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
+              aria-pressed={selecting}
+              className={`min-h-11 px-4 rounded-xl border-[1.5px] font-sans text-sm font-extrabold ${selecting ? 'bg-primary border-primary text-on-primary' : 'bg-white border-outline-variant text-primary'}`}
+            >
+              {selecting ? 'Done' : 'Select'}
+            </button>
+          )}
           <label className="flex items-center gap-2 text-sm font-sans text-on-surface-variant">
             <span className="sr-only sm:not-sr-only">Sort</span>
             <select
@@ -183,8 +231,8 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
           const isHearted = hearted.has(prod.sku);
           return (
             <article key={prod.id} data-sku={prod.sku} className="group flex flex-col">
-              <div className="relative w-full aspect-square rounded-3xl bg-surface-container overflow-hidden">
-                <button type="button" aria-label={`Open photo of ${prod.title}`} onClick={() => setZoomProduct(prod)} className="block w-full h-full cursor-zoom-in">
+              <div className={`relative w-full aspect-square rounded-3xl bg-surface-container overflow-hidden ${selecting && picked.has(prod.id) ? 'ring-4 ring-primary' : ''}`}>
+                <button type="button" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} onClick={() => openOrPick(prod)} className="block w-full h-full">
                   <img
                     alt=""
                     loading="lazy"
@@ -196,6 +244,14 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                 <span className="absolute top-2.5 left-2.5 bg-white/95 px-2 py-0.5 rounded-lg text-xs font-extrabold text-primary pointer-events-none">
                   {prod.purity.split(' ')[0]}
                 </span>
+                {selecting && (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-2 right-2 w-9 h-9 rounded-full flex items-center justify-center pointer-events-none shadow-sm ${picked.has(prod.id) ? 'bg-primary text-on-primary' : 'bg-white/95 text-outline'}`}
+                  >
+                    <span className="material-symbols-outlined text-[22px]">{picked.has(prod.id) ? 'check' : 'add'}</span>
+                  </span>
+                )}
                 {!isAdmin && (
                   <button
                     type="button"
@@ -216,7 +272,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
               <div className="pt-2 flex flex-col gap-2 flex-1">
                 <div>
                   <h2 className="font-sans text-[15px] leading-snug font-bold text-on-surface line-clamp-2">
-                    <button type="button" onClick={() => setOpenProductId(prod.id)} className="text-left">
+                    <button type="button" onClick={() => openOrPick(prod)} className="text-left">
                       {prod.title}
                     </button>
                   </h2>
@@ -226,7 +282,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                 </div>
 
                 {isAdmin ? (
-                  <button
+                  selecting ? null : <button
                     type="button"
                     onClick={() => onEditProduct(prod)}
                     className="mt-auto w-full h-11 rounded-xl border border-outline-variant text-primary font-sans text-sm font-bold flex items-center justify-center gap-1.5"
@@ -275,8 +331,6 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
         })}
       </section>
 
-      {zoomProduct && <PhotoViewer images={zoomProduct.images} title={zoomProduct.title} onClose={() => setZoomProduct(null)} />}
-
       <ProductDetailSheet
         product={openProduct}
         isAdmin={isAdmin}
@@ -290,6 +344,27 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
         }}
         onAddToOrder={(p, qty, purity) => handleAdd(p, purity, qty)}
       />
+
+      {isAdmin && selecting && picked.size > 0 && (
+        <div className="fixed inset-x-0 bottom-16 z-40 px-3 pb-2">
+          <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-outline-variant shadow-[0_-6px_24px_rgba(0,0,0,0.1)] p-4 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-serif text-[22px] text-primary leading-tight">
+                {picked.size} {picked.size === 1 ? 'design' : 'designs'} selected
+              </p>
+              <button type="button" onClick={() => setPicked(new Set(filteredProducts.map((p) => p.id)))} className="min-h-11 font-sans text-sm font-bold text-primary hover:underline text-left">
+                Select all {filteredProducts.length}
+              </button>
+            </div>
+            <button type="button" onClick={() => setPicked(new Set())} className="min-h-12 px-4 rounded-2xl border-[1.5px] border-outline-variant font-sans text-sm font-extrabold text-on-surface-variant">
+              Clear
+            </button>
+            <button type="button" onClick={makePdf} className="min-h-12 px-5 rounded-2xl bg-secondary text-on-secondary font-sans text-sm font-extrabold">
+              Create PDF
+            </button>
+          </div>
+        </div>
+      )}
 
       {filteredProducts.length === 0 && (
         <div className="px-4 py-16 text-center flex flex-col items-center gap-3">
