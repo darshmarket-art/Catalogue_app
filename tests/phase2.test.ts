@@ -401,6 +401,67 @@ describe('purity options, shortlist and banner order', () => {
   });
 });
 
+describe('cancelling an order, the order message, and About us', () => {
+  const order = async (app: App, shop: Record<string, string>, skus: Array<[string, number]>) => {
+    for (const [sku, qty] of skus) await request(app).post('/api/orders/items').set(shop).send({ sku, batchQty: qty });
+    return (await request(app).post('/api/orders/confirm').set(shop)).body;
+  };
+
+  it('the message after placing an order lists every design with its SKU and quantity', async () => {
+    const app = await build();
+    const shop = await buyer(app);
+    const placed = await order(app, shop, [['B2B-KND-9082', 2], ['B2B-COIN-0010', 3]]);
+    const msg: string = placed.whatsappMessage;
+    expect(msg).toContain(placed.poId);
+    expect(msg).toContain('B2B-KND-9082');
+    expect(msg).toContain('Qty 2');
+    expect(msg).toContain('B2B-COIN-0010');
+    expect(msg).toContain('Qty 3');
+    expect(msg).toContain('2 designs');
+    expect(msg).toContain('5 pieces');
+  });
+
+  it('a buyer can cancel their own new order, not a confirmed one, and never someone else\'s', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const a = await buyer(app, 1);
+    const b = await buyer(app, 2);
+    const first = await order(app, a, [['B2B-KND-9082', 1]]);
+    const second = await order(app, a, [['B2B-COIN-0010', 1]]);
+
+    expect((await request(app).post(`/api/orders/${first.poId}/cancel`).set(b)).status).toBe(404);
+    expect((await request(app).post(`/api/orders/${first.poId}/cancel`)).status).toBe(401);
+    const done = await request(app).post(`/api/orders/${first.poId}/cancel`).set(a);
+    expect(done.status).toBe(200);
+    expect(done.body.data.status).toBe('cancelled');
+    expect((await request(app).post(`/api/orders/${first.poId}/cancel`).set(a)).status).toBe(200); // cancelling twice is harmless
+
+    expect((await request(app).patch(`/api/admin/orders/${second.poId}`).set(auth).send({ status: 'confirmed' })).status).toBe(200);
+    const late = await request(app).post(`/api/orders/${second.poId}/cancel`).set(a);
+    expect(late.status).toBe(409);
+    expect(late.body.message).toMatch(/already confirmed/);
+
+    const history = (await request(app).get('/api/orders/history').set(a)).body.data;
+    expect(history.find((o: any) => o.poId === first.poId).status).toBe('cancelled');
+    expect(history.find((o: any) => o.poId === second.poId).status).toBe('confirmed');
+  });
+
+  it('the owner edits About us; signed-in users read it; empty fields are dropped', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const shop = await buyer(app);
+    expect((await request(app).get('/api/about')).status).toBe(401);
+    expect((await request(app).get('/api/about').set(shop)).body.data).toEqual({});
+    expect((await request(app).put('/api/about').set(shop).send({ ownerName: 'X' })).status).toBe(403);
+    expect((await request(app).put('/api/about').set(auth).send({ email: 'not-an-email' })).status).toBe(400);
+    expect((await request(app).put('/api/about').set(auth).send({ website: 'javascript:alert(1)' })).status).toBe(400);
+    const saved = await request(app).put('/api/about').set(auth).send({ ownerName: 'Bhakti Shah', story: 'Four generations in gold.', phone: '', website: 'https://example.com' });
+    expect(saved.status).toBe(200);
+    expect(saved.body.data).toEqual({ ownerName: 'Bhakti Shah', story: 'Four generations in gold.', website: 'https://example.com' });
+    expect((await request(app).get('/api/about').set(shop)).body.data.ownerName).toBe('Bhakti Shah');
+  });
+});
+
 describe('merchant theme: colours and fonts', () => {
   const base = () => JSON.parse(JSON.stringify(loadConfig({ NODE_ENV: 'test', STORE: 'memory' }).merchant));
 

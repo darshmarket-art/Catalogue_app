@@ -63,14 +63,22 @@ export const jewelleryPack = {
     };
   },
 
-  confirmationMessage(args: { brandName: string; poId: string; totalNet: number; itemCount: number }) {
+  /** The message the buyer sends after placing an order: who, how much, and every design with its quantity. */
+  confirmationMessage(args: {
+    brandName: string;
+    poId: string;
+    firmName: string;
+    totalNet: number;
+    items: Array<{ title: string; sku: string; purity: string; batchQty: number; qtyUnit?: string; totalNetGold: number }>;
+  }) {
+    const pieces = args.items.reduce((sum, i) => sum + i.batchQty, 0);
     return (
-      `*${args.brandName.toUpperCase()} B2B WHOLESALE CONFIRMATION (GRAM BASIS)*\n` +
-      `*PO:* ${args.poId}\n` +
-      `*Total Fine Gold Weight:* ${args.totalNet.toFixed(3)}g Net\n` +
-      `*Items in Batch:* ${args.itemCount}\n` +
-      `*Settlement Terms:* Pure Fine Gold Gram Settlement (999.9 Bullion Bar Handover or Gold Metal Loan Credit)\n` +
-      `Kindly confirm dispatch slot.`
+      `*${args.brandName.toUpperCase()} ORDER ${args.poId}*\n` +
+      `*From:* ${args.firmName}\n` +
+      `*Total:* ${args.totalNet.toFixed(3)} g net · ${args.items.length} ${args.items.length === 1 ? 'design' : 'designs'} · ${pieces} ${pieces === 1 ? 'piece' : 'pieces'}\n\n` +
+      `*Order:*\n` +
+      args.items.map((i, n) => `${n + 1}. ${i.title} (${i.sku}) · ${i.purity} · Qty ${i.batchQty}${i.qtyUnit ? ` ${i.qtyUnit}` : ''} · ${i.totalNetGold.toFixed(3)} g`).join('\n') +
+      `\n\nPlease confirm the dispatch slot.`
     );
   }
 };

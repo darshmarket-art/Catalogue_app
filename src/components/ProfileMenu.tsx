@@ -15,6 +15,7 @@ interface ProfileMenuProps {
   onOpenOrders: (tab: 'current' | 'past') => void;
   onOpenAdminConsole: () => void;
   onChangePassword: () => void;
+  onOpenAbout: () => void;
   onLogout: () => void;
 }
 
@@ -22,7 +23,7 @@ const itemClass =
   'w-full flex items-center gap-3 px-5 min-h-[52px] text-left font-sans text-[15.5px] font-bold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-outline-variant';
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
-export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onLogout }) => {
+export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onOpenAbout, onLogout }) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -122,6 +123,10 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
               </button>
             </>
           )}
+
+          <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
+            About us
+          </button>
 
           <button role="menuitem" className={`${itemClass} text-error`} onClick={choose(onLogout)} type="button">
             Log out

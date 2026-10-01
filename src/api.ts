@@ -3,6 +3,7 @@ import {
   Category,
   Banner,
   Purity,
+  About,
   OrderItem,
   AnalyticsData,
   AdminOrder,
@@ -207,6 +208,22 @@ export const api = {
 
   async reorderBanners(ids: string[]): Promise<void> {
     await request('/api/banners/order', { method: 'PUT', body: JSON.stringify({ ids }) });
+  },
+
+  async getAbout(): Promise<About> {
+    try {
+      return (await request('/api/about')).data;
+    } catch {
+      return {};
+    }
+  },
+
+  async saveAbout(about: About): Promise<About> {
+    return (await request('/api/about', { method: 'PUT', body: JSON.stringify(about) })).data;
+  },
+
+  async cancelOrder(poId: string): Promise<void> {
+    await request(`/api/orders/${encodeURIComponent(poId)}/cancel`, { method: 'POST' });
   },
 
   async getPurities(): Promise<Purity[] | null> {

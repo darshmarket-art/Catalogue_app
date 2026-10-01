@@ -30,6 +30,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
     { label: 'Buyer engagement', note: `${analytics.todayVisitors} today · ${analytics.liveVisitors} online`, go: onOpenVisitors, testId: 'block-all' },
     { label: 'Home banners', note: 'Photos on the home', go: () => onNavigate('admin-banners') },
     { label: 'Purity options', note: 'Karat list for designs', go: () => onNavigate('admin-purities') },
+    { label: 'About us', note: 'Your details for buyers', go: () => onNavigate('admin-about') },
     { label: 'Audit log', note: downloading ? 'Downloading…' : 'Export CSV', go: handleExportCSV }
   ];
 

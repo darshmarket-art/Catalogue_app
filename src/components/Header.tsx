@@ -15,11 +15,11 @@ interface HeaderProps {
   isEditing: boolean;
 }
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about'];
 
 export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing }) => {
   const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen);
-  const isSubScreen = isAdminSub || ['admin-login', 'retailer-auth', 'change-password'].includes(currentScreen);
+  const isSubScreen = isAdminSub || ['admin-login', 'retailer-auth', 'change-password', 'about'].includes(currentScreen);
   const isAdminView = currentScreen === 'admin-hub' || isAdminSub;
 
   const handleBack = () => {
@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
       onNavigate(currentScreen === 'new-product' ? 'catalogue' : 'categories');
     } else if (isAdminSub) {
       onNavigate('admin-hub');
-    } else if (currentScreen === 'change-password') {
+    } else if (currentScreen === 'change-password' || currentScreen === 'about') {
       onNavigate('categories');
     } else {
       onNavigate('welcome');
@@ -54,6 +54,8 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
                 ? 'Home banners'
                 : currentScreen === 'admin-purities'
                 ? 'Purity options'
+                : currentScreen === 'admin-about' || currentScreen === 'about'
+                ? 'About us'
               : currentScreen === 'change-password'
                 ? 'Account'
                 : currentScreen === 'admin-login'
@@ -107,6 +109,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
               onOpenOrders={onOpenOrders}
               onOpenAdminConsole={() => onNavigate('admin-hub')}
               onChangePassword={() => onNavigate('change-password')}
+              onOpenAbout={() => onNavigate(isAdminLoggedIn ? 'admin-about' : 'about')}
               onLogout={onLogout}
             />
           ) : (

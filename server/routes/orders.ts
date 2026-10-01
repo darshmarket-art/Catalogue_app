@@ -59,6 +59,23 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
     })
   );
 
+  // A buyer may cancel their own order until the owner has confirmed it. After that, they need to speak to the owner.
+  router.post(
+    '/:poId/cancel',
+    handler(async (req, res) => {
+      const order = await store.get('purchaseOrders', req.params.poId);
+      if (!order || order.retailerId !== user(res).id) throw new HttpError(404, 'Order not found.');
+      const status = order.status ?? 'new';
+      if (status === 'cancelled') return res.json({ status: 'success', data: { poId: order.poId, status } });
+      if (status !== 'new') {
+        throw new HttpError(409, `This order is already ${status}. Please call ${merchant.brand.name} on ${merchant.contact.deskPhone} to change it.`);
+      }
+      await store.update('purchaseOrders', order.poId, { status: 'cancelled', statusUpdatedAt: new Date().toISOString(), cancelledBy: 'buyer' });
+      await audit(store, req, 'ORDER_CANCELLED_BY_BUYER', `PO ${order.poId} cancelled by ${user(res).name}.`);
+      res.json({ status: 'success', data: { poId: order.poId, status: 'cancelled' } });
+    })
+  );
+
   // Weights, purity and imagery come from the catalogue, never from the client.
   router.post(
     '/items',
@@ -143,7 +160,13 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
         settlementBasis: 'GRAM_WEIGHT',
         totalNetGrams: totalNet,
         itemCount: items.length,
-        whatsappMessage: pack.confirmationMessage({ brandName: merchant.brand.name, poId, totalNet, itemCount: items.length })
+        whatsappMessage: pack.confirmationMessage({
+          brandName: merchant.brand.name,
+          poId,
+          firmName: owner.name,
+          totalNet,
+          items: items.map((i) => ({ title: i.title, sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
+        })
       });
     })
   );

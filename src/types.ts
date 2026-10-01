@@ -38,6 +38,19 @@ export interface Purity {
   enabled: boolean;
 }
 
+/** The owner's "About us" details; every field is optional. */
+export interface About {
+  ownerName?: string;
+  ownerRole?: string;
+  story?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  openingHours?: string;
+  gstin?: string;
+  website?: string;
+}
+
 export interface Banner {
   id: string;
   image: string;
@@ -145,6 +158,8 @@ export type ActiveScreen =
   | 'admin-buyers'
   | 'admin-banners'
   | 'admin-purities'
+  | 'admin-about'
+  | 'about'
   | 'shortlist'
   | 'change-password'
   | 'retailer-auth';

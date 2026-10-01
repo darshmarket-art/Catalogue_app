@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ActiveScreen, Product, Category, Banner, Purity, OrderItem, AnalyticsData } from './types';
+import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
 import { sector } from './sector';
@@ -18,6 +18,8 @@ import { AddCategoryScreen } from './components/AddCategoryScreen';
 import { AdminVisitorsScreen } from './components/AdminVisitorsScreen';
 import { AdminBannersScreen } from './components/AdminBannersScreen';
 import { AdminPuritiesScreen } from './components/AdminPuritiesScreen';
+import { AboutScreen } from './components/AboutScreen';
+import { AdminAboutScreen } from './components/AdminAboutScreen';
 import { ShortlistScreen } from './components/ShortlistScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
@@ -36,6 +38,7 @@ export default function App() {
   // The owner's purity list (defaults until it loads) and the buyer's hearted SKUs.
   const [purities, setPurities] = useState<Purity[]>(sector.purities);
   const [shortlist, setShortlist] = useState<string[]>([]);
+  const [about, setAbout] = useState<About>({});
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     periodLabel: 'Last 7 days',
@@ -161,6 +164,7 @@ export default function App() {
       const [catsData, prodsData, bannerData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners()]);
       setBanners(bannerData);
       api.getPurities().then((list) => list && setPurities(list));
+      api.getAbout().then(setAbout);
       if (catsData.length > 0) setCategories(catsData);
       if (prodsData.length > 0) setProducts(prodsData);
     };
@@ -341,6 +345,15 @@ export default function App() {
     for (const product of items) await handleAddToOrder(product, 1);
   };
 
+  const handleAboutSaved = async (next: About): Promise<string | null> => {
+    try {
+      setAbout(await api.saveAbout(next));
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Could not save.';
+    }
+  };
+
   const handlePuritiesSaved = async (list: Array<{ key: string; enabled: boolean }>): Promise<boolean> => {
     try {
       setPurities(await api.savePurities(list));
@@ -394,8 +407,8 @@ export default function App() {
   };
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
-  const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
+  const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about'];
   const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Home is the 'categories' screen; the Catalogue tab is the 'catalogue' screen.
@@ -520,6 +533,10 @@ export default function App() {
         {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
 
         {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} categories={categories} onLink={handleBannerLinked} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} onReorder={handleBannersReordered} />}
+
+        {activeScreen === 'about' && <AboutScreen about={about} />}
+
+        {activeScreen === 'admin-about' && <AdminAboutScreen about={about} onSave={handleAboutSaved} />}
 
         {activeScreen === 'admin-purities' && <AdminPuritiesScreen purities={purities} onSave={handlePuritiesSaved} />}
 

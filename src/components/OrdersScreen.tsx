@@ -3,7 +3,7 @@ import { OrderItem, PastOrder } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
-import { PageTitle, Segmented, StatusTag, btnPrimary, btnOutline, btnWhatsApp } from './ui';
+import { PageTitle, Segmented, StatusTag, Notice, btnPrimary, btnOutline, btnWhatsApp } from './ui';
 
 interface OrdersScreenProps {
   orders: OrderItem[];
@@ -15,8 +15,25 @@ interface OrdersScreenProps {
   initialTab?: 'current' | 'past';
 }
 
-const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
+const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string) => Promise<string | null> }> = ({ orders, onCancel }) => {
   const [open, setOpen] = useState<string | null>(null);
+  // Cancelling takes two taps, so a stray tap cannot cancel an order.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const cancel = async (poId: string) => {
+    if (confirming !== poId) {
+      setConfirming(poId);
+      setProblem(null);
+      setTimeout(() => setConfirming((c) => (c === poId ? null : c)), 4000);
+      return;
+    }
+    setBusy(poId);
+    setConfirming(null);
+    setProblem(await onCancel(poId));
+    setBusy(null);
+  };
   if (orders === null) return <p className="text-center font-sans text-sm text-outline py-10">Loading your orders…</p>;
   if (orders.length === 0) {
     return (
@@ -29,6 +46,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
   }
   return (
     <div className="flex flex-col gap-3 px-5" data-testid="past-orders">
+      {problem && <Notice tone="error">{problem}</Notice>}
       {orders.map((order) => (
         <article key={order.poId} className="rounded-3xl bg-white border border-outline-variant p-4">
           <div className="flex items-center justify-between gap-2">
@@ -50,6 +68,16 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
               {open === order.poId ? 'Hide items' : 'View items'}
             </button>
           </div>
+          {order.status === 'new' && (
+            <button
+              type="button"
+              disabled={busy === order.poId}
+              onClick={() => cancel(order.poId)}
+              className={`mt-3 w-full min-h-12 rounded-2xl font-sans text-sm font-extrabold border-[1.5px] disabled:opacity-50 ${confirming === order.poId ? 'bg-error text-on-primary border-error' : 'bg-white text-error border-error/40'}`}
+            >
+              {busy === order.poId ? 'Cancelling…' : confirming === order.poId ? 'Tap again to cancel this order' : 'Cancel order'}
+            </button>
+          )}
           {open === order.poId && (
             <ul className="mt-3 pt-3 border-t border-outline-variant flex flex-col gap-3">
               {order.items.map((item) => (
@@ -93,6 +121,18 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
 
   const totalNetGold = orders.reduce((sum, item) => sum + (item.totalNetGold || 0), 0);
   const totalPieces = orders.reduce((sum, item) => sum + (item.batchQty || 1), 0);
+
+  /** Cancels one of the buyer's own new orders; returns a message to show if the server refused. */
+  const cancelOrder = async (poId: string): Promise<string | null> => {
+    try {
+      await api.cancelOrder(poId);
+      setHistory((list) => list?.map((o) => (o.poId === poId ? { ...o, status: 'cancelled' } : o)) ?? null);
+      return null;
+    } catch (err) {
+      api.getOrderHistory().then(setHistory);
+      return err instanceof Error ? err.message : 'Could not cancel the order.';
+    }
+  };
 
   const handleConfirm = async () => {
     const result = await onConfirmOrder();
@@ -152,7 +192,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       </div>
 
       {tab === 'past' ? (
-        <PastOrders orders={history} />
+        <PastOrders orders={history} onCancel={cancelOrder} />
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center text-center gap-2 px-8 pt-14">
           <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">shopping_bag</span>
