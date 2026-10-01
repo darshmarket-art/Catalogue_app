@@ -32,6 +32,12 @@ export interface Category {
   maxTargetWt: number;
 }
 
+export interface Purity {
+  key: string;
+  title: string;
+  enabled: boolean;
+}
+
 export interface Banner {
   id: string;
   image: string;
@@ -136,5 +142,7 @@ export type ActiveScreen =
   | 'admin-visitors'
   | 'admin-buyers'
   | 'admin-banners'
+  | 'admin-purities'
+  | 'shortlist'
   | 'change-password'
   | 'retailer-auth';

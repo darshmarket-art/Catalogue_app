@@ -83,7 +83,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
           <div key={photo.ref} className={`relative ${tileClass} rounded-xl overflow-hidden bg-surface-container border border-outline-variant/40`}>
             <img src={photo.url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
             {max > 1 && i === 0 && (
-              <span className="absolute bottom-1 left-1 bg-black/60 text-white font-mono text-[9px] px-1.5 py-0.5 rounded">Cover</span>
+              <span className="absolute bottom-1 left-1 bg-black/60 text-white font-mono text-xs px-1.5 py-0.5 rounded">Cover</span>
             )}
             <button
               type="button"
@@ -98,7 +98,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
         {uploading.map((u) => (
           <div key={u.id} data-testid="photo-uploading" className={`${tileClass} rounded-xl bg-surface-container border border-dashed border-outline-variant flex flex-col items-center justify-center gap-1`}>
             <span className="material-symbols-outlined text-[24px] text-primary animate-pulse">cloud_upload</span>
-            <span className="text-[10px] font-sans text-outline">Uploading…</span>
+            <span className="text-xs font-sans text-outline">Uploading…</span>
           </div>
         ))}
         {photos.length === 0 && uploading.length === 0 && (
@@ -153,10 +153,10 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
         </div>
       )}
 
-      <p className="text-[11px] font-sans text-outline leading-snug">
+      <p className="text-xs font-sans text-outline leading-snug">
         {max === 1 ? 'One photo.' : `1 to ${max} photos.`} Photos are saved at full quality the moment you pick them.
       </p>
-      {error && <p role="alert" className="text-[11px] font-sans text-error font-semibold">{error}</p>}
+      {error && <p role="alert" className="text-xs font-sans text-error font-semibold">{error}</p>}
     </div>
   );
 };

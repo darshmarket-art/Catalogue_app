@@ -19,7 +19,7 @@ const ago = (iso: string) => {
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-2 flex flex-col">
-    <span className="text-[9px] uppercase tracking-wider text-outline font-semibold">{label}</span>
+    <span className="text-xs uppercase tracking-wider text-outline font-semibold">{label}</span>
     <span className="font-mono text-[13px] font-bold text-on-surface">{value}</span>
   </div>
 );
@@ -75,7 +75,7 @@ export const AdminVisitorsScreen: React.FC = () => {
         ) : (
           <>
             <div>
-              <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">
+              <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">
                 {detail.kind === 'verified' ? 'Buyer' : 'Guest visitor'}
               </span>
               <h1 className="font-serif text-[22px] font-bold text-on-surface leading-tight">{detail.name}</h1>
@@ -100,7 +100,7 @@ export const AdminVisitorsScreen: React.FC = () => {
                   <div key={p.sku} className="flex items-center justify-between gap-2 text-xs font-sans">
                     <div className="flex flex-col min-w-0">
                       <span className="font-semibold text-on-surface truncate">{p.title}</span>
-                      <span className="font-mono text-[10px] text-outline">{p.sku}</span>
+                      <span className="font-mono text-xs text-outline">{p.sku}</span>
                     </div>
                     <span className="font-mono font-bold text-primary whitespace-nowrap">{duration(p.seconds)}</span>
                   </div>
@@ -146,7 +146,7 @@ export const AdminVisitorsScreen: React.FC = () => {
   return (
     <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-4">
       <div>
-        <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">Buyer engagement</span>
+        <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">Buyer engagement</span>
         <h1 className="font-serif text-[22px] font-bold text-on-surface">Buyers</h1>
         <p className="font-sans text-xs text-outline">Tap a buyer to see which designs held their attention. Last 30 days, refreshed every 15 seconds.</p>
       </div>
@@ -169,11 +169,11 @@ export const AdminVisitorsScreen: React.FC = () => {
           >
             <div className="flex flex-col min-w-0">
               <span className="font-sans text-sm font-bold text-on-surface truncate">{v.name}</span>
-              <span className="font-sans text-[11px] text-outline">
+              <span className="font-sans text-xs text-outline">
                 {v.kind === 'guest' ? 'Guest · ' : ''}Seen {ago(v.lastSeen)}
               </span>
             </div>
-            <div className="flex flex-col items-end font-mono text-[11px] text-on-surface whitespace-nowrap">
+            <div className="flex flex-col items-end font-mono text-xs text-on-surface whitespace-nowrap">
               <span className="font-bold text-primary">{duration(v.activeSeconds)} in app</span>
               <span className="text-outline">
                 {v.productsViewed} seen · {v.searches} searches

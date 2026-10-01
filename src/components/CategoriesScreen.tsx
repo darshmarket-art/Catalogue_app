@@ -82,6 +82,8 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   const slideCount = banners.length || merchant.promotions.length;
   const [searchQuery, setSearchQuery] = useState('');
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  // The collection whose admin menu (edit, share link, share PDF) is open
+  const [menuFor, setMenuFor] = useState<Category | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const goToSlide = (i: number) => {
@@ -146,7 +148,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   );
 
   return (
-    <div className="flex flex-col w-full pb-36 max-w-5xl mx-auto px-4">
+    <div className="flex flex-col w-full pb-36 max-w-3xl mx-auto px-4">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs font-sans border border-primary-container/40 animate-fade-in">
@@ -156,7 +158,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
       )}
 
       {/* Search & Sort Bar */}
-      <div className="py-2.5 flex items-center gap-2 sticky top-16 z-20 bg-surface/95 backdrop-blur-md">
+      <div className="py-2.5 flex items-center gap-2 sticky top-[72px] z-20 bg-surface/95 backdrop-blur-md">
         <div className="relative flex-1">
           <span className="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[20px]">
             search
@@ -193,8 +195,8 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
                       className={`min-w-full h-full snap-center flex flex-col justify-between bg-gradient-to-r ${look.background} p-4 md:px-8 text-white`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`${look.tag} font-mono text-[10px] px-2 py-0.5 rounded font-bold tracking-wider uppercase`}>{promo.tag}</span>
-                        <span className={`font-mono text-[11px] ${look.stamp} font-bold flex items-center gap-1`}>
+                        <span className={`${look.tag} font-mono text-xs px-2 py-0.5 rounded font-bold tracking-wider uppercase`}>{promo.tag}</span>
+                        <span className={`font-mono text-xs ${look.stamp} font-bold flex items-center gap-1`}>
                           <span className="material-symbols-outlined text-[14px]">{promo.stampIcon}</span>
                           {promo.stampText}
                         </span>
@@ -206,12 +208,12 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
                       <div className="flex items-center justify-between">
                         <button
                           onClick={() => onFilterCategoryInCatalogue(promo.title)}
-                          className={`px-2.5 py-1 rounded ${look.action} text-[11px] font-semibold flex items-center gap-1`}
+                          className={`px-2.5 py-1 rounded ${look.action} text-xs font-semibold flex items-center gap-1`}
                         >
                           <span className="material-symbols-outlined text-[15px]">{promo.actionIcon}</span>
                           {promo.actionLabel}
                         </button>
-                        <span className={`font-mono text-[11px] ${look.note}`}>{promo.note}</span>
+                        <span className={`font-mono text-xs ${look.note}`}>{promo.note}</span>
                       </div>
                     </div>
                   );
@@ -247,10 +249,16 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
         </div>
       )}
 
+      {/* Owner only: change the banners, or send the whole catalogue link to a buyer */}
       {isAdmin && (
-        <button type="button" onClick={() => onNavigate('admin-banners')} className="self-start text-[11px] font-sans font-bold text-primary flex items-center gap-1 mb-1">
-          <span className="material-symbols-outlined text-[15px]">edit</span>Change banners
-        </button>
+        <div className="flex flex-wrap gap-2 mb-1">
+          <button type="button" onClick={() => onNavigate('admin-banners')} className="min-h-11 px-4 rounded-full border border-outline-variant bg-white text-sm font-sans font-extrabold text-primary">
+            Change banners
+          </button>
+          <button type="button" onClick={() => shareLink(window.location.origin)} className="min-h-11 px-4 rounded-full border border-outline-variant bg-white text-sm font-sans font-extrabold text-primary">
+            Share catalogue link
+          </button>
+        </div>
       )}
 
       {filteredCategories.length === 0 && (
@@ -259,10 +267,11 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
         </p>
       )}
 
-      {/* Category tiles: square photo, name and numbers over its lower half so the jewellery stays visible */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 my-2">
+      {/* Collections: one square each. One column on phones, two squares per row on larger screens. */}
+      <h2 className="font-serif text-[22px] text-primary mt-3 mb-2">Collections</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
         {filteredCategories.map((cat) => (
-          <div key={cat.id} className="relative aspect-square rounded-xl overflow-hidden bg-surface-container shadow-sm border border-outline-variant/40 group">
+          <div key={cat.id} className="relative aspect-square rounded-3xl overflow-hidden bg-surface-container shadow-sm group">
             <img
               src={cat.image}
               alt=""
@@ -270,49 +279,67 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
-            <button
-              type="button"
-              aria-label={`Open ${cat.name}`}
-              onClick={() => onFilterCategoryInCatalogue(cat.name)}
-              className="absolute inset-0 text-left"
-            >
-              <span className="absolute bottom-2.5 left-3 right-3 text-white">
-                <span className="block font-serif text-[15px] md:text-[17px] font-bold leading-tight drop-shadow line-clamp-2">{cat.name}</span>
-                <span className="block font-mono text-[10px] md:text-[11px] text-white/85 mt-0.5 drop-shadow">
-                  {cat.designCount} SKUs · avg {cat.avgNetWt}
+            <button type="button" aria-label={`Open ${cat.name}`} onClick={() => onFilterCategoryInCatalogue(cat.name)} className="absolute inset-0 text-left">
+              <span className="absolute bottom-4 left-5 right-5 text-white">
+                <span className="block font-serif text-[26px] leading-tight drop-shadow line-clamp-2">{cat.name}</span>
+                <span className="block font-sans text-sm font-semibold text-white/90 mt-1 drop-shadow">
+                  {cat.designCount} {cat.designCount === 1 ? 'design' : 'designs'} · avg {cat.avgNetWt}
                 </span>
               </span>
             </button>
 
-            {cat.eligibleKarats[0] && (
-              <span className="absolute top-2 left-2 bg-white/95 text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold shadow-sm pointer-events-none">
-                {cat.eligibleKarats[0]}
-              </span>
-            )}
-
             {isAdmin && (
-              <div className="absolute top-2 right-2 flex flex-col gap-1.5">
-                {[
-                  { label: 'Edit', icon: 'edit', run: () => onEditCategory(cat) },
-                  { label: 'Share link', icon: 'link', run: () => shareLink(`${window.location.origin}/?category=${encodeURIComponent(cat.name)}`) },
-                  { label: 'Share PDF', icon: 'picture_as_pdf', run: () => handlePdf(cat) }
-                ].map((a) => (
-                  <button
-                    key={a.label}
-                    type="button"
-                    aria-label={`${a.label}: ${cat.name}`}
-                    title={a.label}
-                    onClick={a.run}
-                    className="w-8 h-8 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-sm active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-[17px]">{a.icon}</span>
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                aria-label={`Options for ${cat.name}`}
+                onClick={() => setMenuFor(cat)}
+                className="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-sm active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[24px]">more_horiz</span>
+              </button>
             )}
           </div>
         ))}
       </div>
+
+      {/* Admin menu for one collection */}
+      {menuFor && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true" aria-label={`Options for ${menuFor.name}`}>
+          <button type="button" aria-label="Close" className="absolute inset-0 bg-black/50" onClick={() => setMenuFor(null)} />
+          <div className="relative w-full max-w-md bg-surface rounded-t-3xl p-4 pb-6 animate-fade-in">
+            <div className="w-10 h-1 rounded-full bg-outline-variant mx-auto mb-3" />
+            <h3 className="font-serif text-[22px] text-primary mb-1">{menuFor.name}</h3>
+            {[
+              { label: 'Edit collection', note: 'Name, photo, weight range', icon: 'edit', run: () => onEditCategory(menuFor) },
+              {
+                label: 'Share link',
+                note: 'Buyer signs in and lands on this collection',
+                icon: 'link',
+                run: () => shareLink(`${window.location.origin}/?category=${encodeURIComponent(menuFor.name)}`)
+              },
+              { label: 'Share as PDF', note: `All photos with the ${merchant.brand.name} watermark`, icon: 'picture_as_pdf', run: () => handlePdf(menuFor) }
+            ].map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                onClick={() => {
+                  setMenuFor(null);
+                  o.run();
+                }}
+                className="w-full flex items-center gap-3 py-3 border-t border-outline-variant text-left min-h-14"
+              >
+                <span className="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[22px]">{o.icon}</span>
+                </span>
+                <span>
+                  <span className="block font-sans text-[15px] font-extrabold text-on-surface">{o.label}</span>
+                  <span className="block font-sans text-sm text-on-surface-variant">{o.note}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Floating contact menu: the owner's own WhatsApp, showroom and social pages (a link only appears once it is set in merchant.json) */}
       <div className="fixed bottom-[88px] right-3 z-40 flex flex-col items-end gap-2.5">
@@ -345,34 +372,6 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
           <span className="material-symbols-outlined text-[24px]">{speedDialOpen ? 'close' : 'support_agent'}</span>
         </button>
       </div>
-
-      {/* Owner only: send the catalogue link to a buyer */}
-      {isAdmin && (
-      <div className="fixed bottom-16 inset-x-0 z-30 px-4 pb-2 pointer-events-none max-w-lg mx-auto">
-        <div className="pointer-events-auto bg-on-surface/95 backdrop-blur-xl text-white p-3 rounded-xl shadow-xl flex items-center justify-between gap-3 border border-primary-container/40">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded bg-primary text-white flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-[19px]">share</span>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-sans text-[11px] font-bold text-white truncate">
-                Share Catalogue Link
-              </span>
-              <span className="font-mono text-[9px] text-surface-container-highest truncate">
-                {merchant.brand.name} • Members portal
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => shareLink(window.location.origin)}
-            className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary-dark text-white text-[11px] font-sans font-bold flex items-center gap-1 active:scale-95 transition-transform whitespace-nowrap shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[15px]">qr_code_2</span>
-            <span>Share to Retailer</span>
-          </button>
-        </div>
-      </div>
-      )}
     </div>
   );
 };

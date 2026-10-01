@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Product } from '../types';
+import { Product, Purity } from '../types';
 import { trackProductView, trackSearch, trackSelect } from '../api';
 import { setOnScreen, clearOnScreen } from '../attention';
 import { ProductDetailSheet } from './ProductDetailSheet';
@@ -7,20 +7,22 @@ import { ProductDetailSheet } from './ProductDetailSheet';
 interface CatalogueScreenProps {
   products: Product[];
   isAdmin: boolean;
-  /** Only show designs from this category (set from the Categories screen). */
+  /** Only show designs from this collection (set from the Catalogue screen). */
   categoryFilter: string | null;
   onClearCategoryFilter: () => void;
   onEditProduct: (product: Product) => void;
-  onAddToOrder: (product: Product, quantity: number) => void;
-  onOpenQuotation: (selectedCount: number, netWeight: number, items: Product[]) => void;
-  onNavigateCategories: () => void;
+  onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
+  /** Purities the owner currently offers. */
+  purities: Purity[];
+  /** SKUs the buyer has hearted. */
+  shortlist: string[];
+  onToggleShortlist: (product: Product) => void;
 }
 
 type SortKey = 'default' | 'net-asc' | 'net-desc' | 'name';
 
-const PURITY_FILTERS = ['all', '22K', '24K', '18K'];
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'default', label: 'Default order' },
+  { key: 'default', label: 'Newest' },
   { key: 'net-asc', label: 'Net weight: low to high' },
   { key: 'net-desc', label: 'Net weight: high to low' },
   { key: 'name', label: 'Name: A to Z' }
@@ -33,28 +35,18 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   onClearCategoryFilter,
   onEditProduct,
   onAddToOrder,
-  onOpenQuotation,
-  onNavigateCategories
+  purities,
+  shortlist,
+  onToggleShortlist
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
-  const [purity, setPurity] = useState<string>('all');
-  const [category, setCategory] = useState<string | null>(categoryFilter);
-  const [minWt, setMinWt] = useState('');
-  const [maxWt, setMaxWt] = useState('');
   const [sort, setSort] = useState<SortKey>('default');
-  // Filters are open by default on wide screens, where there is room for them.
-  const [showFilters, setShowFilters] = useState(() => window.innerWidth >= 1024);
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   const gridRef = useRef<HTMLElement>(null);
   const openProduct = products.find((p) => p.id === openProductId) ?? null;
-
-  // A category picked on the Categories screen arrives as a prop.
-  useEffect(() => setCategory(categoryFilter), [categoryFilter]);
-
-  const categoryNames = useMemo(() => Array.from(new Set(products.map((p) => p.category))).sort(), [products]);
+  const hearted = useMemo(() => new Set(shortlist), [shortlist]);
 
   // What a buyer searches for tells the owner what they are after. Recorded once they pause typing.
   useEffect(() => {
@@ -66,63 +58,27 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
   const filteredProducts = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const min = minWt === '' ? null : Number(minWt);
-    const max = maxWt === '' ? null : Number(maxWt);
     const list = products.filter((p) => {
-      const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-      const matchesPurity = purity === 'all' || p.purity.includes(purity);
-      const matchesCategory = !category || p.category === category;
-      const matchesMin = min === null || Number.isNaN(min) || p.netWt >= min;
-      const matchesMax = max === null || Number.isNaN(max) || p.netWt <= max;
-      return matchesSearch && matchesPurity && matchesCategory && matchesMin && matchesMax;
+      const matchesSearch =
+        !q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.purity.toLowerCase().includes(q);
+      return matchesSearch && (!categoryFilter || p.category === categoryFilter);
     });
     if (sort === 'net-asc') list.sort((a, b) => a.netWt - b.netWt);
     else if (sort === 'net-desc') list.sort((a, b) => b.netWt - a.netWt);
     else if (sort === 'name') list.sort((a, b) => a.title.localeCompare(b.title));
     return list;
-  }, [products, searchQuery, purity, category, minWt, maxWt, sort]);
+  }, [products, searchQuery, categoryFilter, sort]);
 
-  const activeFilterCount =
-    (purity !== 'all' ? 1 : 0) + (category ? 1 : 0) + (minWt !== '' ? 1 : 0) + (maxWt !== '' ? 1 : 0);
-
-  const resetFilters = () => {
-    setPurity('all');
-    setCategory(null);
-    setMinWt('');
-    setMaxWt('');
-    setSearchQuery('');
-    onClearCategoryFilter();
-  };
-
-  const pickCategory = (name: string | null) => {
-    setCategory(name);
-    if (!name) onClearCategoryFilter();
-  };
-
+  // Counts one view per design once it has been on screen, and times how long each is looked at.
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid || !('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const sku = (entry.target as HTMLElement).dataset.sku;
-          if (sku) trackProductView(sku);
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.5 }
-    );
-    grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [filteredProducts]);
-
-  // Which cards are on screen right now, so time spent looking at each product can be measured.
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid || !('IntersectionObserver' in window)) return;
+    const counted = new Observer((el) => {
+      const sku = el.dataset.sku;
+      if (sku) trackProductView(sku);
+    });
     const seen = new Set<string>();
-    const observer = new IntersectionObserver(
+    const timing = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           const sku = (entry.target as HTMLElement).dataset.sku;
@@ -134,174 +90,71 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       },
       { threshold: 0.5 }
     );
-    grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => observer.observe(el));
+    grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => {
+      counted.watch(el);
+      timing.observe(el);
+    });
     return () => {
-      observer.disconnect();
+      counted.stop();
+      timing.disconnect();
       seen.forEach((sku) => setOnScreen(sku, false));
     };
   }, [filteredProducts]);
 
   useEffect(() => clearOnScreen, []);
 
-  const { selectedCount, totalNetWeight } = useMemo(() => {
-    let count = 0;
-    let net = 0;
-    products.forEach((p) => {
-      if (selectedIds.has(p.id)) {
-        const qty = quantities[p.id] || 1;
-        count += qty;
-        net += p.netWt * qty;
-      }
-    });
-    return { selectedCount: count, totalNetWeight: parseFloat(net.toFixed(2)) };
-  }, [products, selectedIds, quantities]);
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-        const picked = products.find((p) => p.id === id);
-        if (picked) trackSelect(picked.sku);
-      }
-      return next;
-    });
-  };
-
-  const allShownSelected = filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.has(p.id));
-  const toggleSelectAll = () => {
-    setSelectedIds(allShownSelected ? new Set() : new Set(filteredProducts.map((p) => p.id)));
-  };
-
   const updateQuantity = (id: string, delta: number) => {
     setQuantities((prev) => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + delta) }));
   };
 
-  const handleAdd = (prod: Product) => {
-    onAddToOrder(prod, quantities[prod.id] || 1);
+  const handleAdd = (prod: Product, purity?: string, qty = quantities[prod.id] || 1) => {
+    onAddToOrder(prod, qty, purity);
     setAddedNotice(prod.title);
     setTimeout(() => setAddedNotice(null), 1800);
   };
 
-  const chip = (active: boolean) =>
-    `px-3.5 py-2 rounded-full text-[13px] font-sans font-semibold transition-colors ${
-      active ? 'bg-primary text-white shadow-xs' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
-    }`;
+  const toggleHeart = (prod: Product) => {
+    if (!hearted.has(prod.sku)) trackSelect(prod.sku);
+    onToggleShortlist(prod);
+  };
 
   return (
-    <div className="flex flex-col w-full pb-36 max-w-7xl mx-auto">
+    <div className="flex flex-col w-full pb-28 max-w-6xl mx-auto">
       {addedNotice && (
-        <div role="status" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-sans animate-fade-in border border-primary-container/40">
+        <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-sans animate-fade-in">
           <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
           <span>Added {addedNotice} to your order</span>
         </div>
       )}
 
-      {/* Search, filters and sort stay in view while scrolling on phones and tablets (on large screens the open filter panel would cover too much) */}
-      <section className="sticky lg:static top-16 md:top-[4.5rem] z-30 bg-surface/95 backdrop-blur-md px-4 pt-3 pb-3 flex flex-col gap-3 border-b border-outline-variant/30">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-outline">search</span>
-            <input
-              aria-label="Search designs"
-              className="w-full bg-white text-on-surface font-sans text-sm pl-10 pr-3 py-3 rounded-xl shadow-xs border border-outline-variant/50 focus:outline-none focus:border-primary/60 transition-colors"
-              placeholder="Search by name, SKU or category"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            aria-expanded={showFilters}
-            className="flex items-center gap-1.5 h-11 px-3.5 rounded-xl bg-white border border-outline-variant/50 text-on-surface font-sans text-sm font-semibold active:scale-95 transition-transform hover:bg-surface-container-low"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[20px]">tune</span>
-            <span className="hidden sm:inline">Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="bg-primary text-white text-[11px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+      {/* Search, count and sort stay in view while scrolling */}
+      <section className="sticky top-[72px] z-30 bg-surface/95 backdrop-blur-md px-4 pt-2 pb-2 flex flex-col gap-2.5">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-outline">search</span>
+          <input
+            aria-label="Search designs"
+            className="w-full bg-white text-on-surface font-sans text-sm pl-11 pr-3 py-3 rounded-2xl border border-outline-variant focus:outline-none focus:border-primary"
+            placeholder="Search name, SKU or collection"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
 
-        {showFilters && (
-          <div className="bg-white p-4 rounded-xl border border-outline-variant/50 shadow-xs flex flex-col gap-4 animate-fade-in max-h-[60vh] overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-sans font-bold text-on-surface-variant">Purity</span>
-              <div className="flex flex-wrap gap-2">
-                {PURITY_FILTERS.map((p) => (
-                  <button key={p} onClick={() => setPurity(p)} className={chip(purity === p)} aria-pressed={purity === p} type="button">
-                    {p === 'all' ? 'All' : p}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {categoryNames.length > 1 && (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-sans font-bold text-on-surface-variant">Category</span>
-                  <button onClick={onNavigateCategories} className="text-xs text-secondary font-sans font-semibold hover:underline" type="button">
-                    See category photos
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={() => pickCategory(null)} className={chip(!category)} aria-pressed={!category} type="button">
-                    All
-                  </button>
-                  {categoryNames.map((name) => (
-                    <button key={name} onClick={() => pickCategory(name)} className={chip(category === name)} aria-pressed={category === name} type="button">
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-sans font-bold text-on-surface-variant">Net weight (grams)</span>
-              <div className="flex items-center gap-2 max-w-xs">
-                <input
-                  aria-label="Minimum net weight in grams"
-                  inputMode="decimal"
-                  placeholder="Min"
-                  value={minWt}
-                  onChange={(e) => setMinWt(e.target.value)}
-                  className="w-full bg-surface-container-low rounded-lg px-3 py-2.5 text-sm font-mono border border-outline-variant/40 focus:outline-none focus:border-primary/60"
-                />
-                <span className="text-outline">to</span>
-                <input
-                  aria-label="Maximum net weight in grams"
-                  inputMode="decimal"
-                  placeholder="Max"
-                  value={maxWt}
-                  onChange={(e) => setMaxWt(e.target.value)}
-                  className="w-full bg-surface-container-low rounded-lg px-3 py-2.5 text-sm font-mono border border-outline-variant/40 focus:outline-none focus:border-primary/60"
-                />
-              </div>
-            </div>
-
-            {activeFilterCount > 0 && (
-              <button onClick={resetFilters} className="self-start text-sm text-primary font-sans font-semibold hover:underline" type="button">
-                Clear all filters
-              </button>
-            )}
-          </div>
-        )}
-
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="font-sans text-sm text-on-surface-variant whitespace-nowrap">
               <strong className="text-on-surface">{filteredProducts.length}</strong> {filteredProducts.length === 1 ? 'design' : 'designs'}
             </span>
-            {filteredProducts.length > 0 && (
-              <button onClick={toggleSelectAll} className="font-sans text-sm text-secondary font-semibold hover:underline whitespace-nowrap" type="button">
-                {allShownSelected ? 'Clear selection' : 'Select all'}
+            {categoryFilter && (
+              <button
+                type="button"
+                onClick={onClearCategoryFilter}
+                className="flex items-center gap-1 min-w-0 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold"
+                aria-label={`Showing ${categoryFilter}. Clear`}
+              >
+                <span className="truncate">{categoryFilter}</span>
+                <span className="material-symbols-outlined text-[15px]">close</span>
               </button>
             )}
           </div>
@@ -310,7 +163,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="bg-white border border-outline-variant/50 rounded-lg px-2 py-2 text-sm font-sans text-on-surface focus:outline-none focus:border-primary/60 max-w-[9.5rem] sm:max-w-none"
+              className="bg-white border border-outline-variant rounded-xl px-2.5 py-2 text-sm font-sans font-semibold text-on-surface focus:outline-none focus:border-primary max-w-[11rem] sm:max-w-none"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.key} value={o.key}>
@@ -322,104 +175,98 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
         </div>
       </section>
 
-      {/* Product grid: 2 columns on phones, up to 5 on large screens */}
-      <section ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 px-4 pt-4">
+      <section ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5 md:gap-x-4 px-4 pt-3">
         {filteredProducts.map((prod) => {
-          const isSelected = selectedIds.has(prod.id);
           const qty = quantities[prod.id] || 1;
-          const is24K = prod.purity.includes('24K');
-
+          const isHearted = hearted.has(prod.sku);
           return (
-            <article
-              key={prod.id}
-              data-sku={prod.sku}
-              className={`group relative bg-white rounded-2xl overflow-hidden shadow-sm border transition-shadow hover:shadow-md flex flex-col ${
-                isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-outline-variant/40'
-              }`}
-            >
-              <div className="relative w-full aspect-square bg-surface-container overflow-hidden">
+            <article key={prod.id} data-sku={prod.sku} className="group flex flex-col">
+              <div className="relative w-full aspect-square rounded-3xl bg-surface-container overflow-hidden">
                 <button type="button" aria-label={`View ${prod.title}`} onClick={() => setOpenProductId(prod.id)} className="block w-full h-full">
                   <img
-                    alt={prod.title}
+                    alt=""
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     src={prod.image}
                     referrerPolicy="no-referrer"
                   />
                 </button>
-                {prod.images.length > 1 && (
-                  <span className="absolute top-12 right-2 bg-black/60 text-white font-sans text-[11px] px-1.5 py-0.5 rounded flex items-center gap-0.5 pointer-events-none">
-                    <span className="material-symbols-outlined text-[13px]">photo_library</span>
-                    {prod.images.length}
-                  </span>
-                )}
-                <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-primary shadow-xs">
-                  {prod.purity}
+                <span className="absolute top-2.5 left-2.5 bg-white/95 px-2 py-0.5 rounded-lg text-xs font-extrabold text-primary pointer-events-none">
+                  {prod.purity.split(' ')[0]}
                 </span>
-                {/* Weights sit on the photo with the purity, in the same badge style */}
-                <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pointer-events-none">
-                  {!is24K && (
-                    <span className="bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-primary shadow-xs">
-                      Net {prod.netWt.toFixed(2)} g
-                    </span>
-                  )}
-                  <span className="bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-on-surface shadow-xs">
-                    Gross {prod.grossWt.toFixed(2)} g
-                  </span>
-                </div>
-                <label className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center cursor-pointer">
-                  <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(prod.id)} className="peer sr-only" aria-label={`Select ${prod.title}`} />
-                  <span
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary ${
-                      isSelected ? 'bg-primary text-white' : 'bg-white/90 text-outline hover:bg-white'
-                    }`}
+                {!isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => toggleHeart(prod)}
+                    aria-pressed={isHearted}
+                    aria-label={isHearted ? `Remove ${prod.title} from shortlist` : `Add ${prod.title} to shortlist`}
+                    className={`absolute top-1 right-1 w-11 h-11 flex items-center justify-center`}
                   >
-                    <span className="material-symbols-outlined text-[18px]">{isSelected ? 'check' : 'add'}</span>
-                  </span>
-                </label>
+                    <span className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${isHearted ? 'bg-primary text-white' : 'bg-white/95 text-primary'}`}>
+                      <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: `'FILL' ${isHearted ? 1 : 0}` }}>
+                        favorite
+                      </span>
+                    </span>
+                  </button>
+                )}
               </div>
 
-              <div className="p-3 flex flex-col gap-2 flex-1">
+              <div className="pt-2 flex flex-col gap-2 flex-1">
                 <div>
-                  <span className="font-mono text-[11px] text-outline block leading-tight">{prod.sku}</span>
-                  <h2 className="font-serif text-[15px] leading-snug font-bold text-on-surface line-clamp-2 mt-0.5">
+                  <h2 className="font-sans text-[15px] leading-snug font-bold text-on-surface line-clamp-2">
                     <button type="button" onClick={() => setOpenProductId(prod.id)} className="text-left">
                       {prod.title}
                     </button>
                   </h2>
+                  <p className="font-sans text-[15px] font-extrabold text-on-surface mt-0.5">Net {prod.netWt.toFixed(2)} g</p>
+                  <p className="font-sans text-sm text-on-surface-variant">Gross {prod.grossWt.toFixed(2)} g</p>
+                  <span className="font-sans text-xs text-outline">{prod.sku}</span>
                 </div>
 
-                <div className="flex flex-col gap-2 mt-auto pt-1">
-                  <div className="flex items-center justify-between rounded-lg bg-surface-container-low border border-outline-variant/40">
+                {isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => onEditProduct(prod)}
+                    className="mt-auto w-full h-11 rounded-xl border border-outline-variant text-primary font-sans text-sm font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                    Edit
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 mt-auto">
+                    {/* On phones the quantity is chosen in the design's detail sheet; here Add puts one piece in the order. */}
+                    <div className="hidden md:flex items-center rounded-xl bg-white border border-outline-variant">
+                      <button
+                        onClick={() => updateQuantity(prod.id, -1)}
+                        aria-label={`Decrease quantity of ${prod.title}`}
+                        className="w-10 h-11 flex items-center justify-center text-primary"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">remove</span>
+                      </button>
+                      <span className="min-w-5 text-center text-sm font-extrabold" aria-live="polite">
+                        {qty}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(prod.id, 1)}
+                        aria-label={`Increase quantity of ${prod.title}`}
+                        className="w-10 h-11 flex items-center justify-center text-primary"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">add</span>
+                      </button>
+                    </div>
                     <button
-                      onClick={() => updateQuantity(prod.id, -1)}
-                      aria-label={`Decrease quantity of ${prod.title}`}
-                      className="w-11 h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
+                      onClick={() => handleAdd(prod)}
+                      aria-label={`Add ${prod.title} to order`}
+                      className="flex-1 h-11 rounded-xl bg-secondary hover:bg-secondary-dark text-white font-sans text-sm font-bold flex items-center justify-center gap-1 whitespace-nowrap active:scale-95 transition-all"
                       type="button"
                     >
-                      <span className="material-symbols-outlined text-[18px]">remove</span>
-                    </button>
-                    <span className="font-mono text-sm font-bold text-on-surface" aria-live="polite">
-                      {qty}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(prod.id, 1)}
-                      aria-label={`Increase quantity of ${prod.title}`}
-                      className="w-11 h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+                      Add
                     </button>
                   </div>
-                  <button
-                    onClick={() => handleAdd(prod)}
-                    className="w-full h-10 rounded-lg bg-secondary hover:bg-secondary-dark text-white font-sans text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 transition-all shadow-xs"
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-                    <span>Add to order</span>
-                  </button>
-                </div>
+                )}
               </div>
             </article>
           );
@@ -429,62 +276,60 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       <ProductDetailSheet
         product={openProduct}
         isAdmin={isAdmin}
+        purities={purities}
+        hearted={openProduct ? hearted.has(openProduct.sku) : false}
+        onToggleShortlist={onToggleShortlist}
         onClose={() => setOpenProductId(null)}
         onEdit={(p) => {
           setOpenProductId(null);
           onEditProduct(p);
         }}
-        onAddToOrder={onAddToOrder}
+        onAddToOrder={(p, qty, purity) => handleAdd(p, purity, qty)}
       />
 
       {filteredProducts.length === 0 && (
         <div className="px-4 py-16 text-center flex flex-col items-center gap-3">
           <span className="material-symbols-outlined text-[40px] text-outline">search_off</span>
           <p className="font-sans text-sm text-on-surface-variant">
-            {products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search or filters.'}
+            {products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search.'}
           </p>
-          {products.length > 0 && (
-            <button onClick={resetFilters} className="font-sans text-sm text-primary font-semibold hover:underline" type="button">
-              Clear search and filters
+          {(searchQuery || categoryFilter) && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                onClearCategoryFilter();
+              }}
+              className="font-sans text-sm text-primary font-bold hover:underline"
+              type="button"
+            >
+              Clear search
             </button>
           )}
         </div>
       )}
-
-      {/* Appears once designs are selected: share them with your own customer */}
-      {selectedCount > 0 && (
-        <aside className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-lg animate-fade-in">
-          <div className="bg-on-surface text-inverse-on-surface pl-4 pr-2 py-2 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-primary-container/50">
-            <div className="flex flex-col min-w-0">
-              <span className="font-sans text-sm font-bold text-primary-fixed truncate">
-                {selectedIds.size} {selectedIds.size === 1 ? 'design' : 'designs'} selected
-              </span>
-              <span className="font-sans text-xs text-inverse-on-surface/80 truncate">
-                {selectedCount} {selectedCount === 1 ? 'piece' : 'pieces'} · {totalNetWeight} g net
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <button
-                onClick={() => setSelectedIds(new Set())}
-                aria-label="Clear selection"
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-inverse-on-surface/80 hover:text-white"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-              <button
-                onClick={() => onOpenQuotation(selectedCount, totalNetWeight, products.filter((p) => selectedIds.has(p.id)))}
-                className="bg-primary hover:bg-primary-container text-white font-sans text-sm font-bold px-4 h-10 rounded-xl active:scale-95 transition-transform flex items-center gap-1.5 shadow-md"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[18px]">share</span>
-                <span className="hidden sm:inline">Share with customer</span>
-                <span className="sm:hidden">Share</span>
-              </button>
-            </div>
-          </div>
-        </aside>
-      )}
     </div>
   );
 };
+
+/** Calls back once for each element that is at least half visible, then stops watching it. */
+class Observer {
+  private io: IntersectionObserver;
+  constructor(onSeen: (el: HTMLElement) => void) {
+    this.io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          onSeen(entry.target as HTMLElement);
+          this.io.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.5 }
+    );
+  }
+  watch(el: HTMLElement) {
+    this.io.observe(el);
+  }
+  stop() {
+    this.io.disconnect();
+  }
+}

@@ -35,7 +35,7 @@ export const AdminBuyersScreen: React.FC = () => {
   return (
     <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-4">
       <div>
-        <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">Accounts</span>
+        <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">Accounts</span>
         <h1 className="font-serif text-[22px] font-bold text-on-surface">Buyers</h1>
         <p className="font-sans text-xs text-outline">
           If a buyer forgets their password, the owner can give them a temporary one. They choose a new password when they sign in.
@@ -48,10 +48,10 @@ export const AdminBuyersScreen: React.FC = () => {
           <p data-testid="temp-password" className="font-mono text-lg font-bold tracking-wider my-1 select-all">
             {reset.temporaryPassword}
           </p>
-          <p className="font-sans text-[11px]">
+          <p className="font-sans text-xs">
             Shown once. Give it to the buyer (phone {reset.phone}); it stops working as soon as they choose their own.
           </p>
-          <button onClick={() => setReset(null)} className="mt-2 text-[11px] font-bold underline">
+          <button onClick={() => setReset(null)} className="mt-2 text-xs font-bold underline">
             Done
           </button>
         </div>
@@ -66,8 +66,8 @@ export const AdminBuyersScreen: React.FC = () => {
           <div key={b.phone} className="bg-white rounded-xl border border-outline-variant/40 p-3 flex items-center justify-between gap-3">
             <div className="flex flex-col min-w-0">
               <span className="font-sans text-sm font-bold text-on-surface truncate">{b.firmName}</span>
-              <span className="font-mono text-[11px] text-outline">{b.phone}</span>
-              <span className="font-sans text-[11px] text-outline">
+              <span className="font-mono text-xs text-outline">{b.phone}</span>
+              <span className="font-sans text-xs text-outline">
                 Joined {new Date(b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 {b.mustChangePassword ? ' · waiting to set a new password' : ''}
               </span>

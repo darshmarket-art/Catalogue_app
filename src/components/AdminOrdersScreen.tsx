@@ -63,7 +63,7 @@ export const AdminOrdersScreen: React.FC = () => {
     <div className="flex flex-col w-full pb-32 max-w-xl md:max-w-4xl mx-auto px-4 pt-3 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
-          <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">Order Desk</span>
+          <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">Order Desk</span>
           <h1 className="font-serif text-[22px] font-bold text-on-surface tracking-tight">Orders</h1>
         </div>
         <button
@@ -93,7 +93,7 @@ export const AdminOrdersScreen: React.FC = () => {
         ))}
       </div>
 
-      <p className="font-sans text-[11px] text-outline">
+      <p className="font-sans text-xs text-outline">
         Refreshes every 15 seconds{updatedAt ? ` • updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}
       </p>
 
@@ -121,24 +121,24 @@ export const AdminOrdersScreen: React.FC = () => {
             <div className="p-3.5 flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="font-mono text-[11px] font-bold text-primary">{order.poId}</span>
+                  <span className="font-mono text-xs font-bold text-primary">{order.poId}</span>
                   <h3 className="font-serif text-[15px] font-bold text-on-surface leading-tight truncate">{order.firmName}</h3>
-                  <span className="font-sans text-[11px] text-outline">
+                  <span className="font-sans text-xs text-outline">
                     {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                   </span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider ${STATUS_STYLE[order.status]}`}>
+                <span className={`px-2 py-0.5 rounded-full font-mono text-xs font-bold uppercase tracking-wider ${STATUS_STYLE[order.status]}`}>
                   {order.status}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-surface-container-low rounded-lg p-2">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-outline block">Net weight</span>
+                  <span className="text-xs uppercase font-bold tracking-wider text-outline block">Net weight</span>
                   <span className="font-mono text-sm font-bold text-primary">{order.totalNetGrams.toFixed(3)} g</span>
                 </div>
                 <div className="bg-surface-container-low rounded-lg p-2">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-outline block">Items</span>
+                  <span className="text-xs uppercase font-bold tracking-wider text-outline block">Items</span>
                   <span className="font-mono text-sm font-bold text-on-surface">{order.itemCount}</span>
                 </div>
               </div>
@@ -191,13 +191,13 @@ export const AdminOrdersScreen: React.FC = () => {
                   <div key={item.id} className="px-3.5 py-2 flex items-center justify-between gap-2 text-xs font-sans">
                     <div className="min-w-0">
                       <span className="font-bold text-on-surface block truncate">{item.title}</span>
-                      <span className="font-mono text-[10px] text-outline">
+                      <span className="font-mono text-xs text-outline">
                         {item.sku} • {item.purity}
                       </span>
                     </div>
                     <div className="text-right whitespace-nowrap">
                       <span className="font-mono font-bold text-primary block">{item.totalNetGold.toFixed(3)} g</span>
-                      <span className="font-mono text-[10px] text-outline">
+                      <span className="font-mono text-xs text-outline">
                         {item.batchQty} {item.qtyUnit}
                       </span>
                     </div>

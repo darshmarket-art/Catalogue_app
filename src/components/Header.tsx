@@ -1,7 +1,6 @@
 import React from 'react';
 import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
-import { sector } from '../sector';
 import { BrandMark } from './BrandMark';
 import { ProfileMenu, type ProfileUser } from './ProfileMenu';
 
@@ -16,7 +15,7 @@ interface HeaderProps {
   isEditing: boolean;
 }
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
 
 export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing }) => {
   const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen);
@@ -53,6 +52,8 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
               ? 'Buyers'
               : currentScreen === 'admin-banners'
                 ? 'Home banners'
+                : currentScreen === 'admin-purities'
+                ? 'Purity options'
               : currentScreen === 'change-password'
                 ? 'Account'
                 : currentScreen === 'admin-login'
@@ -66,39 +67,38 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
                         : merchant.brand.tagline;
 
   return (
-    <header className="fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(28,28,26,0.05)] border-b border-outline-variant/40">
-      <div className="h-16 md:h-18 px-3 max-w-5xl mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        {/* Left: back, or the trading-model tag on wide screens */}
-        <div className="flex items-center justify-start min-w-0">
+    <header className="fixed top-0 w-full z-50 pt-safe bg-surface/95 backdrop-blur-xl border-b border-outline-variant/60">
+      <div className="h-[72px] px-3 max-w-5xl mx-auto grid grid-cols-[44px_1fr_44px] items-center gap-2">
+        {/* Left: back on inner screens, otherwise the logo */}
+        <div className="flex items-center justify-start">
           {isSubScreen ? (
             <button
               aria-label="Go Back"
               onClick={handleBack}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high active:scale-95 transition-all"
+              className="w-11 h-11 rounded-xl flex items-center justify-center text-primary hover:bg-surface-container-high active:scale-95 transition-all"
             >
-              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
             </button>
           ) : (
-            <div className="hidden lg:flex items-center gap-2 bg-surface-container px-3 py-1 rounded-full border border-outline-variant/50 text-xs">
-              <span className="w-2 h-2 rounded-full bg-secondary"></span>
-              <span className="font-mono font-semibold text-on-surface">{sector.copy.headerTicker.label}</span>
-              <span className="text-primary font-mono font-bold text-[11px]">{sector.copy.headerTicker.badge}</span>
-            </div>
+            <button
+              aria-label={`${merchant.brand.name} home`}
+              onClick={() => onNavigate('welcome')}
+              className="w-11 h-11 rounded-xl bg-on-surface border border-primary-fixed-dim/60 flex items-center justify-center overflow-hidden"
+            >
+              <BrandMark className="w-8 h-8" textClassName="text-[24px]" />
+            </button>
           )}
         </div>
 
-        {/* Centre: medallion, brand name, gold context line */}
-        <button onClick={() => onNavigate('welcome')} className="flex flex-col items-center text-center focus:outline-none group min-w-0 max-w-[52vw]">
-          <span className="w-7 h-7 rounded-full bg-on-surface border border-primary-container/60 shadow-sm flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
-            <BrandMark className="w-5 h-5" textClassName="text-[13px]" />
-          </span>
-          <span className="font-serif text-[15px] md:text-[17px] font-bold tracking-tight text-primary leading-tight mt-0.5 truncate max-w-full">
+        {/* Centre: company name with room to breathe, and a short line that changes with the screen */}
+        <div className="flex flex-col items-center text-center min-w-0">
+          <span className="font-serif text-[20px] md:text-[22px] tracking-[0.06em] text-primary leading-tight truncate max-w-full">
             {merchant.brand.name.toUpperCase()}
           </span>
-          <span className="text-[9px] font-mono tracking-widest uppercase text-primary-container font-bold leading-tight truncate max-w-full">
+          <span className="text-xs font-extrabold tracking-[0.16em] uppercase text-primary-fixed-dim leading-tight mt-0.5 truncate max-w-full">
             {subtitle}
           </span>
-        </button>
+        </div>
 
         {/* Right: one profile menu for buyers and staff; a sign-in button for visitors */}
         <div className="flex items-center justify-end">
@@ -115,10 +115,10 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
             <button
               onClick={() => onNavigate('retailer-auth')}
               aria-label="Sign in"
-              className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/60 flex items-center justify-center text-primary hover:bg-surface-container-highest active:scale-95 transition-all shadow-xs"
+              className="w-11 h-11 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary hover:bg-surface-container-highest active:scale-95 transition-all"
               title="Sign in or register"
             >
-              <span className="material-symbols-outlined text-[22px]">account_circle</span>
+              <span className="material-symbols-outlined text-[24px]">account_circle</span>
             </button>
           )}
         </div>

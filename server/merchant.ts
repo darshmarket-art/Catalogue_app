@@ -187,7 +187,7 @@ export function themeCss(merchant: MerchantConfig): string {
 
 /** Fills the placeholders in index.html so link previews, the tab title and colours are right on first paint. */
 export function renderIndexHtml(html: string, merchant: MerchantConfig): string {
-  const themeColor = merchant.theme.colors.surface ?? '#fcf9f5';
+  const themeColor = merchant.theme.colors.surface ?? '#fbf4f1';
   // "<" is escaped so the JSON can never close its own script tag.
   const json = JSON.stringify(merchant).replace(/</g, '\\u003c');
   const replacements: Record<string, string> = {

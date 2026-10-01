@@ -51,6 +51,12 @@ export const adminRegisterSchema = z.object({
 
 export const bannerSchema = z.object({ image: photoRef.refine((v) => v !== '', 'Add a photo for the banner.') });
 
+export const shortlistSchema = z.object({
+  skus: z.array(trimmed(60)).max(500).transform((l) => Array.from(new Set(l)))
+});
+
+export const bannerOrderSchema = z.object({ ids: z.array(trimmed(80)).max(50) });
+
 export const categorySchema = z.object({
   name: trimmed(100),
   slug: trimmed(100).optional(),
@@ -66,6 +72,8 @@ export const cartItemSchema = z.object({
   sku: trimmed(60),
   batchQty: z.coerce.number().int().min(1).max(10000).default(1),
   qtyUnit: trimmed(30).optional(),
+  /** The purity the buyer wants; used only if the owner offers it, otherwise the design's own purity applies. */
+  purity: trimmed(30).optional(),
   note: trimmed(300).optional()
 });
 

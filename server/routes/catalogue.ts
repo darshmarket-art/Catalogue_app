@@ -7,7 +7,11 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { bannerSchema, categorySchema, paginationSchema } from '../schemas';
+import { bannerOrderSchema, bannerSchema, categorySchema, paginationSchema } from '../schemas';
+import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
+
+const byPosition = (a: any, b: any) =>
+  (a.position ?? Infinity) - (b.position ?? Infinity) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
 
 const byCreatedAt = (dir: 1 | -1) => (a: any, b: any) =>
   dir * String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
@@ -116,7 +120,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     '/banners',
     readGuard,
     handler(async (_req, res) => {
-      const data = (await store.list('banners')).sort(byCreatedAt(1)).map((b) => media.present(b));
+      const data = (await store.list('banners')).sort(byPosition).map((b) => media.present(b));
       res.json({ status: 'success', count: data.length, data });
     })
   );
@@ -127,12 +131,24 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const body = parse(bannerSchema, req.body);
       await assertPhotosExist(blobs, [body.image]);
-      if ((await store.list('banners')).length >= 8) throw new HttpError(409, 'You can keep up to 8 banners. Delete one first.');
+      const existing = await store.list('banners');
+      if (existing.length >= 8) throw new HttpError(409, 'You can keep up to 8 banners. Delete one first.');
       const id = newId('ban');
-      const banner = { id, image: body.image, createdAt: new Date().toISOString() };
+      const banner = { id, image: body.image, position: existing.length, createdAt: new Date().toISOString() };
       await store.set('banners', id, banner);
       await audit(store, req, 'BANNER_ADDED', 'Banner added.');
       res.status(201).json({ status: 'success', data: media.present(banner) });
+    })
+  );
+
+  // The order the owner chose: ids first to last.
+  router.put(
+    '/banners/order',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { ids } = parse(bannerOrderSchema, req.body);
+      await Promise.all(ids.map((id, position) => store.update('banners', id, { position })));
+      res.json({ status: 'success', message: 'Banner order saved' });
     })
   );
 
@@ -177,9 +193,33 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // The purities the owner offers; products and buyers choose from the switched-on ones.
+  router.get(
+    '/purities',
+    readGuard,
+    handler(async (_req, res) => {
+      res.json({ status: 'success', data: await loadPurities(store) });
+    })
+  );
+
+  router.put(
+    '/purities',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { purities } = parse(puritiesSchema, req.body);
+      await store.set('settings', 'purities', { id: 'purities', list: purities, updatedAt: new Date().toISOString() });
+      await audit(store, req, 'PURITIES_UPDATED', `Purity options set to: ${purities.filter((p) => p.enabled).map((p) => p.key).join(', ')}.`);
+      res.json({ status: 'success', data: await loadPurities(store) });
+    })
+  );
+
   /** Validates a product form (sector fields, merchant-defined extras, photos) into a document ready to store. */
-  const buildProduct = async (body: unknown, meta: { id: string; now: string; sku?: string }) => {
+  const buildProduct = async (body: unknown, meta: { id: string; now: string; sku?: string; purity?: string }) => {
     const input = parse(pack.productSchema, body);
+    // A purity the owner has since switched off stays valid for the products that already use it.
+    if (input.purity !== meta.purity && !enabledKeys(await loadPurities(store)).includes(input.purity)) {
+      throw new HttpError(400, `"${input.purity}" is not one of your purity options.`);
+    }
     const extra = parseExtras(merchant.productFields, (body as { extra?: unknown } | undefined)?.extra);
     await assertPhotosExist(blobs, input.images);
     const categories = await store.list('categories', { where: [{ field: 'name', op: '==', value: input.category }], limit: 1 });
@@ -209,7 +249,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const existing = await store.get('products', req.params.id);
       if (!existing) throw new HttpError(404, 'Product not found.');
-      const product = await buildProduct(req.body, { id: existing.id, now: existing.createdAt, sku: existing.sku });
+      const product = await buildProduct(req.body, { id: existing.id, now: existing.createdAt, sku: existing.sku, purity: existing.purity });
       await store.set('products', existing.id, { ...product, updatedAt: new Date().toISOString() });
       await audit(store, req, 'PRODUCT_UPDATED', `Product ${product.sku} (${product.title}) updated.`);
       res.json({ status: 'success', message: 'Product updated', data: media.present({ ...product, updatedAt: new Date().toISOString() }) });

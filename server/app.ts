@@ -8,6 +8,7 @@ import { createAuth, user } from './auth';
 import { errorHandler, handler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
+import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
 import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
@@ -101,6 +102,7 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
 
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard }));
+  app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin));
   app.use('/api/admin/buyers', adminBuyerRoutes(store, auth.requireAdmin));

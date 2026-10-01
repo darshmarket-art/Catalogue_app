@@ -39,11 +39,11 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col min-w-0">
               <span className="font-mono text-xs font-bold text-on-surface truncate">{order.poId}</span>
-              <span className="font-sans text-[11px] text-outline">
+              <span className="font-sans text-xs text-outline">
                 {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </span>
             </div>
-            <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase ${STATUS_LOOKS[order.status] ?? STATUS_LOOKS.new}`}>
+            <span className={`px-2 py-0.5 rounded-full font-mono text-xs font-bold uppercase ${STATUS_LOOKS[order.status] ?? STATUS_LOOKS.new}`}>
               {order.status}
             </span>
           </div>
@@ -53,15 +53,15 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
                 <img src={item.image} alt="" className="w-9 h-9 rounded object-cover bg-surface-container flex-shrink-0" referrerPolicy="no-referrer" />
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="font-sans text-xs font-semibold text-on-surface truncate">{item.title}</span>
-                  <span className="font-mono text-[10px] text-outline">{item.sku}</span>
+                  <span className="font-mono text-xs text-outline">{item.sku}</span>
                 </div>
-                <span className="font-mono text-[11px] text-on-surface whitespace-nowrap">
+                <span className="font-mono text-xs text-on-surface whitespace-nowrap">
                   {item.batchQty} {item.qtyUnit} · {item.totalNetGold.toFixed(3)} g
                 </span>
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between pt-1.5 border-t border-surface-container text-[11px] font-sans text-outline">
+          <div className="flex items-center justify-between pt-1.5 border-t border-surface-container text-xs font-sans text-outline">
             <span>{order.itemCount} items</span>
             <span className="font-mono font-bold text-primary">{order.totalNetGrams.toFixed(3)} g net</span>
           </div>
@@ -116,12 +116,12 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
               <h1 className="font-serif text-[16px] font-bold text-on-surface leading-tight truncate">
                 Order Summary
               </h1>
-              <span className="font-sans text-[11px] text-outline truncate">
+              <span className="font-sans text-xs text-outline truncate">
                 {sector.copy.orders.summarySubtitle}
               </span>
             </div>
           </div>
-          <span className="bg-primary/10 text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider flex-shrink-0">
+          <span className="bg-primary/10 text-primary font-mono text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider flex-shrink-0">
             {orders.length} {orders.length === 1 ? 'item' : 'items'}
           </span>
         </div>
@@ -199,28 +199,28 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                     <span className="font-sans text-xs text-on-surface font-bold truncate min-w-0 flex-1">
                       {item.title}
                     </span>
-                    <span className="bg-primary-fixed/40 text-tertiary-dark font-mono text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">
+                    <span className="bg-primary-fixed/40 text-tertiary-dark font-mono text-xs px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">
                       {item.purity}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] text-outline mb-1">
+                  <span className="font-mono text-xs text-outline mb-1">
                     SKU: {item.sku}
                   </span>
                   <div className="flex items-center justify-between mt-auto pt-1">
                     <div className="flex flex-col">
-                      <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
+                      <span className="text-xs uppercase font-bold tracking-wider text-outline">
                         {sector.copy.orders.lineWeightLabel}
                       </span>
                       <span className="font-mono text-[14px] font-bold text-primary tracking-tight">
                         {item.totalNetGold.toFixed(3)}{' '}
-                        <span className="text-[11px] font-normal text-on-surface">g</span>
+                        <span className="text-xs font-normal text-on-surface">g</span>
                       </span>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
+                      <span className="text-xs uppercase font-bold tracking-wider text-outline">
                         Batch Qty
                       </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-surface-container font-mono text-[11px] font-bold text-on-surface">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-surface-container font-mono text-xs font-bold text-on-surface">
                         {item.batchQty} {item.qtyUnit}
                       </span>
                     </div>
@@ -230,8 +230,8 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
 
               {/* Unit Wt Strip */}
               <div className="bg-surface-container-low px-3 py-1 flex items-center justify-between text-xs border-t border-outline-variant/30">
-                <span className="text-outline text-[11px] font-sans">{sector.copy.orders.unitWeightLabel}</span>
-                <span className="font-mono text-[11px] font-semibold text-on-surface">
+                <span className="text-outline text-xs font-sans">{sector.copy.orders.unitWeightLabel}</span>
+                <span className="font-mono text-xs font-semibold text-on-surface">
                   {item.unitDescription || `${item.unitWt.toFixed(3)} g / pc`}
                 </span>
               </div>
@@ -242,7 +242,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   {item.note && (
                     <>
                       <span className="material-symbols-outlined text-[15px] text-primary-container">verified</span>
-                      <span className="text-[11px] font-sans text-on-surface-variant truncate">{item.note}</span>
+                      <span className="text-xs font-sans text-on-surface-variant truncate">{item.note}</span>
                     </>
                   )}
                 </div>
@@ -262,7 +262,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
           <div className="bg-white rounded-xl shadow-xs p-3 flex flex-col gap-1 border border-outline-variant/40 mt-1">
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-surface-container-low p-2.5 rounded-lg flex flex-col">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
+                <span className="text-xs uppercase font-bold tracking-wider text-outline">
                   {sector.copy.orders.totalWeightLabel}
                 </span>
                 <span className="font-mono text-base font-bold text-primary tracking-tight">
@@ -271,7 +271,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 </span>
               </div>
               <div className="bg-surface-container-low p-2.5 rounded-lg flex flex-col">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-outline">
+                <span className="text-xs uppercase font-bold tracking-wider text-outline">
                   {sector.copy.orders.dispatchLabel}
                 </span>
                 <span className="font-mono text-base font-bold text-on-surface tracking-tight">
@@ -295,7 +295,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 <span className="font-sans text-xs font-bold tracking-tight text-white leading-tight">
                   {sector.copy.orders.whatsappCta.title}
                 </span>
-                <span className="font-sans text-[10px] text-white/80 leading-tight">
+                <span className="font-sans text-xs text-white/80 leading-tight">
                   {sector.copy.orders.whatsappCta.subtitle}
                 </span>
               </div>
@@ -326,7 +326,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
           {/* Verification Footnote */}
           <div className="flex items-center justify-center gap-1.5 pt-2 pb-6 text-center text-outline">
             <span className="material-symbols-outlined text-[15px] text-secondary">encrypted</span>
-            <span className="font-sans text-[11px]">
+            <span className="font-sans text-xs">
               {merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}
             </span>
           </div>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ActiveScreen, Category } from '../types';
-import { sector } from '../sector';
+import { ActiveScreen, Category, Purity } from '../types';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 
 interface AddCategoryScreenProps {
+  /** The purities the owner offers. */
+  purityOptions: Purity[];
   /** The category being edited, or null when creating a new one. */
   editing: Category | null;
   onNavigate: (screen: ActiveScreen) => void;
@@ -15,7 +16,7 @@ const inputBox =
   'w-full bg-surface-container-low px-3 py-2 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white';
 
 
-export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ editing, onNavigate, onSave, onDelete }) => {
+export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOptions, editing, onNavigate, onSave, onDelete }) => {
   const [name, setName] = useState(editing?.name ?? '');
   const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? [{ ref: editing.image, url: editing.image }] : []);
@@ -127,19 +128,19 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ editing, o
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col space-y-1">
-            <span className="text-[11px] font-sans text-outline">Lightest piece (g)</span>
+            <span className="text-xs font-sans text-outline">Lightest piece (g)</span>
             <input className={`${inputBox} font-mono`} value={minWt} onChange={(e) => setMinWt(e.target.value)} inputMode="decimal" placeholder="—" />
           </div>
           <div className="flex flex-col space-y-1">
-            <span className="text-[11px] font-sans text-outline">Heaviest piece (g)</span>
+            <span className="text-xs font-sans text-outline">Heaviest piece (g)</span>
             <input className={`${inputBox} font-mono`} value={maxWt} onChange={(e) => setMaxWt(e.target.value)} inputMode="decimal" placeholder="—" />
           </div>
         </div>
 
         <div className="flex flex-col space-y-1.5 pt-1">
-          <span className="text-[11px] font-sans text-outline font-semibold">Purities sold in this category</span>
+          <span className="text-xs font-sans text-outline font-semibold">Purities sold in this category</span>
           <div className="grid grid-cols-2 gap-2">
-            {sector.purities.map((p) => {
+            {purityOptions.filter((p) => p.enabled || purities.includes(p.key)).map((p) => {
               const checked = purities.includes(p.key);
               return (
                 <button
@@ -155,7 +156,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ editing, o
                   <span className="material-symbols-outlined text-[17px] text-primary">
                     {checked ? 'check_circle' : 'radio_button_unchecked'}
                   </span>
-                  <span className="font-mono text-[11px] font-bold text-on-surface">{p.title}</span>
+                  <span className="font-mono text-xs font-bold text-on-surface">{p.title}</span>
                 </button>
               );
             })}

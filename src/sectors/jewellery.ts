@@ -1,4 +1,4 @@
-import { PURITY_KEYS, PURITY_LABELS } from '../../shared/jewellery';
+import { DEFAULT_PURITIES, purityTitle } from '../../shared/jewellery';
 import type { OrderItem, Product } from '../types';
 
 /**
@@ -8,7 +8,8 @@ import type { OrderItem, Product } from '../types';
 export const jewelleryPack = {
   id: 'jewellery' as const,
 
-  purities: PURITY_KEYS.map((key) => ({ key, ...PURITY_LABELS[key] })),
+  /** Shown until the owner's own list loads (Admin > Purity options). */
+  purities: DEFAULT_PURITIES.map((key) => ({ key, title: purityTitle(key), enabled: true })),
   stockStatuses: [
     { key: 'Ready in Vault', icon: 'verified' },
     { key: 'Made-to-Order', icon: 'hourglass_empty' }

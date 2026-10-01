@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PURITY_KEYS, STOCK_STATUSES, lineWeight, netWeight } from '../../shared/jewellery';
+import { STOCK_STATUSES, lineWeight, netWeight } from '../../shared/jewellery';
 import type { Doc } from '../store';
 import { photoRef } from '../media';
 import { trimmed } from '../schemas';
@@ -14,7 +14,8 @@ const productSchema = z
     title: trimmed(200),
     sku: trimmed(60).optional(),
     category: trimmed(100),
-    purity: z.enum(PURITY_KEYS),
+    /** Checked against the owner's purity list when the product is saved (see catalogue routes). */
+    purity: trimmed(30),
     grossWt: z.coerce.number().positive().max(100000),
     stoneWt: z.coerce.number().min(0).max(100000).default(0),
     huid: trimmed(40).optional(),

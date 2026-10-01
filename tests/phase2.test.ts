@@ -318,6 +318,71 @@ describe('home banners', () => {
   });
 });
 
+describe('purity options, shortlist and banner order', () => {
+  it('the owner edits the purity list; products and orders follow it', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const shop = await buyer(app);
+    const list = (await request(app).get('/api/purities').set(auth)).body.data;
+    expect(list.map((p: any) => p.key)).toEqual(['22K 916', '20K 830', '18K 750', '14K 585', '9K 385']);
+
+    expect((await request(app).put('/api/purities').set(shop).send({ purities: [{ key: '22K 916', enabled: true }] })).status).toBe(403);
+    expect((await request(app).put('/api/purities').set(auth).send({ purities: [{ key: 'gold', enabled: true }] })).status).toBe(400);
+    expect((await request(app).put('/api/purities').set(auth).send({ purities: [{ key: '22K 916', enabled: false }] })).status).toBe(400);
+
+    const saved = await request(app).put('/api/purities').set(auth).send({ purities: [{ key: '22K 916', enabled: true }, { key: '24K 999', enabled: true }, { key: '9K 385', enabled: false }] });
+    expect(saved.status).toBe(200);
+    expect(saved.body.data[1]).toMatchObject({ key: '24K 999', title: '24K · 999', enabled: true });
+
+    const img = 'https://example.com/x.jpg';
+    expect((await request(app).post('/api/products').set(auth).send(product([img], { purity: '24K 999', sku: 'P-1' }))).status).toBe(201);
+    expect((await request(app).post('/api/products').set(auth).send(product([img], { purity: '9K 385', sku: 'P-2' }))).status).toBe(400);
+
+    // A buyer's purity is used only when the owner offers it.
+    const sku = 'B2B-KND-9082';
+    const ok = await request(app).post('/api/orders/items').set(shop).send({ sku, purity: '24K 999' });
+    expect(ok.body.data.purity).toBe('24K 999');
+    const off = await request(app).post('/api/orders/items').set(shop).send({ sku, purity: '9K 385' });
+    expect(off.body.data.purity).toBe('22K 916');
+  });
+
+  it('a switched-off purity stays valid on products that already use it', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const img = 'https://example.com/x.jpg';
+    const made = await request(app).post('/api/products').set(auth).send(product([img], { sku: 'KEEP-1' }));
+    await request(app).put('/api/purities').set(auth).send({ purities: [{ key: '22K 916', enabled: false }, { key: '18K 750', enabled: true }] });
+    const edit = await request(app).put(`/api/products/${made.body.data.id}`).set(auth).send(product([img], { sku: 'KEEP-1', title: 'Renamed' }));
+    expect(edit.status).toBe(200);
+  });
+
+  it('each buyer has their own shortlist', async () => {
+    const app = await build();
+    const a = await buyer(app, 1);
+    const b = await buyer(app, 2);
+    expect((await request(app).get('/api/shortlist')).status).toBe(401);
+    expect((await request(app).get('/api/shortlist').set(a)).body.data.skus).toEqual([]);
+    const put = await request(app).put('/api/shortlist').set(a).send({ skus: ['S1', 'S2', 'S1'] });
+    expect(put.body.data.skus).toEqual(['S1', 'S2']);
+    expect((await request(app).get('/api/shortlist').set(a)).body.data.skus).toEqual(['S1', 'S2']);
+    expect((await request(app).get('/api/shortlist').set(b)).body.data.skus).toEqual([]);
+  });
+
+  it('banners keep the order the owner sets', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const ref = (await upload(app, auth)).body.data.ref;
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i++) ids.push((await request(app).post('/api/banners').set(auth).send({ image: ref })).body.data.id);
+    const order = async () => (await request(app).get('/api/banners').set(auth)).body.data.map((b: any) => b.id);
+    expect(await order()).toEqual(ids);
+    const reversed = [...ids].reverse();
+    expect((await request(app).put('/api/banners/order').set(auth).send({ ids: reversed })).status).toBe(200);
+    expect(await order()).toEqual(reversed);
+    expect((await request(app).put('/api/banners/order').send({ ids })).status).toBe(401);
+  });
+});
+
 describe('merchant config: product fields', () => {
   const base = () => JSON.parse(JSON.stringify(loadConfig({ NODE_ENV: 'test', STORE: 'memory' }).merchant));
 

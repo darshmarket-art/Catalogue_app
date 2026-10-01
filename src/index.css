@@ -1,60 +1,60 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #715509;
-  --color-primary-container: #8c6d23;
+  --color-primary: #5b2142;
+  --color-primary-container: #7a3558;
   --color-on-primary: #ffffff;
-  --color-on-primary-container: #fff6ec;
-  --color-primary-fixed: #ffdf9e;
-  --color-primary-fixed-dim: #e8c16f;
+  --color-on-primary-container: #fff1f6;
+  --color-primary-fixed: #f6e3dc;
+  --color-primary-fixed-dim: #d98c7a;
   
-  --color-secondary: #486458;
-  --color-secondary-container: #c7e7d7;
+  --color-secondary: #5b2142;
+  --color-secondary-container: #f1dfd8;
   --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #4c695c;
-  --color-secondary-fixed: #caeada;
-  --color-secondary-fixed-dim: #aecebe;
+  --color-on-secondary-container: #43162f;
+  --color-secondary-fixed: #f6e3dc;
+  --color-secondary-fixed-dim: #e3b3a6;
 
-  --color-tertiary: #775300;
-  --color-tertiary-container: #956a06;
+  --color-tertiary: #8a4a3a;
+  --color-tertiary-container: #a85f4d;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-fixed: #ffdeaa;
-  --color-tertiary-fixed-dim: #f4be5b;
+  --color-tertiary-fixed: #f6e3dc;
+  --color-tertiary-fixed-dim: #e3b3a6;
   
-  --color-surface: #fcf9f5;
-  --color-surface-dim: #dcdad6;
-  --color-surface-bright: #fcf9f5;
+  --color-surface: #fbf4f1;
+  --color-surface-dim: #e6d9d3;
+  --color-surface-bright: #fbf4f1;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f6f3ef;
-  --color-surface-container: #f0edea;
-  --color-surface-container-high: #ebe8e4;
-  --color-surface-container-highest: #e5e2de;
-  --color-surface-variant: #e5e2de;
+  --color-surface-container-low: #f6ebe6;
+  --color-surface-container: #f1e3dd;
+  --color-surface-container-high: #ebdcd5;
+  --color-surface-container-highest: #e5d4cc;
+  --color-surface-variant: #e5d4cc;
   
-  --color-on-surface: #1c1c1a;
-  --color-on-surface-variant: #4d4638;
-  --color-inverse-surface: #31302e;
-  --color-inverse-on-surface: #f3f0ec;
+  --color-on-surface: #2a1722;
+  --color-on-surface-variant: #5d4552;
+  --color-inverse-surface: #33202b;
+  --color-inverse-on-surface: #f6ebe6;
   
-  --color-on-secondary-fixed: #032017;
-  --color-on-secondary-fixed-variant: #304c41;
-  --color-secondary-dark: #3a5247;
-  --color-secondary-hover: #3d554a;
-  --color-secondary-deep: #1b2b23;
-  --color-tertiary-dark: #5b4300;
-  --color-on-tertiary-fixed: #261a00;
-  --color-brown-dark: #3d2e0b;
-  --color-brown-darker: #2e2613;
-  --color-brown-darkest: #241a05;
+  --color-on-secondary-fixed: #2a0f1f;
+  --color-on-secondary-fixed-variant: #43162f;
+  --color-secondary-dark: #43162f;
+  --color-secondary-hover: #4a1a37;
+  --color-secondary-deep: #2a0f1f;
+  --color-tertiary-dark: #6b3326;
+  --color-on-tertiary-fixed: #2a1722;
+  --color-brown-dark: #4a1a37;
+  --color-brown-darker: #3a1329;
+  --color-brown-darkest: #2a0f1f;
 
-  --color-outline: #7f7666;
-  --color-outline-variant: #d1c5b3;
+  --color-outline: #6f5a66;
+  --color-outline-variant: #e3cfc6;
   --color-error: #ba1a1a;
   --color-error-container: #ffdad6;
 
-  --font-serif: "Noto Serif", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-serif: "DM Serif Display", Georgia, serif;
+  --font-sans: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Toasts, banners and modals fading in; screen changes use the slightly larger page-in. */
   --animate-fade-in: fade-in 0.25s ease-out;

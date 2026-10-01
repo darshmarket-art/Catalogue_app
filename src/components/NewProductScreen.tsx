@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { ActiveScreen, Category, Product } from '../types';
+import { ActiveScreen, Category, Product, Purity } from '../types';
 import { sector } from '../sector';
 import { merchant } from '../merchant';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 
 interface NewProductScreenProps {
   categories: Category[];
+  /** The purities the owner offers. */
+  purities: Purity[];
   /** The product being edited, or null when adding a new one. */
   editing: Product | null;
   onNavigate: (screen: ActiveScreen) => void;
@@ -17,9 +19,9 @@ const inputBox =
   'bg-surface-container-low p-2.5 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white';
 
 const card = 'bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3';
-const cardTitle = 'font-mono text-[10px] uppercase tracking-wider text-outline font-bold';
+const cardTitle = 'font-mono text-xs uppercase tracking-wider text-outline font-bold';
 
-export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, editing, onNavigate, onSave, onDelete }) => {
+export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, purities, editing, onNavigate, onSave, onDelete }) => {
   const [title, setTitle] = useState(editing?.title ?? '');
   const [sku, setSku] = useState(editing?.sku ?? '');
   const [category, setCategory] = useState(editing?.category ?? '');
@@ -140,7 +142,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
             <button
               type="button"
               onClick={() => onNavigate('add-category')}
-              className="text-[11px] font-sans text-primary font-bold flex items-center gap-0.5 hover:underline"
+              className="text-xs font-sans text-primary font-bold flex items-center gap-0.5 hover:underline"
             >
               <span className="material-symbols-outlined text-[14px]">add</span>
               <span>Add New Category</span>
@@ -166,13 +168,13 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col space-y-1">
-            <label className="text-[11px] font-sans text-outline">
+            <label className="text-xs font-sans text-outline">
               Gross weight (g) <span className="text-primary">*</span>
             </label>
             <input className={`${inputBox} font-mono`} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
           </div>
           <div className="flex flex-col space-y-1">
-            <label className="text-[11px] font-sans text-outline">Stone / tare (g)</label>
+            <label className="text-xs font-sans text-outline">Stone / tare (g)</label>
             <input className={`${inputBox} font-mono`} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
           </div>
         </div>
@@ -188,25 +190,18 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         <span className={cardTitle}>
           Purity <span className="text-primary">*</span>
         </span>
-        <div className="grid grid-cols-2 gap-2">
-          {sector.purities.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setPurity(item.key)}
-              className={`p-2.5 rounded-lg flex items-center justify-between text-left transition-all border ${
-                purity === item.key
-                  ? 'bg-primary text-white border-primary shadow-xs'
-                  : 'bg-surface-container-low text-on-surface border-outline-variant/40 hover:bg-surface-container-high'
-              }`}
-            >
-              <div className="flex flex-col">
-                <span className="font-mono text-xs font-bold">{item.title}</span>
-                <span className={`text-[10px] ${purity === item.key ? 'text-white/80' : 'text-outline'}`}>{item.sub}</span>
-              </div>
-              {purity === item.key && <span className="material-symbols-outlined text-[17px] text-white">check_circle</span>}
-            </button>
-          ))}
+        <div className="flex flex-col space-y-1">
+          <select aria-label="Purity" className={inputBox} value={purity} onChange={(e) => setPurity(e.target.value)}>
+            <option value="">Choose the purity</option>
+            {purities
+              .filter((p) => p.enabled || p.key === editing?.purity)
+              .map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.title}
+                </option>
+              ))}
+          </select>
+          <span className="text-xs font-sans text-outline">The list comes from Admin &gt; Purity options.</span>
         </div>
 
         <div className="flex flex-col space-y-1">
@@ -285,7 +280,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       <aside className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-outline-variant/40 shadow-xl">
         <div className="max-w-lg mx-auto h-18 px-4 flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
-            <span className="text-[9px] font-mono uppercase tracking-wider text-outline">Status</span>
+            <span className="text-xs font-mono uppercase tracking-wider text-outline">Status</span>
             <span className={`font-mono text-xs font-bold flex items-center gap-1 ${problem ? 'text-outline' : 'text-secondary'}`}>
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${problem ? 'bg-outline-variant' : 'bg-secondary'}`}></span>
               <span className="truncate">{problem ?? (editing ? 'Ready to save' : 'Ready to publish')}</span>

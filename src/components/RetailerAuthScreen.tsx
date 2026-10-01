@@ -104,7 +104,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           <BrandMark className="w-8 h-8" textClassName="text-[22px]" />
         </div>
         <h2 className="font-serif text-[20px] font-bold text-on-surface tracking-wider leading-none">{merchant.brand.name.toUpperCase()}</h2>
-        <span className="font-mono text-[11px] text-primary tracking-widest uppercase mt-0.5 font-semibold">
+        <span className="font-mono text-xs text-primary tracking-widest uppercase mt-0.5 font-semibold">
           Wholesale for retailers • {sector.copy.tradingModel}
         </span>
       </div>
@@ -116,7 +116,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
             gpp_bad
           </span>
           <div className="flex flex-col">
-            <span className="font-bold text-[11px] uppercase tracking-wider">Access Denied</span>
+            <span className="font-bold text-xs uppercase tracking-wider">Access Denied</span>
             <span className="leading-tight mt-0.5">{errorMessage}</span>
           </div>
         </div>
@@ -238,7 +238,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           </button>
 
           <div className="pt-2 border-t border-surface-container flex flex-col items-center space-y-2">
-            <p className="text-[11px] font-sans text-outline">
+            <p className="text-xs font-sans text-outline">
               New to {merchant.brand.name}?
             </p>
             <button
@@ -264,7 +264,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
         >
           <div className="flex items-center justify-between pb-1 border-b border-surface-container">
             <div className="flex flex-col">
-              <span className="text-[10px] font-mono text-primary uppercase tracking-wider font-bold">
+              <span className="text-xs font-mono text-primary uppercase tracking-wider font-bold">
                 Wholesale account
               </span>
               <h3 className="font-serif text-base font-bold text-on-surface">Create your account</h3>
@@ -332,7 +332,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           <div className="flex flex-col space-y-1">
             <label className="text-xs font-sans text-on-surface font-semibold flex items-center justify-between">
               <span>Create a password *</span>
-              <span className="text-[11px] text-outline">At least 6 characters</span>
+              <span className="text-xs text-outline">At least 6 characters</span>
             </label>
             <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white">
               <input
@@ -384,21 +384,21 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-surface-container-low p-2 rounded-lg flex flex-col items-center justify-center space-y-1 border border-outline-variant/40">
             <span className="material-symbols-outlined text-[18px] text-primary">verified</span>
-            <span className="text-[11px] font-sans font-semibold leading-tight text-on-surface">
+            <span className="text-xs font-sans font-semibold leading-tight text-on-surface">
               BIS 100% Hallmarked
             </span>
           </div>
 
           <div className="bg-surface-container-low p-2 rounded-lg flex flex-col items-center justify-center space-y-1 border border-outline-variant/40">
             <span className="material-symbols-outlined text-[18px] text-primary">assignment_turned_in</span>
-            <span className="text-[11px] font-sans font-semibold leading-tight text-on-surface">
+            <span className="text-xs font-sans font-semibold leading-tight text-on-surface">
               GST Registered Entities
             </span>
           </div>
 
           <div className="bg-surface-container-low p-2 rounded-lg flex flex-col items-center justify-center space-y-1 border border-outline-variant/40">
             <span className="material-symbols-outlined text-[18px] text-primary">enhanced_encryption</span>
-            <span className="text-[11px] font-sans font-semibold leading-tight text-on-surface">
+            <span className="text-xs font-sans font-semibold leading-tight text-on-surface">
               Secure sign-in
             </span>
           </div>

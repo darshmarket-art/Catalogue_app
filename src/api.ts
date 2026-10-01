@@ -2,6 +2,7 @@ import {
   Product,
   Category,
   Banner,
+  Purity,
   OrderItem,
   AnalyticsData,
   AdminOrder,
@@ -200,6 +201,34 @@ export const api = {
     return (await post('/api/banners', { image })).data;
   },
 
+  async reorderBanners(ids: string[]): Promise<void> {
+    await request('/api/banners/order', { method: 'PUT', body: JSON.stringify({ ids }) });
+  },
+
+  async getPurities(): Promise<Purity[] | null> {
+    try {
+      return (await request('/api/purities')).data;
+    } catch {
+      return null;
+    }
+  },
+
+  async savePurities(purities: Array<{ key: string; enabled: boolean }>): Promise<Purity[]> {
+    return (await request('/api/purities', { method: 'PUT', body: JSON.stringify({ purities }) })).data;
+  },
+
+  async getShortlist(): Promise<string[]> {
+    try {
+      return (await request('/api/shortlist')).data.skus;
+    } catch {
+      return [];
+    }
+  },
+
+  async saveShortlist(skus: string[]): Promise<void> {
+    await request('/api/shortlist', { method: 'PUT', body: JSON.stringify({ skus }) });
+  },
+
   async deleteBanner(id: string): Promise<void> {
     await request(`/api/banners/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
@@ -279,7 +308,7 @@ export const api = {
     }
   },
 
-  async addOrderItem(item: { sku: string; batchQty: number; qtyUnit?: string; note?: string }): Promise<OrderItem> {
+  async addOrderItem(item: { sku: string; batchQty: number; qtyUnit?: string; note?: string; purity?: string }): Promise<OrderItem> {
     return (await post('/api/orders/items', item)).data;
   },
 

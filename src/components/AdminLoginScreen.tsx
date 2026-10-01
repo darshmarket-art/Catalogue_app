@@ -124,7 +124,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
         <div className="bg-error-container text-error p-3 rounded-xl text-xs font-sans border border-error/30 flex items-start gap-2 shadow-xs animate-shake">
           <span className="material-symbols-outlined text-[19px] flex-shrink-0 text-error mt-0.5">gpp_bad</span>
           <div className="flex flex-col">
-            <span className="font-bold text-[11px] uppercase tracking-wider">Access Denied</span>
+            <span className="font-bold text-xs uppercase tracking-wider">Access Denied</span>
             <span className="leading-tight mt-0.5">{errorMsg}</span>
           </div>
         </div>
@@ -193,8 +193,8 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
       ) : (
         <form onSubmit={handleRegisterAdminSubmit} className="space-y-3 bg-white p-4 rounded-xl border border-outline-variant/40 shadow-xs">
           <div className="bg-surface-container-low p-3 rounded-lg border border-outline-variant/40 space-y-1">
-            <span className="font-mono text-[10px] uppercase font-bold text-primary block">Creating an admin account</span>
-            <p className="text-[11px] text-on-surface-variant leading-tight">
+            <span className="font-mono text-xs uppercase font-bold text-primary block">Creating an admin account</span>
+            <p className="text-xs text-on-surface-variant leading-tight">
               You need the <strong>Master Provisioning Key</strong>, which only the business owner holds. Failed attempts are logged.
             </p>
           </div>
@@ -274,7 +274,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
       <div className="bg-surface-container rounded-xl p-3 border border-outline-variant/40 shadow-xs text-left">
         <div className="flex items-start space-x-2">
           <span className="material-symbols-outlined text-outline text-[16px] mt-0.5">policy</span>
-          <p className="font-sans text-[11px] leading-tight text-on-surface-variant">
+          <p className="font-sans text-xs leading-tight text-on-surface-variant">
             Authorized personnel only. Sign-in attempts and admin activity are recorded in the audit log.
           </p>
         </div>

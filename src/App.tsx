@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ActiveScreen, Product, Category, Banner, OrderItem, AnalyticsData } from './types';
+import { ActiveScreen, Product, Category, Banner, Purity, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
 import { sector } from './sector';
@@ -17,6 +17,8 @@ import { NewProductScreen } from './components/NewProductScreen';
 import { AddCategoryScreen } from './components/AddCategoryScreen';
 import { AdminVisitorsScreen } from './components/AdminVisitorsScreen';
 import { AdminBannersScreen } from './components/AdminBannersScreen';
+import { AdminPuritiesScreen } from './components/AdminPuritiesScreen';
+import { ShortlistScreen } from './components/ShortlistScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import { QuotationModal } from './components/QuotationModal';
@@ -32,6 +34,9 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  // The owner's purity list (defaults until it loads) and the buyer's hearted SKUs.
+  const [purities, setPurities] = useState<Purity[]>(sector.purities);
+  const [shortlist, setShortlist] = useState<string[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     periodLabel: 'Last 7 days',
@@ -162,21 +167,37 @@ export default function App() {
       setCategories([]);
       setProducts([]);
       setBanners([]);
+      setShortlist([]);
       return;
     }
     const fetchData = async () => {
       const [catsData, prodsData, bannerData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners()]);
       setBanners(bannerData);
+      api.getPurities().then((list) => list && setPurities(list));
       if (catsData.length > 0) setCategories(catsData);
       if (prodsData.length > 0) setProducts(prodsData);
     };
     fetchData();
   }, [isSignedIn]);
 
+  // The buyer's shortlist is kept on the server so it follows them to another phone.
+  useEffect(() => {
+    if (!currentMerchant) return;
+    api.getShortlist().then(setShortlist);
+  }, [currentMerchant?.phone]);
+
+  const toggleShortlist = (product: Product) => {
+    const next = shortlist.includes(product.sku) ? shortlist.filter((sku) => sku !== product.sku) : [...shortlist, product.sku];
+    setShortlist(next);
+    api.saveShortlist(next).catch(() => {
+      // keep what the buyer sees; it is saved again on their next tap
+    });
+  };
+
   // Add Item to Order (needs an account)
-  const handleAddToOrder = async (product: Product, quantity: number) => {
+  const handleAddToOrder = async (product: Product, quantity: number, purity?: string) => {
     try {
-      const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity });
+      const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity, ...(purity ? { purity } : {}) });
       setOrders((prev) => [...prev, newItem]);
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
@@ -330,6 +351,28 @@ export default function App() {
     }
   };
 
+  const handleAddAllToOrder = async (items: Product[]) => {
+    for (const product of items) await handleAddToOrder(product, 1);
+  };
+
+  const handlePuritiesSaved = async (list: Array<{ key: string; enabled: boolean }>): Promise<boolean> => {
+    try {
+      setPurities(await api.savePurities(list));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleBannersReordered = async (ids: string[]) => {
+    setBanners((prev) => ids.map((id) => prev.find((b) => b.id === id)!).filter(Boolean));
+    try {
+      await api.reorderBanners(ids);
+    } catch (err) {
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not save the banner order.');
+    }
+  };
+
   const handleFilterCategoryInCatalogue = (catName: string) => {
     // Promotion banners pass their own headline, which is not always a category: only filter on real categories.
     setCategoryFilter(categories.some((c) => c.name === catName) ? catName : null);
@@ -360,13 +403,14 @@ export default function App() {
     setEditingProduct(null);
     setEditingCategory(null);
     setCategoryFilter(null);
+    setShortlist([]);
     handleNavigate('welcome');
   };
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners'];
-  const buyerOnlyScreens: ActiveScreen[] = ['change-password'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
+  const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Home is the Catalogue ('categories' screen); Products is the 'catalogue' screen.
   if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
@@ -383,7 +427,7 @@ export default function App() {
             : screen;
 
   const shouldShowBottomNav =
-    ['catalogue', 'categories', 'orders', 'admin-hub'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
+    ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
 
   if (booting) return <div className="min-h-screen bg-surface" />;
 
@@ -404,7 +448,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full animate-page-in ${activeScreen === 'welcome' ? '' : 'pt-16 md:pt-18'}`}>
+      <main key={activeScreen} className={`flex-1 w-full animate-page-in ${activeScreen === 'welcome' ? '' : 'pt-[72px]'}`}>
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}
@@ -417,8 +461,21 @@ export default function App() {
             onClearCategoryFilter={() => setCategoryFilter(null)}
             onEditProduct={openProductForm}
             onAddToOrder={handleAddToOrder}
-            onOpenQuotation={handleOpenQuotation}
-            onNavigateCategories={() => handleNavigate('categories')}
+            purities={purities}
+            shortlist={shortlist}
+            onToggleShortlist={toggleShortlist}
+          />
+        )}
+
+        {activeScreen === 'shortlist' && (
+          <ShortlistScreen
+            products={products}
+            shortlist={shortlist}
+            storeName={currentMerchant?.storeName ?? ''}
+            onRemove={toggleShortlist}
+            onAddAllToOrder={handleAddAllToOrder}
+            onShareWithCustomer={(items, net) => handleOpenQuotation(items.length, net, items)}
+            onBrowse={() => handleNavigate('catalogue')}
           />
         )}
 
@@ -477,7 +534,9 @@ export default function App() {
 
         {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
 
-        {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} />}
+        {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} onReorder={handleBannersReordered} />}
+
+        {activeScreen === 'admin-purities' && <AdminPuritiesScreen purities={purities} onSave={handlePuritiesSaved} />}
 
         {activeScreen === 'change-password' && (
           <ChangePasswordScreen
@@ -504,6 +563,7 @@ export default function App() {
           <NewProductScreen
             key={editingProduct?.id ?? 'new'}
             categories={categories}
+            purities={purities}
             editing={editingProduct}
             onNavigate={(next) => {
               if (next !== 'add-category') setEditingProduct(null);
@@ -517,6 +577,7 @@ export default function App() {
         {activeScreen === 'add-category' && (
           <AddCategoryScreen
             key={editingCategory?.id ?? 'new'}
+            purityOptions={purities}
             editing={editingCategory}
             onNavigate={(next) => {
               setEditingCategory(null);
@@ -534,6 +595,7 @@ export default function App() {
           currentScreen={activeScreen}
           onNavigate={handleNavigate}
           orderCount={orders.length}
+          shortlistCount={shortlist.length}
           isAdminLoggedIn={isAdminLoggedIn}
         />
       )}

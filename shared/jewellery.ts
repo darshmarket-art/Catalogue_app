@@ -1,15 +1,13 @@
 // Constants and pure helpers for the jewellery sector, shared by the server and the browser app.
 
-export const PURITY_KEYS = ['22K 916', '24K 999.9', '18K 750', '14K 585'] as const;
-export type PurityKey = (typeof PURITY_KEYS)[number];
+/** Purities offered until the owner saves their own list (Admin > Purity options). */
+export const DEFAULT_PURITIES = ['22K 916', '20K 830', '18K 750', '14K 585', '9K 385'];
 
-/** How each purity is presented on the product form. */
-export const PURITY_LABELS: Record<PurityKey, { title: string; sub: string }> = {
-  '22K 916': { title: '22K • 916', sub: 'Standard Luxury' },
-  '24K 999.9': { title: '24K • 999', sub: 'Bullion Grade' },
-  '18K 750': { title: '18K • 750', sub: 'Diamond Setting' },
-  '14K 585': { title: '14K • 585', sub: 'Export Lightweight' }
-};
+/** "22K 916": a karat and a fineness (parts per thousand, optionally with one decimal). */
+export const PURITY_KEY = /^[0-9]{1,2}K [0-9]{3}(.[0-9])?$/;
+
+/** How a purity is shown: "22K 916" becomes "22K · 916". */
+export const purityTitle = (key: string) => key.replace(' ', ' · ');
 
 /** "Draft" is accepted by the API but is not offered on the product form. */
 export const STOCK_STATUSES = ['Ready in Vault', 'Made-to-Order', 'Draft'] as const;

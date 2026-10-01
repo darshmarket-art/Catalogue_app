@@ -79,7 +79,7 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
               <h3 className="font-serif text-[16px] font-bold text-primary-fixed">
                 Wholesale Gram-Basis Requisition Sheet
               </h3>
-              <p className="text-[10px] font-sans text-white/70">
+              <p className="text-xs font-sans text-white/70">
                 Pure fine gold weight settlement proforma • No fiat price lock
               </p>
             </div>
@@ -104,7 +104,7 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
           {/* Client Details */}
           <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-outline font-semibold block">Retailer Firm Name</label>
+              <label className="text-xs text-outline font-semibold block">Retailer Firm Name</label>
               <input
                 className="w-full bg-white px-2 py-1.5 rounded text-xs border border-outline-variant/40 mt-0.5 font-semibold text-on-surface"
                 value={clientFirm}
@@ -112,7 +112,7 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-[10px] text-outline font-semibold block">Market Hub / City</label>
+              <label className="text-xs text-outline font-semibold block">Market Hub / City</label>
               <input
                 className="w-full bg-white px-2 py-1.5 rounded text-xs border border-outline-variant/40 mt-0.5 font-semibold text-on-surface"
                 value={clientCity}
@@ -124,30 +124,30 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
           {/* Summary Weights (Pure Gram Basis) */}
           <div className="bg-white p-3 rounded-xl border border-outline-variant/50 shadow-2xs space-y-2">
             <div className="flex items-center justify-between pb-1 border-b border-surface-container">
-              <span className="text-[11px] font-sans font-bold text-primary uppercase tracking-wider">
+              <span className="text-xs font-sans font-bold text-primary uppercase tracking-wider">
                 Gram-Basis Weight Manifest
               </span>
-              <span className="font-mono text-[10px] text-on-secondary-fixed bg-secondary-fixed px-2 py-0.5 rounded font-bold">
+              <span className="font-mono text-xs text-on-secondary-fixed bg-secondary-fixed px-2 py-0.5 rounded font-bold">
                 100% PURE GRAM SETTLEMENT
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center pt-1">
               <div className="bg-surface-container-low p-2 rounded-lg">
-                <span className="text-[9px] uppercase text-outline block">Selected Items</span>
+                <span className="text-xs uppercase text-outline block">Selected Items</span>
                 <span className="font-mono text-sm font-bold text-on-surface">{selectedCount} Pcs</span>
               </div>
               <div className="bg-primary-fixed/30 p-2 rounded-lg border border-primary-fixed-dim/60">
-                <span className="text-[9px] uppercase text-primary block">Total Net Gold Wt</span>
+                <span className="text-xs uppercase text-primary block">Total Net Gold Wt</span>
                 <span className="font-mono text-base font-bold text-primary">{totalNetWeight.toFixed(3)}g</span>
               </div>
               <div className="bg-surface-container-low p-2 rounded-lg">
-                <span className="text-[9px] uppercase text-outline block">Total Gross Wt</span>
+                <span className="text-xs uppercase text-outline block">Total Gross Wt</span>
                 <span className="font-mono text-sm font-bold text-on-surface">{totalGrossWeight.toFixed(3)}g</span>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-surface-container space-y-1.5 font-mono text-[11px]">
+            <div className="pt-2 border-t border-surface-container space-y-1.5 font-mono text-xs">
               <div className="flex justify-between">
                 <span className="text-outline">22K (916) Pure Gold Settlement Wt:</span>
                 <span className="font-bold text-on-surface">{weight22k.toFixed(3)} g</span>
@@ -165,14 +165,14 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
 
           {/* Itemized List Preview */}
           <div className="space-y-1.5">
-            <span className="text-[10px] font-mono text-outline uppercase font-bold tracking-wider">
+            <span className="text-xs font-mono text-outline uppercase font-bold tracking-wider">
               Selected Itemized Manifest ({items.length} SKUs)
             </span>
             <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="p-2 bg-surface-container-low rounded-lg flex items-center justify-between text-[11px] border border-outline-variant/30"
+                  className="p-2 bg-surface-container-low rounded-lg flex items-center justify-between text-xs border border-outline-variant/30"
                 >
                   <div className="flex items-center gap-2">
                     <img
@@ -183,12 +183,12 @@ export const QuotationModal: React.FC<QuotationModalProps> = ({
                     />
                     <div>
                       <span className="font-bold text-on-surface block leading-tight">{item.title}</span>
-                      <span className="font-mono text-[9px] text-outline">{item.sku}</span>
+                      <span className="font-mono text-xs text-outline">{item.sku}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="font-mono font-bold text-primary">{item.netWt.toFixed(2)}g Net</span>
-                    <span className="font-mono text-[9px] block text-outline">{item.purity}</span>
+                    <span className="font-mono text-xs block text-outline">{item.purity}</span>
                   </div>
                 </div>
               ))}

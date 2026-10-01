@@ -8,6 +8,7 @@ import { HttpError, audit, handler, newId, parse } from '../http';
 import { cartItemSchema } from '../schemas';
 import { recordDaily } from '../stats';
 import type { Media } from '../media';
+import { enabledKeys, loadPurities } from '../purities';
 import { bumpVisitor, logActivity } from '../visitors';
 
 type CartItem = Record<string, any>;
@@ -68,12 +69,14 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
 
       const id = newId('ord');
       const line = pack.cartLine(product, body.batchQty);
+      // A purity the buyer asks for is used only if the owner offers it; anything else falls back to the design's own.
+      const purity = body.purity && enabledKeys(await loadPurities(store)).includes(body.purity) ? body.purity : line.purity;
       const item: CartItem = {
         id,
         ownerId: user(res).id,
         title: product.title,
         sku: product.sku,
-        purity: line.purity,
+        purity,
         totalNetGold: line.totalNetGold,
         batchQty: body.batchQty,
         qtyUnit: body.qtyUnit || (body.batchQty > 1 ? 'Pcs' : 'Set'),

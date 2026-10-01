@@ -52,7 +52,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
                   <span className="font-sans text-[13px] font-bold text-on-surface">{feature.title}</span>
                   {feature.badge && (
                     <span
-                      className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded ${
+                      className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
                         alt ? 'bg-secondary-fixed text-on-secondary-fixed' : 'bg-surface-container text-on-surface-variant'
                       }`}
                     >
@@ -60,7 +60,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
                     </span>
                   )}
                 </div>
-                <p className="font-sans text-[11px] text-outline truncate mt-0.5">{feature.description}</p>
+                <p className="font-sans text-xs text-outline truncate mt-0.5">{feature.description}</p>
               </div>
             </div>
           );
@@ -90,13 +90,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
       {/* Compliance / Encrypted Ledger Badge */}
       <div className="mt-6 flex flex-col items-center space-y-1 text-outline">
         {merchant.welcome.footerLine && (
-          <div className="flex items-center space-x-1.5 text-[11px] font-mono">
+          <div className="flex items-center space-x-1.5 text-xs font-mono">
             <span className="material-symbols-outlined text-[14px] text-emerald-700">shield</span>
             <span>{merchant.welcome.footerLine}</span>
           </div>
         )}
         {merchant.legal.registrationLine && (
-          <p className="font-mono text-[10px] text-outline">{merchant.legal.registrationLine}</p>
+          <p className="font-mono text-xs text-outline">{merchant.legal.registrationLine}</p>
         )}
       </div>
     </div>

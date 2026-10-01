@@ -247,7 +247,7 @@ describe('orders', () => {
     const res = await request(app)
       .post('/api/orders/items')
       .set('Authorization', `Bearer ${token}`)
-      .send({ sku: 'B2B-KND-9082', batchQty: 2, totalNetGold: 0.001, unitWt: 0.001, purity: '1K' });
+      .send({ sku: 'B2B-KND-9082', batchQty: 2, totalNetGold: 0.001, unitWt: 0.001, purity: '1K' }); // a purity the owner does not offer is ignored
     expect(res.body.data.totalNetGold).toBe(85);
     expect(res.body.data.purity).toBe('22K 916');
   });

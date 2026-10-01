@@ -5,6 +5,7 @@ interface BottomNavProps {
   currentScreen: ActiveScreen;
   onNavigate: (screen: ActiveScreen) => void;
   orderCount: number;
+  shortlistCount: number;
   isAdminLoggedIn: boolean;
 }
 
@@ -12,12 +13,14 @@ interface BottomNavProps {
  * Screen ids are older than the names buyers see: the 'categories' screen is the Catalogue (home) and the
  * 'catalogue' screen is Products.
  */
-export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate, orderCount, isAdminLoggedIn }) => {
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'admin-orders', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-buyers', 'admin-banners'];
+export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate, orderCount, shortlistCount, isAdminLoggedIn }) => {
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'admin-orders', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities'];
 
   const tabs: Array<{ screen: ActiveScreen; label: string; icon: string; active: boolean; badge?: number }> = [
     { screen: 'categories', label: 'Catalogue', icon: 'grid_view', active: currentScreen === 'categories' },
     { screen: 'catalogue', label: 'Products', icon: 'diamond', active: currentScreen === 'catalogue' },
+    // Buyers only: designs they have hearted
+    ...(isAdminLoggedIn ? [] : [{ screen: 'shortlist' as const, label: 'Shortlist', icon: 'favorite', active: currentScreen === 'shortlist', badge: shortlistCount }]),
     { screen: 'orders', label: 'Orders', icon: 'receipt_long', active: currentScreen === 'orders', badge: orderCount },
     // Staff only
     ...(isAdminLoggedIn
@@ -40,12 +43,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate,
             <div className="relative">
               <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
               {tab.badge ? (
-                <span className="absolute -top-1.5 -right-2.5 bg-primary text-white font-mono text-[10px] leading-tight px-1.5 py-0.5 rounded-full font-bold shadow-sm animate-pulse">
+                <span className="absolute -top-1.5 -right-2.5 bg-primary text-white font-mono text-xs leading-tight px-1.5 py-0.5 rounded-full font-bold shadow-sm animate-pulse">
                   {tab.badge}
                 </span>
               ) : null}
             </div>
-            <span className="text-[11px] font-sans font-semibold mt-0.5">{tab.label}</span>
+            <span className="text-xs font-sans font-semibold mt-0.5">{tab.label}</span>
           </button>
         ))}
       </div>

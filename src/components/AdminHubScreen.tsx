@@ -10,7 +10,7 @@ interface AdminHubScreenProps {
 }
 
 const card = 'bg-white rounded-2xl border border-outline-variant/40 shadow-xs';
-const label = 'font-mono text-[10px] uppercase tracking-[0.14em] text-outline font-semibold';
+const label = 'font-mono text-xs uppercase tracking-[0.14em] text-outline font-semibold';
 
 export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updatedAt, onNavigate, onOpenVisitors }) => {
   const [downloading, setDownloading] = useState(false);
@@ -28,7 +28,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
       <section className={`${card} p-5`}>
         <div className="flex items-center justify-between">
           <span className={label}>Executive summary</span>
-          <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed/50 text-primary font-mono text-[10px] font-bold">{analytics.periodLabel}</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed/50 text-primary font-mono text-xs font-bold">{analytics.periodLabel}</span>
         </div>
 
         <div className="mt-3 flex items-end justify-between gap-3">
@@ -41,7 +41,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
               net weight booked · {analytics.bookedOrders} {analytics.bookedOrders === 1 ? 'order' : 'orders'}
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-secondary-container/70 text-secondary font-mono text-[11px] font-bold flex items-center gap-1">
+          <span className="px-2.5 py-1 rounded-full bg-secondary-container/70 text-secondary font-mono text-xs font-bold flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">trending_up</span>
             {analytics.viewsTrend}
           </span>
@@ -55,47 +55,55 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
           <div className="pl-4">
             <span className={label}>Inquiries</span>
             <div className="font-serif text-[24px] font-bold text-on-surface leading-tight mt-0.5">{analytics.inquiries}</div>
-            <span className="font-sans text-[10px] text-outline">WhatsApp & PO</span>
+            <span className="font-sans text-xs text-outline">WhatsApp & PO</span>
           </div>
         </div>
       </section>
 
-      {/* Catalogue management */}
-      <section className={`${card} p-5 flex flex-col gap-3`}>
-        <div className="flex items-center justify-between gap-2">
-          <span className={label}>Product management</span>
-          <span className="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-mono text-[10px] font-bold">
-            {analytics.pendingDrafts} {analytics.pendingDrafts === 1 ? 'draft' : 'drafts'} pending
+      {/* Orders waiting, then shortcuts to everything the owner manages */}
+      {analytics.newOrders > 0 && (
+        <button
+          type="button"
+          onClick={() => onNavigate('orders')}
+          className="w-full text-left flex items-center justify-between gap-3 rounded-2xl bg-secondary-container px-4 py-3 text-on-secondary-container"
+        >
+          <span className="font-sans text-sm">
+            <strong>
+              {analytics.newOrders} new {analytics.newOrders === 1 ? 'order is' : 'orders are'}
+            </strong>{' '}
+            waiting for you to confirm.
           </span>
-        </div>
+          <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+        </button>
+      )}
 
+      <section className="flex flex-col gap-3">
         <button
           onClick={() => onNavigate('new-product')}
           type="button"
-          className="w-full py-3 rounded-xl bg-primary hover:bg-primary-container text-white font-sans text-sm font-semibold flex items-center justify-center gap-2 shadow-xs active:scale-[0.98] transition-all"
+          className="w-full min-h-14 px-4 rounded-2xl bg-primary hover:bg-primary-container text-white font-sans text-base font-extrabold flex items-center gap-3 active:scale-[0.98] transition-all"
         >
-          <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
-          New Product Listing
+          <span className="material-symbols-outlined text-[24px]">add</span>
+          New product listing
         </button>
-        <p className="font-sans text-[11px] text-outline -mt-1 text-center">Take or pick photos, then fill in the details. Open any product to edit or delete it.</p>
-
-        <div className="flex flex-wrap gap-2 pt-1">
-          <button
-            onClick={() => onNavigate('admin-buyers')}
-            type="button"
-            className="px-3.5 py-1.5 rounded-full border border-outline-variant/60 bg-surface text-on-surface font-sans text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-[15px] text-primary">groups</span>
-            Buyers
-          </button>
-          <button
-            onClick={() => onNavigate('admin-banners')}
-            type="button"
-            className="px-3.5 py-1.5 rounded-full border border-outline-variant/60 bg-surface text-on-surface font-sans text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-[15px] text-primary">view_carousel</span>
-            Home banners
-          </button>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Orders', note: analytics.newOrders > 0 ? `${analytics.newOrders} new` : 'All buyers', go: () => onNavigate('orders') },
+            { label: 'Buyers', note: `${analytics.todayVisitors} today · ${analytics.liveVisitors} online`, go: () => onNavigate('admin-buyers') },
+            { label: 'Home banners', note: 'Photos on the home', go: () => onNavigate('admin-banners') },
+            { label: 'Purity options', note: 'Karat list for products', go: () => onNavigate('admin-purities') },
+            { label: 'Audit log', note: downloading ? 'Downloading…' : 'Export CSV', go: handleExportCSV }
+          ].map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={item.go}
+              className="text-left rounded-2xl bg-white border border-outline-variant px-4 py-3.5 min-h-[72px] active:scale-[0.98] transition-all"
+            >
+              <span className="block font-sans text-[15px] font-extrabold text-on-surface">{item.label}</span>
+              <span className="block font-sans text-sm text-on-surface-variant mt-0.5">{item.note}</span>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -104,11 +112,11 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col">
             <span className={label}>Buyer engagement</span>
-            <span className="font-sans text-[11px] text-outline mt-0.5">
+            <span className="font-sans text-xs text-outline mt-0.5">
               Refreshed every 15 seconds{updatedAt ? ` · updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}
             </span>
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-secondary/12 text-secondary font-mono text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap">
+          <span className="px-2.5 py-1 rounded-full bg-secondary/12 text-secondary font-mono text-xs font-bold flex items-center gap-1.5 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
             {analytics.liveVisitors} Online Now
           </span>
@@ -122,18 +130,18 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
           className="text-left p-4 rounded-xl bg-surface border border-outline-variant/40 flex items-center justify-between gap-3 active:scale-[0.99] transition-all"
         >
           <div className="flex flex-col">
-            <span className="text-[11px] font-sans text-primary uppercase tracking-wider font-semibold">Buyers</span>
+            <span className="text-xs font-sans text-primary uppercase tracking-wider font-semibold">Buyers</span>
             <span className="font-serif text-[26px] font-bold text-on-surface leading-tight mt-0.5">{analytics.todayVisitors}</span>
-            <span className="font-mono text-[11px] text-secondary font-semibold">today · {analytics.liveVisitors} online now</span>
+            <span className="font-mono text-xs text-secondary font-semibold">today · {analytics.liveVisitors} online now</span>
           </div>
           <span className="material-symbols-outlined text-[22px] text-outline">chevron_right</span>
         </button>
-        <p className="font-sans text-[11px] text-outline -mt-1">
+        <p className="font-sans text-xs text-outline -mt-1">
           Tap to see each buyer: designs viewed and for how long, searches and selections.
         </p>
 
         <div className="pt-3 border-t border-primary-container/30 flex items-center justify-between">
-          <span className="font-sans text-[11px] text-outline">Audit ledger with IP and session times</span>
+          <span className="font-sans text-xs text-outline">Audit ledger with IP and session times</span>
           <button
             onClick={handleExportCSV}
             disabled={downloading}
