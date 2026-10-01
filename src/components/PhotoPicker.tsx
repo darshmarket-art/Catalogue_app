@@ -74,35 +74,35 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   };
 
   const remove = (index: number) => onChange(photos.filter((_, i) => i !== index));
-  const tileClass = tile === 'banner' ? 'w-full h-36' : 'w-24 h-28';
+  const tileClass = tile === 'banner' ? 'w-full h-36' : 'w-24 h-24';
 
   return (
     <div className="flex flex-col gap-3">
       <div className={tile === 'banner' ? 'flex flex-col gap-2' : 'flex flex-wrap gap-2'}>
         {photos.map((photo, i) => (
-          <div key={photo.ref} className={`relative ${tileClass} rounded-xl overflow-hidden bg-surface-container border border-outline-variant/40`}>
+          <div key={photo.ref} className={`relative ${tileClass} rounded-3xl overflow-hidden bg-surface-container`}>
             <img src={photo.url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
             {max > 1 && i === 0 && (
-              <span className="absolute bottom-1 left-1 bg-black/60 text-white font-mono text-xs px-1.5 py-0.5 rounded">Cover</span>
+              <span className="absolute bottom-1.5 left-1.5 bg-white/95 text-primary font-sans text-xs font-extrabold px-2 py-0.5 rounded-lg">Cover</span>
             )}
             <button
               type="button"
               aria-label={`Remove photo ${i + 1}`}
               onClick={() => remove(i)}
-              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"
+              className="absolute top-1 right-1 w-9 h-9 rounded-full bg-white/95 text-primary flex items-center justify-center"
             >
-              <span className="material-symbols-outlined text-[15px]">close</span>
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
         ))}
         {uploading.map((u) => (
-          <div key={u.id} data-testid="photo-uploading" className={`${tileClass} rounded-xl bg-surface-container border border-dashed border-outline-variant flex flex-col items-center justify-center gap-1`}>
+          <div key={u.id} data-testid="photo-uploading" className={`${tileClass} rounded-3xl bg-surface-container border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-1`}>
             <span className="material-symbols-outlined text-[24px] text-primary animate-pulse">cloud_upload</span>
-            <span className="text-xs font-sans text-outline">Uploading…</span>
+            <span className="text-sm font-sans text-outline">Uploading…</span>
           </div>
         ))}
         {photos.length === 0 && uploading.length === 0 && (
-          <div className={`${tileClass} rounded-xl bg-surface-container border border-dashed border-outline-variant flex items-center justify-center`}>
+          <div className={`${tileClass} rounded-3xl bg-white border-2 border-dashed border-outline-variant flex items-center justify-center`}>
             <span className="material-symbols-outlined text-[28px] text-outline">add_a_photo</span>
           </div>
         )}
@@ -113,18 +113,18 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
           <button
             type="button"
             onClick={() => cameraInput.current?.click()}
-            className="py-2.5 rounded-lg bg-primary text-white font-sans text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+            className="h-12 rounded-2xl bg-secondary text-on-secondary font-sans text-sm font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
-            <span className="material-symbols-outlined text-[18px]">photo_camera</span>
-            <span>Take Photo</span>
+            <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+            <span>Take photo</span>
           </button>
           <button
             type="button"
             onClick={() => galleryInput.current?.click()}
-            className="py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/40 font-sans text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+            className="h-12 rounded-2xl bg-white border-[1.5px] border-primary text-primary font-sans text-sm font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
-            <span className="material-symbols-outlined text-[18px] text-primary">collections</span>
-            <span>From Gallery</span>
+            <span className="material-symbols-outlined text-[20px]">collections</span>
+            <span>From gallery</span>
           </button>
           <input
             ref={cameraInput}
@@ -153,10 +153,10 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
         </div>
       )}
 
-      <p className="text-xs font-sans text-outline leading-snug">
+      <p className="text-sm font-sans text-outline leading-snug">
         {max === 1 ? 'One photo.' : `1 to ${max} photos.`} Photos are saved at full quality the moment you pick them.
       </p>
-      {error && <p role="alert" className="text-xs font-sans text-error font-semibold">{error}</p>}
+      {error && <p role="alert" className="text-sm font-sans text-error font-bold">{error}</p>}
     </div>
   );
 };

@@ -49,7 +49,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={product.title}>
-      <button aria-label="Close" className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <button aria-label="Close" className="absolute inset-0 bg-scrim/50" onClick={onClose} />
       <div className="relative bg-surface w-full max-w-md max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl shadow-2xl animate-fade-in overflow-hidden">
         <div className="overflow-y-auto">
           <div className="relative bg-surface-container">

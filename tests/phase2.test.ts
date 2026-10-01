@@ -6,7 +6,7 @@ import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
 import { createMedia } from '../server/media';
-import { parseMerchant } from '../server/merchant';
+import { parseMerchant, themeCss, renderIndexHtml } from '../server/merchant';
 import type { ProductField } from '../server/merchant';
 
 const MASTER_KEY = 'test-master-provisioning-key';
@@ -380,6 +380,31 @@ describe('purity options, shortlist and banner order', () => {
     expect((await request(app).put('/api/banners/order').set(auth).send({ ids: reversed })).status).toBe(200);
     expect(await order()).toEqual(reversed);
     expect((await request(app).put('/api/banners/order').send({ ids })).status).toBe(401);
+  });
+});
+
+describe('merchant theme: colours and fonts', () => {
+  const base = () => JSON.parse(JSON.stringify(loadConfig({ NODE_ENV: 'test', STORE: 'memory' }).merchant));
+
+  it('turns colours and fonts into a stylesheet, and links the font file', () => {
+    const m = base();
+    m.theme = { colors: { primary: '#1e3a8a', whatsapp: '#128c7e' }, fonts: { display: 'Playfair Display', body: 'Mukta', url: 'https://fonts.googleapis.com/css2?family=Mukta' } };
+    const merchant = parseMerchant(m, 'test');
+    const css = themeCss(merchant);
+    expect(css).toContain('--color-primary:#1e3a8a');
+    expect(css).toContain('--color-whatsapp:#128c7e');
+    expect(css).toContain('--font-serif:"Playfair Display"');
+    expect(css).toContain('--font-sans:"Mukta"');
+    const html = renderIndexHtml('<head>{{THEME_STYLE}}</head>{{MERCHANT_CONFIG}}{{SEO_TITLE}}{{SEO_DESCRIPTION}}{{OG_IMAGE}}{{THEME_COLOR}}', merchant);
+    expect(html).toContain('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta">');
+  });
+
+  it('rejects anything that could break out of the stylesheet', () => {
+    const bad = (theme: object) => () => { const m = base(); m.theme = theme; parseMerchant(m, 'test'); };
+    expect(bad({ colors: {}, fonts: { display: 'x;}body{display:none' } })).toThrow();
+    expect(bad({ colors: {}, fonts: { url: 'https://evil.example/x.css' } })).toThrow();
+    expect(bad({ colors: { primary: 'red' } })).toThrow();
+    expect(bad({ colors: { notAToken: '#ffffff' } })).toThrow();
   });
 });
 

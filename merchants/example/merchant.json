@@ -19,8 +19,30 @@
       "primary-container": "#3b5bb5",
       "primary-fixed": "#dbe4ff",
       "primary-fixed-dim": "#a9bdf5",
-      "tertiary-dark": "#172554",
-      "surface": "#f8fafc"
+      "secondary": "#0f766e",
+      "secondary-dark": "#0b5a54",
+      "secondary-hover": "#0d6862",
+      "secondary-deep": "#0b2e2b",
+      "secondary-container": "#cff1ee",
+      "on-secondary-container": "#0b3f3b",
+      "surface": "#f8fafc",
+      "surface-container-low": "#f1f5f9",
+      "surface-container": "#e8eef5",
+      "surface-container-high": "#e0e8f0",
+      "surface-container-highest": "#d8e1ea",
+      "on-surface": "#0f172a",
+      "on-surface-variant": "#475569",
+      "outline": "#5b6b82",
+      "outline-variant": "#d5dde8",
+      "brown-dark": "#1e3a8a",
+      "brown-darker": "#172554",
+      "brown-darkest": "#0f1b3d",
+      "tertiary-dark": "#172554"
+    },
+    "fonts": {
+      "display": "Playfair Display",
+      "body": "Mukta",
+      "url": "https://fonts.googleapis.com/css2?family=Playfair+Display&family=Mukta:wght@400;600;700;800&display=swap"
     }
   },
 

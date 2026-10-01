@@ -3,6 +3,7 @@ import { ActiveScreen, Category, Product, Purity } from '../types';
 import { sector } from '../sector';
 import { merchant } from '../merchant';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
+import { PageTitle, Field, Notice, Chip, inputClass, btnPrimary, btnDanger, btnLink } from './ui';
 
 interface NewProductScreenProps {
   categories: Category[];
@@ -14,12 +15,6 @@ interface NewProductScreenProps {
   onSave: (product: Partial<Product>, id?: string) => Promise<boolean>;
   onDelete: (product: Product) => Promise<boolean>;
 }
-
-const inputBox =
-  'bg-surface-container-low p-2.5 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white';
-
-const card = 'bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3';
-const cardTitle = 'font-mono text-xs uppercase tracking-wider text-outline font-bold';
 
 export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, purities, editing, onNavigate, onSave, onDelete }) => {
   const [title, setTitle] = useState(editing?.title ?? '');
@@ -97,203 +92,116 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   };
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-lg mx-auto px-4 pt-3 space-y-4">
-      {saved && (
-        <div className="bg-secondary-container text-on-secondary-fixed p-3 rounded-lg text-xs font-sans border border-secondary flex items-center gap-1.5 animate-fade-in">
-          <span className="material-symbols-outlined text-[18px]">done_all</span>
-          <span>{editing ? 'Changes saved.' : 'Published to the live catalogue.'}</span>
-        </div>
-      )}
+    <div className="flex flex-col w-full pb-40 max-w-lg mx-auto">
+      <PageTitle title={editing ? 'Edit design' : 'New design'} />
 
-      {/* Photos */}
-      <div className={card}>
-        <span className={cardTitle}>
-          Photos <span className="text-primary">*</span>
-        </span>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={3} onBusyChange={setUploading} />
-      </div>
+      <div className="px-5 flex flex-col gap-5">
+        {saved && <Notice tone="ok">{editing ? 'Changes saved.' : 'Published to the live catalogue.'}</Notice>}
 
-      {/* Core details */}
-      <div className={card}>
-        <span className={cardTitle}>Product details</span>
+        <section className="flex flex-col gap-2">
+          <h2 className="font-serif text-[22px] text-primary">Photos</h2>
+          <PhotoPicker photos={photos} onChange={setPhotos} max={3} onBusyChange={setUploading} />
+        </section>
 
-        <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">
-            Title <span className="text-primary">*</span>
-          </label>
-          <input className={inputBox} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
-        </div>
+        <Field label="Design name" htmlFor="np-title">
+          <input id="np-title" className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
+        </Field>
 
-        <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">SKU {editing ? '' : '(optional)'}</label>
-          <input
-            className={`${inputBox} font-mono`}
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            placeholder="Leave blank to generate one"
-          />
-        </div>
+        <Field label={`SKU ${editing ? '' : '(optional)'}`} htmlFor="np-sku">
+          <input id="np-sku" className={inputClass} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Leave blank to generate one" />
+        </Field>
 
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-sans font-semibold text-on-surface">
-              Category <span className="text-primary">*</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => onNavigate('add-category')}
-              className="text-xs font-sans text-primary font-bold flex items-center gap-0.5 hover:underline"
-            >
-              <span className="material-symbols-outlined text-[14px]">add</span>
-              <span>Add New Category</span>
-            </button>
-          </div>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputBox}>
-            <option value="">Select a category</option>
+        <Field label="Collection" htmlFor="np-category">
+          <select id="np-category" value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
+            <option value="">Select a collection</option>
             {categories.map((c) => (
               <option key={c.id} value={c.name}>
                 {c.name}
               </option>
             ))}
           </select>
-        </div>
-      </div>
+          <button type="button" onClick={() => onNavigate('add-category')} className={`${btnLink} self-start -ml-3`}>
+            + Add a new collection
+          </button>
+        </Field>
 
-      {/* Weights */}
-      <div className={card}>
-        <div className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[19px] text-primary">scale</span>
-          <span className="text-xs font-sans font-bold text-on-surface">Weight</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-sans text-outline">
-              Gross weight (g) <span className="text-primary">*</span>
-            </label>
-            <input className={`${inputBox} font-mono`} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
-          </div>
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-sans text-outline">Stone / tare (g)</label>
-            <input className={`${inputBox} font-mono`} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
-          </div>
-        </div>
-
-        <div className="bg-primary-fixed/30 rounded-lg p-2.5 flex items-center justify-between border border-primary-fixed-dim/60">
-          <span className="font-sans text-xs font-bold text-primary">Net weight</span>
-          <span className="font-mono text-base font-bold text-primary">{net === null ? '—' : `${net.toFixed(3)} g`}</span>
-        </div>
-      </div>
-
-      {/* Purity & hallmark */}
-      <div className={card}>
-        <span className={cardTitle}>
-          Purity <span className="text-primary">*</span>
-        </span>
-        <div className="flex flex-col space-y-1">
-          <select aria-label="Purity" className={inputBox} value={purity} onChange={(e) => setPurity(e.target.value)}>
+        <Field label="Purity" htmlFor="np-purity" hint="The list comes from Admin, Purity options.">
+          <select id="np-purity" className={inputClass} value={purity} onChange={(e) => setPurity(e.target.value)}>
             <option value="">Choose the purity</option>
             {purities
-              .filter((p) => p.enabled || p.key === editing?.purity)
-              .map((p) => (
-                <option key={p.key} value={p.key}>
-                  {p.title}
+              .filter((pu) => pu.enabled || pu.key === editing?.purity)
+              .map((pu) => (
+                <option key={pu.key} value={pu.key}>
+                  {pu.title}
                 </option>
               ))}
           </select>
-          <span className="text-xs font-sans text-outline">The list comes from Admin &gt; Purity options.</span>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Gross weight (g)" htmlFor="np-gross">
+            <input id="np-gross" className={inputClass} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
+          </Field>
+          <Field label="Stone or tare (g)" htmlFor="np-stone">
+            <input id="np-stone" className={inputClass} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
+          </Field>
+        </div>
+        <div className="flex items-baseline justify-between rounded-2xl bg-primary-fixed px-4 py-3">
+          <span className="font-sans text-[15px] font-extrabold text-primary">Net weight</span>
+          <span className="font-serif text-[26px] text-primary">{net === null ? '—' : `${net.toFixed(3)} g`}</span>
         </div>
 
-        <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">HUID / hallmark number (optional)</label>
-          <input className={`${inputBox} font-mono`} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
-        </div>
+        <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
+          <input id="np-huid" className={inputClass} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
+        </Field>
+
+        {merchant.productFields.map((field) => (
+          <Field key={field.key} label={`${field.label}${field.unit ? ` (${field.unit})` : ''}${field.required ? ' *' : ''}`} htmlFor={`np-${field.key}`}>
+            {field.type === 'select' ? (
+              <select id={`np-${field.key}`} className={inputClass} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
+                <option value="">Select</option>
+                {field.options?.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id={`np-${field.key}`}
+                className={inputClass}
+                value={extra[field.key] ?? ''}
+                inputMode={field.type === 'number' ? 'decimal' : 'text'}
+                onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}
+              />
+            )}
+          </Field>
+        ))}
+
+        <section className="flex flex-col gap-2">
+          <h2 className="font-serif text-[22px] text-primary">Availability</h2>
+          <div className="flex flex-wrap gap-2">
+            {sector.stockStatuses.map((st) => (
+              <Chip key={st.key} active={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
+                {st.key}
+              </Chip>
+            ))}
+          </div>
+        </section>
+
+        {editing && (
+          <button type="button" onClick={handleDelete} disabled={isSaving} className={btnDanger}>
+            Delete this design
+          </button>
+        )}
       </div>
-
-      {/* Merchant-defined details */}
-      {merchant.productFields.length > 0 && (
-        <div className={card}>
-          <span className={cardTitle}>More details</span>
-          {merchant.productFields.map((field) => (
-            <div key={field.key} className="flex flex-col space-y-1">
-              <label className="text-xs font-sans font-semibold text-on-surface">
-                {field.label}
-                {field.unit ? ` (${field.unit})` : ''} {field.required && <span className="text-primary">*</span>}
-              </label>
-              {field.type === 'select' ? (
-                <select className={inputBox} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
-                  <option value="">Select</option>
-                  {field.options?.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className={inputBox}
-                  value={extra[field.key] ?? ''}
-                  inputMode={field.type === 'number' ? 'decimal' : 'text'}
-                  onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Stock */}
-      <div className={`${card} mb-2`}>
-        <span className={cardTitle}>Availability</span>
-        <div className="grid grid-cols-2 gap-2">
-          {sector.stockStatuses.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setStockStatus(s.key)}
-              className={`p-2.5 rounded-lg flex items-center justify-between text-left transition-all border ${
-                stockStatus === s.key
-                  ? 'bg-secondary-container text-on-secondary-fixed border-secondary'
-                  : 'bg-surface-container-low text-outline border-outline-variant/40'
-              }`}
-            >
-              <span className="text-xs font-sans font-bold">{s.key}</span>
-              <span className="material-symbols-outlined text-[16px]">{s.icon}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {editing && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isSaving}
-          className="w-full py-2.5 rounded-lg border border-error/40 text-error font-sans text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-error-container/40 disabled:opacity-40"
-        >
-          <span className="material-symbols-outlined text-[18px]">delete</span>
-          <span>Delete this product</span>
-        </button>
-      )}
 
       {/* Publish bar */}
-      <aside className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-outline-variant/40 shadow-xl">
-        <div className="max-w-lg mx-auto h-18 px-4 flex items-center justify-between gap-3">
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-mono uppercase tracking-wider text-outline">Status</span>
-            <span className={`font-mono text-xs font-bold flex items-center gap-1 ${problem ? 'text-outline' : 'text-secondary'}`}>
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${problem ? 'bg-outline-variant' : 'bg-secondary'}`}></span>
-              <span className="truncate">{problem ?? (editing ? 'Ready to save' : 'Ready to publish')}</span>
-            </span>
-          </div>
-
-          <button
-            onClick={handleSave}
-            disabled={isSaving || problem !== null}
-            className="flex-1 h-11 rounded-lg bg-secondary hover:bg-secondary-dark disabled:opacity-40 disabled:cursor-not-allowed text-white font-sans text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
-          >
-            <span className="material-symbols-outlined text-[18px]">{editing ? 'save' : 'publish'}</span>
-            <span>{isSaving ? 'Saving...' : editing ? 'Save Changes' : 'Publish to Catalogue'}</span>
+      <aside className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-outline-variant pb-safe">
+        <div className="max-w-lg mx-auto px-5 py-3 flex flex-col gap-2">
+          <span className={`font-sans text-sm font-bold ${problem ? 'text-outline' : 'text-success'}`}>{problem ?? (editing ? 'Ready to save' : 'Ready to publish')}</span>
+          <button onClick={handleSave} disabled={isSaving || problem !== null} className={btnPrimary} type="button">
+            {isSaving ? 'Saving…' : editing ? 'Save changes' : 'List in catalogue'}
           </button>
         </div>
       </aside>

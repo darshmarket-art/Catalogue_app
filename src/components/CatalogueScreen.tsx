@@ -122,7 +122,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     <div className="flex flex-col w-full pb-28 max-w-6xl mx-auto">
       {addedNotice && (
         <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-sans animate-fade-in">
-          <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
+          <span className="material-symbols-outlined text-success-container text-[18px]">check_circle</span>
           <span>Added {addedNotice} to your order</span>
         </div>
       )}

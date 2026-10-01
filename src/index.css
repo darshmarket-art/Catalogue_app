@@ -47,6 +47,15 @@
   --color-brown-darker: #3a1329;
   --color-brown-darkest: #2a0f1f;
 
+  /* Meaning, not decoration: WhatsApp actions, success, info and the dark overlay behind sheets. */
+  --color-whatsapp: #25d366;
+  --color-on-whatsapp: #06361a;
+  --color-success: #1d6b3a;
+  --color-success-container: #e3f3e8;
+  --color-info: #2b5aa0;
+  --color-info-container: #e3ecfa;
+  --color-scrim: #1e0a18;
+
   --color-outline: #6f5a66;
   --color-outline-variant: #e3cfc6;
   --color-error: #ba1a1a;

@@ -44,6 +44,13 @@ export const THEME_TOKENS = [
   'brown-dark',
   'brown-darker',
   'brown-darkest',
+  'whatsapp',
+  'on-whatsapp',
+  'success',
+  'success-container',
+  'info',
+  'info-container',
+  'scrim',
   'outline',
   'outline-variant',
   'error',
@@ -55,6 +62,11 @@ const httpUrl = z
   .string()
   .max(2048)
   .refine((v) => /^https?:\/\//i.test(v) && URL.canParse(v), 'Must be an http(s) URL');
+const fontName = z.string().trim().regex(/^[A-Za-z0-9 ]{2,60}$/, 'Use just the font name, such as "Playfair Display"');
+const googleFontsUrl = z
+  .string()
+  .max(2048)
+  .refine((v) => v.startsWith('https://fonts.googleapis.com/') && URL.canParse(v), 'Must be a Google Fonts link (https://fonts.googleapis.com/...)');
 const text = (max: number) => z.string().trim().min(1).max(max);
 
 const feature = z.object({
@@ -106,7 +118,22 @@ export const merchantSchema = z.object({
     seoDescription: text(300)
   }),
 
-  theme: z.object({ colors: z.record(z.enum(THEME_TOKENS), hexColor).default({}) }).default({ colors: {} }),
+  /** Colours, and optionally fonts: a merchant can look completely different from every other. */
+  theme: z
+    .object({
+      colors: z.record(z.enum(THEME_TOKENS), hexColor).default({}),
+      fonts: z
+        .object({
+          /** Headings and the brand name, e.g. "Playfair Display". */
+          display: fontName.optional(),
+          /** Body text, e.g. "Mukta". */
+          body: fontName.optional(),
+          /** A Google Fonts stylesheet that loads both, e.g. https://fonts.googleapis.com/css2?family=... */
+          url: googleFontsUrl.optional()
+        })
+        .default({})
+    })
+    .default({ colors: {}, fonts: {} }),
 
   contact: z.object({
     /** Digits only, with country code, as used by wa.me links. */
@@ -182,6 +209,10 @@ const escapeHtml = (s: string) =>
 /** `:root{...}` declarations for the colours this merchant overrides. Values are regex-validated hex. */
 export function themeCss(merchant: MerchantConfig): string {
   const rules = Object.entries(merchant.theme.colors).map(([token, value]) => `--color-${token}:${value}`);
+  const { display, body } = merchant.theme.fonts;
+  // Font names are validated (letters, digits and spaces only), so they are safe inside the stylesheet.
+  if (display) rules.push(`--font-serif:"${display}",Georgia,serif`);
+  if (body) rules.push(`--font-sans:"${body}",-apple-system,"Segoe UI",Roboto,sans-serif`, `--font-mono:"${body}",-apple-system,"Segoe UI",Roboto,sans-serif`);
   return rules.length ? `:root{${rules.join(';')}}` : '';
 }
 
@@ -195,7 +226,9 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
     '{{SEO_DESCRIPTION}}': escapeHtml(merchant.brand.seoDescription),
     '{{OG_IMAGE}}': escapeHtml(merchant.brand.logoUrl),
     '{{THEME_COLOR}}': themeColor,
-    '{{THEME_STYLE}}': themeCss(merchant) ? `<style id="merchant-theme">${themeCss(merchant)}</style>` : '',
+    '{{THEME_STYLE}}':
+      (merchant.theme.fonts.url ? `<link rel="stylesheet" href="${escapeHtml(merchant.theme.fonts.url)}">` : '') +
+      (themeCss(merchant) ? `<style id="merchant-theme">${themeCss(merchant)}</style>` : ''),
     '{{MERCHANT_CONFIG}}': `<script id="merchant-config" type="application/json">${json}</script>`
   };
   let out = html;

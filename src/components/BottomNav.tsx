@@ -29,26 +29,26 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate,
   ];
 
   return (
-    <nav aria-label="Main" className="fixed bottom-0 w-full z-50 pb-safe bg-surface/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(28,28,26,0.06)] border-t border-outline-variant/30">
-      <div className="h-16 max-w-lg md:max-w-xl mx-auto px-2 flex items-center justify-around">
+    <nav aria-label="Main" className="fixed bottom-0 w-full z-50 pb-safe bg-white border-t border-outline-variant">
+      <div className="h-16 max-w-lg md:max-w-xl mx-auto px-1 flex items-center justify-around">
         {tabs.map((tab) => (
           <button
             key={tab.screen}
             onClick={() => onNavigate(tab.screen)}
             aria-current={tab.active ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center min-w-[64px] h-12 transition-all ${
-              tab.active ? 'text-primary font-bold scale-105' : 'text-on-surface-variant hover:text-on-surface'
+            className={`flex flex-col items-center justify-center min-w-[68px] h-14 rounded-2xl transition-colors ${
+              tab.active ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
             }`}
           >
             <div className="relative">
-              <span className="material-symbols-outlined text-[22px]">{tab.icon}</span>
+              <span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: `'FILL' ${tab.active ? 1 : 0}` }}>{tab.icon}</span>
               {tab.badge ? (
-                <span className="absolute -top-1.5 -right-2.5 bg-primary text-white font-mono text-xs leading-tight px-1.5 py-0.5 rounded-full font-bold shadow-sm animate-pulse">
+                <span className="absolute -top-1.5 -right-3 bg-primary-fixed-dim text-on-primary font-sans text-xs leading-tight px-1.5 py-0.5 rounded-full font-extrabold">
                   {tab.badge}
                 </span>
               ) : null}
             </div>
-            <span className="text-xs font-sans font-semibold mt-0.5">{tab.label}</span>
+            <span className={`text-xs font-sans mt-0.5 ${tab.active ? 'font-extrabold' : 'font-bold'}`}>{tab.label}</span>
           </button>
         ))}
       </div>

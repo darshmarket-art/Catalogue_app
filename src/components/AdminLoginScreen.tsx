@@ -3,14 +3,12 @@ import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
 import { ADMIN_ROLES, roleLabel } from '../../shared/roles';
+import { PageTitle, Field, Notice, Segmented, inputClass, btnPrimary, btnLink } from './ui';
 
 interface AdminLoginScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
   onAdminLoginSuccess: () => void;
 }
-
-const field =
-  'w-full bg-surface-container-low px-3 py-2 rounded-lg text-xs font-sans border border-outline-variant/40 focus:outline-none focus:bg-white';
 
 export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, onAdminLoginSuccess }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -76,218 +74,108 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
     }
   };
 
-  const tab = (active: boolean) =>
-    `flex-1 py-1.5 rounded-lg text-center transition-all flex items-center justify-center space-x-1 text-xs font-sans font-semibold ${
-      active ? 'bg-white shadow-xs text-on-surface' : 'text-on-surface-variant hover:text-on-surface'
-    }`;
+  const eye = (shown: boolean, toggle: () => void) => (
+    <button type="button" onClick={toggle} aria-label={shown ? 'Hide password' : 'Show password'} className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-outline">
+      <span className="material-symbols-outlined text-[22px]">{shown ? 'visibility_off' : 'visibility'}</span>
+    </button>
+  );
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto px-4 py-4 pb-28 space-y-3.5">
-      {/* Title Header */}
-      <div className="flex flex-col items-center text-center space-y-1">
-        <div className="w-10 h-10 rounded-xl bg-on-surface border border-primary-container/50 flex items-center justify-center text-primary-fixed shadow-md mb-1">
-          <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
-        </div>
-        <h2 className="font-serif text-[22px] font-bold text-on-surface">Admin Console</h2>
-        <p className="font-sans text-xs text-outline max-w-xs leading-relaxed">
-          Restricted portal for {merchant.brand.name} management and staff.
-        </p>
-      </div>
+    <div className="flex flex-col w-full max-w-md mx-auto pb-28">
+      <PageTitle title="Admin console" sub={`For the owner and staff of ${merchant.brand.name}.`} />
 
-      {/* Mode Switcher */}
-      <div className="w-full bg-surface-container-high p-1 rounded-xl flex items-center shadow-inner">
-        <button
-          type="button"
-          onClick={() => {
-            setMode('login');
+      <div className="px-5 flex flex-col gap-4">
+        <Segmented
+          options={[
+            { key: 'login', label: 'Sign in' },
+            { key: 'register', label: 'Create admin' }
+          ]}
+          value={mode}
+          onChange={(key) => {
+            setMode(key as 'login' | 'register');
             setErrorMsg(null);
           }}
-          className={tab(mode === 'login')}
-        >
-          <span className="material-symbols-outlined text-[16px] text-primary">lock</span>
-          <span>Sign In</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode('register');
-            setErrorMsg(null);
-          }}
-          className={tab(mode === 'register')}
-        >
-          <span className="material-symbols-outlined text-[16px] text-primary">person_add</span>
-          <span>Create Admin</span>
-        </button>
-      </div>
+        />
 
-      {errorMsg && (
-        <div className="bg-error-container text-error p-3 rounded-xl text-xs font-sans border border-error/30 flex items-start gap-2 shadow-xs animate-shake">
-          <span className="material-symbols-outlined text-[19px] flex-shrink-0 text-error mt-0.5">gpp_bad</span>
-          <div className="flex flex-col">
-            <span className="font-bold text-xs uppercase tracking-wider">Access Denied</span>
-            <span className="leading-tight mt-0.5">{errorMsg}</span>
-          </div>
-        </div>
-      )}
+        {errorMsg && <Notice tone="error">{errorMsg}</Notice>}
+        {successMsg && <Notice tone="ok">{successMsg}</Notice>}
 
-      {successMsg && (
-        <div className="bg-secondary-container text-on-secondary-fixed p-3 rounded-xl text-xs font-sans border border-secondary flex items-center gap-2 shadow-xs animate-fade-in">
-          <span className="material-symbols-outlined text-[19px] text-secondary">verified</span>
-          <span className="font-medium">{successMsg}</span>
-        </div>
-      )}
-
-      {mode === 'login' ? (
-        <form onSubmit={handleLoginSubmit} className="space-y-3 bg-white p-4 rounded-xl border border-outline-variant/40 shadow-xs">
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface" htmlFor="admin-id">
-              Admin email
-            </label>
-            <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white transition-colors">
-              <span className="material-symbols-outlined text-[18px] text-outline pl-3">verified_user</span>
-              <input
-                id="admin-id"
-                type="email"
-                autoComplete="username"
-                className="w-full bg-transparent px-3 py-2 text-xs font-mono text-on-surface focus:outline-none"
-                value={adminId}
-                onChange={(e) => setAdminId(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface" htmlFor="admin-password">
-              Password
-            </label>
-            <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white transition-colors">
-              <span className="material-symbols-outlined text-[18px] text-outline pl-3">key</span>
-              <input
-                id="admin-password"
-                autoComplete="current-password"
-                className="w-full bg-transparent px-3 py-2 text-xs font-mono text-on-surface focus:outline-none tracking-wider"
-                type={showPass ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button type="button" onClick={() => setShowPass(!showPass)} className="px-3 py-2 text-outline hover:text-on-surface">
-                <span className="material-symbols-outlined text-[18px]">{showPass ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3 px-4 rounded-xl bg-on-surface hover:bg-black active:scale-[0.99] text-white flex items-center justify-between shadow-md transition-all mt-2"
-          >
-            <span className="flex items-center space-x-2">
-              <span className="material-symbols-outlined text-[18px] text-primary-fixed">shield</span>
-              <span className="font-sans text-xs font-bold tracking-wide uppercase">{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
-            </span>
-            <span className="material-symbols-outlined text-primary-fixed text-[18px]">arrow_forward</span>
-          </button>
-        </form>
-      ) : (
-        <form onSubmit={handleRegisterAdminSubmit} className="space-y-3 bg-white p-4 rounded-xl border border-outline-variant/40 shadow-xs">
-          <div className="bg-surface-container-low p-3 rounded-lg border border-outline-variant/40 space-y-1">
-            <span className="font-mono text-xs uppercase font-bold text-primary block">Creating an admin account</span>
-            <p className="text-xs text-on-surface-variant leading-tight">
-              You need the <strong>Master Provisioning Key</strong>, which only the business owner holds. Failed attempts are logged.
+        {mode === 'login' ? (
+          <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
+            <Field label="Admin email" htmlFor="admin-id">
+              <input id="admin-id" type="email" autoComplete="username" className={inputClass} value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="name@company.com" required />
+            </Field>
+            <Field label="Password" htmlFor="admin-password">
+              <div className="relative">
+                <input
+                  id="admin-password"
+                  autoComplete="current-password"
+                  className={`${inputClass} pr-12`}
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+                {eye(showPass, () => setShowPass(!showPass))}
+              </div>
+            </Field>
+            <button type="submit" disabled={isSubmitting} className={btnPrimary}>
+              {isSubmitting ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleRegisterAdminSubmit} className="flex flex-col gap-4">
+            <p className="font-sans text-[15px] leading-relaxed text-on-surface-variant">
+              You need the <strong>master provisioning key</strong>, which only the business owner holds. Failed attempts are logged.
             </p>
-          </div>
+            <Field label="Full name" htmlFor="new-admin-name">
+              <input id="new-admin-name" required className={inputClass} value={newAdminName} onChange={(e) => setNewAdminName(e.target.value)} placeholder="e.g. Devendra Varma" />
+            </Field>
+            <Field label="Email" htmlFor="new-admin-email">
+              <input id="new-admin-email" required type="email" className={inputClass} value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} placeholder="name@company.com" />
+            </Field>
+            <Field label="Role" htmlFor="new-admin-role">
+              <select id="new-admin-role" value={newAdminRole} onChange={(e) => setNewAdminRole(e.target.value as (typeof ADMIN_ROLES)[number])} className={inputClass}>
+                {ADMIN_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {roleLabel(r)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Password" htmlFor="new-admin-password" hint="At least 10 characters">
+              <div className="relative">
+                <input
+                  id="new-admin-password"
+                  required
+                  minLength={10}
+                  autoComplete="new-password"
+                  type={showNewAdminPass ? 'text' : 'password'}
+                  className={`${inputClass} pr-12`}
+                  value={newAdminPass}
+                  onChange={(e) => setNewAdminPass(e.target.value)}
+                  placeholder="Choose a password"
+                />
+                {eye(showNewAdminPass, () => setShowNewAdminPass(!showNewAdminPass))}
+              </div>
+            </Field>
+            <Field label="Master provisioning key" htmlFor="new-admin-key">
+              <input id="new-admin-key" required type="password" autoComplete="off" className={inputClass} value={provisioningToken} onChange={(e) => setProvisioningToken(e.target.value)} placeholder="Enter the provisioning key" />
+            </Field>
+            <button type="submit" disabled={isSubmitting} className={btnPrimary}>
+              {isSubmitting ? 'Creating…' : 'Create admin account'}
+            </button>
+          </form>
+        )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface">Full name *</label>
-            <input required className={field} value={newAdminName} onChange={(e) => setNewAdminName(e.target.value)} placeholder="e.g. Devendra Varma" />
-          </div>
+        <p className="font-sans text-sm text-outline text-center leading-relaxed">Authorised personnel only. Sign-in attempts and admin activity are recorded in the audit log.</p>
 
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface">Email *</label>
-            <input
-              required
-              type="email"
-              className={`${field} font-mono`}
-              value={newAdminEmail}
-              onChange={(e) => setNewAdminEmail(e.target.value)}
-              placeholder="name@company.com"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface">Role *</label>
-            <select value={newAdminRole} onChange={(e) => setNewAdminRole(e.target.value as (typeof ADMIN_ROLES)[number])} className={field}>
-              {ADMIN_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {roleLabel(r)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface">Password *</label>
-            <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white">
-              <input
-                required
-                minLength={10}
-                autoComplete="new-password"
-                type={showNewAdminPass ? 'text' : 'password'}
-                className="w-full bg-transparent px-3 py-2 text-xs font-mono focus:outline-none"
-                value={newAdminPass}
-                onChange={(e) => setNewAdminPass(e.target.value)}
-                placeholder="At least 10 characters"
-              />
-              <button type="button" onClick={() => setShowNewAdminPass(!showNewAdminPass)} className="px-3 text-outline hover:text-on-surface">
-                <span className="material-symbols-outlined text-[17px]">{showNewAdminPass ? 'visibility_off' : 'visibility'}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-sans font-semibold text-on-surface">Master Provisioning Key *</label>
-            <input
-              required
-              type="password"
-              autoComplete="off"
-              className={`${field} font-mono tracking-wider`}
-              value={provisioningToken}
-              onChange={(e) => setProvisioningToken(e.target.value)}
-              placeholder="Enter the provisioning key"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3 bg-primary hover:bg-primary-container text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center space-x-1.5 shadow-md active:scale-[0.99] transition-all"
-          >
-            <span className="material-symbols-outlined text-[18px]">verified_user</span>
-            <span>{isSubmitting ? 'Creating...' : 'Create Admin Account'}</span>
+        <div className="text-center">
+          <button onClick={() => onNavigate('retailer-auth')} className={btnLink} type="button">
+            Back to buyer sign in
           </button>
-        </form>
-      )}
-
-      {/* Audit notice */}
-      <div className="bg-surface-container rounded-xl p-3 border border-outline-variant/40 shadow-xs text-left">
-        <div className="flex items-start space-x-2">
-          <span className="material-symbols-outlined text-outline text-[16px] mt-0.5">policy</span>
-          <p className="font-sans text-xs leading-tight text-on-surface-variant">
-            Authorized personnel only. Sign-in attempts and admin activity are recorded in the audit log.
-          </p>
         </div>
-      </div>
-
-      <div className="text-center pt-1">
-        <button
-          onClick={() => onNavigate('retailer-auth')}
-          className="inline-flex items-center space-x-1.5 font-sans text-xs text-primary hover:underline font-semibold"
-        >
-          <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-          <span>Return to Retailer Login</span>
-        </button>
       </div>
     </div>
   );

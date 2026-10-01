@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ActiveScreen, Category, Purity } from '../types';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
+import { PageTitle, Field, Notice, Chip, inputClass, btnPrimary, btnDanger } from './ui';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -11,10 +12,6 @@ interface AddCategoryScreenProps {
   onSave: (category: Partial<Category>, id?: string) => Promise<boolean>;
   onDelete: (category: Category) => Promise<boolean>;
 }
-
-const inputBox =
-  'w-full bg-surface-container-low px-3 py-2 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white';
-
 
 export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOptions, editing, onNavigate, onSave, onDelete }) => {
   const [name, setName] = useState(editing?.name ?? '');
@@ -73,124 +70,65 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
   };
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-lg mx-auto px-4 pt-3 space-y-4">
-      {success && (
-        <div className="bg-secondary-container text-on-secondary-fixed p-3 rounded-lg text-xs font-sans border border-secondary flex items-center gap-1.5 animate-fade-in">
-          <span className="material-symbols-outlined text-[18px]">done_all</span>
-          <span>{editing ? 'Changes saved.' : 'Category created.'}</span>
-        </div>
-      )}
+    <div className="flex flex-col w-full pb-40 max-w-lg mx-auto">
+      <PageTitle
+        title={editing ? 'Edit collection' : 'New collection'}
+        sub="Group your designs so buyers can browse them. The number of designs is counted from the products you add."
+      />
 
-      <div className="flex flex-col space-y-1">
-        <h2 className="font-serif text-[22px] font-bold text-on-surface">{editing ? 'Edit Category' : 'Create Category'}</h2>
-        <p className="font-sans text-xs text-outline leading-relaxed">
-          Group your designs so buyers can browse them. The number of designs is counted automatically from the products you add.
-        </p>
-      </div>
+      <div className="px-5 flex flex-col gap-5">
+        {success && <Notice tone="ok">{editing ? 'Changes saved.' : 'Collection created.'}</Notice>}
 
-      {/* Photo */}
-      <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
-          <span className="material-symbols-outlined text-primary text-[19px]">photo_library</span>
-          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">
-            Banner photo <span className="text-primary">*</span>
-          </h3>
-        </div>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
-      </section>
+        <section className="flex flex-col gap-2">
+          <h2 className="font-serif text-[22px] text-primary">Photo</h2>
+          <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
+        </section>
 
-      {/* Details */}
-      <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
-          <span className="material-symbols-outlined text-primary text-[19px]">account_tree</span>
-          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">Category details</h3>
-        </div>
+        <Field label="Collection name" htmlFor="ac-name">
+          <input id="ac-name" className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Temple Antique Haar" />
+        </Field>
 
-        <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">
-            Category name <span className="text-primary">*</span>
-          </label>
-          <input className={inputBox} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Temple Antique Haar" />
-        </div>
-
-        <div className="flex flex-col space-y-1">
-          <label className="text-xs font-sans font-semibold text-on-surface">Short description (optional)</label>
-          <input className={inputBox} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Nakshi work, Mayur motifs" />
-        </div>
-      </section>
-
-      {/* Weight & purity */}
-      <section className="bg-white rounded-xl p-4 shadow-xs border border-outline-variant/40 flex flex-col space-y-3">
-        <div className="flex items-center gap-1.5 pb-2 border-b border-surface-container">
-          <span className="material-symbols-outlined text-primary text-[19px]">scale</span>
-          <h3 className="text-xs font-sans font-bold text-on-surface uppercase tracking-wider">Typical weight & purity (optional)</h3>
-        </div>
+        <Field label="Short description (optional)" htmlFor="ac-sub">
+          <input id="ac-sub" className={inputClass} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Nakshi work, Mayur motifs" />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col space-y-1">
-            <span className="text-xs font-sans text-outline">Lightest piece (g)</span>
-            <input className={`${inputBox} font-mono`} value={minWt} onChange={(e) => setMinWt(e.target.value)} inputMode="decimal" placeholder="—" />
-          </div>
-          <div className="flex flex-col space-y-1">
-            <span className="text-xs font-sans text-outline">Heaviest piece (g)</span>
-            <input className={`${inputBox} font-mono`} value={maxWt} onChange={(e) => setMaxWt(e.target.value)} inputMode="decimal" placeholder="—" />
-          </div>
+          <Field label="Lightest piece (g)" htmlFor="ac-min">
+            <input id="ac-min" className={inputClass} value={minWt} onChange={(e) => setMinWt(e.target.value)} inputMode="decimal" placeholder="—" />
+          </Field>
+          <Field label="Heaviest piece (g)" htmlFor="ac-max">
+            <input id="ac-max" className={inputClass} value={maxWt} onChange={(e) => setMaxWt(e.target.value)} inputMode="decimal" placeholder="—" />
+          </Field>
         </div>
 
-        <div className="flex flex-col space-y-1.5 pt-1">
-          <span className="text-xs font-sans text-outline font-semibold">Purities sold in this category</span>
-          <div className="grid grid-cols-2 gap-2">
-            {purityOptions.filter((p) => p.enabled || purities.includes(p.key)).map((p) => {
-              const checked = purities.includes(p.key);
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => togglePurity(p.key)}
-                  className={`p-2 rounded-lg flex items-center gap-1.5 text-left transition-all border ${
-                    checked
-                      ? 'bg-primary-fixed/30 border-primary-container/50 shadow-2xs'
-                      : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container-high'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[17px] text-primary">
-                    {checked ? 'check_circle' : 'radio_button_unchecked'}
-                  </span>
-                  <span className="font-mono text-xs font-bold text-on-surface">{p.title}</span>
-                </button>
-              );
-            })}
+        <section className="flex flex-col gap-2">
+          <h2 className="font-serif text-[22px] text-primary">Purities sold here</h2>
+          <div className="flex flex-wrap gap-2">
+            {purityOptions
+              .filter((pu) => pu.enabled || purities.includes(pu.key))
+              .map((pu) => (
+                <Chip key={pu.key} active={purities.includes(pu.key)} onClick={() => togglePurity(pu.key)}>
+                  {pu.title}
+                </Chip>
+              ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Action */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-outline-variant/40 flex flex-col space-y-2.5">
-        <div className={`flex items-center gap-1.5 text-xs font-sans font-semibold ${problem ? 'text-outline' : 'text-secondary'}`}>
-          <span className={`w-2 h-2 rounded-full ${problem ? 'bg-outline-variant' : 'bg-secondary'}`}></span>
-          {problem ?? (editing ? 'Ready to save' : 'Ready to create')}
-        </div>
-        <button
-          type="button"
-          disabled={submitting || problem !== null}
-          onClick={handleCreate}
-          className="w-full py-3 bg-secondary hover:bg-secondary-dark disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
-        >
-          <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
-          <span>{submitting ? 'Saving...' : editing ? 'Save Changes' : 'Create Category'}</span>
-        </button>
         {editing && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={submitting}
-            className="w-full py-2.5 rounded-lg border border-error/40 text-error font-sans text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-error-container/40 disabled:opacity-40"
-          >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
-            <span>Delete this category</span>
+          <button type="button" onClick={handleDelete} disabled={submitting} className={btnDanger}>
+            Delete this collection
           </button>
         )}
       </div>
+
+      <aside className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-outline-variant pb-safe">
+        <div className="max-w-lg mx-auto px-5 py-3 flex flex-col gap-2">
+          <span className={`font-sans text-sm font-bold ${problem ? 'text-outline' : 'text-success'}`}>{problem ?? (editing ? 'Ready to save' : 'Ready to create')}</span>
+          <button type="button" disabled={submitting || problem !== null} onClick={handleCreate} className={btnPrimary}>
+            {submitting ? 'Saving…' : editing ? 'Save changes' : 'Create collection'}
+          </button>
+        </div>
+      </aside>
     </div>
   );
 };

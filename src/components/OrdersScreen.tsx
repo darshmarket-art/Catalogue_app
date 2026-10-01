@@ -3,6 +3,7 @@ import { OrderItem, PastOrder } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
+import { PageTitle, Segmented, StatusTag, btnPrimary, btnOutline, btnWhatsApp } from './ui';
 
 interface OrdersScreenProps {
   orders: OrderItem[];
@@ -14,58 +15,57 @@ interface OrdersScreenProps {
   initialTab?: 'current' | 'past';
 }
 
-const STATUS_LOOKS: Record<string, string> = {
-  new: 'bg-primary-fixed text-on-tertiary-fixed',
-  confirmed: 'bg-secondary-fixed text-on-secondary-fixed',
-  dispatched: 'bg-secondary text-white',
-  cancelled: 'bg-surface-container-high text-outline'
-};
-
 const PastOrders: React.FC<{ orders: PastOrder[] | null }> = ({ orders }) => {
-  if (orders === null) return <p className="text-center text-xs text-outline py-8">Loading your orders…</p>;
+  const [open, setOpen] = useState<string | null>(null);
+  if (orders === null) return <p className="text-center font-sans text-sm text-outline py-10">Loading your orders…</p>;
   if (orders.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40 shadow-xs my-4">
-        <span className="material-symbols-outlined text-4xl text-outline mb-2">history</span>
-        <h3 className="font-serif text-base font-bold text-on-surface">No past orders yet</h3>
-        <p className="text-xs text-outline mt-1">Orders you confirm will be listed here.</p>
+      <div className="flex flex-col items-center text-center gap-2 px-8 pt-14">
+        <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">history</span>
+        <h3 className="font-serif text-[24px] text-primary">No past orders yet</h3>
+        <p className="font-sans text-[15px] text-on-surface-variant">Orders you place will be listed here.</p>
       </div>
     );
   }
   return (
-    <div className="flex flex-col gap-3" data-testid="past-orders">
+    <div className="flex flex-col gap-3 px-5" data-testid="past-orders">
       {orders.map((order) => (
-        <div key={order.poId} className="bg-white rounded-xl shadow-xs border border-outline-variant/40 p-3 flex flex-col gap-2">
+        <article key={order.poId} className="rounded-3xl bg-white border border-outline-variant p-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex flex-col min-w-0">
-              <span className="font-mono text-xs font-bold text-on-surface truncate">{order.poId}</span>
-              <span className="font-sans text-xs text-outline">
-                {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-              </span>
-            </div>
-            <span className={`px-2 py-0.5 rounded-full font-mono text-xs font-bold uppercase ${STATUS_LOOKS[order.status] ?? STATUS_LOOKS.new}`}>
-              {order.status}
-            </span>
+            <span className="font-sans text-sm font-extrabold text-on-surface-variant truncate">{order.poId}</span>
+            <StatusTag status={order.status} />
           </div>
-          <div className="flex flex-col gap-1.5">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-2">
-                <img src={item.image} alt="" className="w-9 h-9 rounded object-cover bg-surface-container flex-shrink-0" referrerPolicy="no-referrer" />
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="font-sans text-xs font-semibold text-on-surface truncate">{item.title}</span>
-                  <span className="font-mono text-xs text-outline">{item.sku}</span>
-                </div>
-                <span className="font-mono text-xs text-on-surface whitespace-nowrap">
-                  {item.batchQty} {item.qtyUnit} · {item.totalNetGold.toFixed(3)} g
-                </span>
-              </div>
-            ))}
+          <h3 className="font-serif text-[22px] text-primary mt-2 leading-tight">
+            {order.itemCount} {order.itemCount === 1 ? 'item' : 'items'}
+          </h3>
+          <p className="font-sans text-sm text-on-surface-variant">{new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+          <div className="flex items-center justify-between mt-3">
+            <span className="font-serif text-[26px] text-primary">{order.totalNetGrams.toFixed(3)} g</span>
+            <button
+              type="button"
+              onClick={() => setOpen(open === order.poId ? null : order.poId)}
+              aria-expanded={open === order.poId}
+              className="min-h-11 px-4 rounded-xl border-[1.5px] border-outline-variant font-sans text-sm font-extrabold text-primary"
+            >
+              {open === order.poId ? 'Hide items' : 'View items'}
+            </button>
           </div>
-          <div className="flex items-center justify-between pt-1.5 border-t border-surface-container text-xs font-sans text-outline">
-            <span>{order.itemCount} items</span>
-            <span className="font-mono font-bold text-primary">{order.totalNetGrams.toFixed(3)} g net</span>
-          </div>
-        </div>
+          {open === order.poId && (
+            <ul className="mt-3 pt-3 border-t border-outline-variant flex flex-col gap-3">
+              {order.items.map((item) => (
+                <li key={item.id} className="flex items-center gap-3">
+                  <img src={item.image} alt="" className="w-12 h-12 rounded-xl object-cover bg-surface-container flex-shrink-0" referrerPolicy="no-referrer" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-sans text-[15px] font-bold text-on-surface truncate">{item.title}</p>
+                    <p className="font-sans text-sm text-on-surface-variant">
+                      {item.purity} · {item.batchQty} {item.qtyUnit} · {item.totalNetGold.toFixed(3)} g
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
       ))}
     </div>
   );
@@ -103,234 +103,104 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     setConfirmedPO(result.poId);
   };
 
+  const waLink = `https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(bookedMessage)}`;
+
+  // Just booked: a calm confirmation instead of a banner
+  if (confirmedPO && tab === 'current' && orders.length === 0) {
+    return (
+      <div className="flex flex-col items-center text-center w-full max-w-md mx-auto px-6 pt-16 pb-36 gap-2">
+        <div className="w-20 h-20 rounded-full bg-success-container text-success flex items-center justify-center">
+          <span className="material-symbols-outlined text-[40px]">check</span>
+        </div>
+        <h1 className="font-serif text-[30px] text-primary mt-3">{sector.copy.orders.bookedBanner}</h1>
+        <p className="font-sans text-[15px] text-on-surface-variant">
+          {confirmedPO}
+          <br />
+          {bookedGrams.toFixed(3)} g net
+        </p>
+        <p className="font-sans text-[15px] text-on-surface-variant max-w-[30ch]">{merchant.orders.bookedNote ? `Your order is booked, ${merchant.orders.bookedNote}` : 'We will confirm on WhatsApp shortly.'}</p>
+        <a href={waLink} target="_blank" rel="noreferrer" className={`${btnWhatsApp} mt-4 max-w-xs`}>
+          Send order on WhatsApp
+        </a>
+        <button
+          type="button"
+          onClick={() => {
+            setConfirmedPO(null);
+            setIsBooked(false);
+            setTab('past');
+          }}
+          className="min-h-11 px-3 font-sans text-sm font-bold text-primary hover:underline"
+        >
+          View past orders
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col w-full pb-36 max-w-lg md:max-w-3xl mx-auto px-4 pt-3">
-      {/* Verified B2B Buyer Credentials Card */}
-      <div className="bg-white rounded-xl shadow-xs p-3.5 flex flex-col gap-2 border border-outline-variant/40 mb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <h1 className="font-serif text-[16px] font-bold text-on-surface leading-tight truncate">
-                Order Summary
-              </h1>
-              <span className="font-sans text-xs text-outline truncate">
-                {sector.copy.orders.summarySubtitle}
-              </span>
-            </div>
-          </div>
-          <span className="bg-primary/10 text-primary font-mono text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider flex-shrink-0">
-            {orders.length} {orders.length === 1 ? 'item' : 'items'}
-          </span>
-        </div>
+    <div className="flex flex-col w-full pb-72 max-w-2xl mx-auto">
+      <PageTitle title="Orders" />
+      <div className="px-5 mb-4">
+        <Segmented
+          options={[
+            { key: 'current', label: 'Current order' },
+            { key: 'past', label: 'Past orders' }
+          ]}
+          value={tab}
+          onChange={(key) => setTab(key as 'current' | 'past')}
+        />
       </div>
-
-      <div className="grid grid-cols-2 gap-1 p-1 mb-3 bg-surface-container rounded-lg">
-        {(['current', 'past'] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`py-1.5 rounded-md font-sans text-xs font-bold transition-all ${
-              tab === key ? 'bg-white text-primary shadow-xs' : 'text-outline'
-            }`}
-          >
-            {key === 'current' ? 'Current order' : 'Past orders'}
-          </button>
-        ))}
-      </div>
-
-      {/* Confirmation Success Banner */}
-      {confirmedPO && (
-        <div className="bg-secondary-container border border-secondary rounded-xl p-3.5 text-on-secondary-fixed mb-3 animate-fade-in shadow-sm">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <span className="material-symbols-outlined text-[20px] text-secondary">verified</span>
-            <span>{sector.copy.orders.bookedBanner}: {confirmedPO}</span>
-          </div>
-          <p className="text-xs mt-1 text-on-secondary-fixed-variant">
-            {sector.copy.orders.bookedText(bookedGrams.toFixed(3))} {merchant.orders.bookedNote ?? 'booked.'}
-          </p>
-          <a
-            href={`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(bookedMessage)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-white text-xs font-sans font-bold"
-          >
-            <span className="material-symbols-outlined text-[16px]">send</span>
-            Send confirmation on WhatsApp
-          </a>
-        </div>
-      )}
 
       {tab === 'past' ? (
         <PastOrders orders={history} />
       ) : orders.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40 shadow-xs my-4">
-          <span className="material-symbols-outlined text-4xl text-outline mb-2">shopping_bag</span>
-          <h3 className="font-serif text-base font-bold text-on-surface">{sector.copy.orders.emptyTitle}</h3>
-          <p className="text-xs text-outline mt-1 max-w-xs mx-auto">
-            {sector.copy.orders.emptyText}
-          </p>
-          <button
-            onClick={onNavigateCatalogue}
-            className="mt-4 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg shadow-sm"
-          >
-            Explore Catalogue
+        <div className="flex flex-col items-center text-center gap-2 px-8 pt-14">
+          <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">shopping_bag</span>
+          <h3 className="font-serif text-[24px] text-primary">{sector.copy.orders.emptyTitle}</h3>
+          <p className="font-sans text-[15px] text-on-surface-variant max-w-xs">{sector.copy.orders.emptyText}</p>
+          <button onClick={onNavigateCatalogue} className={`${btnPrimary} mt-3 max-w-xs`}>
+            Browse designs
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {orders.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl shadow-xs border border-outline-variant/40 overflow-hidden flex flex-col"
-            >
-              <div className="p-3 flex gap-3">
-                <img
-                  className="w-20 h-20 rounded-lg object-cover flex-shrink-0 bg-surface-container"
-                  src={item.image}
-                  alt={item.title}
-                  referrerPolicy="no-referrer"
-                />
-                <div className="flex flex-col flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-1">
-                    <span className="font-sans text-xs text-on-surface font-bold truncate min-w-0 flex-1">
-                      {item.title}
-                    </span>
-                    <span className="bg-primary-fixed/40 text-tertiary-dark font-mono text-xs px-1.5 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0">
-                      {item.purity}
-                    </span>
-                  </div>
-                  <span className="font-mono text-xs text-outline mb-1">
-                    SKU: {item.sku}
-                  </span>
-                  <div className="flex items-center justify-between mt-auto pt-1">
-                    <div className="flex flex-col">
-                      <span className="text-xs uppercase font-bold tracking-wider text-outline">
-                        {sector.copy.orders.lineWeightLabel}
-                      </span>
-                      <span className="font-mono text-[14px] font-bold text-primary tracking-tight">
-                        {item.totalNetGold.toFixed(3)}{' '}
-                        <span className="text-xs font-normal text-on-surface">g</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs uppercase font-bold tracking-wider text-outline">
-                        Batch Qty
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-surface-container font-mono text-xs font-bold text-on-surface">
-                        {item.batchQty} {item.qtyUnit}
-                      </span>
-                    </div>
-                  </div>
+        <>
+          <ul className="flex flex-col bg-white border-y border-outline-variant">
+            {orders.map((item) => (
+              <li key={item.id} className="grid grid-cols-[64px_1fr_44px] items-center gap-3 px-5 py-3 border-b border-surface-container last:border-b-0">
+                <img src={item.image} alt="" className="w-16 h-16 rounded-2xl object-cover bg-surface-container" referrerPolicy="no-referrer" />
+                <div className="min-w-0">
+                  <p className="font-sans text-[15.5px] font-bold text-on-surface truncate">{item.title}</p>
+                  <p className="font-sans text-sm text-on-surface-variant">
+                    {item.purity} · {item.unitWt.toFixed(2)} g × {item.batchQty}
+                  </p>
+                  <p className="font-sans text-sm font-extrabold text-primary">{item.totalNetGold.toFixed(3)} g</p>
                 </div>
-              </div>
-
-              {/* Unit Wt Strip */}
-              <div className="bg-surface-container-low px-3 py-1 flex items-center justify-between text-xs border-t border-outline-variant/30">
-                <span className="text-outline text-xs font-sans">{sector.copy.orders.unitWeightLabel}</span>
-                <span className="font-mono text-xs font-semibold text-on-surface">
-                  {item.unitDescription || `${item.unitWt.toFixed(3)} g / pc`}
-                </span>
-              </div>
-
-              {/* Note / Hallmark Detail and Delete */}
-              <div className="px-3 py-1.5 bg-surface-container flex items-center justify-between">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {item.note && (
-                    <>
-                      <span className="material-symbols-outlined text-[15px] text-primary-container">verified</span>
-                      <span className="text-xs font-sans text-on-surface-variant truncate">{item.note}</span>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={() => onRemoveItem(item.id)}
-                  aria-label="Remove item"
-                  className="text-outline hover:text-error transition-colors p-1"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[17px]">delete</span>
+                <button onClick={() => onRemoveItem(item.id)} aria-label={`Remove ${item.title}`} className="w-11 h-11 flex items-center justify-center text-outline hover:text-error" type="button">
+                  <span className="material-symbols-outlined text-[22px]">close</span>
                 </button>
-              </div>
-            </div>
-          ))}
+              </li>
+            ))}
+          </ul>
+          <p className="font-sans text-sm text-on-surface-variant text-center px-8 mt-4">{merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}</p>
 
-          {/* Aggregate Order Weight Summary */}
-          <div className="bg-white rounded-xl shadow-xs p-3 flex flex-col gap-1 border border-outline-variant/40 mt-1">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-surface-container-low p-2.5 rounded-lg flex flex-col">
-                <span className="text-xs uppercase font-bold tracking-wider text-outline">
-                  {sector.copy.orders.totalWeightLabel}
-                </span>
-                <span className="font-mono text-base font-bold text-primary tracking-tight">
-                  {totalNetGold.toFixed(3)}{' '}
-                  <span className="text-xs font-normal text-on-surface">g Net</span>
+          {/* Total and actions sit above the bottom navigation */}
+          <div className="fixed inset-x-0 bottom-16 z-40 px-3 pb-2">
+            <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-outline-variant shadow-[0_-6px_24px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-2.5">
+              <div className="flex items-baseline justify-between">
+                <span className="font-serif text-[26px] text-primary">{totalNetGold.toFixed(3)} g net</span>
+                <span className="font-sans text-sm font-bold text-on-surface-variant">
+                  {orders.length} {orders.length === 1 ? 'design' : 'designs'} · {totalPieces} pcs
                 </span>
               </div>
-              <div className="bg-surface-container-low p-2.5 rounded-lg flex flex-col">
-                <span className="text-xs uppercase font-bold tracking-wider text-outline">
-                  {sector.copy.orders.dispatchLabel}
-                </span>
-                <span className="font-mono text-base font-bold text-on-surface tracking-tight">
-                  {orders.length} {orders.length === 1 ? 'item' : 'items'}{' '}
-                  <span className="text-xs font-normal text-outline">({totalPieces} pcs)</span>
-                </span>
-              </div>
+              <button onClick={handleConfirm} disabled={isBooked} className={btnPrimary} type="button">
+                {isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta}
+              </button>
+              <button onClick={onGenerateWhatsAppPO} className={btnOutline} type="button">
+                {sector.copy.orders.whatsappCta.title}
+              </button>
             </div>
           </div>
-
-          {/* Dual Action Direct Wholesaler Buttons */}
-          <div className="flex flex-col gap-2 mt-2">
-            {/* WhatsApp Purchase Order & PDF CTA */}
-            <button
-              onClick={onGenerateWhatsAppPO}
-              className="w-full bg-secondary hover:bg-secondary-dark text-white rounded-xl py-3 px-3 flex items-center justify-center gap-2.5 shadow-md transition-all active:scale-[0.98]"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[22px]">send</span>
-              <div className="flex flex-col items-start text-left min-w-0">
-                <span className="font-sans text-xs font-bold tracking-tight text-white leading-tight">
-                  {sector.copy.orders.whatsappCta.title}
-                </span>
-                <span className="font-sans text-xs text-white/80 leading-tight">
-                  {sector.copy.orders.whatsappCta.subtitle}
-                </span>
-              </div>
-            </button>
-
-            {/* Primary Lock & Confirm Order CTA */}
-            <button
-              onClick={handleConfirm}
-              disabled={isBooked}
-              className={`w-full rounded-xl py-3 px-3 flex items-center justify-center shadow-md transition-all active:scale-[0.98] ${
-                isBooked
-                  ? 'bg-secondary text-white cursor-default'
-                  : 'bg-primary-container hover:bg-primary text-white'
-              }`}
-              type="button"
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[20px]">
-                  {isBooked ? 'check_circle' : 'verified'}
-                </span>
-                <span className="font-sans text-xs font-bold uppercase tracking-wider">
-                  {isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta}
-                </span>
-              </div>
-            </button>
-          </div>
-
-          {/* Verification Footnote */}
-          <div className="flex items-center justify-center gap-1.5 pt-2 pb-6 text-center text-outline">
-            <span className="material-symbols-outlined text-[15px] text-secondary">encrypted</span>
-            <span className="font-sans text-xs">
-              {merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}
-            </span>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { VisitorDetail, VisitorSummary } from '../types';
 import { api } from '../api';
+import { PageTitle, Notice, btnLink } from './ui';
 
 const duration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;
@@ -18,11 +19,13 @@ const ago = (iso: string) => {
 };
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-2 flex flex-col">
-    <span className="text-xs uppercase tracking-wider text-outline font-semibold">{label}</span>
-    <span className="font-mono text-[13px] font-bold text-on-surface">{value}</span>
+  <div className="flex flex-col">
+    <span className="font-serif text-[26px] leading-none text-primary">{value}</span>
+    <span className="font-sans text-sm text-on-surface-variant mt-1">{label}</span>
   </div>
 );
+
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => <h2 className="font-serif text-[22px] text-primary mt-6 mb-2 px-5">{children}</h2>;
 
 export const AdminVisitorsScreen: React.FC = () => {
   const [rows, setRows] = useState<VisitorSummary[] | null>(null);
@@ -65,78 +68,71 @@ export const AdminVisitorsScreen: React.FC = () => {
 
   if (openId) {
     return (
-      <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-4">
-        <button onClick={() => setOpenId(null)} className="self-start flex items-center gap-1 text-xs font-sans font-bold text-primary">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          All visitors
-        </button>
+      <div className="flex flex-col w-full pb-32 max-w-xl mx-auto">
+        <div className="px-2 pt-1">
+          <button onClick={() => setOpenId(null)} className={btnLink}>
+            &larr; All buyers
+          </button>
+        </div>
         {!detail ? (
-          <p className="text-xs text-outline text-center py-8">{error ?? 'Loading…'}</p>
+          <p className="font-sans text-sm text-outline text-center py-10">{error ?? 'Loading…'}</p>
         ) : (
           <>
-            <div>
-              <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">
-                {detail.kind === 'verified' ? 'Buyer' : 'Guest visitor'}
-              </span>
-              <h1 className="font-serif text-[22px] font-bold text-on-surface leading-tight">{detail.name}</h1>
-              <span className="font-sans text-xs text-outline">Last seen {ago(detail.lastSeen)} · last 30 days</span>
-            </div>
+            <PageTitle title={detail.name} sub={`${detail.kind === 'verified' ? 'Buyer' : 'Guest visitor'} · last seen ${ago(detail.lastSeen)} · last 30 days`} />
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-y-5 gap-x-3 px-5">
               <Stat label="Time in app" value={duration(detail.activeSeconds)} />
               <Stat label="Looking at designs" value={duration(detail.dwellSeconds)} />
               <Stat label="Visits" value={String(detail.sessions)} />
               <Stat label="Designs seen" value={String(detail.productsViewed)} />
-              <Stat label="Selected" value={String(detail.selections)} />
+              <Stat label="Hearted" value={String(detail.selections)} />
               <Stat label="Added to order" value={String(detail.addedToCart)} />
             </div>
 
-            <section className="bg-white rounded-xl border border-outline-variant/40 p-3 flex flex-col gap-2">
-              <h2 className="font-serif text-[15px] font-bold text-on-surface">Designs they spent time on</h2>
-              {detail.products.length === 0 ? (
-                <p className="text-xs text-outline">No design views recorded yet.</p>
-              ) : (
-                detail.products.map((p) => (
-                  <div key={p.sku} className="flex items-center justify-between gap-2 text-xs font-sans">
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-on-surface truncate">{p.title}</span>
-                      <span className="font-mono text-xs text-outline">{p.sku}</span>
+            <SectionTitle>Designs they spent time on</SectionTitle>
+            {detail.products.length === 0 ? (
+              <p className="font-sans text-[15px] text-on-surface-variant px-5">No design views recorded yet.</p>
+            ) : (
+              <ul>
+                {detail.products.map((pr) => (
+                  <li key={pr.sku} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-surface-container">
+                    <div className="min-w-0">
+                      <p className="font-sans text-[15.5px] font-bold text-on-surface truncate">{pr.title}</p>
+                      <p className="font-sans text-sm text-on-surface-variant">{pr.sku}</p>
                     </div>
-                    <span className="font-mono font-bold text-primary whitespace-nowrap">{duration(p.seconds)}</span>
-                  </div>
-                ))
-              )}
-            </section>
+                    <span className="font-sans text-[15px] font-extrabold text-primary whitespace-nowrap">{duration(pr.seconds)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            <section className="bg-white rounded-xl border border-outline-variant/40 p-3 flex flex-col gap-2">
-              <h2 className="font-serif text-[15px] font-bold text-on-surface">What they searched for</h2>
-              {detail.searchTerms.length === 0 ? (
-                <p className="text-xs text-outline">No searches yet.</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {detail.searchTerms.map((t) => (
-                    <span key={t.term} className="px-2.5 py-1 rounded-full bg-surface-container text-xs font-sans text-on-surface">
-                      {t.term}
-                      {t.count > 1 ? ` ×${t.count}` : ''}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </section>
+            <SectionTitle>What they searched for</SectionTitle>
+            {detail.searchTerms.length === 0 ? (
+              <p className="font-sans text-[15px] text-on-surface-variant px-5">No searches yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 px-5">
+                {detail.searchTerms.map((t) => (
+                  <span key={t.term} className="px-4 py-2 rounded-full bg-white border-[1.5px] border-outline-variant font-sans text-sm font-bold text-on-surface">
+                    {t.term}
+                    {t.count > 1 ? ` ×${t.count}` : ''}
+                  </span>
+                ))}
+              </div>
+            )}
 
-            <section className="bg-white rounded-xl border border-outline-variant/40 p-3 flex flex-col gap-2">
-              <h2 className="font-serif text-[15px] font-bold text-on-surface">Selected or added to order</h2>
-              {detail.picked.length === 0 ? (
-                <p className="text-xs text-outline">Nothing selected yet.</p>
-              ) : (
-                detail.picked.map((p) => (
-                  <div key={p.sku} className="flex items-center justify-between text-xs font-sans">
-                    <span className="font-semibold text-on-surface truncate">{p.title}</span>
-                    <span className="font-mono text-outline whitespace-nowrap">{ago(p.lastAt)}</span>
-                  </div>
-                ))
-              )}
-            </section>
+            <SectionTitle>Hearted or added to order</SectionTitle>
+            {detail.picked.length === 0 ? (
+              <p className="font-sans text-[15px] text-on-surface-variant px-5">Nothing yet.</p>
+            ) : (
+              <ul>
+                {detail.picked.map((pr) => (
+                  <li key={pr.sku} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-surface-container">
+                    <span className="font-sans text-[15.5px] font-bold text-on-surface truncate">{pr.title}</span>
+                    <span className="font-sans text-sm text-on-surface-variant whitespace-nowrap">{ago(pr.lastAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         )}
       </div>
@@ -144,44 +140,44 @@ export const AdminVisitorsScreen: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-4">
-      <div>
-        <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">Buyer engagement</span>
-        <h1 className="font-serif text-[22px] font-bold text-on-surface">Buyers</h1>
-        <p className="font-sans text-xs text-outline">Tap a buyer to see which designs held their attention. Last 30 days, refreshed every 15 seconds.</p>
-      </div>
+    <div className="flex flex-col w-full pb-32 max-w-xl mx-auto">
+      <PageTitle title="Buyer engagement" sub="Tap a buyer to see which designs held their attention. Last 30 days, refreshed every 15 seconds." />
 
-      {error && <p className="text-xs text-error font-semibold">{error}</p>}
-      {rows === null && !error && <p className="text-xs text-outline text-center py-8">Loading…</p>}
+      <div className="px-5">{error && <Notice tone="error">{error}</Notice>}</div>
+      {rows === null && !error && <p className="font-sans text-sm text-outline text-center py-8">Loading…</p>}
       {rows?.length === 0 && (
-        <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40">
-          <span className="material-symbols-outlined text-4xl text-outline">groups</span>
-          <p className="text-xs text-outline mt-1">No one has been tracked yet. Buyers appear here once they sign in and browse.</p>
+        <div className="flex flex-col items-center text-center gap-2 px-8 pt-10">
+          <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">groups</span>
+          <p className="font-sans text-[15px] text-on-surface-variant">No one has been tracked yet. Buyers appear here once they sign in and browse.</p>
         </div>
       )}
-      <div className="flex flex-col gap-2" data-testid="visitor-list">
+      <ul className="flex flex-col" data-testid="visitor-list">
         {rows?.map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            onClick={() => setOpenId(v.id)}
-            className="text-left bg-white rounded-xl border border-outline-variant/40 p-3 flex items-center justify-between gap-3 active:scale-[0.99] transition-all"
-          >
-            <div className="flex flex-col min-w-0">
-              <span className="font-sans text-sm font-bold text-on-surface truncate">{v.name}</span>
-              <span className="font-sans text-xs text-outline">
-                {v.kind === 'guest' ? 'Guest · ' : ''}Seen {ago(v.lastSeen)}
+          <li key={v.id}>
+            <button
+              type="button"
+              onClick={() => setOpenId(v.id)}
+              className="w-full text-left grid grid-cols-[48px_1fr_auto] items-center gap-3 px-5 py-3 border-b border-surface-container active:bg-surface-container-low"
+            >
+              <span className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-sans text-lg font-extrabold">
+                {v.name.charAt(0).toUpperCase()}
               </span>
-            </div>
-            <div className="flex flex-col items-end font-mono text-xs text-on-surface whitespace-nowrap">
-              <span className="font-bold text-primary">{duration(v.activeSeconds)} in app</span>
-              <span className="text-outline">
-                {v.productsViewed} seen · {v.searches} searches
-              </span>
-            </div>
-          </button>
+              <div className="min-w-0">
+                <p className="font-sans text-[15.5px] font-bold text-on-surface truncate">{v.name}</p>
+                <p className="font-sans text-sm text-on-surface-variant">
+                  {v.kind === 'guest' ? 'Guest · ' : ''}Seen {ago(v.lastSeen)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-sans text-[15px] font-extrabold text-primary whitespace-nowrap">{duration(v.activeSeconds)}</p>
+                <p className="font-sans text-sm text-on-surface-variant whitespace-nowrap">
+                  {v.productsViewed} seen · {v.searches} searches
+                </p>
+              </div>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 };

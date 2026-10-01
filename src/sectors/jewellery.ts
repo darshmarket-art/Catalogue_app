@@ -17,8 +17,6 @@ export const jewelleryPack = {
 
   copy: {
     tradingModel: 'Pure Gram Basis',
-    headerTicker: { label: 'Pure Gram Settlement', badge: '916 / 999.9 Purity' },
-    categorySearchPlaceholder: 'Search 22K, 18K, Polki, Diamond or Bullion...',
     orders: {
       summarySubtitle: 'Review your items before you order',
       emptyTitle: 'Your order is empty',
@@ -65,16 +63,15 @@ export const jewelleryPack = {
     totalNetWeight: number;
   }): string {
     const { brandName, clientFirm, clientCity, items, selectedCount, totalNetWeight } = args;
-    const netOf = (needle: string) => items.filter((i) => i.purity.includes(needle)).reduce((sum, i) => sum + i.netWt, 0);
     const totalGross = items.reduce((sum, i) => sum + i.grossWt, 0);
+    const byPurity = Object.entries(items.reduce<Record<string, number>>((acc, i) => ({ ...acc, [i.purity]: (acc[i.purity] ?? 0) + i.netWt }), {}));
     return (
       `*${brandName.toUpperCase()} — WHOLESALE GRAM-BASIS REQUISITION*\n` +
       `*Client:* ${clientFirm}${clientCity ? ` (${clientCity})` : ''}\n` +
       `*Settlement Basis:* Pure Net Gold Weight (No Fiat Price Lock)\n` +
       `*Total Items:* ${selectedCount} Pieces\n` +
       `*Total Net Gold:* ${totalNetWeight.toFixed(3)}g Net\n` +
-      `  • 22K (916) Net Wt: ${netOf('22K').toFixed(3)}g\n` +
-      `  • 24K (999.9) Pure Wt: ${netOf('24K').toFixed(3)}g\n` +
+      byPurity.map(([purity, grams]) => `  • ${purity} Net Wt: ${grams.toFixed(3)}g\n`).join('') +
       `  • Total Gross Weight: ${totalGross.toFixed(3)}g\n\n` +
       `*Itemized SKU Manifest:*\n` +
       items.map((it) => `• ${it.title} (${it.sku}) — Net: ${it.netWt}g [${it.purity}]`).join('\n') +

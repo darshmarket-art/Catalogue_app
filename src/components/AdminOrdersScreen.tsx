@@ -1,15 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { AdminOrder, OrderStatus } from '../types';
+import { PageTitle, Chip, StatusTag, Notice } from './ui';
 
 const STATUSES: OrderStatus[] = ['new', 'confirmed', 'dispatched', 'cancelled'];
-
-const STATUS_STYLE: Record<OrderStatus, string> = {
-  new: 'bg-primary-fixed text-on-tertiary-fixed',
-  confirmed: 'bg-secondary-fixed text-on-secondary-fixed',
-  dispatched: 'bg-secondary text-white',
-  cancelled: 'bg-error-container text-error'
-};
 
 const label = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
 
@@ -60,154 +54,107 @@ export const AdminOrdersScreen: React.FC = () => {
   const count = (s: OrderStatus) => (orders ?? []).filter((o) => o.status === s).length;
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-xl md:max-w-4xl mx-auto px-4 pt-3 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <span className="font-mono text-xs text-primary font-bold tracking-wider uppercase">Order Desk</span>
-          <h1 className="font-serif text-[22px] font-bold text-on-surface tracking-tight">Orders</h1>
-        </div>
-        <button
-          type="button"
-          onClick={load}
-          className="px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-sans text-xs font-semibold flex items-center gap-1 hover:bg-surface-container-high"
-        >
-          <span className="material-symbols-outlined text-[15px]">refresh</span>
-          Refresh
-        </button>
-      </div>
+    <div className="flex flex-col w-full pb-32 max-w-2xl mx-auto">
+      <PageTitle title="Orders" sub={`Every order from every buyer${updatedAt ? ` · updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}`} />
 
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {(['all', ...STATUSES] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setFilter(s)}
-            className={`px-3 py-1 rounded-full font-sans text-xs font-semibold whitespace-nowrap border transition-colors ${
-              filter === s
-                ? 'bg-primary text-white border-primary'
-                : 'bg-white text-on-surface-variant border-outline-variant/50 hover:bg-surface-container-low'
-            }`}
-          >
-            {s === 'all' ? `All (${orders?.length ?? 0})` : `${label(s)} (${count(s)})`}
-          </button>
+      <div className="flex gap-2 overflow-x-auto px-5 pb-4">
+        {(['all', ...STATUSES] as const).map((st) => (
+          <Chip key={st} active={filter === st} onClick={() => setFilter(st)}>
+            {st === 'all' ? `All ${orders?.length ?? 0}` : `${label(st)} ${count(st)}`}
+          </Chip>
         ))}
       </div>
 
-      <p className="font-sans text-xs text-outline">
-        Refreshes every 15 seconds{updatedAt ? ` • updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}
-      </p>
+      <div className="px-5 flex flex-col gap-3">
+        {error && <Notice tone="error">{error}</Notice>}
+        {orders === null && !error && <p className="font-sans text-sm text-outline">Loading orders…</p>}
 
-      {error && (
-        <div className="bg-error-container text-error p-3 rounded-xl text-xs font-sans border border-error/30">{error}</div>
-      )}
+        {orders !== null && visible.length === 0 && (
+          <div className="flex flex-col items-center text-center gap-2 pt-12">
+            <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">inbox</span>
+            <h3 className="font-serif text-[24px] text-primary">No orders here yet</h3>
+            <p className="font-sans text-[15px] text-on-surface-variant">{filter === 'all' ? 'Orders placed by your buyers will appear here.' : `There are no ${filter} orders.`}</p>
+          </div>
+        )}
 
-      {orders === null && !error && <p className="text-xs text-outline font-sans">Loading orders…</p>}
+        {visible.map((order) => {
+          const buyer = order.buyer;
+          const isOpen = expanded === order.poId;
+          return (
+            <article key={order.poId} className="rounded-3xl bg-white border border-outline-variant p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-sans text-sm font-extrabold text-on-surface-variant truncate">{order.poId}</span>
+                <StatusTag status={order.status} />
+              </div>
+              <h2 className="font-serif text-[22px] text-primary leading-tight mt-2 truncate">{order.firmName}</h2>
+              <p className="font-sans text-sm text-on-surface-variant">
+                {buyer?.marketHub ? `${buyer.marketHub} · ` : ''}
+                {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+              </p>
 
-      {orders !== null && visible.length === 0 && (
-        <div className="bg-white rounded-xl p-8 text-center border border-outline-variant/40 shadow-xs">
-          <span className="material-symbols-outlined text-4xl text-outline mb-2">inbox</span>
-          <h3 className="font-serif text-base font-bold text-on-surface">No orders here yet</h3>
-          <p className="text-xs text-outline mt-1">
-            {filter === 'all' ? 'Orders placed by your buyers will appear here.' : `There are no ${filter} orders.`}
-          </p>
-        </div>
-      )}
-
-      {visible.map((order) => {
-        const buyer = order.buyer;
-        const isOpen = expanded === order.poId;
-        return (
-          <div key={order.poId} className="bg-white rounded-xl shadow-xs border border-outline-variant/40 overflow-hidden">
-            <div className="p-3.5 flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-mono text-xs font-bold text-primary">{order.poId}</span>
-                  <h3 className="font-serif text-[15px] font-bold text-on-surface leading-tight truncate">{order.firmName}</h3>
-                  <span className="font-sans text-xs text-outline">
-                    {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+              <div className="flex items-end justify-between mt-3 gap-3">
+                <div>
+                  <span className="font-serif text-[28px] text-primary leading-none">{order.totalNetGrams.toFixed(3)} g</span>
+                  <span className="font-sans text-sm text-on-surface-variant ml-2">
+                    {order.itemCount} {order.itemCount === 1 ? 'item' : 'items'}
                   </span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full font-mono text-xs font-bold uppercase tracking-wider ${STATUS_STYLE[order.status]}`}>
-                  {order.status}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-surface-container-low rounded-lg p-2">
-                  <span className="text-xs uppercase font-bold tracking-wider text-outline block">Net weight</span>
-                  <span className="font-mono text-sm font-bold text-primary">{order.totalNetGrams.toFixed(3)} g</span>
-                </div>
-                <div className="bg-surface-container-low rounded-lg p-2">
-                  <span className="text-xs uppercase font-bold tracking-wider text-outline block">Items</span>
-                  <span className="font-mono text-sm font-bold text-on-surface">{order.itemCount}</span>
-                </div>
-              </div>
-
-              {buyer && (
-                <div className="flex items-center justify-between gap-2 text-xs font-sans text-on-surface-variant">
-                  <span className="truncate">
-                    {buyer.ownerName}
-                    {buyer.marketHub ? ` • ${buyer.marketHub}` : ''}
-                  </span>
-                  <a
-                    href={`tel:${buyer.phone}`}
-                    className="flex items-center gap-1 text-secondary font-semibold whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">call</span>
-                    {buyer.phone}
-                  </a>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-surface-container">
-                <button
-                  type="button"
-                  onClick={() => setExpanded(isOpen ? null : order.poId)}
-                  className="text-xs font-sans font-semibold text-primary flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-[16px]">{isOpen ? 'expand_less' : 'expand_more'}</span>
-                  {isOpen ? 'Hide items' : 'View items'}
-                </button>
-                <label className="flex items-center gap-1.5 text-xs font-sans text-outline">
-                  Status
+                <label className="flex items-center gap-2 font-sans text-sm text-on-surface-variant">
+                  <span className="sr-only">Status</span>
                   <select
                     value={order.status}
                     onChange={(e) => changeStatus(order, e.target.value as OrderStatus)}
-                    className="bg-surface-container-low border border-outline-variant/50 rounded-lg px-2 py-1 text-xs font-semibold text-on-surface"
+                    className="h-11 bg-white border-[1.5px] border-outline-variant rounded-xl px-3 font-sans text-sm font-extrabold text-on-surface focus:outline-none focus:border-primary"
                   >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {label(s)}
+                    {STATUSES.map((st) => (
+                      <option key={st} value={st}>
+                        {label(st)}
                       </option>
                     ))}
                   </select>
                 </label>
               </div>
-            </div>
 
-            {isOpen && (
-              <div className="bg-surface-container-low border-t border-outline-variant/30 divide-y divide-outline-variant/20">
-                {order.items.map((item) => (
-                  <div key={item.id} className="px-3.5 py-2 flex items-center justify-between gap-2 text-xs font-sans">
-                    <div className="min-w-0">
-                      <span className="font-bold text-on-surface block truncate">{item.title}</span>
-                      <span className="font-mono text-xs text-outline">
-                        {item.sku} • {item.purity}
-                      </span>
-                    </div>
-                    <div className="text-right whitespace-nowrap">
-                      <span className="font-mono font-bold text-primary block">{item.totalNetGold.toFixed(3)} g</span>
-                      <span className="font-mono text-xs text-outline">
-                        {item.batchQty} {item.qtyUnit}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isOpen ? null : order.poId)}
+                  aria-expanded={isOpen}
+                  className="min-h-11 px-3 -ml-3 font-sans text-sm font-extrabold text-primary"
+                >
+                  {isOpen ? 'Hide items' : 'View items'}
+                </button>
+                {buyer && (
+                  <a href={`tel:${buyer.phone}`} className="min-h-11 px-3 -mr-3 flex items-center font-sans text-sm font-extrabold text-primary">
+                    Call {buyer.ownerName || 'buyer'} · {buyer.phone}
+                  </a>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })}
+
+              {isOpen && (
+                <ul className="mt-1 flex flex-col gap-3 pt-3 border-t border-outline-variant">
+                  {order.items.map((item) => (
+                    <li key={item.id} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-sans text-[15px] font-bold text-on-surface truncate">{item.title}</p>
+                        <p className="font-sans text-sm text-on-surface-variant">
+                          {item.sku} · {item.purity}
+                        </p>
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <p className="font-sans text-[15px] font-extrabold text-primary">{item.totalNetGold.toFixed(3)} g</p>
+                        <p className="font-sans text-sm text-on-surface-variant">
+                          {item.batchQty} {item.qtyUnit}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 };

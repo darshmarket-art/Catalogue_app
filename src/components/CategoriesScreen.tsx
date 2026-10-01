@@ -18,29 +18,23 @@ const PROMO_LOOKS = {
   gold: {
     background: 'from-on-surface via-on-tertiary-fixed to-on-surface',
     tag: 'bg-primary text-white',
-    stamp: 'text-primary-fixed-dim',
     title: 'text-primary-fixed',
     subtitle: 'text-surface-container-highest',
-    action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed hover:bg-primary-fixed/30 transition-colors',
-    note: 'text-surface-container-highest'
+    action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed hover:bg-primary-fixed/30 transition-colors'
   },
   green: {
     background: 'from-secondary-deep via-secondary to-secondary-deep',
     tag: 'bg-secondary-fixed text-on-secondary-fixed',
-    stamp: 'text-secondary-fixed',
     title: 'text-white',
     subtitle: 'text-secondary-fixed-dim',
-    action: 'bg-secondary-fixed text-on-secondary-fixed shadow-sm',
-    note: 'text-secondary-fixed-dim'
+    action: 'bg-secondary-fixed text-on-secondary-fixed shadow-sm'
   },
   brown: {
     background: 'from-brown-darker via-brown-dark to-brown-darkest',
     tag: 'bg-primary-fixed text-on-tertiary-fixed',
-    stamp: 'text-primary-fixed-dim',
     title: 'text-primary-fixed',
     subtitle: 'text-surface-container-highest',
-    action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed',
-    note: 'text-surface-container-highest'
+    action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed'
   }
 } as const;
 
@@ -124,18 +118,18 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
 
   const { contact } = merchant;
   const contactLinks: Array<{ label: string; href: string; className: string; icon: React.ReactNode }> = [
-    { label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, className: 'bg-[#25D366]', icon: <MessageCircle size={22} /> },
+    { label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, className: 'bg-whatsapp text-on-whatsapp', icon: <MessageCircle size={22} /> },
     ...(contact.instagramUrl
-      ? [{ label: 'Instagram', href: contact.instagramUrl, className: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', icon: <Instagram size={22} /> }]
+      ? [{ label: 'Instagram', href: contact.instagramUrl, className: 'text-white bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', icon: <Instagram size={22} /> }]
       : []),
-    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, className: 'bg-[#1877F2]', icon: <Facebook size={22} /> }] : []),
-    ...(contact.youtubeUrl ? [{ label: 'YouTube', href: contact.youtubeUrl, className: 'bg-[#FF0000]', icon: <Youtube size={22} /> }] : []),
+    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, className: 'text-white bg-[#1877F2]', icon: <Facebook size={22} /> }] : []),
+    ...(contact.youtubeUrl ? [{ label: 'YouTube', href: contact.youtubeUrl, className: 'text-white bg-[#FF0000]', icon: <Youtube size={22} /> }] : []),
     ...(contact.address
       ? [
           {
             label: contact.showroomLabel ?? 'Showroom',
             href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
-            className: 'bg-primary',
+            className: 'text-on-primary bg-primary',
             icon: <MapPin size={22} />
           }
         ]
@@ -151,21 +145,21 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
     <div className="flex flex-col w-full pb-36 max-w-3xl mx-auto px-4">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs font-sans border border-primary-container/40 animate-fade-in">
-          <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
+        <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2 text-sm font-sans animate-fade-in">
+          <span className="material-symbols-outlined text-success-container text-[18px]">check_circle</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Search & Sort Bar */}
-      <div className="py-2.5 flex items-center gap-2 sticky top-[72px] z-20 bg-surface/95 backdrop-blur-md">
+      <div className="py-2 flex items-center gap-2 sticky top-[72px] z-20 bg-surface/95 backdrop-blur-md">
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[20px]">
+          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">
             search
           </span>
           <input
-            className="w-full pl-10 pr-3 py-2.5 bg-surface-container-low rounded-lg text-on-surface text-xs font-sans border border-outline-variant/40 focus:outline-none focus:bg-white transition-all shadow-xs"
-            placeholder={sector.copy.categorySearchPlaceholder}
+            aria-label="Search the catalogue" className="w-full h-[52px] pl-11 pr-3 bg-white rounded-2xl text-on-surface text-base font-sans border-[1.5px] border-outline-variant focus:outline-none focus:border-primary"
+            placeholder="Search name, SKU or collection"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -192,29 +186,17 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
                   return (
                     <div
                       key={promo.title}
-                      className={`min-w-full h-full snap-center flex flex-col justify-between bg-gradient-to-r ${look.background} p-4 md:px-8 text-white`}
+                      className={`min-w-full h-full snap-center flex flex-col justify-end gap-2 bg-gradient-to-r ${look.background} px-5 pt-4 pb-9 md:px-8 text-white`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className={`${look.tag} font-mono text-xs px-2 py-0.5 rounded font-bold tracking-wider uppercase`}>{promo.tag}</span>
-                        <span className={`font-mono text-xs ${look.stamp} font-bold flex items-center gap-1`}>
-                          <span className="material-symbols-outlined text-[14px]">{promo.stampIcon}</span>
-                          {promo.stampText}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className={`font-serif text-[18px] md:text-[26px] font-bold ${look.title} leading-tight`}>{promo.title}</h4>
-                        <p className={`font-sans text-[12px] md:text-sm ${look.subtitle} opacity-90 mt-0.5 line-clamp-2`}>{promo.subtitle}</p>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <button
-                          onClick={() => onFilterCategoryInCatalogue(promo.title)}
-                          className={`px-2.5 py-1 rounded ${look.action} text-xs font-semibold flex items-center gap-1`}
-                        >
-                          <span className="material-symbols-outlined text-[15px]">{promo.actionIcon}</span>
-                          {promo.actionLabel}
-                        </button>
-                        <span className={`font-mono text-xs ${look.note}`}>{promo.note}</span>
-                      </div>
+                      <span className={`self-start ${look.tag} font-sans text-xs px-2.5 py-1 rounded-full font-extrabold tracking-wide uppercase`}>{promo.tag}</span>
+                      <h3 className={`font-serif text-[24px] md:text-[30px] ${look.title} leading-tight`}>{promo.title}</h3>
+                      <p className={`font-sans text-sm md:text-base ${look.subtitle} line-clamp-2`}>{promo.subtitle}</p>
+                      <button
+                        onClick={() => onFilterCategoryInCatalogue(promo.title)}
+                        className={`self-start min-h-11 px-4 rounded-xl ${look.action} text-sm font-extrabold`}
+                      >
+                        {promo.actionLabel}
+                      </button>
                     </div>
                   );
                 })}
@@ -305,7 +287,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
       {/* Admin menu for one collection */}
       {menuFor && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true" aria-label={`Options for ${menuFor.name}`}>
-          <button type="button" aria-label="Close" className="absolute inset-0 bg-black/50" onClick={() => setMenuFor(null)} />
+          <button type="button" aria-label="Close" className="absolute inset-0 bg-scrim/50" onClick={() => setMenuFor(null)} />
           <div className="relative w-full max-w-md bg-surface rounded-t-3xl p-4 pb-6 animate-fade-in">
             <div className="w-10 h-1 rounded-full bg-outline-variant mx-auto mb-3" />
             <h3 className="font-serif text-[22px] text-primary mb-1">{menuFor.name}</h3>
@@ -342,18 +324,18 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
       )}
 
       {/* Floating contact menu: the owner's own WhatsApp, showroom and social pages (a link only appears once it is set in merchant.json) */}
-      <div className="fixed bottom-[88px] right-3 z-40 flex flex-col items-end gap-2.5">
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-3">
         {speedDialOpen && (
           <div className="flex flex-col items-end gap-2 transition-all duration-300 animate-fade-in">
             {contactLinks.map((link) => (
               <div key={link.label} className="flex items-center gap-2">
-                <span className="bg-on-surface text-inverse-on-surface text-xs font-semibold px-2.5 py-1 rounded-md shadow-md">{link.label}</span>
+                <span className="bg-on-surface text-inverse-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-md">{link.label}</span>
                 <a
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={link.label}
-                  className={`w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform ${link.className}`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform ${link.className}`}
                 >
                   {link.icon}
                 </a>
@@ -366,7 +348,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
           onClick={() => setSpeedDialOpen(!speedDialOpen)}
           aria-expanded={speedDialOpen}
           aria-label={speedDialOpen ? 'Close contact menu' : 'Contact us'}
-          className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-tertiary-dark text-white flex items-center justify-center shadow-xl border-2 border-primary-fixed-dim active:scale-95 transition-all ring-2 ring-primary/30"
+          className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-xl active:scale-95 transition-all"
           type="button"
         >
           <span className="material-symbols-outlined text-[24px]">{speedDialOpen ? 'close' : 'support_agent'}</span>
