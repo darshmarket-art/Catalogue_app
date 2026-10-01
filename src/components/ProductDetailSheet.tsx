@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Product } from '../types';
 import { merchant } from '../merchant';
-import { sector } from '../sector';
 
 interface ProductDetailSheetProps {
   product: Product | null;
@@ -26,7 +25,6 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ product,
   }, [product?.id]);
 
   if (!product) return null;
-  const price = sector.priceLabel(product);
   const details = merchant.productFields.filter((f) => product.extra?.[f.key] !== undefined);
 
   return (
@@ -69,8 +67,6 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ product,
             <h2 className="font-serif text-[20px] font-bold text-on-surface leading-tight">{product.title}</h2>
             <span className="font-sans text-xs text-outline">{product.category}</span>
           </div>
-
-          {price && <div className="font-mono text-sm font-bold text-primary">{price}</div>}
 
           <div className="flex flex-col">
             <div className={row}>

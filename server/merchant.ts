@@ -115,7 +115,8 @@ export const merchantSchema = z.object({
     address: text(200).optional(),
     showroomLabel: text(60).optional(),
     instagramUrl: httpUrl.optional(),
-    facebookUrl: httpUrl.optional()
+    facebookUrl: httpUrl.optional(),
+    youtubeUrl: httpUrl.optional()
   }),
 
   legal: z.object({

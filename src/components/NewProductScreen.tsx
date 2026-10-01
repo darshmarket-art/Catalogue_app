@@ -27,9 +27,6 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [stoneWt, setStoneWt] = useState(editing?.stoneWt ? String(editing.stoneWt) : '');
   const [purity, setPurity] = useState(editing?.purity ?? '');
   const [huid, setHuid] = useState(editing?.huid ?? '');
-  const [priceMode, setPriceMode] = useState<NonNullable<Product['priceMode']>>(editing?.priceMode ?? 'on_request');
-  const [makingCharge, setMakingCharge] = useState(editing?.makingChargePerGram ? String(editing.makingChargePerGram) : '');
-  const [fixedPrice, setFixedPrice] = useState(editing?.fixedPrice ? String(editing.fixedPrice) : '');
   const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
   const [extra, setExtra] = useState<Record<string, string>>(
@@ -58,16 +55,13 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
               ? 'Enter the gross weight'
               : stone >= gross
                 ? 'Stone weight must be less than gross weight'
-                : priceMode === 'fixed' && !(parseFloat(fixedPrice) > 0)
-                  ? 'Enter the fixed price'
-                  : missingExtra
-                    ? `Enter ${missingExtra.label}`
-                    : null;
+                : missingExtra
+                  ? `Enter ${missingExtra.label}`
+                  : null;
 
   const handleSave = async () => {
     if (problem) return;
     setIsSaving(true);
-    const num = (v: string) => (v.trim() === '' ? undefined : parseFloat(v));
     const extraOut = Object.fromEntries(Object.entries(extra).filter(([, v]) => v.trim() !== ''));
     const ok = await onSave(
       {
@@ -78,9 +72,6 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         grossWt: gross,
         stoneWt: stone,
         ...(huid.trim() ? { huid: huid.trim() } : {}),
-        priceMode,
-        ...(priceMode === 'weight' && num(makingCharge) !== undefined ? { makingChargePerGram: num(makingCharge) } : {}),
-        ...(priceMode === 'fixed' ? { fixedPrice: num(fixedPrice) } : {}),
         stockStatus,
         images: photos.map((p) => p.ref),
         extra: extraOut
@@ -222,47 +213,6 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           <label className="text-xs font-sans font-semibold text-on-surface">HUID / hallmark number (optional)</label>
           <input className={`${inputBox} font-mono`} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
         </div>
-      </div>
-
-      {/* Pricing */}
-      <div className={card}>
-        <span className={cardTitle}>Pricing</span>
-        <div className="grid grid-cols-1 gap-2">
-          {sector.priceModes.map((mode) => (
-            <button
-              key={mode.key}
-              type="button"
-              onClick={() => setPriceMode(mode.key)}
-              className={`p-2.5 rounded-lg flex items-center justify-between text-left transition-all border ${
-                priceMode === mode.key
-                  ? 'bg-primary-fixed/30 border-primary-container/60'
-                  : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container-high'
-              }`}
-            >
-              <div className="flex flex-col">
-                <span className="font-sans text-xs font-bold text-on-surface">{mode.title}</span>
-                <span className="text-[10px] text-outline">{mode.sub}</span>
-              </div>
-              <span className="material-symbols-outlined text-[18px] text-primary">
-                {priceMode === mode.key ? 'radio_button_checked' : 'radio_button_unchecked'}
-              </span>
-            </button>
-          ))}
-        </div>
-        {priceMode === 'weight' && (
-          <div className="flex flex-col space-y-1">
-            <label className="text-[11px] font-sans text-outline">Making charge per gram (₹, optional)</label>
-            <input className={`${inputBox} font-mono`} value={makingCharge} onChange={(e) => setMakingCharge(e.target.value)} inputMode="decimal" placeholder="—" />
-          </div>
-        )}
-        {priceMode === 'fixed' && (
-          <div className="flex flex-col space-y-1">
-            <label className="text-[11px] font-sans text-outline">
-              Price (₹) <span className="text-primary">*</span>
-            </label>
-            <input className={`${inputBox} font-mono`} value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} inputMode="decimal" placeholder="0" />
-          </div>
-        )}
       </div>
 
       {/* Merchant-defined details */}

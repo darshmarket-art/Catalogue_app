@@ -20,7 +20,6 @@
  *                  (or with no manifest at all, or USE_REAL_WEIGHTS=false) gets a random weight instead.
  *   MIN_WEIGHT_G   default: 1
  *   MAX_WEIGHT_G   default: 6
- *   PRICE_MODE     "weight" (default) | "fixed" | "on_request"
  *   DRY_RUN        "true" to preview without creating anything
  *
  * Usage (PowerShell):
@@ -50,7 +49,6 @@ const CATEGORY_NAME = requireEnv('CATEGORY_NAME');
 const PURITY = process.env.PURITY?.trim() || '22K 916';
 const MIN_WEIGHT_G = Number(process.env.MIN_WEIGHT_G ?? 1);
 const MAX_WEIGHT_G = Number(process.env.MAX_WEIGHT_G ?? 6);
-const PRICE_MODE = process.env.PRICE_MODE?.trim() || 'weight';
 const TITLE_PREFIX = (process.env.TITLE_PREFIX?.trim() || CATEGORY_NAME).replace(/\s+$/, '');
 const DRY_RUN = process.env.DRY_RUN === 'true';
 
@@ -120,7 +118,7 @@ async function main() {
       console.log(`  ${pad(i + 1, width)}. ${TITLE_PREFIX} ${pad(i + 1, width)}  <-  ${f}  ${known ? weights[f].toFixed(3) + 'g (real)' : '(random)'}`);
     });
     console.log(
-      `\n${files.length} product(s) would be created in "${category.name}", purity ${PURITY}, price mode "${PRICE_MODE}".` +
+      `\n${files.length} product(s) would be created in "${category.name}", purity ${PURITY}.` +
         ` ${realCount} would use a real weight from the manifest, ${files.length - realCount} a random ${MIN_WEIGHT_G}-${MAX_WEIGHT_G}g weight.`
     );
     return;
@@ -150,7 +148,6 @@ async function main() {
             purity: PURITY,
             grossWt,
             stoneWt: 0,
-            priceMode: PRICE_MODE,
             images: [upload.data.ref]
           })
         },

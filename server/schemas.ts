@@ -49,6 +49,8 @@ export const adminRegisterSchema = z.object({
   masterProvisioningKey: z.string().trim().min(1).max(256)
 });
 
+export const bannerSchema = z.object({ image: photoRef.refine((v) => v !== '', 'Add a photo for the banner.') });
+
 export const categorySchema = z.object({
   name: trimmed(100),
   slug: trimmed(100).optional(),

@@ -160,24 +160,16 @@ describe('products: photos, prices, extra fields, edit and delete', () => {
     expect((await store.list('products')).find((p) => p.sku === 'LINK-1')!.images).toEqual([ref]);
   });
 
-  it('price modes: fixed needs a price; only the chosen mode keeps its figure', async () => {
+  it('products carry no price: price fields in a request are ignored, never stored or returned', async () => {
     const app = await build();
     const auth = await admin(app);
     const post = (body: object) => request(app).post('/api/products').set(auth).send(product(['https://example.com/x.jpg'], body));
 
-    expect((await post({ priceMode: 'fixed' })).status).toBe(400);
-    const fixed = await post({ priceMode: 'fixed', fixedPrice: '9000', makingChargePerGram: '300', sku: 'F1' });
-    expect(fixed.body.data).toMatchObject({ priceMode: 'fixed', fixedPrice: 9000 });
-    expect(fixed.body.data.makingChargePerGram).toBeUndefined();
-
-    const weight = await post({ priceMode: 'weight', makingChargePerGram: '350', fixedPrice: '1', sku: 'W1' });
-    expect(weight.body.data).toMatchObject({ priceMode: 'weight', makingChargePerGram: 350 });
-    expect(weight.body.data.fixedPrice).toBeUndefined();
-
-    const onRequest = await post({ priceMode: 'on_request', fixedPrice: '5', makingChargePerGram: '5', sku: 'R1' });
-    expect(onRequest.body.data.fixedPrice).toBeUndefined();
-    expect(onRequest.body.data.makingChargePerGram).toBeUndefined();
-    expect((await post({ priceMode: 'barter' })).status).toBe(400);
+    const res = await post({ priceMode: 'fixed', fixedPrice: '9000', makingChargePerGram: '300', sku: 'F1' });
+    expect(res.status).toBe(201);
+    for (const price of ['priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[price]).toBeUndefined();
+    const listed = await request(app).get('/api/products').set(auth);
+    expect(JSON.stringify(listed.body)).not.toMatch(/priceMode|fixedPrice|makingChargePerGram/);
   });
 
   it('checks merchant-defined extra fields against the merchant config', async () => {
@@ -306,6 +298,23 @@ describe('categories: one photo, rename, delete', () => {
     await request(app).delete(`/api/products/${productId}`).set(auth);
     expect((await request(app).delete(`/api/categories/${cat.id}`).set(auth)).status).toBe(200);
     expect((await request(app).put('/api/categories/none').set(auth).send({ name: 'X', image: 'https://example.com/c.jpg' })).status).toBe(404);
+  });
+});
+
+describe('home banners', () => {
+  it('admin adds and deletes; buyers can only read', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const ref = (await upload(app, auth)).body.data.ref;
+    expect((await request(app).post('/api/banners').set(auth).send({})).status).toBe(400);
+    expect((await request(app).post('/api/banners').send({ image: ref })).status).toBe(401);
+    const made = await request(app).post('/api/banners').set(auth).send({ image: ref });
+    expect(made.status).toBe(201);
+    const list = (await request(app).get('/api/banners').set(auth)).body.data;
+    expect(list).toHaveLength(1);
+    expect(list[0].image.startsWith("/media/")).toBe(true);
+    expect((await request(app).delete(`/api/banners/${made.body.data.id}`).set(auth)).status).toBe(200);
+    expect((await request(app).delete('/api/banners/none').set(auth)).status).toBe(404);
   });
 });
 

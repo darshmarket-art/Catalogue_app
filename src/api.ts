@@ -1,6 +1,7 @@
 import {
   Product,
   Category,
+  Banner,
   OrderItem,
   AnalyticsData,
   AdminOrder,
@@ -58,7 +59,7 @@ export const setAuthToken = (token: string | null) => {
 export const hasStoredSession = () => authToken !== null;
 
 export type RestoredSession =
-  | { type: 'retailer'; user: { storeName: string; phone: string }; mustChangePassword: boolean }
+  | { type: 'retailer'; user: { storeName: string; phone: string; ownerName?: string; gstin?: string; marketHub?: string }; mustChangePassword: boolean }
   | { type: 'admin' }
   | null;
 
@@ -185,6 +186,22 @@ export const api = {
 
   async deleteCategory(id: string): Promise<void> {
     await request(`/api/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  async getBanners(): Promise<Banner[]> {
+    try {
+      return (await request('/api/banners')).data;
+    } catch {
+      return [];
+    }
+  },
+
+  async addBanner(image: string): Promise<Banner> {
+    return (await post('/api/banners', { image })).data;
+  },
+
+  async deleteBanner(id: string): Promise<void> {
+    await request(`/api/banners/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   /** Sends the original photo, untouched, to the merchant's storage. Returns the stored reference and a display link. */

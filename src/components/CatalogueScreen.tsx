@@ -2,7 +2,6 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product } from '../types';
 import { trackProductView, trackSearch, trackSelect } from '../api';
 import { setOnScreen, clearOnScreen } from '../attention';
-import { sector } from '../sector';
 import { ProductDetailSheet } from './ProductDetailSheet';
 
 interface CatalogueScreenProps {
@@ -349,7 +348,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                   />
                 </button>
                 {prod.images.length > 1 && (
-                  <span className="absolute bottom-2 right-2 bg-black/60 text-white font-sans text-[11px] px-1.5 py-0.5 rounded flex items-center gap-0.5 pointer-events-none">
+                  <span className="absolute top-12 right-2 bg-black/60 text-white font-sans text-[11px] px-1.5 py-0.5 rounded flex items-center gap-0.5 pointer-events-none">
                     <span className="material-symbols-outlined text-[13px]">photo_library</span>
                     {prod.images.length}
                   </span>
@@ -357,6 +356,17 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                 <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-primary shadow-xs">
                   {prod.purity}
                 </span>
+                {/* Weights sit on the photo with the purity, in the same badge style */}
+                <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pointer-events-none">
+                  {!is24K && (
+                    <span className="bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-primary shadow-xs">
+                      Net {prod.netWt.toFixed(2)} g
+                    </span>
+                  )}
+                  <span className="bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-on-surface shadow-xs">
+                    Gross {prod.grossWt.toFixed(2)} g
+                  </span>
+                </div>
                 <label className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center cursor-pointer">
                   <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(prod.id)} className="peer sr-only" aria-label={`Select ${prod.title}`} />
                   <span
@@ -372,23 +382,11 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
               <div className="p-3 flex flex-col gap-2 flex-1">
                 <div>
                   <span className="font-mono text-[11px] text-outline block leading-tight">{prod.sku}</span>
-                  <h2 className="font-serif text-[15px] leading-snug font-bold text-on-surface line-clamp-2 mt-0.5 min-h-[2.5rem]">
+                  <h2 className="font-serif text-[15px] leading-snug font-bold text-on-surface line-clamp-2 mt-0.5">
                     <button type="button" onClick={() => setOpenProductId(prod.id)} className="text-left">
                       {prod.title}
                     </button>
                   </h2>
-                  <span className="font-sans text-xs text-primary font-semibold block mt-0.5 line-clamp-1">{sector.priceLabel(prod)}</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1.5 text-center">
-                  <div className="rounded-lg bg-primary-fixed/30 border border-primary/20 py-1.5">
-                    <span className="block font-sans text-[11px] text-primary font-semibold">{is24K ? 'Purity' : 'Net'}</span>
-                    <span className="block font-mono text-sm font-bold text-primary">{is24K ? '999.9' : `${prod.netWt.toFixed(2)} g`}</span>
-                  </div>
-                  <div className="rounded-lg bg-surface-container-low border border-outline-variant/40 py-1.5">
-                    <span className="block font-sans text-[11px] text-on-surface-variant font-semibold">Gross</span>
-                    <span className="block font-mono text-sm font-bold text-on-surface">{prod.grossWt.toFixed(2)} g</span>
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 mt-auto pt-1">

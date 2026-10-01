@@ -60,7 +60,7 @@ export const AdminOrdersScreen: React.FC = () => {
   const count = (s: OrderStatus) => (orders ?? []).filter((o) => o.status === s).length;
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-3">
+    <div className="flex flex-col w-full pb-32 max-w-xl md:max-w-4xl mx-auto px-4 pt-3 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">Order Desk</span>

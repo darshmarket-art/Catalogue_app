@@ -4,11 +4,21 @@ import { api } from '../api';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
 import { BrandMark } from './BrandMark';
+import type { ProfileUser } from './ProfileMenu';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onLoginSuccess: (user: { storeName: string; phone: string }, mustChangePassword: boolean) => void;
+  onLoginSuccess: (user: ProfileUser, mustChangePassword: boolean) => void;
 }
+
+/** The buyer details the profile menu shows. */
+const profileOf = (u: any): ProfileUser => ({
+  storeName: u.storeName,
+  phone: u.phone,
+  ownerName: u.ownerName,
+  gstin: u.gstin,
+  marketHub: u.marketHub
+});
 
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
   onNavigate,
@@ -50,10 +60,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
       if (res.status === 'success') {
         setSuccessMessage(`Authenticated as ${res.user.storeName}. Directing to Wholesale Portal...`);
         onLoginSuccess(
-          {
-            storeName: res.user.storeName,
-            phone: res.user.phone
-          },
+          profileOf(res.user),
           Boolean(res.user.mustChangePassword)
         );
       }
@@ -81,7 +88,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
       });
 
       setSuccessMessage('Trade account created successfully! Automatically signing you in...');
-      onLoginSuccess({ storeName: res.user.storeName, phone: res.user.phone }, false);
+      onLoginSuccess(profileOf(res.user), false);
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed. Please check your details.');
     } finally {

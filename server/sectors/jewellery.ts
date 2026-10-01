@@ -1,15 +1,14 @@
 import { z } from 'zod';
-import { PRICE_MODES, PURITY_KEYS, STOCK_STATUSES, lineWeight, netWeight } from '../../shared/jewellery';
+import { PURITY_KEYS, STOCK_STATUSES, lineWeight, netWeight } from '../../shared/jewellery';
 import type { Doc } from '../store';
 import { photoRef } from '../media';
 import { trimmed } from '../schemas';
 
 /**
  * The jewellery sector: which fields a product has, how weights are derived, and how an order is worded.
- * Nothing here is invented for the merchant: hallmark IDs and prices are only stored when someone enters them.
+ * Nothing here is invented for the merchant: hallmark IDs are only stored when someone enters them.
+ * Products carry no price: trade is on gram weight, so a request that still sends price fields has them ignored.
  */
-const money = z.coerce.number().min(0).max(1e9);
-
 const productSchema = z
   .object({
     title: trimmed(200),
@@ -19,18 +18,11 @@ const productSchema = z
     grossWt: z.coerce.number().positive().max(100000),
     stoneWt: z.coerce.number().min(0).max(100000).default(0),
     huid: trimmed(40).optional(),
-    priceMode: z.enum(PRICE_MODES).default('on_request'),
-    makingChargePerGram: money.optional(),
-    fixedPrice: money.optional(),
     stockStatus: z.enum(STOCK_STATUSES).default('Ready in Vault'),
     /** One to three photos: uploaded ("media:...") or, for imports, an http(s) link. */
     images: z.array(photoRef).min(1, 'Add at least one photo.').max(3, 'A product can have at most 3 photos.')
   })
-  .refine((p) => p.stoneWt < p.grossWt, { path: ['stoneWt'], message: 'Stone weight must be less than gross weight.' })
-  .refine((p) => p.priceMode !== 'fixed' || (p.fixedPrice !== undefined && p.fixedPrice > 0), {
-    path: ['fixedPrice'],
-    message: 'Enter the price for a fixed-price piece.'
-  });
+  .refine((p) => p.stoneWt < p.grossWt, { path: ['stoneWt'], message: 'Stone weight must be less than gross weight.' });
 
 export type JewelleryProductInput = z.infer<typeof productSchema>;
 
@@ -52,10 +44,6 @@ export const jewelleryPack = {
       netWt: netWeight(input.grossWt, input.stoneWt),
       stoneWt: input.stoneWt,
       ...(input.huid ? { huid: input.huid } : {}),
-      priceMode: input.priceMode,
-      // Only the figure that belongs to the chosen mode is kept, so a stale price can never show.
-      ...(input.priceMode === 'weight' && input.makingChargePerGram !== undefined ? { makingChargePerGram: input.makingChargePerGram } : {}),
-      ...(input.priceMode === 'fixed' ? { fixedPrice: input.fixedPrice } : {}),
       images: input.images,
       image: input.images[0],
       stockStatus: input.stockStatus,

@@ -10,6 +10,8 @@ interface OrdersScreenProps {
   onConfirmOrder: () => Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null>;
   onGenerateWhatsAppPO: () => void;
   onNavigateCatalogue: () => void;
+  /** Which tab to open first (the profile menu links straight to past orders). */
+  initialTab?: 'current' | 'past';
 }
 
 const STATUS_LOOKS: Record<string, string> = {
@@ -74,13 +76,14 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   onRemoveItem,
   onConfirmOrder,
   onGenerateWhatsAppPO,
-  onNavigateCatalogue
+  onNavigateCatalogue,
+  initialTab = 'current'
 }) => {
   const [isBooked, setIsBooked] = useState(false);
   const [confirmedPO, setConfirmedPO] = useState<string | null>(null);
   const [bookedGrams, setBookedGrams] = useState(0);
   const [bookedMessage, setBookedMessage] = useState('');
-  const [tab, setTab] = useState<'current' | 'past'>('current');
+  const [tab, setTab] = useState<'current' | 'past'>(initialTab);
   const [history, setHistory] = useState<PastOrder[] | null>(null);
 
   // Past orders are fetched when the tab is opened, and again after a new order is booked.
@@ -101,30 +104,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full pb-36 max-w-lg mx-auto px-4 pt-3">
-      {/* Pure Gram Settlement Standard Banner (Replaces Bullion Rate Lock!) */}
-      <div className="bg-surface-container rounded-xl p-3 border border-outline-variant/50 shadow-xs flex items-center justify-between mb-3 text-left">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-lg bg-secondary text-white flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-[19px]">scale</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-mono text-[10px] uppercase font-bold text-primary tracking-wider">
-              {sector.copy.orders.banner.title}
-            </span>
-            <span className="text-[12px] font-sans font-semibold text-on-surface">
-              {sector.copy.orders.banner.subtitle}
-            </span>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="font-mono text-[11px] font-bold text-secondary bg-secondary-fixed px-2 py-0.5 rounded">
-            {sector.copy.orders.banner.badge}
-          </span>
-          <span className="text-[9px] block text-outline mt-0.5">{sector.copy.orders.banner.note}</span>
-        </div>
-      </div>
-
+    <div className="flex flex-col w-full pb-36 max-w-lg md:max-w-3xl mx-auto px-4 pt-3">
       {/* Verified B2B Buyer Credentials Card */}
       <div className="bg-white rounded-xl shadow-xs p-3.5 flex flex-col gap-2 border border-outline-variant/40 mb-3">
         <div className="flex items-center justify-between">

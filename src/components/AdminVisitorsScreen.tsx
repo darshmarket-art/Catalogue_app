@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { VisitorDetail, VisitorKind, VisitorSummary } from '../types';
+import { VisitorDetail, VisitorSummary } from '../types';
 import { api } from '../api';
-import { merchant } from '../merchant';
-
-interface AdminVisitorsScreenProps {
-  initialKind: VisitorKind;
-}
 
 const duration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;
@@ -29,9 +24,7 @@ const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   </div>
 );
 
-export const AdminVisitorsScreen: React.FC<AdminVisitorsScreenProps> = ({ initialKind }) => {
-  const showGuests = merchant.catalogueAccess === 'public';
-  const [kind, setKind] = useState<VisitorKind>(initialKind === 'guest' && !showGuests ? 'all' : initialKind);
+export const AdminVisitorsScreen: React.FC = () => {
   const [rows, setRows] = useState<VisitorSummary[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<VisitorDetail | null>(null);
@@ -41,7 +34,7 @@ export const AdminVisitorsScreen: React.FC<AdminVisitorsScreenProps> = ({ initia
     let active = true;
     const load = () =>
       api
-        .getVisitors(kind)
+        .getVisitors('all')
         .then((data) => active && setRows(data))
         .catch((e) => active && setError(e.message));
     setRows(null);
@@ -52,7 +45,7 @@ export const AdminVisitorsScreen: React.FC<AdminVisitorsScreenProps> = ({ initia
       active = false;
       clearInterval(timer);
     };
-  }, [kind]);
+  }, []);
 
   useEffect(() => {
     if (!openId) {
@@ -70,12 +63,6 @@ export const AdminVisitorsScreen: React.FC<AdminVisitorsScreenProps> = ({ initia
     };
   }, [openId]);
 
-  const tabs: Array<{ key: VisitorKind; label: string }> = [
-    { key: 'all', label: 'All tracked' },
-    { key: 'verified', label: 'Verified merchants' },
-    ...(showGuests ? [{ key: 'guest' as const, label: 'Guests' }] : [])
-  ];
-
   if (openId) {
     return (
       <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-4">
@@ -89,7 +76,7 @@ export const AdminVisitorsScreen: React.FC<AdminVisitorsScreenProps> = ({ initia
           <>
             <div>
               <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">
-                {detail.kind === 'verified' ? 'Verified merchant' : 'Guest visitor'}
+                {detail.kind === 'verified' ? 'Buyer' : 'Guest visitor'}
               </span>
               <h1 className="font-serif text-[22px] font-bold text-on-surface leading-tight">{detail.name}</h1>
               <span className="font-sans text-xs text-outline">Last seen {ago(detail.lastSeen)} · last 30 days</span>
@@ -159,22 +146,9 @@ export const AdminVisitorsScreen: React.FC<AdminVisitorsScreenProps> = ({ initia
   return (
     <div className="flex flex-col w-full pb-32 max-w-xl mx-auto px-4 pt-3 space-y-4">
       <div>
-        <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">Visitor engagement</span>
-        <h1 className="font-serif text-[22px] font-bold text-on-surface">Who is looking</h1>
+        <span className="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">Buyer engagement</span>
+        <h1 className="font-serif text-[22px] font-bold text-on-surface">Buyers</h1>
         <p className="font-sans text-xs text-outline">Tap a buyer to see which designs held their attention. Last 30 days, refreshed every 15 seconds.</p>
-      </div>
-
-      <div className={`grid gap-1 p-1 bg-surface-container rounded-lg ${tabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setKind(t.key)}
-            className={`py-1.5 rounded-md font-sans text-[11px] font-bold transition-all ${kind === t.key ? 'bg-white text-primary shadow-xs' : 'text-outline'}`}
-          >
-            {t.label}
-          </button>
-        ))}
       </div>
 
       {error && <p className="text-xs text-error font-semibold">{error}</p>}

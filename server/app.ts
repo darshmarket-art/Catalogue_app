@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit';
 import type { Config } from './config';
 import type { Store } from './store';
 import { createAuth, user } from './auth';
-import { errorHandler, notFoundApi, requestLogger } from './http';
+import { errorHandler, handler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
 import { orderRoutes } from './routes/orders';
@@ -76,19 +76,25 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   });
 
   // Lets the app restore a signed-in session after a reload. The account is re-checked on every call.
-  app.get('/api/auth/me', auth.requireUser, (_req, res) => {
-    const me = user(res);
-    if (me.type === 'admin') {
-      res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
-    } else {
+  app.get(
+    '/api/auth/me',
+    auth.requireUser,
+    handler(async (_req, res) => {
+      const me = user(res);
+      if (me.type === 'admin') {
+        res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
+        return;
+      }
+      // The profile menu shows the buyer's own business details (never the password hash).
+      const buyer = await store.get('buyers', me.id);
       res.json({
         status: 'success',
         type: 'retailer',
-        user: { storeName: me.name, phone: me.id },
+        user: { storeName: me.name, phone: me.id, ownerName: buyer?.ownerName, gstin: buyer?.gstin, marketHub: buyer?.marketHub },
         mustChangePassword: Boolean(me.mustChangePassword)
       });
-    }
-  });
+    })
+  );
 
   // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
   app.get('/media/:file', mediaRoute(blobs, media));

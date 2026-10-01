@@ -3,20 +3,22 @@ import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
 import { BrandMark } from './BrandMark';
+import { ProfileMenu, type ProfileUser } from './ProfileMenu';
 
 interface HeaderProps {
   currentScreen: ActiveScreen;
   onNavigate: (screen: ActiveScreen) => void;
   isAdminLoggedIn: boolean;
-  currentMerchant: { storeName: string; phone: string } | null;
+  currentMerchant: ProfileUser | null;
   onLogout: () => void;
+  onOpenOrders: (tab: 'current' | 'past') => void;
   /** True while an existing product or category is being edited. */
   isEditing: boolean;
 }
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners'];
 
-export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, isEditing }) => {
+export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing }) => {
   const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen);
   const isSubScreen = isAdminSub || ['admin-login', 'retailer-auth', 'change-password'].includes(currentScreen);
   const isAdminView = currentScreen === 'admin-hub' || isAdminSub;
@@ -27,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
     } else if (isAdminSub) {
       onNavigate('admin-hub');
     } else if (currentScreen === 'change-password') {
-      onNavigate('catalogue');
+      onNavigate('categories');
     } else {
       onNavigate('welcome');
     }
@@ -49,6 +51,8 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
             ? 'Visitor Engagement'
             : currentScreen === 'admin-buyers'
               ? 'Buyers'
+              : currentScreen === 'admin-banners'
+                ? 'Home banners'
               : currentScreen === 'change-password'
                 ? 'Account'
                 : currentScreen === 'admin-login'
@@ -96,51 +100,25 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
           </span>
         </button>
 
-        {/* Right: account and admin switch */}
-        <div className="flex items-center justify-end gap-1.5">
-          {currentMerchant ? (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onNavigate('change-password')}
-                className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-fixed flex items-center justify-center border border-secondary/30"
-                aria-label="Account and password"
-                title="Account and password"
-              >
-                <span className="material-symbols-outlined text-[18px]">verified</span>
-              </button>
-              <button
-                onClick={onLogout}
-                className="w-8 h-8 rounded-full bg-surface-container-high text-outline hover:text-error flex items-center justify-center transition-colors"
-                aria-label="Log Out"
-                title="Log Out"
-              >
-                <span className="material-symbols-outlined text-[17px]">logout</span>
-              </button>
-            </div>
+        {/* Right: one profile menu for buyers and staff; a sign-in button for visitors */}
+        <div className="flex items-center justify-end">
+          {currentMerchant || isAdminLoggedIn ? (
+            <ProfileMenu
+              buyer={currentMerchant}
+              isAdmin={isAdminLoggedIn}
+              onOpenOrders={onOpenOrders}
+              onOpenAdminConsole={() => onNavigate('admin-hub')}
+              onChangePassword={() => onNavigate('change-password')}
+              onLogout={onLogout}
+            />
           ) : (
             <button
               onClick={() => onNavigate('retailer-auth')}
-              aria-label="Retailer Account"
-              className="w-9 h-9 rounded-full bg-surface-container-high border border-outline-variant/60 flex items-center justify-center text-primary hover:bg-surface-container-highest active:scale-95 transition-all shadow-xs"
-              title="Retailer Sign In / Registration"
+              aria-label="Sign in"
+              className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/60 flex items-center justify-center text-primary hover:bg-surface-container-highest active:scale-95 transition-all shadow-xs"
+              title="Sign in or register"
             >
-              <span className="material-symbols-outlined text-[20px]">account_circle</span>
-            </button>
-          )}
-
-          {/* Staff only: buyers and visitors never see the admin switch (staff sign in from the sign-in screen). */}
-          {isAdminLoggedIn && (
-            <button
-              onClick={() => onNavigate('admin-hub')}
-              aria-label="Admin Portal"
-              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all active:scale-95 shadow-xs ${
-                isAdminView
-                  ? 'bg-on-surface text-primary-fixed border-primary-container'
-                  : 'bg-surface-container-high text-secondary border-outline-variant/60 hover:bg-surface-container-highest'
-              }`}
-              title="Admin Console"
-            >
-              <span className="material-symbols-outlined text-[19px]">shield_person</span>
+              <span className="material-symbols-outlined text-[22px]">account_circle</span>
             </button>
           )}
         </div>

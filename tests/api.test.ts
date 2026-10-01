@@ -694,6 +694,10 @@ describe('session restore (/api/auth/me)', () => {
     expect(retailerMe.status).toBe(200);
     expect(retailerMe.body).toMatchObject({ type: 'retailer', user: { storeName: 'Test Jewellers 1', phone: retailer(1).phone } });
     expect(JSON.stringify(retailerMe.body)).not.toMatch(/password|\$2[aby]\$/);
+    // the profile menu shows the buyer's own business details
+    expect(retailerMe.body.user.ownerName).toBeTruthy();
+    expect(retailerMe.body.user.gstin).toBeTruthy();
+    expect(retailerMe.body.user.marketHub).toBeTruthy();
 
     const adminMe = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${admin}`);
     expect(adminMe.body).toMatchObject({ type: 'admin', admin: { email: 'boss@bhaktijewels.in', role: 'owner' } });
@@ -718,25 +722,25 @@ describe('jewellery products (nothing invented)', () => {
     images: ['https://example.com/haar.jpg']
   };
 
-  it('stores only what the merchant entered: no random HUID, price or making charge', async () => {
+  it('stores only what the merchant entered: no random HUID, and never a price', async () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const res = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send(full);
     expect(res.status).toBe(201);
     expect(res.body.data.netWt).toBe(45);
-    for (const invented of ['huid', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
-    expect(res.body.data.priceMode).toBe('on_request');
+    for (const invented of ['huid', 'priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
     expect(res.body.data.sku).toMatch(/^SKU-/);
   });
 
-  it('keeps a HUID, price and making charge when the merchant provides them', async () => {
+  it('keeps a HUID when the merchant provides it, and ignores any price fields sent', async () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const res = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
-      .send({ ...full, huid: 'HM/C-123456', priceMode: 'fixed', fixedPrice: '250000', sku: 'MY-SKU-1' });
-    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', priceMode: 'fixed', fixedPrice: 250000, sku: 'MY-SKU-1' });
+      .send({ ...full, huid: 'HM/C-123456', priceMode: 'fixed', fixedPrice: '250000', makingChargePerGram: '300', sku: 'MY-SKU-1' });
+    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', sku: 'MY-SKU-1' });
+    for (const price of ['priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[price]).toBeUndefined();
   });
 
   it('requires the details a jeweller must state, and rejects impossible weights', async () => {

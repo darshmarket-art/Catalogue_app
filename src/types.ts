@@ -7,9 +7,6 @@ export interface Product {
   grossWt: number;
   netWt: number;
   stoneWt?: number;
-  priceMode?: 'weight' | 'fixed' | 'on_request';
-  fixedPrice?: number;
-  makingChargePerGram?: number;
   /** First photo, as a private link. */
   image: string;
   /** One to three photos, as private links (or plain http links for imported data). */
@@ -33,6 +30,11 @@ export interface Category {
   eligibleKarats: string[];
   minTargetWt: number;
   maxTargetWt: number;
+}
+
+export interface Banner {
+  id: string;
+  image: string;
 }
 
 export interface OrderItem {
@@ -133,5 +135,6 @@ export type ActiveScreen =
   | 'admin-orders'
   | 'admin-visitors'
   | 'admin-buyers'
+  | 'admin-banners'
   | 'change-password'
   | 'retailer-auth';

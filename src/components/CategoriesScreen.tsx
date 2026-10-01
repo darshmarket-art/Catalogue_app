@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Category, ActiveScreen } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Category, ActiveScreen, Banner, Product } from '../types';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
+import { Facebook, Instagram, MapPin, MessageCircle, Youtube } from 'lucide-react';
 
 interface CategoriesScreenProps {
   categories: Category[];
+  products: Product[];
+  banners: Banner[];
   isAdmin: boolean;
   onEditCategory: (category: Category) => void;
   onNavigate: (screen: ActiveScreen) => void;
@@ -41,25 +44,57 @@ const PROMO_LOOKS = {
   }
 } as const;
 
+const esc = (v: string | number) =>
+  String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** Opens a print view of one category with the brand watermark; the browser's "Save as PDF" makes the file. */
+function openCataloguePdf(cat: Category, products: Product[]) {
+  const items = products.filter((p) => p.category === cat.name);
+  const w = window.open('', '_blank');
+  if (!w) return false;
+  const cards = items
+    .map(
+      (p) => `<div class="c"><img src="${esc(new URL(p.image, window.location.origin).href)}"><b>${esc(p.title)}</b><span>${esc(p.sku)} · ${esc(p.purity)} · Net ${esc(p.netWt)}g</span></div>`
+    )
+    .join('');
+  w.document.write(`<!doctype html><title>${esc(merchant.brand.name)} - ${esc(cat.name)}</title><style>
+body{font-family:sans-serif;margin:16px}h1{font-size:20px}.g{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.c{break-inside:avoid;border:1px solid #ddd;padding:8px}.c img{width:100%;aspect-ratio:1;object-fit:cover}.c b,.c span{display:block;font-size:12px;margin-top:4px}
+.w{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;font-weight:700;color:rgba(113,85,9,.14);transform:rotate(-30deg);pointer-events:none;text-align:center}
+</style><div class="w">${esc(merchant.brand.name.toUpperCase())}</div><h1>${esc(merchant.brand.name)} · ${esc(cat.name)} (${items.length} designs)</h1><div class="g">${cards}</div>
+<script>onload=()=>setTimeout(()=>print(),600)</script>`);
+  w.document.close();
+  return true;
+}
+
 export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   categories,
+  products,
+  banners,
   isAdmin,
   onEditCategory,
-  onNavigate: _onNavigate,
+  onNavigate,
   onFilterCategoryInCatalogue
 }) => {
   const [activeSlide, setActiveSlide] = useState(0);
+  const scroller = useRef<HTMLDivElement>(null);
+  const paused = useRef(false);
+  const slideCount = banners.length || merchant.promotions.length;
   const [searchQuery, setSearchQuery] = useState('');
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Auto-advance banner carousel every 6s
+  const goToSlide = (i: number) => {
+    const el = scroller.current;
+    if (el) el.scrollTo({ left: ((i + slideCount) % slideCount) * el.clientWidth, behavior: 'smooth' });
+  };
+
+  // Auto-advance every 6s unless the buyer is touching or hovering the banner
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % Math.max(merchant.promotions.length, 1));
-    }, 6000);
+    if (slideCount < 2) return;
+    const timer = setInterval(() => !paused.current && goToSlide(activeSlide + 1), 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeSlide, slideCount]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -68,24 +103,42 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
 
   const openLink = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
 
-  const handleShareCategory = (cat: Category) => {
-    const text = `*${merchant.brand.name.toUpperCase()}*\n${cat.name} — ${cat.designCount} designs (${cat.avgNetWt})\n${window.location.origin}`;
-    openLink(`https://wa.me/?text=${encodeURIComponent(text)}`);
-  };
-
-  const handleShareCatalogue = async () => {
-    const url = window.location.origin;
+  const shareLink = async (url: string) => {
     try {
       if (navigator.share) {
         await navigator.share({ title: merchant.brand.name, url });
       } else {
         await navigator.clipboard.writeText(url);
-        showToast('Catalogue link copied to clipboard');
+        showToast('Link copied to clipboard');
       }
     } catch {
       // the user closed the share sheet
     }
   };
+
+  const handlePdf = (cat: Category) => {
+    if (!openCataloguePdf(cat, products)) showToast('Allow pop-ups to create the PDF');
+  };
+
+  const { contact } = merchant;
+  const contactLinks: Array<{ label: string; href: string; className: string; icon: React.ReactNode }> = [
+    { label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, className: 'bg-[#25D366]', icon: <MessageCircle size={22} /> },
+    ...(contact.instagramUrl
+      ? [{ label: 'Instagram', href: contact.instagramUrl, className: 'bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', icon: <Instagram size={22} /> }]
+      : []),
+    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, className: 'bg-[#1877F2]', icon: <Facebook size={22} /> }] : []),
+    ...(contact.youtubeUrl ? [{ label: 'YouTube', href: contact.youtubeUrl, className: 'bg-[#FF0000]', icon: <Youtube size={22} /> }] : []),
+    ...(contact.address
+      ? [
+          {
+            label: contact.showroomLabel ?? 'Showroom',
+            href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
+            className: 'bg-primary',
+            icon: <MapPin size={22} />
+          }
+        ]
+      : [])
+  ];
 
   const filteredCategories = categories.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,7 +146,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   );
 
   return (
-    <div className="flex flex-col w-full pb-36 max-w-4xl mx-auto px-4">
+    <div className="flex flex-col w-full pb-36 max-w-5xl mx-auto px-4">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs font-sans border border-primary-container/40 animate-fade-in">
@@ -118,71 +171,86 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
         </div>
       </div>
 
-      {/* Promotional carousel (configured per merchant) */}
-      {merchant.promotions.length > 0 && (
-        <div className="relative w-full overflow-hidden rounded-xl bg-white border border-outline-variant/60 shadow-md my-2">
+      {/* Banners: the owner's photos, or the default messages from merchant.json. Swipe, or use the arrows on desktop. */}
+      {slideCount > 0 && (
+        <div className="relative w-full my-2" onMouseEnter={() => (paused.current = true)} onMouseLeave={() => (paused.current = false)}>
           <div
-            className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+            ref={scroller}
+            onScroll={(e) => setActiveSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+            onTouchStart={() => (paused.current = true)}
+            onTouchEnd={() => (paused.current = false)}
+            className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-xl border border-outline-variant/60 shadow-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden aspect-[16/9] sm:aspect-[2/1] md:aspect-[3/1]"
           >
-            {merchant.promotions.map((promo) => {
-              const look = PROMO_LOOKS[promo.theme];
-              return (
-                <div
-                  key={promo.title}
-                  className={`min-w-full flex-shrink-0 relative overflow-hidden bg-gradient-to-r ${look.background} p-4 text-white`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span
-                      className={`${look.tag} font-mono text-[10px] px-2 py-0.5 rounded font-bold tracking-wider uppercase shadow-xs`}
+            {banners.length > 0
+              ? banners.map((b) => (
+                  <img key={b.id} src={b.image} alt="" className="min-w-full h-full object-cover snap-center" referrerPolicy="no-referrer" />
+                ))
+              : merchant.promotions.map((promo) => {
+                  const look = PROMO_LOOKS[promo.theme];
+                  return (
+                    <div
+                      key={promo.title}
+                      className={`min-w-full h-full snap-center flex flex-col justify-between bg-gradient-to-r ${look.background} p-4 md:px-8 text-white`}
                     >
-                      {promo.tag}
-                    </span>
-                    <span className={`font-mono text-[11px] ${look.stamp} font-bold flex items-center gap-1`}>
-                      <span className="material-symbols-outlined text-[14px]">{promo.stampIcon}</span>
-                      {promo.stampText}
-                    </span>
-                  </div>
-                  <h4 className={`font-serif text-[18px] md:text-[20px] font-bold ${look.title} leading-tight tracking-tight`}>
-                    {promo.title}
-                  </h4>
-                  <p className={`font-sans text-[12px] ${look.subtitle} opacity-90 mt-0.5 line-clamp-1`}>{promo.subtitle}</p>
-                  <div className="mt-3 flex items-center justify-between">
-                    <button
-                      onClick={() => onFilterCategoryInCatalogue(promo.title)}
-                      className={`px-2.5 py-1 rounded ${look.action} text-[11px] font-semibold flex items-center gap-1`}
-                    >
-                      <span className="material-symbols-outlined text-[15px]">{promo.actionIcon}</span>
-                      {promo.actionLabel}
-                    </button>
-                    <span className={`font-mono text-[11px] ${look.note}`}>{promo.note}</span>
-                  </div>
-                </div>
-              );
-            })}
+                      <div className="flex items-center justify-between">
+                        <span className={`${look.tag} font-mono text-[10px] px-2 py-0.5 rounded font-bold tracking-wider uppercase`}>{promo.tag}</span>
+                        <span className={`font-mono text-[11px] ${look.stamp} font-bold flex items-center gap-1`}>
+                          <span className="material-symbols-outlined text-[14px]">{promo.stampIcon}</span>
+                          {promo.stampText}
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className={`font-serif text-[18px] md:text-[26px] font-bold ${look.title} leading-tight`}>{promo.title}</h4>
+                        <p className={`font-sans text-[12px] md:text-sm ${look.subtitle} opacity-90 mt-0.5 line-clamp-2`}>{promo.subtitle}</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => onFilterCategoryInCatalogue(promo.title)}
+                          className={`px-2.5 py-1 rounded ${look.action} text-[11px] font-semibold flex items-center gap-1`}
+                        >
+                          <span className="material-symbols-outlined text-[15px]">{promo.actionIcon}</span>
+                          {promo.actionLabel}
+                        </button>
+                        <span className={`font-mono text-[11px] ${look.note}`}>{promo.note}</span>
+                      </div>
+                    </div>
+                  );
+                })}
           </div>
 
-          {/* Carousel Bottom Control Strip */}
-          <div className="py-2 px-3 bg-surface-container flex items-center justify-between border-t border-outline-variant/50">
-            <div className="flex items-center gap-1.5">
-              {merchant.promotions.map((promo, i) => (
+          {slideCount > 1 && (
+            <>
+              {(['prev', 'next'] as const).map((dir) => (
                 <button
-                  key={promo.title}
-                  aria-label={`Slide ${i + 1}`}
-                  onClick={() => setActiveSlide(i)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    activeSlide === i ? 'w-6 bg-primary' : 'w-2 bg-outline-variant'
-                  }`}
+                  key={dir}
                   type="button"
-                />
+                  aria-label={dir === 'prev' ? 'Previous banner' : 'Next banner'}
+                  onClick={() => goToSlide(activeSlide + (dir === 'prev' ? -1 : 1))}
+                  className={`hidden md:flex absolute top-1/2 -translate-y-1/2 ${dir === 'prev' ? 'left-2' : 'right-2'} w-9 h-9 rounded-full bg-white/85 text-primary items-center justify-center shadow`}
+                >
+                  <span className="material-symbols-outlined text-[22px]">{dir === 'prev' ? 'chevron_left' : 'chevron_right'}</span>
+                </button>
               ))}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-mono text-on-surface-variant">
-              <span className="material-symbols-outlined text-[14px] text-primary">campaign</span>
-              <span className="font-bold text-primary">{merchant.brand.name} Broadcast</span>
-            </div>
-          </div>
+              <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5">
+                {Array.from({ length: slideCount }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Banner ${i + 1}`}
+                    onClick={() => goToSlide(i)}
+                    className={`h-1.5 rounded-full transition-all shadow ${activeSlide === i ? 'w-6 bg-primary' : 'w-2 bg-white/80'}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
+      )}
+
+      {isAdmin && (
+        <button type="button" onClick={() => onNavigate('admin-banners')} className="self-start text-[11px] font-sans font-bold text-primary flex items-center gap-1 mb-1">
+          <span className="material-symbols-outlined text-[15px]">edit</span>Change banners
+        </button>
       )}
 
       {filteredCategories.length === 0 && (
@@ -191,177 +259,95 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
         </p>
       )}
 
-      {/* Categories Cards Listing */}
-      <div className="flex flex-col gap-3.5 my-2">
+      {/* Category tiles: square photo, name and numbers over its lower half so the jewellery stays visible */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 my-2">
         {filteredCategories.map((cat) => (
-          <div
-            key={cat.id}
-            className="bg-white rounded-xl overflow-hidden shadow-sm border border-outline-variant/40 flex flex-col hover:shadow-md transition-all group"
-          >
-            {/* Visual Hero */}
-            <div className="relative w-full h-40 bg-surface-container overflow-hidden">
-              <img
-                src={cat.image}
-                alt={cat.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-              
-              {isAdmin && (
-                <button
-                  type="button"
-                  aria-label={`Edit ${cat.name}`}
-                  onClick={() => onEditCategory(cat)}
-                  className="absolute top-2.5 right-2.5 z-10 px-2.5 py-1 rounded-full bg-white/95 text-primary font-sans text-[11px] font-bold flex items-center gap-1 shadow-sm active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[14px]">edit</span>
-                  Edit
-                </button>
-              )}
+          <div key={cat.id} className="relative aspect-square rounded-xl overflow-hidden bg-surface-container shadow-sm border border-outline-variant/40 group">
+            <img
+              src={cat.image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
+            <button
+              type="button"
+              aria-label={`Open ${cat.name}`}
+              onClick={() => onFilterCategoryInCatalogue(cat.name)}
+              className="absolute inset-0 text-left"
+            >
+              <span className="absolute bottom-2.5 left-3 right-3 text-white">
+                <span className="block font-serif text-[15px] md:text-[17px] font-bold leading-tight drop-shadow line-clamp-2">{cat.name}</span>
+                <span className="block font-mono text-[10px] md:text-[11px] text-white/85 mt-0.5 drop-shadow">
+                  {cat.designCount} SKUs · avg {cat.avgNetWt}
+                </span>
+              </span>
+            </button>
 
-              {cat.eligibleKarats[0] && (
-                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                  <span className="bg-white/95 backdrop-blur-md text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">
-                    {cat.eligibleKarats[0]}
-                  </span>
-                </div>
-              )}
+            {cat.eligibleKarats[0] && (
+              <span className="absolute top-2 left-2 bg-white/95 text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold shadow-sm pointer-events-none">
+                {cat.eligibleKarats[0]}
+              </span>
+            )}
 
-              <div className="absolute bottom-2.5 left-3 right-3 text-white">
-                <h3 className="font-serif text-[17px] font-bold leading-tight drop-shadow-sm">
-                  {cat.name}
-                </h3>
-                <p className="font-sans text-[11px] text-white/80 line-clamp-1 drop-shadow-sm">
-                  {cat.subtitle}
-                </p>
+            {isAdmin && (
+              <div className="absolute top-2 right-2 flex flex-col gap-1.5">
+                {[
+                  { label: 'Edit', icon: 'edit', run: () => onEditCategory(cat) },
+                  { label: 'Share link', icon: 'link', run: () => shareLink(`${window.location.origin}/?category=${encodeURIComponent(cat.name)}`) },
+                  { label: 'Share PDF', icon: 'picture_as_pdf', run: () => handlePdf(cat) }
+                ].map((a) => (
+                  <button
+                    key={a.label}
+                    type="button"
+                    aria-label={`${a.label}: ${cat.name}`}
+                    title={a.label}
+                    onClick={a.run}
+                    className="w-8 h-8 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-sm active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[17px]">{a.icon}</span>
+                  </button>
+                ))}
               </div>
-            </div>
-
-            {/* Spec Matrix & Actions */}
-            <div className="p-3 bg-surface-container-low flex flex-col gap-2">
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="flex flex-col items-center justify-center py-1.5 px-3 bg-white border border-outline-variant/40 rounded-lg shadow-2xs">
-                  <span className="text-[9px] uppercase tracking-wider text-outline font-semibold">
-                    Designs
-                  </span>
-                  <span className="font-mono text-xs font-bold text-on-surface mt-0.5">
-                    {cat.designCount} SKUs
-                  </span>
-                </div>
-                <div className="flex flex-col items-center justify-center py-1.5 px-3 bg-primary-fixed/30 border border-primary-fixed-dim/60 rounded-lg shadow-2xs">
-                  <span className="text-[9px] uppercase tracking-wider text-primary font-semibold">
-                    Avg Net Wt
-                  </span>
-                  <span className="font-mono text-xs font-bold text-primary mt-0.5">
-                    {cat.avgNetWt}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  onClick={() => onFilterCategoryInCatalogue(cat.name)}
-                  className="flex-1 py-2 px-3 rounded-lg bg-secondary hover:bg-secondary-dark text-white text-xs font-sans font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[16px]">menu_book</span>
-                  <span>View All {cat.designCount} Designs</span>
-                </button>
-                <button
-                  onClick={() => handleShareCategory(cat)}
-                  className="px-3 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary text-xs font-sans font-semibold flex items-center gap-1 transition-colors"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                  <span>Share PDF</span>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Floating Speed Dial Connect Actions */}
+      {/* Floating contact menu: the owner's own WhatsApp, showroom and social pages (a link only appears once it is set in merchant.json) */}
       <div className="fixed bottom-[88px] right-3 z-40 flex flex-col items-end gap-2.5">
         {speedDialOpen && (
           <div className="flex flex-col items-end gap-2 transition-all duration-300 animate-fade-in">
-            {/* WhatsApp */}
-            <div className="flex items-center gap-2">
-              <span className="bg-on-surface text-inverse-on-surface text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-md">
-                WhatsApp Desk
-              </span>
-              <a
-                href={`https://wa.me/${merchant.contact.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-              >
-                <span className="material-symbols-outlined text-[20px]">chat</span>
-              </a>
-            </div>
-
-            {/* Instagram */}
-            {merchant.contact.instagramUrl && (
-              <div className="flex items-center gap-2">
-                <span className="bg-on-surface text-inverse-on-surface text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-md">
-                  Instagram
-                </span>
-                <button
-                  onClick={() => openLink(merchant.contact.instagramUrl!)}
-                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            {contactLinks.map((link) => (
+              <div key={link.label} className="flex items-center gap-2">
+                <span className="bg-on-surface text-inverse-on-surface text-xs font-semibold px-2.5 py-1 rounded-md shadow-md">{link.label}</span>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={link.label}
+                  className={`w-11 h-11 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform ${link.className}`}
                 >
-                  <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-                </button>
+                  {link.icon}
+                </a>
               </div>
-            )}
-
-            {/* Facebook */}
-            {merchant.contact.facebookUrl && (
-              <div className="flex items-center gap-2">
-                <span className="bg-on-surface text-inverse-on-surface text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-md">
-                  Facebook
-                </span>
-                <button
-                  onClick={() => openLink(merchant.contact.facebookUrl!)}
-                  className="w-10 h-10 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                >
-                  <span className="material-symbols-outlined text-[20px]">group</span>
-                </button>
-              </div>
-            )}
-
-            {/* Location */}
-            {merchant.contact.address && (
-              <div className="flex items-center gap-2">
-                <span className="bg-on-surface text-inverse-on-surface text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-md">
-                  {merchant.contact.showroomLabel ?? 'Showroom'}
-                </span>
-                <button
-                  onClick={() =>
-                    openLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(merchant.contact.address!)}`)
-                  }
-                  className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                >
-                  <span className="material-symbols-outlined text-[20px]">pin_drop</span>
-                </button>
-              </div>
-            )}
+            ))}
           </div>
         )}
 
         <button
           onClick={() => setSpeedDialOpen(!speedDialOpen)}
+          aria-expanded={speedDialOpen}
+          aria-label={speedDialOpen ? 'Close contact menu' : 'Contact us'}
           className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-tertiary-dark text-white flex items-center justify-center shadow-xl border-2 border-primary-fixed-dim active:scale-95 transition-all ring-2 ring-primary/30"
           type="button"
         >
-          <span className="material-symbols-outlined text-[24px]">
-            {speedDialOpen ? 'close' : 'support_agent'}
-          </span>
+          <span className="material-symbols-outlined text-[24px]">{speedDialOpen ? 'close' : 'support_agent'}</span>
         </button>
       </div>
 
-      {/* Bottom White-Label Sticky Tray */}
+      {/* Owner only: send the catalogue link to a buyer */}
+      {isAdmin && (
       <div className="fixed bottom-16 inset-x-0 z-30 px-4 pb-2 pointer-events-none max-w-lg mx-auto">
         <div className="pointer-events-auto bg-on-surface/95 backdrop-blur-xl text-white p-3 rounded-xl shadow-xl flex items-center justify-between gap-3 border border-primary-container/40">
           <div className="flex items-center gap-2 min-w-0">
@@ -378,7 +364,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
             </div>
           </div>
           <button
-            onClick={handleShareCatalogue}
+            onClick={() => shareLink(window.location.origin)}
             className="px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary-dark text-white text-[11px] font-sans font-bold flex items-center gap-1 active:scale-95 transition-transform whitespace-nowrap shadow-sm"
           >
             <span className="material-symbols-outlined text-[15px]">qr_code_2</span>
@@ -386,6 +372,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 };

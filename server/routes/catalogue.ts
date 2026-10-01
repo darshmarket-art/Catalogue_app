@@ -7,7 +7,7 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { categorySchema, paginationSchema } from '../schemas';
+import { bannerSchema, categorySchema, paginationSchema } from '../schemas';
 
 const byCreatedAt = (dir: 1 | -1) => (a: any, b: any) =>
   dir * String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
@@ -108,6 +108,41 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       await store.delete('categories', existing.id);
       await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted.`);
       res.json({ status: 'success', message: 'Category deleted' });
+    })
+  );
+
+  // Home-page banners are photos the owner uploads; they show oldest first.
+  router.get(
+    '/banners',
+    readGuard,
+    handler(async (_req, res) => {
+      const data = (await store.list('banners')).sort(byCreatedAt(1)).map((b) => media.present(b));
+      res.json({ status: 'success', count: data.length, data });
+    })
+  );
+
+  router.post(
+    '/banners',
+    requireAdmin,
+    handler(async (req, res) => {
+      const body = parse(bannerSchema, req.body);
+      await assertPhotosExist(blobs, [body.image]);
+      if ((await store.list('banners')).length >= 8) throw new HttpError(409, 'You can keep up to 8 banners. Delete one first.');
+      const id = newId('ban');
+      const banner = { id, image: body.image, createdAt: new Date().toISOString() };
+      await store.set('banners', id, banner);
+      await audit(store, req, 'BANNER_ADDED', 'Banner added.');
+      res.status(201).json({ status: 'success', data: media.present(banner) });
+    })
+  );
+
+  router.delete(
+    '/banners/:id',
+    requireAdmin,
+    handler(async (req, res) => {
+      if (!(await store.delete('banners', req.params.id))) throw new HttpError(404, 'Banner not found.');
+      await audit(store, req, 'BANNER_DELETED', 'Banner deleted.');
+      res.json({ status: 'success', message: 'Banner deleted' });
     })
   );
 

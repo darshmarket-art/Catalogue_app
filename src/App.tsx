@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ActiveScreen, Product, Category, OrderItem, AnalyticsData, VisitorKind } from './types';
+import { ActiveScreen, Product, Category, Banner, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
 import { sector } from './sector';
@@ -16,9 +16,11 @@ import { AdminOrdersScreen } from './components/AdminOrdersScreen';
 import { NewProductScreen } from './components/NewProductScreen';
 import { AddCategoryScreen } from './components/AddCategoryScreen';
 import { AdminVisitorsScreen } from './components/AdminVisitorsScreen';
+import { AdminBannersScreen } from './components/AdminBannersScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import { QuotationModal } from './components/QuotationModal';
+import type { ProfileUser } from './components/ProfileMenu';
 
 export default function App() {
   // The current screen lives in the browser history too, so Back/Forward (and a reload) stay inside the app.
@@ -29,6 +31,7 @@ export default function App() {
   const [booting, setBooting] = useState(() => hasStoredSession());
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     periodLabel: 'Last 7 days',
@@ -48,13 +51,17 @@ export default function App() {
   const [analyticsUpdatedAt, setAnalyticsUpdatedAt] = useState<Date | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [visitorKind, setVisitorKind] = useState<VisitorKind>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(
+    // A shared link like /?category=Rings opens that category once the buyer is signed in.
+    () => new URLSearchParams(window.location.search).get('category')
+  );
+  // Which Orders tab to open first (the profile menu links straight to past orders).
+  const [ordersTab, setOrdersTab] = useState<'current' | 'past'>('current');
   // Set when the owner has reset this buyer's password: they must choose a new one before using the catalogue.
   const [mustChangePassword, setMustChangePassword] = useState(false);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [currentMerchant, setCurrentMerchant] = useState<{ storeName: string; phone: string } | null>(null);
+  const [currentMerchant, setCurrentMerchant] = useState<ProfileUser | null>(null);
   const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
   
   // Quotation Modal state
@@ -154,10 +161,12 @@ export default function App() {
     if (merchant.catalogueAccess === 'login' && !isSignedIn) {
       setCategories([]);
       setProducts([]);
+      setBanners([]);
       return;
     }
     const fetchData = async () => {
-      const [catsData, prodsData] = await Promise.all([api.getCategories(), api.getProducts()]);
+      const [catsData, prodsData, bannerData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners()]);
+      setBanners(bannerData);
       if (catsData.length > 0) setCategories(catsData);
       if (prodsData.length > 0) setProducts(prodsData);
     };
@@ -301,6 +310,26 @@ export default function App() {
     }
   };
 
+  const handleBannerAdded = async (image: string): Promise<boolean> => {
+    try {
+      const created = await api.addBanner(image);
+      setBanners((prev) => [...prev, created]);
+      return true;
+    } catch (err) {
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not add the banner.');
+      return false;
+    }
+  };
+
+  const handleBannerDeleted = async (banner: Banner) => {
+    try {
+      await api.deleteBanner(banner.id);
+      setBanners((prev) => prev.filter((b) => b.id !== banner.id));
+    } catch (err) {
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the banner.');
+    }
+  };
+
   const handleFilterCategoryInCatalogue = (catName: string) => {
     // Promotion banners pass their own headline, which is not always a category: only filter on real categories.
     setCategoryFilter(categories.some((c) => c.name === catName) ? catName : null);
@@ -317,6 +346,11 @@ export default function App() {
     handleNavigate('add-category');
   };
 
+  const openOrders = (tab: 'current' | 'past') => {
+    setOrdersTab(tab);
+    handleNavigate('orders');
+  };
+
   const handleLogout = () => {
     setAuthToken(null);
     setOrders([]);
@@ -331,10 +365,11 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners'];
   const buyerOnlyScreens: ActiveScreen[] = ['change-password'];
   let screen: ActiveScreen = currentScreen;
-  if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? 'catalogue' : 'admin-hub';
+  // Home is the Catalogue ('categories' screen); Products is the 'catalogue' screen.
+  if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
   const activeScreen: ActiveScreen =
     currentMerchant && mustChangePassword
@@ -344,7 +379,7 @@ export default function App() {
         : (memberScreens.includes(screen) || buyerOnlyScreens.includes(screen)) && !isSignedIn
           ? 'retailer-auth'
           : buyerOnlyScreens.includes(screen) && !currentMerchant
-            ? 'catalogue'
+            ? 'categories'
             : screen;
 
   const shouldShowBottomNav =
@@ -362,6 +397,7 @@ export default function App() {
           isAdminLoggedIn={isAdminLoggedIn}
           currentMerchant={currentMerchant}
           onLogout={handleLogout}
+          onOpenOrders={openOrders}
           isEditing={(activeScreen === 'new-product' && editingProduct !== null) || (activeScreen === 'add-category' && editingCategory !== null)}
         />
       )}
@@ -389,6 +425,8 @@ export default function App() {
         {activeScreen === 'categories' && (
           <CategoriesScreen
             categories={categories}
+            products={products}
+            banners={banners}
             isAdmin={isAdminLoggedIn}
             onEditCategory={openCategoryForm}
             onNavigate={handleNavigate}
@@ -396,8 +434,13 @@ export default function App() {
           />
         )}
 
-        {activeScreen === 'orders' && (
+        {/* Staff see every order placed by buyers; buyers see their own order and history */}
+        {activeScreen === 'orders' && isAdminLoggedIn && <AdminOrdersScreen />}
+
+        {activeScreen === 'orders' && !isAdminLoggedIn && (
           <OrdersScreen
+            key={ordersTab}
+            initialTab={ordersTab}
             orders={orders}
             onRemoveItem={handleRemoveOrderItem}
             onConfirmOrder={handleConfirmOrder}
@@ -412,7 +455,7 @@ export default function App() {
             onLoginSuccess={(user, mustChange) => {
               setCurrentMerchant(user);
               setMustChangePassword(mustChange);
-              handleNavigate('catalogue', true);
+              handleNavigate(categoryFilter ? 'catalogue' : 'categories', true);
               api.getOrders().then((result) => setOrders(result.items));
             }}
           />
@@ -430,9 +473,11 @@ export default function App() {
 
         {activeScreen === 'admin-orders' && <AdminOrdersScreen />}
 
-        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen initialKind={visitorKind} />}
+        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen />}
 
         {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
+
+        {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} />}
 
         {activeScreen === 'change-password' && (
           <ChangePasswordScreen
@@ -440,9 +485,9 @@ export default function App() {
             onDone={() => {
               setMustChangePassword(false);
               alert('Your password has been changed.');
-              handleNavigate('catalogue', true);
+              handleNavigate('categories', true);
             }}
-            onCancel={() => handleNavigate('catalogue')}
+            onCancel={() => handleNavigate('categories')}
           />
         )}
 
@@ -451,10 +496,7 @@ export default function App() {
             analytics={analytics}
             updatedAt={analyticsUpdatedAt}
             onNavigate={handleNavigate}
-            onOpenVisitors={(kind) => {
-              setVisitorKind(kind);
-              handleNavigate('admin-visitors');
-            }}
+            onOpenVisitors={() => handleNavigate('admin-visitors')}
           />
         )}
 
