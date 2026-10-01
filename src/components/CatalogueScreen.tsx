@@ -17,6 +17,16 @@ interface CatalogueScreenProps {
   onNavigateCategories: () => void;
 }
 
+type SortKey = 'default' | 'net-asc' | 'net-desc' | 'name';
+
+const PURITY_FILTERS = ['all', '22K', '24K', '18K'];
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'default', label: 'Default order' },
+  { key: 'net-asc', label: 'Net weight: low to high' },
+  { key: 'net-desc', label: 'Net weight: high to low' },
+  { key: 'name', label: 'Name: A to Z' }
+];
+
 export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   products,
   isAdmin,
@@ -31,11 +41,21 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
-  const [selectedPurityFilter, setSelectedPurityFilter] = useState<string>('all');
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [purity, setPurity] = useState<string>('all');
+  const [category, setCategory] = useState<string | null>(categoryFilter);
+  const [minWt, setMinWt] = useState('');
+  const [maxWt, setMaxWt] = useState('');
+  const [sort, setSort] = useState<SortKey>('default');
+  // Filters are open by default on wide screens, where there is room for them.
+  const [showFilters, setShowFilters] = useState(() => window.innerWidth >= 1024);
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   const gridRef = useRef<HTMLElement>(null);
   const openProduct = products.find((p) => p.id === openProductId) ?? null;
+
+  // A category picked on the Categories screen arrives as a prop.
+  useEffect(() => setCategory(categoryFilter), [categoryFilter]);
+
+  const categoryNames = useMemo(() => Array.from(new Set(products.map((p) => p.category))).sort(), [products]);
 
   // What a buyer searches for tells the owner what they are after. Recorded once they pause typing.
   useEffect(() => {
@@ -45,21 +65,40 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Filtered Products
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch =
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesPurity =
-        selectedPurityFilter === 'all' || p.purity.includes(selectedPurityFilter);
-      const matchesCategory = !categoryFilter || p.category === categoryFilter;
-
-      return matchesSearch && matchesPurity && matchesCategory;
+    const q = searchQuery.toLowerCase();
+    const min = minWt === '' ? null : Number(minWt);
+    const max = maxWt === '' ? null : Number(maxWt);
+    const list = products.filter((p) => {
+      const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+      const matchesPurity = purity === 'all' || p.purity.includes(purity);
+      const matchesCategory = !category || p.category === category;
+      const matchesMin = min === null || Number.isNaN(min) || p.netWt >= min;
+      const matchesMax = max === null || Number.isNaN(max) || p.netWt <= max;
+      return matchesSearch && matchesPurity && matchesCategory && matchesMin && matchesMax;
     });
-  }, [products, searchQuery, selectedPurityFilter, categoryFilter]);
+    if (sort === 'net-asc') list.sort((a, b) => a.netWt - b.netWt);
+    else if (sort === 'net-desc') list.sort((a, b) => b.netWt - a.netWt);
+    else if (sort === 'name') list.sort((a, b) => a.title.localeCompare(b.title));
+    return list;
+  }, [products, searchQuery, purity, category, minWt, maxWt, sort]);
+
+  const activeFilterCount =
+    (purity !== 'all' ? 1 : 0) + (category ? 1 : 0) + (minWt !== '' ? 1 : 0) + (maxWt !== '' ? 1 : 0);
+
+  const resetFilters = () => {
+    setPurity('all');
+    setCategory(null);
+    setMinWt('');
+    setMaxWt('');
+    setSearchQuery('');
+    onClearCategoryFilter();
+  };
+
+  const pickCategory = (name: string | null) => {
+    setCategory(name);
+    if (!name) onClearCategoryFilter();
+  };
 
   useEffect(() => {
     const grid = gridRef.current;
@@ -105,7 +144,6 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
   useEffect(() => clearOnScreen, []);
 
-  // Selected Items Calculation
   const { selectedCount, totalNetWeight } = useMemo(() => {
     let count = 0;
     let net = 0;
@@ -133,284 +171,257 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     });
   };
 
+  const allShownSelected = filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.has(p.id));
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredProducts.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredProducts.map((p) => p.id)));
-    }
+    setSelectedIds(allShownSelected ? new Set() : new Set(filteredProducts.map((p) => p.id)));
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setQuantities((prev) => {
-      const cur = prev[id] || 1;
-      const next = Math.max(1, cur + delta);
-      return { ...prev, [id]: next };
-    });
+    setQuantities((prev) => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + delta) }));
   };
 
   const handleAdd = (prod: Product) => {
-    const qty = quantities[prod.id] || 1;
-    onAddToOrder(prod, qty);
+    onAddToOrder(prod, quantities[prod.id] || 1);
     setAddedNotice(prod.title);
     setTimeout(() => setAddedNotice(null), 1800);
   };
 
-  const getSelectedProductObjects = () => {
-    return products.filter((p) => selectedIds.has(p.id));
-  };
+  const chip = (active: boolean) =>
+    `px-3.5 py-2 rounded-full text-[13px] font-sans font-semibold transition-colors ${
+      active ? 'bg-primary text-white shadow-xs' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+    }`;
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-4xl mx-auto">
-      {/* Toast Notification */}
+    <div className="flex flex-col w-full pb-36 max-w-7xl mx-auto">
       {addedNotice && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-sans animate-fade-in border border-primary-container/40">
+        <div role="status" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-sans animate-fade-in border border-primary-container/40">
           <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>
-          <span>Added {addedNotice} to Wholesale Batch Order!</span>
+          <span>Added {addedNotice} to your order</span>
         </div>
       )}
 
-      {/* Filter & Rapid Search Bar */}
-      <section className="px-4 pt-3 pb-2 flex flex-col gap-2.5">
-        <div className="relative flex items-center">
-          <span className="material-symbols-outlined absolute left-3 text-[18px] text-outline">search</span>
-          <input
-            className="w-full bg-white text-on-surface font-sans text-xs pl-9 pr-24 py-2.5 rounded-lg shadow-xs border border-outline-variant/40 focus:outline-none focus:bg-surface-container-low transition-colors"
-            placeholder="Search by SKU, design code, or weight range..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="absolute right-2 flex items-center gap-1">
-            <button
-              onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-              className="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded text-on-surface-variant font-sans text-[11px] font-semibold active:scale-95 transition-transform hover:bg-surface-container-high"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[15px]">tune</span>
-              <span>Filter</span>
-            </button>
+      {/* Search, filters and sort stay in view while scrolling on phones and tablets (on large screens the open filter panel would cover too much) */}
+      <section className="sticky lg:static top-16 md:top-[4.5rem] z-30 bg-surface/95 backdrop-blur-md px-4 pt-3 pb-3 flex flex-col gap-3 border-b border-outline-variant/30">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-outline">search</span>
+            <input
+              aria-label="Search designs"
+              className="w-full bg-white text-on-surface font-sans text-sm pl-10 pr-3 py-3 rounded-xl shadow-xs border border-outline-variant/50 focus:outline-none focus:border-primary/60 transition-colors"
+              placeholder="Search by name, SKU or category"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+            className="flex items-center gap-1.5 h-11 px-3.5 rounded-xl bg-white border border-outline-variant/50 text-on-surface font-sans text-sm font-semibold active:scale-95 transition-transform hover:bg-surface-container-low"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[20px]">tune</span>
+            <span className="hidden sm:inline">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-primary text-white text-[11px] font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        {categoryFilter && (
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 bg-primary-fixed/40 text-primary font-sans text-[11px] font-bold pl-2.5 pr-1 py-1 rounded-full">
-              {categoryFilter}
-              <button aria-label="Show all designs" onClick={onClearCategoryFilter} className="w-5 h-5 rounded-full hover:bg-primary-fixed flex items-center justify-center">
-                <span className="material-symbols-outlined text-[14px]">close</span>
+        {showFilters && (
+          <div className="bg-white p-4 rounded-xl border border-outline-variant/50 shadow-xs flex flex-col gap-4 animate-fade-in max-h-[60vh] overflow-y-auto">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-sans font-bold text-on-surface-variant">Purity</span>
+              <div className="flex flex-wrap gap-2">
+                {PURITY_FILTERS.map((p) => (
+                  <button key={p} onClick={() => setPurity(p)} className={chip(purity === p)} aria-pressed={purity === p} type="button">
+                    {p === 'all' ? 'All' : p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {categoryNames.length > 1 && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-sans font-bold text-on-surface-variant">Category</span>
+                  <button onClick={onNavigateCategories} className="text-xs text-secondary font-sans font-semibold hover:underline" type="button">
+                    See category photos
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => pickCategory(null)} className={chip(!category)} aria-pressed={!category} type="button">
+                    All
+                  </button>
+                  {categoryNames.map((name) => (
+                    <button key={name} onClick={() => pickCategory(name)} className={chip(category === name)} aria-pressed={category === name} type="button">
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-sans font-bold text-on-surface-variant">Net weight (grams)</span>
+              <div className="flex items-center gap-2 max-w-xs">
+                <input
+                  aria-label="Minimum net weight in grams"
+                  inputMode="decimal"
+                  placeholder="Min"
+                  value={minWt}
+                  onChange={(e) => setMinWt(e.target.value)}
+                  className="w-full bg-surface-container-low rounded-lg px-3 py-2.5 text-sm font-mono border border-outline-variant/40 focus:outline-none focus:border-primary/60"
+                />
+                <span className="text-outline">to</span>
+                <input
+                  aria-label="Maximum net weight in grams"
+                  inputMode="decimal"
+                  placeholder="Max"
+                  value={maxWt}
+                  onChange={(e) => setMaxWt(e.target.value)}
+                  className="w-full bg-surface-container-low rounded-lg px-3 py-2.5 text-sm font-mono border border-outline-variant/40 focus:outline-none focus:border-primary/60"
+                />
+              </div>
+            </div>
+
+            {activeFilterCount > 0 && (
+              <button onClick={resetFilters} className="self-start text-sm text-primary font-sans font-semibold hover:underline" type="button">
+                Clear all filters
               </button>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="font-sans text-sm text-on-surface-variant whitespace-nowrap">
+              <strong className="text-on-surface">{filteredProducts.length}</strong> {filteredProducts.length === 1 ? 'design' : 'designs'}
             </span>
-          </div>
-        )}
-
-        {/* Filter Drawer / Badges */}
-        {showFilterDrawer && (
-          <div className="bg-white p-3 rounded-lg border border-outline-variant/60 shadow-sm flex flex-col gap-2 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-primary uppercase tracking-wider font-mono">
-                Purity & Karat Filter
-              </span>
-              <button
-                onClick={() => setSelectedPurityFilter('all')}
-                className="text-[10px] text-outline hover:underline"
-              >
-                Reset
+            {filteredProducts.length > 0 && (
+              <button onClick={toggleSelectAll} className="font-sans text-sm text-secondary font-semibold hover:underline whitespace-nowrap" type="button">
+                {allShownSelected ? 'Clear selection' : 'Select all'}
               </button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {['all', '22K', '24K', '18K'].map((purity) => (
-                <button
-                  key={purity}
-                  onClick={() => setSelectedPurityFilter(purity)}
-                  className={`px-3 py-1 rounded text-xs font-mono font-semibold transition-all ${
-                    selectedPurityFilter === purity
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
-                  }`}
-                >
-                  {purity === 'all' ? 'All Karats' : purity}
-                </button>
+            )}
+          </div>
+          <label className="flex items-center gap-2 text-sm font-sans text-on-surface-variant">
+            <span className="sr-only sm:not-sr-only">Sort</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="bg-white border border-outline-variant/50 rounded-lg px-2 py-2 text-sm font-sans text-on-surface focus:outline-none focus:border-primary/60 max-w-[9.5rem] sm:max-w-none"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
               ))}
-              <button
-                onClick={onNavigateCategories}
-                className="ml-auto text-xs text-secondary font-sans font-semibold flex items-center gap-1 hover:underline"
-              >
-                <span>Browse by Category</span>
-                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* B2B Wholesale Bulk Actions Banner */}
-      <section className="mx-4 mt-1 mb-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant/50 shadow-xs flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-5 h-5 rounded bg-primary flex items-center justify-center text-white">
-              <span className="material-symbols-outlined text-[15px]">done_all</span>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-sans text-[12px] font-bold text-on-surface truncate">
-                Wholesale Batch Selection
-              </span>
-              <span className="font-mono text-[11px] text-primary font-bold">
-                {selectedCount} items selected • Net Gold: {totalNetWeight}g
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={toggleSelectAll}
-            className="font-sans text-[11px] text-secondary font-bold px-2.5 py-1 rounded bg-secondary-container/50 hover:bg-secondary-container transition-colors"
-            type="button"
-          >
-            {selectedIds.size === filteredProducts.length && filteredProducts.length > 0
-              ? 'Deselect All'
-              : 'Select All'}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <button
-            onClick={() => onOpenQuotation(selectedCount, totalNetWeight, getSelectedProductObjects())}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-secondary text-white font-sans text-xs font-semibold active:scale-95 transition-all shadow-xs hover:bg-secondary-hover"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[16px]">share</span>
-            <span>Share with Client</span>
-          </button>
-
-          <button
-            onClick={() => onOpenQuotation(selectedCount, totalNetWeight, getSelectedProductObjects())}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary text-white font-sans text-xs font-semibold active:scale-95 transition-all shadow-xs hover:bg-tertiary-dark"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[16px]">assignment_turned_in</span>
-            <span>RFQ Batch Order</span>
-          </button>
+            </select>
+          </label>
         </div>
       </section>
 
-      {/* Product Catalogue 2-Column Grid */}
-      <section ref={gridRef} className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 px-4 pb-20">
+      {/* Product grid: 2 columns on phones, up to 5 on large screens */}
+      <section ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 px-4 pt-4">
         {filteredProducts.map((prod) => {
           const isSelected = selectedIds.has(prod.id);
           const qty = quantities[prod.id] || 1;
+          const is24K = prod.purity.includes('24K');
 
           return (
             <article
               key={prod.id}
               data-sku={prod.sku}
-              className="product-card group relative bg-white rounded-xl p-2.5 shadow-sm border border-outline-variant/40 hover:shadow-md transition-shadow flex flex-col justify-between"
+              className={`group relative bg-white rounded-2xl overflow-hidden shadow-sm border transition-shadow hover:shadow-md flex flex-col ${
+                isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-outline-variant/40'
+              }`}
             >
-              <div>
-                {/* Product Image Container with Overlays */}
-                <div className="relative w-full aspect-square bg-surface-container rounded-lg overflow-hidden mb-2">
-                  <button type="button" aria-label={`View ${prod.title}`} onClick={() => setOpenProductId(prod.id)} className="block w-full h-full">
-                    <img
-                      alt={prod.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      src={prod.image}
-                      referrerPolicy="no-referrer"
-                    />
-                  </button>
-                  {prod.images.length > 1 && (
-                    <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-0.5 pointer-events-none">
-                      <span className="material-symbols-outlined text-[11px]">photo_library</span>
-                      {prod.images.length}
-                    </span>
-                  )}
-                  <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded font-mono text-[9px] font-bold text-primary shadow-xs border border-primary-container/20">
-                    {prod.purity}
+              <div className="relative w-full aspect-square bg-surface-container overflow-hidden">
+                <button type="button" aria-label={`View ${prod.title}`} onClick={() => setOpenProductId(prod.id)} className="block w-full h-full">
+                  <img
+                    alt={prod.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    src={prod.image}
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+                {prod.images.length > 1 && (
+                  <span className="absolute bottom-2 right-2 bg-black/60 text-white font-sans text-[11px] px-1.5 py-0.5 rounded flex items-center gap-0.5 pointer-events-none">
+                    <span className="material-symbols-outlined text-[13px]">photo_library</span>
+                    {prod.images.length}
                   </span>
-                  <label className="cursor-pointer absolute top-1.5 right-1.5">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(prod.id)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`w-5 h-5 rounded flex items-center justify-center transition-colors shadow-xs ${
-                        isSelected
-                          ? 'bg-primary text-white'
-                          : 'bg-surface-container-high text-transparent hover:bg-surface-dim'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[14px]">check</span>
-                    </div>
-                  </label>
-                </div>
+                )}
+                <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md font-mono text-[11px] font-bold text-primary shadow-xs">
+                  {prod.purity}
+                </span>
+                <label className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center cursor-pointer">
+                  <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(prod.id)} className="peer sr-only" aria-label={`Select ${prod.title}`} />
+                  <span
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary ${
+                      isSelected ? 'bg-primary text-white' : 'bg-white/90 text-outline hover:bg-white'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{isSelected ? 'check' : 'add'}</span>
+                  </span>
+                </label>
+              </div>
 
-                {/* SKU & Title */}
-                <div className="mb-1.5">
-                  <span className="font-mono text-[9px] text-outline font-medium block leading-tight">
-                    SKU: {prod.sku}
-                  </span>
-                  <h2 className="font-serif text-[13px] leading-tight font-bold text-on-surface line-clamp-1 mt-0.5">
+              <div className="p-3 flex flex-col gap-2 flex-1">
+                <div>
+                  <span className="font-mono text-[11px] text-outline block leading-tight">{prod.sku}</span>
+                  <h2 className="font-serif text-[15px] leading-snug font-bold text-on-surface line-clamp-2 mt-0.5 min-h-[2.5rem]">
                     <button type="button" onClick={() => setOpenProductId(prod.id)} className="text-left">
                       {prod.title}
                     </button>
                   </h2>
-                  <span className="font-mono text-[10px] text-primary font-semibold block mt-0.5 line-clamp-1">
-                    {sector.priceLabel(prod)}
-                  </span>
+                  <span className="font-sans text-xs text-primary font-semibold block mt-0.5 line-clamp-1">{sector.priceLabel(prod)}</span>
                 </div>
 
-                {/* Micro Spec Grid */}
-                <div className="grid grid-cols-2 gap-1 bg-surface-container-low p-1 rounded-lg text-center mb-2 border border-outline-variant/40">
-                  <div className="flex flex-col py-0.5">
-                    <span className="font-sans text-[8px] text-outline font-medium uppercase tracking-wider">
-                      Gross
-                    </span>
-                    <span className="font-mono text-[11px] font-bold text-on-surface">
-                      {prod.grossWt.toFixed(2)}g
-                    </span>
+                <div className="grid grid-cols-2 gap-1.5 text-center">
+                  <div className="rounded-lg bg-primary-fixed/30 border border-primary/20 py-1.5">
+                    <span className="block font-sans text-[11px] text-primary font-semibold">{is24K ? 'Purity' : 'Net'}</span>
+                    <span className="block font-mono text-sm font-bold text-primary">{is24K ? '999.9' : `${prod.netWt.toFixed(2)} g`}</span>
                   </div>
-                  <div className="flex flex-col bg-white rounded py-0.5 shadow-xs border border-primary/20">
-                    <span className="font-sans text-[8px] text-primary font-bold uppercase tracking-wider">
-                      {prod.purity.includes('24K') ? 'Purity' : 'Net'}
-                    </span>
-                    <span className="font-mono text-[11px] font-bold text-primary">
-                      {prod.purity.includes('24K') ? '999.9' : `${prod.netWt.toFixed(2)}g`}
-                    </span>
+                  <div className="rounded-lg bg-surface-container-low border border-outline-variant/40 py-1.5">
+                    <span className="block font-sans text-[11px] text-on-surface-variant font-semibold">Gross</span>
+                    <span className="block font-mono text-sm font-bold text-on-surface">{prod.grossWt.toFixed(2)} g</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Stepper & Action */}
-              <div className="flex flex-col gap-1.5 pt-1">
-                <div className="flex items-center justify-between bg-surface-container-low px-1.5 py-1 rounded">
+                <div className="flex flex-col gap-2 mt-auto pt-1">
+                  <div className="flex items-center justify-between rounded-lg bg-surface-container-low border border-outline-variant/40">
+                    <button
+                      onClick={() => updateQuantity(prod.id, -1)}
+                      aria-label={`Decrease quantity of ${prod.title}`}
+                      className="w-11 h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">remove</span>
+                    </button>
+                    <span className="font-mono text-sm font-bold text-on-surface" aria-live="polite">
+                      {qty}
+                    </span>
+                    <button
+                      onClick={() => updateQuantity(prod.id, 1)}
+                      aria-label={`Increase quantity of ${prod.title}`}
+                      className="w-11 h-10 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                    </button>
+                  </div>
                   <button
-                    onClick={() => updateQuantity(prod.id, -1)}
-                    className="w-5 h-5 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
+                    onClick={() => handleAdd(prod)}
+                    className="w-full h-10 rounded-lg bg-secondary hover:bg-secondary-dark text-white font-sans text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 transition-all shadow-xs"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[13px]">remove</span>
-                  </button>
-                  <span className="font-mono text-[11px] font-bold text-on-surface">
-                    {qty}
-                  </span>
-                  <button
-                    onClick={() => updateQuantity(prod.id, 1)}
-                    className="w-5 h-5 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-90"
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined text-[13px]">add</span>
+                    <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+                    <span>Add to order</span>
                   </button>
                 </div>
-
-                <button
-                  onClick={() => handleAdd(prod)}
-                  className="w-full h-7 rounded bg-secondary hover:bg-secondary-dark text-white font-sans text-[10px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[13px]">
-                    {prod.purity.includes('24K') ? 'scale' : 'add_shopping_cart'}
-                  </span>
-                  <span>{prod.purity.includes('24K') ? 'Add Gram Batch' : 'Add to Order'}</span>
-                </button>
               </div>
             </article>
           );
@@ -429,36 +440,50 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       />
 
       {filteredProducts.length === 0 && (
-        <p className="px-4 pb-10 text-center font-sans text-xs text-outline">
-          {products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search.'}
-        </p>
+        <div className="px-4 py-16 text-center flex flex-col items-center gap-3">
+          <span className="material-symbols-outlined text-[40px] text-outline">search_off</span>
+          <p className="font-sans text-sm text-on-surface-variant">
+            {products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search or filters.'}
+          </p>
+          {products.length > 0 && (
+            <button onClick={resetFilters} className="font-sans text-sm text-primary font-semibold hover:underline" type="button">
+              Clear search and filters
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Floating Quick Action Pill for WhatsApp Wholesale Quotation */}
+      {/* Appears once designs are selected: share them with your own customer */}
       {selectedCount > 0 && (
-        <aside className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md animate-fade-in">
-          <div className="bg-on-surface text-inverse-on-surface px-4 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-2 border border-primary-container/50">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white flex-shrink-0">
-                <span className="material-symbols-outlined text-[18px]">chat</span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="font-mono text-[11px] font-bold text-primary-fixed truncate">
-                  {selectedCount} Pcs ({totalNetWeight}g Net) Selected
-                </span>
-                <span className="font-sans text-[10px] text-inverse-on-surface/80 truncate">
-                  Tap to send Gram Requisition Slip to Retailer
-                </span>
-              </div>
+        <aside className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-lg animate-fade-in">
+          <div className="bg-on-surface text-inverse-on-surface pl-4 pr-2 py-2 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-primary-container/50">
+            <div className="flex flex-col min-w-0">
+              <span className="font-sans text-sm font-bold text-primary-fixed truncate">
+                {selectedIds.size} {selectedIds.size === 1 ? 'design' : 'designs'} selected
+              </span>
+              <span className="font-sans text-xs text-inverse-on-surface/80 truncate">
+                {selectedCount} {selectedCount === 1 ? 'piece' : 'pieces'} · {totalNetWeight} g net
+              </span>
             </div>
-            <button
-              onClick={() => onOpenQuotation(selectedCount, totalNetWeight, getSelectedProductObjects())}
-              className="flex-shrink-0 bg-primary hover:bg-primary-container text-white font-sans text-xs font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1 shadow-md"
-              type="button"
-            >
-              <span>Send</span>
-              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-            </button>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                aria-label="Clear selection"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-inverse-on-surface/80 hover:text-white"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+              <button
+                onClick={() => onOpenQuotation(selectedCount, totalNetWeight, products.filter((p) => selectedIds.has(p.id)))}
+                className="bg-primary hover:bg-primary-container text-white font-sans text-sm font-bold px-4 h-10 rounded-xl active:scale-95 transition-transform flex items-center gap-1.5 shadow-md"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">share</span>
+                <span className="hidden sm:inline">Share with customer</span>
+                <span className="sm:hidden">Share</span>
+              </button>
+            </div>
           </div>
         </aside>
       )}

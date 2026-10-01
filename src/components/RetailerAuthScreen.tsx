@@ -3,6 +3,7 @@ import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
+import { BrandMark } from './BrandMark';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -93,15 +94,11 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
       {/* Brand Header */}
       <div className="flex flex-col items-center text-center mb-4">
         <div className="w-12 h-12 rounded-xl bg-on-surface border border-primary-container/50 flex items-center justify-center shadow-md mb-2">
-          <img
-            alt={`${merchant.brand.name} Emblem`}
-            className="w-8 h-8 object-contain"
-            src={merchant.brand.logoUrl}
-          />
+          <BrandMark className="w-8 h-8" textClassName="text-[22px]" />
         </div>
         <h2 className="font-serif text-[20px] font-bold text-on-surface tracking-wider leading-none">{merchant.brand.name.toUpperCase()}</h2>
         <span className="font-mono text-[11px] text-primary tracking-widest uppercase mt-0.5 font-semibold">
-          B2B Retailer Gateway • {sector.copy.tradingModel}
+          Wholesale for retailers • {sector.copy.tradingModel}
         </span>
       </div>
 
@@ -167,11 +164,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           {/* Registered Mobile Input */}
           <div className="flex flex-col space-y-1">
             <label className="text-xs font-sans text-on-surface font-semibold flex items-center justify-between">
-              <span>Registered Phone</span>
-              <span className="font-mono text-[11px] text-secondary flex items-center">
-                <span className="material-symbols-outlined text-[13px] mr-0.5">verified_user</span>
-                Verified Trade ID
-              </span>
+              <span>Mobile number</span>
             </label>
             <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white focus-within:border-primary/60 transition-all">
               <div className="flex items-center px-3 py-2.5 text-on-surface-variant space-x-1 border-r border-outline-variant/50">
@@ -192,8 +185,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           {/* Password Mode */}
                       <div className="flex flex-col space-y-1">
               <label className="text-xs font-sans text-on-surface font-semibold flex items-center justify-between">
-                <span>Vault Security Password</span>
-                <span className="text-[10px] text-outline">Strictly Checked</span>
+                <span>Password</span>
               </label>
               <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white focus-within:border-primary/60 transition-all">
                 <span className="material-symbols-outlined text-[17px] text-primary pl-3">lock</span>
@@ -202,7 +194,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter vault security passkey"
+                  placeholder="Enter your password"
                   required
                 />
                 <button
@@ -218,21 +210,13 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
             </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center space-x-2 cursor-pointer select-none">
-              <input
-                defaultChecked
-                className="w-3.5 h-3.5 rounded text-primary accent-primary"
-                type="checkbox"
-              />
-              <span className="text-[11px] font-sans text-on-surface-variant">Remember POS terminal</span>
-            </label>
+          <div className="flex items-center justify-end pt-1">
             <button
               type="button"
-              onClick={() => alert(`Please contact ${merchant.brand.name} on ${merchant.contact.deskPhone} to reset your passkey.`)}
-              className="text-[11px] font-sans text-primary hover:underline font-semibold"
+              onClick={() => alert(`Please contact ${merchant.brand.name} on ${merchant.contact.deskPhone} to reset your password.`)}
+              className="text-xs font-sans text-primary hover:underline font-semibold"
             >
-              Reset Passkey?
+              Forgot password?
             </button>
           </div>
 
@@ -242,13 +226,13 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
             disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-primary to-primary-container text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center space-x-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all"
           >
-            <span>{loading ? 'Verifying Vault Credentials...' : 'Enter Wholesale Portal'}</span>
+            <span>{loading ? 'Signing in...' : 'Sign in'}</span>
             <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
           </button>
 
           <div className="pt-2 border-t border-surface-container flex flex-col items-center space-y-2">
             <p className="text-[11px] font-sans text-outline">
-              Don&apos;t have a wholesale account?
+              New to {merchant.brand.name}?
             </p>
             <button
               onClick={() => {
@@ -259,7 +243,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
               type="button"
             >
               <span className="material-symbols-outlined text-[16px]">person_add</span>
-              <span>Create New Trade Account</span>
+              <span>Create an account</span>
             </button>
           </div>
         </form>
@@ -274,9 +258,9 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           <div className="flex items-center justify-between pb-1 border-b border-surface-container">
             <div className="flex flex-col">
               <span className="text-[10px] font-mono text-primary uppercase tracking-wider font-bold">
-                B2B Institutional Onboarding
+                Wholesale account
               </span>
-              <h3 className="font-serif text-base font-bold text-on-surface">New Retailer Signup</h3>
+              <h3 className="font-serif text-base font-bold text-on-surface">Create your account</h3>
             </div>
             <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
               <span className="material-symbols-outlined text-[18px]">app_registration</span>
@@ -298,10 +282,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
 
           <div className="flex flex-col space-y-1">
             <label className="text-xs font-sans text-on-surface font-semibold flex items-center justify-between">
-              <span>GSTIN Number (15 Characters) *</span>
-              <span className="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-fixed font-mono text-[9px] font-bold">
-                Verify GST
-              </span>
+              <span>GST number (15 characters) *</span>
             </label>
             <input
               required
@@ -316,20 +297,20 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col space-y-1">
               <label className="text-xs font-sans text-on-surface font-semibold">
-                Owner / Signatory Name *
+                Owner name *
               </label>
               <input
                 required
                 className="bg-surface-container-low px-3 py-2 rounded-lg text-xs font-sans text-on-surface border border-outline-variant/40 focus:outline-none focus:bg-white"
                 value={signupOwner}
                 onChange={(e) => setSignupOwner(e.target.value)}
-                placeholder="Authorized contact"
+                placeholder="Your name"
               />
             </div>
 
             <div className="flex flex-col space-y-1">
               <label className="text-xs font-sans text-on-surface font-semibold">
-                WhatsApp Phone *
+                WhatsApp number *
               </label>
               <input
                 required
@@ -343,8 +324,8 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
 
           <div className="flex flex-col space-y-1">
             <label className="text-xs font-sans text-on-surface font-semibold flex items-center justify-between">
-              <span>Create Vault Security Password *</span>
-              <span className="text-[10px] text-outline">Min 6 characters</span>
+              <span>Create a password *</span>
+              <span className="text-[11px] text-outline">At least 6 characters</span>
             </label>
             <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/40 focus-within:bg-white">
               <input
@@ -353,7 +334,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
                 className="w-full bg-transparent px-3 py-2 text-xs font-sans text-on-surface focus:outline-none"
                 value={signupPassword}
                 onChange={(e) => setSignupPassword(e.target.value)}
-                placeholder="Set alphanumeric passkey"
+                placeholder="Choose a password"
               />
               <button
                 type="button"
@@ -369,7 +350,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
 
           <div className="flex flex-col space-y-1">
             <label className="text-xs font-sans text-on-surface font-semibold">
-              Store City / Market Hub
+              City / market
             </label>
             <input
               required
@@ -385,7 +366,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
             disabled={loading}
             className="w-full py-3 bg-primary hover:bg-primary-container text-white rounded-lg text-xs font-sans font-bold flex items-center justify-center space-x-1.5 shadow-md active:scale-[0.99] transition-all"
           >
-            <span>{loading ? 'Creating Trade Account...' : 'Complete Trade Signup & Enter'}</span>
+            <span>{loading ? 'Creating account...' : 'Create account'}</span>
             <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
           </button>
         </form>
@@ -396,33 +377,33 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-surface-container-low p-2 rounded-lg flex flex-col items-center justify-center space-y-1 border border-outline-variant/40">
             <span className="material-symbols-outlined text-[18px] text-primary">verified</span>
-            <span className="text-[9px] font-sans font-semibold leading-tight text-on-surface">
+            <span className="text-[11px] font-sans font-semibold leading-tight text-on-surface">
               BIS 100% Hallmarked
             </span>
           </div>
 
           <div className="bg-surface-container-low p-2 rounded-lg flex flex-col items-center justify-center space-y-1 border border-outline-variant/40">
             <span className="material-symbols-outlined text-[18px] text-primary">assignment_turned_in</span>
-            <span className="text-[9px] font-sans font-semibold leading-tight text-on-surface">
+            <span className="text-[11px] font-sans font-semibold leading-tight text-on-surface">
               GST Registered Entities
             </span>
           </div>
 
           <div className="bg-surface-container-low p-2 rounded-lg flex flex-col items-center justify-center space-y-1 border border-outline-variant/40">
             <span className="material-symbols-outlined text-[18px] text-primary">enhanced_encryption</span>
-            <span className="text-[9px] font-sans font-semibold leading-tight text-on-surface">
-              256-Bit Encrypted Vault
+            <span className="text-[11px] font-sans font-semibold leading-tight text-on-surface">
+              Secure sign-in
             </span>
           </div>
         </div>
 
-        {/* Store Admin Switch */}
+        {/* Staff entry: deliberately quiet, so buyers are not shown admin tools */}
         <div className="text-center pt-1">
           <button
             onClick={() => onNavigate('admin-login')}
-            className="text-xs font-sans text-primary hover:underline font-bold inline-flex items-center space-x-1"
+            className="text-xs font-sans text-on-surface-variant hover:text-primary hover:underline"
           >
-            <span>Admin Console Login & Provisioning →</span>
+            Staff sign-in
           </button>
         </div>
       </div>

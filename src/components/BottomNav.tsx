@@ -68,18 +68,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[11px] font-sans font-semibold mt-0.5">Orders</span>
         </button>
 
-        {/* Admin Tab */}
-        <button
-          onClick={() => onNavigate(isAdminLoggedIn ? 'admin-hub' : 'admin-login')}
-          className={`flex flex-col items-center justify-center min-w-[56px] h-12 transition-all ${
-            isAdminActive
-              ? 'text-primary font-bold scale-105'
-              : 'text-on-surface-variant hover:text-on-surface'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
-          <span className="text-[11px] font-sans font-semibold mt-0.5">Admin</span>
-        </button>
+        {/* Admin Tab: staff only */}
+        {isAdminLoggedIn && (
+          <button
+            onClick={() => onNavigate('admin-hub')}
+            className={`flex flex-col items-center justify-center min-w-[56px] h-12 transition-all ${
+              isAdminActive
+                ? 'text-primary font-bold scale-105'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
+            <span className="text-[11px] font-sans font-semibold mt-0.5">Admin</span>
+          </button>
+        )}
       </div>
     </nav>
   );

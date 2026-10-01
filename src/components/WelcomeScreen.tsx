@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
+import { BrandMark } from './BrandMark';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -14,11 +15,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
         {/* Dark Obsidian Luxury Emblem Box */}
         <div className="relative w-28 h-28 rounded-2xl bg-on-surface border-2 border-primary-container/60 shadow-xl flex items-center justify-center p-3 group hover:border-primary-fixed-dim transition-all">
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-2xl"></div>
-          <img
-            alt={`${merchant.brand.name} Emblem`}
-            className="w-16 h-16 object-contain z-10 drop-shadow-md group-hover:scale-105 transition-transform"
-            src={merchant.brand.logoUrl}
-          />
+          <BrandMark className="w-16 h-16 z-10 drop-shadow-md group-hover:scale-105 transition-transform" textClassName="text-[44px]" />
         </div>
 
         <div className="flex flex-col items-center">

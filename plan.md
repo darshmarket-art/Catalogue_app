@@ -1,7 +1,7 @@
 # Plan
 
 ## Goal
-A configurable catalogue app that can be sold to many merchants. **Bhakti Jewels is only the first (test) merchant.**
+A configurable catalogue app that can be sold to many merchants. **Bhakti Jewels is our first merchant (the live pilot); its look and wording live in `merchants/bhakti/merchant.json` so every later merchant gets the same product with their own brand.**
 Each merchant gets its own deployment, branding, sector rules and data. Web link first; store apps later.
 
 ## Decisions (made)

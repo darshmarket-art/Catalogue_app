@@ -142,7 +142,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
             </div>
           </div>
           <span className="bg-primary/10 text-primary font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider flex-shrink-0">
-            {orders.length} Items
+            {orders.length} {orders.length === 1 ? 'item' : 'items'}
           </span>
         </div>
       </div>
@@ -157,7 +157,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
               tab === key ? 'bg-white text-primary shadow-xs' : 'text-outline'
             }`}
           >
-            {key === 'current' ? 'Current batch' : 'Past orders'}
+            {key === 'current' ? 'Current order' : 'Past orders'}
           </button>
         ))}
       </div>
@@ -295,7 +295,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   {sector.copy.orders.dispatchLabel}
                 </span>
                 <span className="font-mono text-base font-bold text-on-surface tracking-tight">
-                  {orders.length} Items{' '}
+                  {orders.length} {orders.length === 1 ? 'item' : 'items'}{' '}
                   <span className="text-xs font-normal text-outline">({totalPieces} pcs)</span>
                 </span>
               </div>

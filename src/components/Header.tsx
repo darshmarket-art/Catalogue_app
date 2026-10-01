@@ -2,6 +2,7 @@ import React from 'react';
 import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { sector } from '../sector';
+import { BrandMark } from './BrandMark';
 
 interface HeaderProps {
   currentScreen: ActiveScreen;
@@ -53,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
                 : currentScreen === 'admin-login'
                   ? 'Admin Console'
                   : currentScreen === 'retailer-auth'
-                    ? 'Retailer Gateway'
+                    ? 'Sign in'
                     : isAdminView
                       ? 'Admin Console'
                       : currentMerchant
@@ -85,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
         {/* Centre: medallion, brand name, gold context line */}
         <button onClick={() => onNavigate('welcome')} className="flex flex-col items-center text-center focus:outline-none group min-w-0 max-w-[52vw]">
           <span className="w-7 h-7 rounded-full bg-on-surface border border-primary-container/60 shadow-sm flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
-            <img alt={`${merchant.brand.name} Emblem`} className="w-5 h-5 object-contain" src={merchant.brand.logoUrl} />
+            <BrandMark className="w-5 h-5" textClassName="text-[13px]" />
           </span>
           <span className="font-serif text-[15px] md:text-[17px] font-bold tracking-tight text-primary leading-tight mt-0.5 truncate max-w-full">
             {merchant.brand.name.toUpperCase()}
@@ -127,18 +128,21 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
             </button>
           )}
 
-          <button
-            onClick={() => onNavigate(isAdminLoggedIn ? 'admin-hub' : 'admin-login')}
-            aria-label="Admin Portal"
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all active:scale-95 shadow-xs ${
-              isAdminView
-                ? 'bg-on-surface text-primary-fixed border-primary-container'
-                : 'bg-surface-container-high text-secondary border-outline-variant/60 hover:bg-surface-container-highest'
-            }`}
-            title="Admin Console"
-          >
-            <span className="material-symbols-outlined text-[19px]">shield_person</span>
-          </button>
+          {/* Staff only: buyers and visitors never see the admin switch (staff sign in from the sign-in screen). */}
+          {isAdminLoggedIn && (
+            <button
+              onClick={() => onNavigate('admin-hub')}
+              aria-label="Admin Portal"
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all active:scale-95 shadow-xs ${
+                isAdminView
+                  ? 'bg-on-surface text-primary-fixed border-primary-container'
+                  : 'bg-surface-container-high text-secondary border-outline-variant/60 hover:bg-surface-container-highest'
+              }`}
+              title="Admin Console"
+            >
+              <span className="material-symbols-outlined text-[19px]">shield_person</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

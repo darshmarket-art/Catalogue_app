@@ -44,21 +44,21 @@ export const jewelleryPack = {
         badge: 'NET WT BASIS',
         note: 'Zero Price Slippage'
       },
-      summarySubtitle: 'Wholesale Gram Allocation & Dispatch Verification',
-      emptyTitle: 'Wholesale Batch is Empty',
-      emptyText: 'Browse the catalogue to add designs to your wholesale batch.',
-      lineWeightLabel: 'Total Net Gold',
-      unitWeightLabel: 'Unit Net Weight:',
-      totalWeightLabel: 'Total Net Gold Weight',
-      dispatchLabel: 'Dispatch Batch',
-      bookedBanner: 'Gram Allocation Booked',
-      bookedText: (grams: string) => `Batch verified on pure gram settlement terms: ${grams}g fine gold allocation`,
+      summarySubtitle: 'Review your items before you order',
+      emptyTitle: 'Your order is empty',
+      emptyText: 'Browse the catalogue and add designs to your order.',
+      lineWeightLabel: 'Total net gold',
+      unitWeightLabel: 'Net weight each:',
+      totalWeightLabel: 'Total net gold weight',
+      dispatchLabel: 'Items in order',
+      bookedBanner: 'Order placed',
+      bookedText: (grams: string) => `Your order is booked on pure gram settlement terms: ${grams} g net gold`,
       whatsappCta: {
-        title: 'Generate WhatsApp Gram Purchase Order & PDF',
-        subtitle: 'Pure gram-basis invoice sheet for bullion settlement'
+        title: 'Send order on WhatsApp',
+        subtitle: 'Opens WhatsApp with your item list'
       },
-      confirmCta: 'Confirm Batch & Book Gram Allocation',
-      bookedCta: 'Gram Allocation Booked',
+      confirmCta: 'Place order',
+      bookedCta: 'Order placed',
       guaranteeFallback: 'Pure Gram Weight Guarantee'
     }
   },
@@ -103,7 +103,7 @@ export const jewelleryPack = {
       `*Itemized SKU Manifest:*\n` +
       items.map((it) => `• ${it.title} (${it.sku}) — Net: ${it.netWt}g [${it.purity}]`).join('\n') +
       `\n\n*Settlement Terms:* Physical 999.9 Bullion Bar Handover or Bullion Banking Gold Metal Loan Credit.\n` +
-      `_Generated via ${brandName} B2B Members Terminal_`
+      `_Sent from the ${brandName} catalogue app_`
     );
   }
 };
