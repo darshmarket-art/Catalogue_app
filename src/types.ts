@@ -41,6 +41,8 @@ export interface Purity {
 export interface Banner {
   id: string;
   image: string;
+  /** The collection this banner opens, if the owner set one. */
+  category?: string;
 }
 
 export interface OrderItem {

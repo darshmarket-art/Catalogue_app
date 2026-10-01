@@ -62,9 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
                     ? 'Sign in'
                     : isAdminView
                       ? 'Admin Console'
-                      : currentMerchant
-                        ? currentMerchant.storeName
-                        : merchant.brand.tagline;
+                      : merchant.brand.tagline;
 
   return (
     <header className="fixed top-0 w-full z-50 pt-safe bg-surface/95 backdrop-blur-xl border-b border-outline-variant/60">

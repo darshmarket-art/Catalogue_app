@@ -3,6 +3,7 @@ import { Product, Purity } from '../types';
 import { trackProductView, trackSearch, trackSelect } from '../api';
 import { setOnScreen, clearOnScreen } from '../attention';
 import { ProductDetailSheet } from './ProductDetailSheet';
+import { PhotoViewer } from './PhotoViewer';
 
 interface CatalogueScreenProps {
   products: Product[];
@@ -44,6 +45,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>('default');
   const [openProductId, setOpenProductId] = useState<string | null>(null);
+  const [zoomProduct, setZoomProduct] = useState<Product | null>(null);
   const gridRef = useRef<HTMLElement>(null);
   const openProduct = products.find((p) => p.id === openProductId) ?? null;
   const hearted = useMemo(() => new Set(shortlist), [shortlist]);
@@ -182,7 +184,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
           return (
             <article key={prod.id} data-sku={prod.sku} className="group flex flex-col">
               <div className="relative w-full aspect-square rounded-3xl bg-surface-container overflow-hidden">
-                <button type="button" aria-label={`View ${prod.title}`} onClick={() => setOpenProductId(prod.id)} className="block w-full h-full">
+                <button type="button" aria-label={`Open photo of ${prod.title}`} onClick={() => setZoomProduct(prod)} className="block w-full h-full cursor-zoom-in">
                   <img
                     alt=""
                     loading="lazy"
@@ -272,6 +274,8 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
           );
         })}
       </section>
+
+      {zoomProduct && <PhotoViewer images={zoomProduct.images} title={zoomProduct.title} onClose={() => setZoomProduct(null)} />}
 
       <ProductDetailSheet
         product={openProduct}

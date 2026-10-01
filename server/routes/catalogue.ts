@@ -7,7 +7,7 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { bannerOrderSchema, bannerSchema, categorySchema, paginationSchema } from '../schemas';
+import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, paginationSchema } from '../schemas';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
 
 const byPosition = (a: any, b: any) =>
@@ -116,6 +116,13 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
   );
 
   // Home-page banners are photos the owner uploads; they show oldest first.
+  /** A banner may only open a collection that exists. */
+  const assertCategory = async (name: string | null | undefined) => {
+    if (!name) return;
+    const found = await store.list('categories', { where: [{ field: 'name', op: '==', value: name }], limit: 1 });
+    if (found.length === 0) throw new HttpError(400, `There is no collection named "${name}".`);
+  };
+
   router.get(
     '/banners',
     readGuard,
@@ -131,10 +138,11 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const body = parse(bannerSchema, req.body);
       await assertPhotosExist(blobs, [body.image]);
+      await assertCategory(body.category);
       const existing = await store.list('banners');
       if (existing.length >= 8) throw new HttpError(409, 'You can keep up to 8 banners. Delete one first.');
       const id = newId('ban');
-      const banner = { id, image: body.image, position: existing.length, createdAt: new Date().toISOString() };
+      const banner = { id, image: body.image, ...(body.category ? { category: body.category } : {}), position: existing.length, createdAt: new Date().toISOString() };
       await store.set('banners', id, banner);
       await audit(store, req, 'BANNER_ADDED', 'Banner added.');
       res.status(201).json({ status: 'success', data: media.present(banner) });
@@ -149,6 +157,23 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const { ids } = parse(bannerOrderSchema, req.body);
       await Promise.all(ids.map((id, position) => store.update('banners', id, { position })));
       res.json({ status: 'success', message: 'Banner order saved' });
+    })
+  );
+
+  // Changes where a banner leads, without re-uploading the photo.
+  router.put(
+    '/banners/:id',
+    requireAdmin,
+    handler(async (req, res) => {
+      const existing = await store.get('banners', req.params.id);
+      if (!existing) throw new HttpError(404, 'Banner not found.');
+      const { category } = parse(bannerLinkSchema, req.body);
+      await assertCategory(category);
+      const { category: _old, ...rest } = existing;
+      const banner = { ...rest, ...(category ? { category } : {}) };
+      await store.set('banners', existing.id, banner);
+      await audit(store, req, 'BANNER_LINK_CHANGED', category ? `Banner now opens "${category}".` : 'Banner no longer opens a collection.');
+      res.json({ status: 'success', data: media.present(banner) });
     })
   );
 

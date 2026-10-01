@@ -49,7 +49,13 @@ export const adminRegisterSchema = z.object({
   masterProvisioningKey: z.string().trim().min(1).max(256)
 });
 
-export const bannerSchema = z.object({ image: photoRef.refine((v) => v !== '', 'Add a photo for the banner.') });
+export const bannerSchema = z.object({
+  image: photoRef.refine((v) => v !== '', 'Add a photo for the banner.'),
+  /** The collection this banner opens when a buyer taps it. Empty means it does nothing. */
+  category: trimmed(100).nullish()
+});
+
+export const bannerLinkSchema = z.object({ category: trimmed(100).nullable() });
 
 export const shortlistSchema = z.object({
   skus: z.array(trimmed(60)).max(500).transform((l) => Array.from(new Set(l)))

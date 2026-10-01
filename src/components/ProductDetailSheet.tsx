@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Product, Purity } from '../types';
 import { merchant } from '../merchant';
+import { PhotoViewer } from './PhotoViewer';
 
 interface ProductDetailSheetProps {
   product: Product | null;
@@ -29,6 +30,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
   const [slide, setSlide] = useState(0);
   const [qty, setQty] = useState(1);
   const [purity, setPurity] = useState('');
+  const [zoomFrom, setZoomFrom] = useState<number | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={product.title}>
+      {zoomFrom !== null && <PhotoViewer images={product.images} start={zoomFrom} title={product.title} onClose={() => setZoomFrom(null)} />}
       <button aria-label="Close" className="absolute inset-0 bg-scrim/50" onClick={onClose} />
       <div className="relative bg-surface w-full max-w-md max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl shadow-2xl animate-fade-in overflow-hidden">
         <div className="overflow-y-auto">
@@ -63,7 +66,9 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
               }}
             >
               {product.images.map((src, i) => (
-                <img key={src} src={src} alt={`${product.title} photo ${i + 1}`} className="w-full flex-shrink-0 snap-center aspect-square object-cover" referrerPolicy="no-referrer" />
+                <button key={src} type="button" onClick={() => setZoomFrom(i)} aria-label={`Zoom photo ${i + 1} of ${product.title}`} className="w-full flex-shrink-0 snap-center aspect-square cursor-zoom-in p-0">
+                  <img src={src} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </button>
               ))}
             </div>
             {product.images.length > 1 && (

@@ -368,6 +368,24 @@ describe('purity options, shortlist and banner order', () => {
     expect((await request(app).get('/api/shortlist').set(b)).body.data.skus).toEqual([]);
   });
 
+  it('a banner can open one of the collections, and only a real one', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    const ref = (await upload(app, auth)).body.data.ref;
+    expect((await request(app).post('/api/banners').set(auth).send({ image: ref, category: 'No Such Collection' })).status).toBe(400);
+    const made = await request(app).post('/api/banners').set(auth).send({ image: ref, category: 'Bridal Chokers & Haar' });
+    expect(made.status).toBe(201);
+    expect(made.body.data.category).toBe('Bridal Chokers & Haar');
+
+    const id = made.body.data.id;
+    expect((await request(app).put(`/api/banners/${id}`).set(auth).send({ category: 'Nope' })).status).toBe(400);
+    const cleared = await request(app).put(`/api/banners/${id}`).set(auth).send({ category: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.data.category).toBeUndefined();
+    expect((await request(app).put(`/api/banners/${id}`).send({ category: null })).status).toBe(401);
+    expect((await request(app).put('/api/banners/none').set(auth).send({ category: null })).status).toBe(404);
+  });
+
   it('banners keep the order the owner sets', async () => {
     const app = await build();
     const auth = await admin(app);

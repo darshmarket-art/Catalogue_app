@@ -197,8 +197,12 @@ export const api = {
     }
   },
 
-  async addBanner(image: string): Promise<Banner> {
-    return (await post('/api/banners', { image })).data;
+  async addBanner(image: string, category?: string): Promise<Banner> {
+    return (await post('/api/banners', { image, ...(category ? { category } : {}) })).data;
+  },
+
+  async setBannerLink(id: string, category: string | null): Promise<Banner> {
+    return (await request(`/api/banners/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ category }) })).data;
   },
 
   async reorderBanners(ids: string[]): Promise<void> {

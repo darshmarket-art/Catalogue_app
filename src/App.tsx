@@ -21,7 +21,6 @@ import { AdminPuritiesScreen } from './components/AdminPuritiesScreen';
 import { ShortlistScreen } from './components/ShortlistScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
-import { QuotationModal } from './components/QuotationModal';
 import type { ProfileUser } from './components/ProfileMenu';
 
 export default function App() {
@@ -69,18 +68,6 @@ export default function App() {
   const [currentMerchant, setCurrentMerchant] = useState<ProfileUser | null>(null);
   const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
   
-  // Quotation Modal state
-  const [isQuotationOpen, setIsQuotationOpen] = useState(false);
-  const [quotationData, setQuotationData] = useState<{
-    selectedCount: number;
-    totalNetWeight: number;
-    items: Product[];
-  }>({
-    selectedCount: 0,
-    totalNetWeight: 0,
-    items: []
-  });
-
   const handleNavigate = (screen: ActiveScreen, replace = false) => {
     setCurrentScreen(screen);
     if (replace) window.history.replaceState({ screen }, '');
@@ -258,16 +245,6 @@ export default function App() {
     window.open(`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // Open Quotation Modal
-  const handleOpenQuotation = (selectedCount: number, totalNetWeight: number, items: Product[]) => {
-    setQuotationData({
-      selectedCount,
-      totalNetWeight,
-      items
-    });
-    setIsQuotationOpen(true);
-  };
-
   // Product saved (new or edited): resolves true only when the server accepted it
   const handleProductSaved = async (prod: Partial<Product>, id?: string): Promise<boolean> => {
     try {
@@ -331,14 +308,23 @@ export default function App() {
     }
   };
 
-  const handleBannerAdded = async (image: string): Promise<boolean> => {
+  const handleBannerAdded = async (image: string, category?: string): Promise<boolean> => {
     try {
-      const created = await api.addBanner(image);
+      const created = await api.addBanner(image, category);
       setBanners((prev) => [...prev, created]);
       return true;
     } catch (err) {
       if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not add the banner.');
       return false;
+    }
+  };
+
+  const handleBannerLinked = async (banner: Banner, category: string | null) => {
+    try {
+      const updated = await api.setBannerLink(banner.id, category);
+      setBanners((prev) => prev.map((b) => (b.id === banner.id ? { ...b, category: updated.category } : b)));
+    } catch (err) {
+      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not change the banner link.');
     }
   };
 
@@ -474,7 +460,6 @@ export default function App() {
             storeName={currentMerchant?.storeName ?? ''}
             onRemove={toggleShortlist}
             onAddAllToOrder={handleAddAllToOrder}
-            onShareWithCustomer={(items, net) => handleOpenQuotation(items.length, net, items)}
             onBrowse={() => handleNavigate('catalogue')}
           />
         )}
@@ -534,7 +519,7 @@ export default function App() {
 
         {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
 
-        {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} onReorder={handleBannersReordered} />}
+        {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} categories={categories} onLink={handleBannerLinked} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} onReorder={handleBannersReordered} />}
 
         {activeScreen === 'admin-purities' && <AdminPuritiesScreen purities={purities} onSave={handlePuritiesSaved} />}
 
@@ -600,15 +585,6 @@ export default function App() {
         />
       )}
 
-      {/* Quotation Preview Modal */}
-      <QuotationModal
-        isOpen={isQuotationOpen}
-        onClose={() => setIsQuotationOpen(false)}
-        selectedCount={quotationData.selectedCount}
-        totalNetWeight={quotationData.totalNetWeight}
-        items={quotationData.items}
-        defaultFirm={currentMerchant?.storeName ?? ''}
-      />
     </div>
   );
 }

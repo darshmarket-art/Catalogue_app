@@ -10,12 +10,10 @@ interface ShortlistScreenProps {
   onRemove: (product: Product) => void;
   /** Adds one piece of each design to the current order. */
   onAddAllToOrder: (items: Product[]) => Promise<void>;
-  /** Opens the requisition slip the buyer can share with their own customer. */
-  onShareWithCustomer: (items: Product[], totalNetWeight: number) => void;
   onBrowse: () => void;
 }
 
-export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shortlist, storeName, onRemove, onAddAllToOrder, onShareWithCustomer, onBrowse }) => {
+export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shortlist, storeName, onRemove, onAddAllToOrder, onBrowse }) => {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -99,9 +97,6 @@ export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shor
           >
             <span className="material-symbols-outlined text-[20px]">{added ? 'check' : 'add_shopping_cart'}</span>
             {adding ? 'Adding…' : added ? 'Added to your order' : 'Add all to order'}
-          </button>
-          <button onClick={() => onShareWithCustomer(items, totalNet)} className="self-center text-sm font-bold text-primary hover:underline min-h-11 px-3">
-            Share with my customer
           </button>
         </div>
       </div>

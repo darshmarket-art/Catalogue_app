@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Category, ActiveScreen, Banner, Product } from '../types';
+import { downloadCataloguePdf } from '../cataloguePdf';
 import { merchant } from '../merchant';
-import { sector } from '../sector';
 import { Facebook, Instagram, MapPin, MessageCircle, Youtube } from 'lucide-react';
 
 interface CategoriesScreenProps {
@@ -37,29 +37,6 @@ const PROMO_LOOKS = {
     action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed'
   }
 } as const;
-
-const esc = (v: string | number) =>
-  String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-/** Opens a print view of one category with the brand watermark; the browser's "Save as PDF" makes the file. */
-function openCataloguePdf(cat: Category, products: Product[]) {
-  const items = products.filter((p) => p.category === cat.name);
-  const w = window.open('', '_blank');
-  if (!w) return false;
-  const cards = items
-    .map(
-      (p) => `<div class="c"><img src="${esc(new URL(p.image, window.location.origin).href)}"><b>${esc(p.title)}</b><span>${esc(p.sku)} · ${esc(p.purity)} · Net ${esc(p.netWt)}g</span></div>`
-    )
-    .join('');
-  w.document.write(`<!doctype html><title>${esc(merchant.brand.name)} - ${esc(cat.name)}</title><style>
-body{font-family:sans-serif;margin:16px}h1{font-size:20px}.g{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.c{break-inside:avoid;border:1px solid #ddd;padding:8px}.c img{width:100%;aspect-ratio:1;object-fit:cover}.c b,.c span{display:block;font-size:12px;margin-top:4px}
-.w{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px;font-weight:700;color:rgba(113,85,9,.14);transform:rotate(-30deg);pointer-events:none;text-align:center}
-</style><div class="w">${esc(merchant.brand.name.toUpperCase())}</div><h1>${esc(merchant.brand.name)} · ${esc(cat.name)} (${items.length} designs)</h1><div class="g">${cards}</div>
-<script>onload=()=>setTimeout(()=>print(),600)</script>`);
-  w.document.close();
-  return true;
-}
 
 export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   categories,
@@ -112,8 +89,14 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
     }
   };
 
-  const handlePdf = (cat: Category) => {
-    if (!openCataloguePdf(cat, products)) showToast('Allow pop-ups to create the PDF');
+  const handlePdf = async (cat: Category) => {
+    setToastMessage('Preparing the PDF…');
+    try {
+      await downloadCataloguePdf(cat, products, (done, total) => setToastMessage(`Preparing the PDF… ${done} of ${total} photos`));
+      showToast('PDF downloaded');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not create the PDF.');
+    }
   };
 
   const { contact } = merchant;
@@ -179,7 +162,19 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
           >
             {banners.length > 0
               ? banners.map((b) => (
-                  <img key={b.id} src={b.image} alt="" className="min-w-full h-full object-cover snap-center" referrerPolicy="no-referrer" />
+                  b.category ? (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => onFilterCategoryInCatalogue(b.category!)}
+                      aria-label={`Open ${b.category}`}
+                      className="min-w-full h-full snap-center p-0 block"
+                    >
+                      <img src={b.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </button>
+                  ) : (
+                    <img key={b.id} src={b.image} alt="" className="min-w-full h-full object-cover snap-center" referrerPolicy="no-referrer" />
+                  )
                 ))
               : merchant.promotions.map((promo) => {
                   const look = PROMO_LOOKS[promo.theme];
