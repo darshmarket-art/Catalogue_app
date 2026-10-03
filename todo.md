@@ -52,8 +52,8 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Check in a real browser and on the phone app.
 
 ### Phase 3b: Versioned API (before Phase 4)
-- [ ] `/api/v1` so installed phone apps keep working across the multi-store cut-over.
-- [ ] Minimum-app-version check so a breaking change can force an update.
+- [x] `/api/v1` so installed phone apps keep working across the multi-store cut-over.
+- [x] Minimum-app-version check so a breaking change can force an update.
 
 ### Phase 4: Multi-store core (largest)
 - [ ] `stores` collection (plan, trialEndsAt, owner, subdomain, status, brand and theme).
