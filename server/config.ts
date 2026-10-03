@@ -11,6 +11,8 @@ export interface Config {
   defaultStore: string;
   /** Stores live at [store].baseDomain. */
   baseDomain: string;
+  /** True on the bare/run.app host to show the Antarixs entry page instead of the default store. */
+  platformMode: boolean;
   /** How long a store record is cached, in ms. */
   storeCacheMs: number;
   isProduction: boolean;
@@ -80,6 +82,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     merchant,
     defaultStore: merchant.id,
     baseDomain: (env.BASE_DOMAIN?.trim() || 'antarixs.com').toLowerCase(),
+    platformMode: env.PLATFORM_MODE === 'true',
     storeCacheMs: env.STORE_CACHE_MS ? parseInt(env.STORE_CACHE_MS, 10) : env.NODE_ENV === 'test' ? 0 : 15000,
     isProduction,
     minAppVersion: env.MIN_APP_VERSION || '0.0.0',

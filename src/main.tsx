@@ -5,6 +5,7 @@ import App from './App.tsx';
 import './index.css';
 import './install';
 import {PlanProvider} from './plan';
+import {EntryScreen} from './components/EntryScreen';
 import {SignupScreen} from './components/SignupScreen';
 
 // The service worker only runs in the real app (it would get in the way of the dev server's live reload).
@@ -20,6 +21,6 @@ if (Capacitor.isNativePlatform()) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {window.location.pathname === '/signup' ? <SignupScreen /> : <PlanProvider><App /></PlanProvider>}
+    {window.location.pathname === '/welcome-antarixs' ? <EntryScreen /> : window.location.pathname === '/signup' ? <SignupScreen /> : <PlanProvider><App /></PlanProvider>}
   </StrictMode>,
 );

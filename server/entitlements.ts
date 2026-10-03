@@ -1,17 +1,13 @@
 import type { Store } from './store';
 import { HttpError } from './http';
+import { UPGRADE_TO_PRO } from '../shared/sales';
+import { LIMITS, TRIAL_DAYS, type Limits } from '../shared/limits';
+export { LIMITS, TRIAL_DAYS };
+export type { Limits };
 
 export type Plan = 'basic' | 'pro' | 'founder';
 export interface PlanDoc { plan: Plan; trialEndsAt?: string; ownApp?: boolean; trialNotice?: string }
-export interface Limits { categories: number | null; photos: number | null; photosPerDesign: number; users: number | null }
 
-/** null = unlimited (JSON cannot carry Infinity). */
-export const LIMITS: Record<'basic' | 'pro', Limits> = {
-  basic: { categories: 5, photos: 200, photosPerDesign: 1, users: 50 },
-  pro: { categories: null, photos: 3000, photosPerDesign: 3, users: null }
-};
-
-export const TRIAL_DAYS = 14;
 export const trialEnd = (from = new Date()) => new Date(from.getTime() + TRIAL_DAYS * 86400000).toISOString();
 
 /** Pro while founder, own-app, or inside the trial; otherwise basic. Computed per request, nothing to expire. */
@@ -46,14 +42,14 @@ export type FlagName = keyof ReturnType<typeof flagsFor>;
 /** `plan` reads the store record (plan, trialEndsAt, ownApp); `store` is that store's scoped data. */
 export function entitlements(store: Store, plan: () => Promise<PlanDoc>) {
   const load = async () => makeEntitlements(await plan());
-  const deny = (what: string, limit: number) => new HttpError(402, `Your plan allows ${limit} ${what}. Upgrade to Pro for more.`);
+  const deny = (what: string, limit: number) => new HttpError(402, `Your plan allows ${limit} ${what}. ${UPGRADE_TO_PRO}`);
   return {
     load,
     /** Express middleware: 402 when the plan lacks the feature. `when` lets a route gate only some requests. */
     requireFlag: (flag: FlagName, what: string, when: (req: any) => boolean = () => true) =>
       async (req: any, _res: any, next: (e?: unknown) => void) => {
         try {
-          if (when(req) && !(await load()).flags[flag]) throw new HttpError(402, `${what} is a Pro feature. Upgrade to Pro to use it.`);
+          if (when(req) && !(await load()).flags[flag]) throw new HttpError(402, `${what} is a Pro feature. ${UPGRADE_TO_PRO}`);
           next();
         } catch (e) {
           next(e);

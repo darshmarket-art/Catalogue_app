@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from './api';
 import { trialDaysLeft, DOWNGRADE_CHANGES } from '../shared/trial';
+import { SALES_EMAIL, UPGRADE_TO_PRO } from '../shared/sales';
+import { Sheet, btnPrimary, btnOutline } from './components/ui';
 
 export interface Entitlements {
   effectivePlan: 'basic' | 'pro';
@@ -25,14 +27,34 @@ export const usePlan = () => useContext(Ctx);
 /** Fetched once on load. */
 export const PlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ent, setEnt] = useState<Entitlements>(PRO);
+  const [feature, setFeature] = useState<string | null>(null);
+  useEffect(() => { openNotice = setFeature; return () => { openNotice = null; }; }, []);
   useEffect(() => {
     api.getEntitlements().then(setEnt).catch(() => {});
   }, []);
-  return <Ctx.Provider value={ent}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={ent}>{children}{feature && <UpgradeModal feature={feature} onClose={() => setFeature(null)} />}</Ctx.Provider>;
 };
 
-export const upgradeNotice = (feature: string) =>
-  alert(`${feature} is part of the Pro plan. Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues, staff roles and up to 3 photos per design. Contact Antarixs to upgrade.`);
+let openNotice: ((feature: string) => void) | null = null;
+/** Opens the in-page upgrade notice (no browser alert). Payments come later, so it points to sales. */
+export const upgradeNotice = (feature: string) => openNotice?.(feature);
+
+const UpgradeModal: React.FC<{ feature: string; onClose: () => void }> = ({ feature, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = () => navigator.clipboard?.writeText(SALES_EMAIL).then(() => setCopied(true)).catch(() => {});
+  return (
+    <Sheet label="Upgrade to Pro" onClose={onClose}>
+      <div className="px-5 flex flex-col gap-3 font-sans text-on-surface">
+        <h2 className="text-lg font-extrabold">{feature} is part of Pro</h2>
+        <p className="text-[15px]">Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues, staff roles and up to 3 photos per design. {UPGRADE_TO_PRO}</p>
+        <p className="rounded-xl bg-surface-container px-3 py-3 text-center text-base font-bold select-all" data-testid="sales-email">{SALES_EMAIL}</p>
+        <button type="button" className={btnOutline} onClick={copy}>{copied ? 'Copied' : 'Copy email'}</button>
+        <a className={btnPrimary} href={`mailto:${SALES_EMAIL}`}>Email sales</a>
+        <button type="button" className="min-h-11 font-bold text-primary" onClick={onClose}>Close</button>
+      </div>
+    </Sheet>
+  );
+};
 
 export const ProBadge: React.FC = () => (
   <span className="inline-flex items-center gap-0.5 ml-1.5 align-middle rounded-full bg-secondary-container text-on-secondary-container px-1.5 py-0.5 font-sans text-[11px] font-extrabold leading-none">
@@ -54,7 +76,7 @@ export const TrialBanner: React.FC = () => {
         <details className="font-normal mt-1">
           <summary className="cursor-pointer font-bold">What changes</summary>
           <ul className="text-left list-disc pl-5 max-w-md mx-auto">{DOWNGRADE_CHANGES.map((c) => <li key={c}>{c}</li>)}</ul>
-          <p className="mt-1">Upgrade to Pro: contact Antarixs. Everything you added comes straight back.</p>
+          <p className="mt-1">{UPGRADE_TO_PRO} Everything you added comes straight back.</p>
         </details>
       )}
     </div>

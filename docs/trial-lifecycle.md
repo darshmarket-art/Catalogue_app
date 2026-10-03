@@ -37,6 +37,6 @@ Set `SWEEP_AUDIENCE=$URL` and `SWEEP_SERVICE_ACCOUNT=$SA` on Cloud Run. Use the 
 ## WhatsApp template (Meta approval)
 Category **Utility**, name e.g. `trial_notice`, language `en`.
 Body: `Hi, a note about {{1}} on Antarixs: {{2}}`
-Variables: `{{1}}` store name; `{{2}}` message, for example "7 days of your Pro trial left. After that you move to Basic. Contact Antarixs to upgrade." or "Your Pro trial has ended: you are on Basic. Nothing was deleted. Contact Antarixs to upgrade and get everything back."
-Sample for review: {{1}} = Sharma Jewellers, {{2}} = 3 days of your Pro trial left. After that you move to Basic. Contact Antarixs to upgrade.
+Variables: `{{1}}` store name; `{{2}}` message, for example "7 days of your Pro trial left. After that you move to Basic. To upgrade, contact sales at hello@antarixs.com." or "Your Pro trial has ended: you are on Basic. Nothing was deleted. To upgrade and get everything back, contact sales at hello@antarixs.com."
+Sample for review: {{1}} = Sharma Jewellers, {{2}} = 3 days of your Pro trial left. After that you move to Basic. To upgrade, contact sales at hello@antarixs.com.
 If Meta rejects a long variable, split into one template per message and adjust `server/trialSweep.ts`.

@@ -93,6 +93,17 @@ export function storeIdOf(req: Request, config: Config): string | null {
   return isValidStoreName(id) ? id : null;
 }
 
+/**
+ * True when the request is for the Antarixs entry page, not a store: app.<baseDomain>, or (PLATFORM_MODE=true) any
+ * host that is not a store host and names no store via X-Store or ?store=. Off by default, so run.app keeps serving the default store.
+ */
+export function isPlatformRequest(req: Request, config: Config): boolean {
+  const host = (req.hostname || '').toLowerCase();
+  if (host === `app.${config.baseDomain}`) return true;
+  if (!config.platformMode || host.endsWith(`.${config.baseDomain}`)) return false;
+  return !req.header('x-store') && typeof req.query.store !== 'string';
+}
+
 export interface StoreEntry<A> {
   rec: StoreRecord;
   at: number;
@@ -135,6 +146,13 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
 
   const middleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (isPlatformRequest(req, config)) {
+        if (req.path.startsWith('/api') || req.path.startsWith('/media')) return void res.status(404).json({ status: 'error', message: 'Store not found.' });
+        if (req.path === '/') return void res.redirect(302, '/welcome-antarixs');
+        const b = config.merchant.brand;
+        res.locals.merchant = { ...config.merchant, brand: { ...b, seoTitle: 'Antarixs: your jewellery catalogue store', seoDescription: 'Create your own catalogue store with Antarixs. Free for 14 days.', logoUrl: '' } };
+        return void next();
+      }
       const id = storeIdOf(req, config);
       const entry = id ? await resolve(id) : null;
       const wantsJson = req.path.startsWith('/api') || req.path.startsWith('/media');
