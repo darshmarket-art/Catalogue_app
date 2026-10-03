@@ -400,6 +400,16 @@ export const api = {
     return json;
   },
 
+  async requestOtp(phone: string) {
+    return post('/api/auth/retailer/request-otp', { phone });
+  },
+
+  async verifyOtp(payload: { phone: string; code: string; firmName?: string }) {
+    const json = await post('/api/auth/retailer/verify-otp', payload);
+    setAuthToken(json.token);
+    return json;
+  },
+
   async loginRetailer(payload: { phone: string; password: string }) {
     const json = await post('/api/auth/retailer/login', payload);
     setAuthToken(json.token);

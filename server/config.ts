@@ -15,6 +15,10 @@ export interface Config {
   /** Cloud Storage bucket for photos and merchant.json. Unset in development (files go to uploadsDir). */
   storageBucket: string | null;
   uploadsDir: string;
+  /** WhatsApp Cloud API settings; null when unset (dev logs codes, production refuses to send). */
+  whatsapp: { token: string; phoneNumberId: string; template: string; language: string; apiVersion: string } | null;
+  /** OTP sends allowed per store per day. */
+  otpDailyCap: number;
   rateLimit: { auth: number; adminRegister: number; api: number; analytics: number };
 }
 
@@ -64,6 +68,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     seedDemoCatalogue: env.SEED_DEMO_CATALOGUE ? env.SEED_DEMO_CATALOGUE === 'true' : !isProduction,
     storageBucket: env.STORAGE_BUCKET?.trim() || null,
     uploadsDir: env.UPLOADS_DIR || 'data/uploads',
+    whatsapp:
+      env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_OTP_TEMPLATE
+        ? {
+            token: env.WHATSAPP_TOKEN.trim(),
+            phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID.trim(),
+            template: env.WHATSAPP_OTP_TEMPLATE.trim(),
+            language: env.WHATSAPP_OTP_LANGUAGE?.trim() || 'en',
+            apiVersion: env.WHATSAPP_API_VERSION?.trim() || 'v21.0'
+          }
+        : null,
+    otpDailyCap: env.OTP_DAILY_CAP ? parseInt(env.OTP_DAILY_CAP, 10) : 500,
     rateLimit: { auth: 10, adminRegister: 5, api: 1000, analytics: 300 }
   };
 }
