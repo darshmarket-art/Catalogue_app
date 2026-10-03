@@ -1,10 +1,11 @@
-import {StrictMode} from 'react';
+﻿import {StrictMode} from 'react';
 import {Capacitor, SystemBars, SystemBarsStyle} from '@capacitor/core';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './install';
 import {PlanProvider} from './plan';
+import {SignupScreen} from './components/SignupScreen';
 
 // The service worker only runs in the real app (it would get in the way of the dev server's live reload).
 if ('serviceWorker' in navigator && import.meta.env.PROD && !Capacitor.isNativePlatform()) {
@@ -19,8 +20,6 @@ if (Capacitor.isNativePlatform()) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PlanProvider>
-      <App />
-    </PlanProvider>
+    {window.location.pathname === '/signup' ? <SignupScreen /> : <PlanProvider><App /></PlanProvider>}
   </StrictMode>,
 );

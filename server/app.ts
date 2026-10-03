@@ -24,6 +24,7 @@ import { createBlobs, type Blobs } from './blobs';
 import { createMedia } from './media';
 import { createOtpSender, type OtpSender } from './whatsapp';
 import { otpRoutes } from './routes/otp';
+import { signupRoutes } from './routes/signup';
 
 const cmpVersion = (a: string, b: string) => {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
@@ -104,6 +105,8 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
+
+  app.use('/api/signup', signupRoutes(config, root, sender));
 
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
