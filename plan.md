@@ -24,13 +24,13 @@ A configurable catalogue app that can be sold to many merchants. **Bhakti Jewels
 - **Trial and downgrade rules.** Nothing is deleted and nothing is hidden from visitors: content added during the trial (an 8th category, a 3rd photo) stays; the owner just cannot add more beyond Basic limits until under them or upgraded. The plan is worked out on request (Pro while now is before `trialEndsAt`, else the stored plan), so no job flips it. One trial per phone number and email. Bhakti Jewels becomes store 1 on a permanent Pro "founder" plan. Reminders at days 7, 3 and 1 need a daily scheduled job (later phase).
 - **Access: WhatsApp OTP on both plans.** Buyers sign in with a code sent on WhatsApp. Admins keep email + password (admin 2FA is still a gap). A **user is a verified phone number** per store. **Basic allows 10**: a new number asked for a code when 10 already exist sees "this catalogue is full" and no code is sent; existing buyers always get in; the owner can remove a buyer to free a slot. Pro is unlimited.
 - **OTP rules.** 6 digits, expires in 5 minutes, stored hashed, 5 attempts, resend cooldown, rate limits per phone and per IP, a daily cap per store (OTPs cost money, so abuse control matters). One Antarixs WhatsApp sender for all stores, using a Meta "authentication" template. In development the code is logged; tests inject a fake sender. Existing Bhakti buyers keep their accounts and sign in by OTP to the same phone number; password screens and owner-reset for buyers are retired.
-- **Limits.** Basic: 5 categories (a "catalogue" means a category), 200 photos in total, 1 photo per design, 10 users. Pro: unlimited categories and users, 3,000 photos, up to 3 photos per design. Photos are counted as photos attached to designs, categories and banners, so orphaned files must be cleaned up first.
+- **Limits.** Basic: 5 categories (a "catalogue" means a category), 200 photos in total, 1 photo per design, 50 users. Pro: unlimited categories and users, 3,000 photos, up to 3 photos per design. Photos are counted as photos attached to designs, categories and banners, so orphaned files must be cleaned up first.
 - **Feature split** (all of Pro is free during the trial):
 
 | Area | Basic | Pro |
 |---|---|---|
 | Core app | Home with Collections, Catalogue (search, sort, grid), design details and photo viewer, shortlist, About us, store name, logo, colour | same |
-| Access | WhatsApp OTP login, 10 users | WhatsApp OTP login, unlimited users |
+| Access | WhatsApp OTP login, 50 users | WhatsApp OTP login, unlimited users |
 | Contacting the owner | Enquire on WhatsApp on each design | Place order, Orders tab, order history, cancel order, order confirmation message |
 | Admin tools | Categories, designs, **Home banner editing**, **purity options**, buyer list (view and remove), Share link and QR | Orders desk, **owner and staff roles**, **PDF catalogue** |
 | Numbers | locked | Kg booked, views and enquiries, live visitors, buyer engagement, audit log |
@@ -97,7 +97,7 @@ Order is chosen so the plan flags and Basic mode can be built and tested on the 
 |---|---|---|
 | **0. Sign-off and long-lead items** | Agree the feature table, limits, trial and downgrade rules. Start Meta business verification, a WhatsApp Business number and the OTP template. Confirm the `antarixs.com` DNS access. Decide the Play-policy route. | Small, but waits on Meta |
 | **1. Plan flags and limits** | Shared plans table; `effectivePlan` with the 14-day trial; server refuses locked features and over-limit actions (6th category, 201st photo, 2nd photo per design, orders on Basic); the config sent to the app carries what the plan allows; photo cleanup so counts are true. Tests, including trial expiry. | Medium |
-| **2. WhatsApp OTP login and the user limit** | WhatsApp sender with a fake for tests; OTP send and verify with all abuse rules; replace buyer phone + password; migrate Bhakti buyers; the 10-user limit on Basic; owner can remove a buyer; retire buyer password screens. | Medium to large |
+| **2. WhatsApp OTP login and the user limit** | WhatsApp sender with a fake for tests; OTP send and verify with all abuse rules; replace buyer phone + password; migrate Bhakti buyers; the 50-user limit on Basic; owner can remove a buyer; retire buyer password screens. | Medium to large |
 | **3. Basic mode in the app** | Home, Catalogue, Shortlist and About only; Enquire replaces Add and Orders; locked Pro tiles with the lock marker and upgrade prompts; locked numbers block; trial countdown banner; Home banner editing stays on. Checked in a real browser. | Medium |
 | **3b. Versioned API and minimum app version** | `/api/v1` and a minimum-app-version check, so installed phone apps keep working through the multi-store cut-over. Must land before Phase 4. | Small |
 | **4. Multi-store core** | Stores collection; data kept per store; store picked from the web address; per-store config instead of `merchant.json`; photo paths per store; tokens carry the store; Bhakti moved in as store 1 (Pro founder); cross-store isolation tests; per-store export. | **Largest** |
@@ -117,7 +117,7 @@ Order is chosen so the plan flags and Basic mode can be built and tested on the 
 | **0** External setup | nothing | everything | Owner work: Meta WhatsApp, DNS access, Play policy check, prices. Meta gates only the *live* OTP in Phase 2; code can be built with a fake sender. |
 | **1** Plan flags | nothing | 0, 2a, push alerts, infra | Plans table, trial, server enforcement, photo cleanup. |
 | **2a** OTP login (code) | nothing | 1, 3 | Auth files only. Uses the fake sender until Meta is ready. |
-| **2b** 10-user limit | 1 (limits) and 2a | 3 | Small. |
+| **2b** 50-user limit | 1 (limits) and 2a | 3 | Small. |
 | **3** Basic mode UI | 1 (flags in config) | 2a, 2b | Screens only (Catalogue, Orders, Admin Hub). Does not touch auth files. |
 | **3b** Versioned API | nothing | 1, 2, 3 | Must be merged before 4. |
 | **4** Multi-store core | 1, 2, 3, 3b merged | infra (5), push alerts, console design | **Sequential gate.** The schema and isolation design can be drafted in parallel before it starts. |

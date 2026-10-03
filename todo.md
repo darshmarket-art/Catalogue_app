@@ -34,14 +34,14 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Photo cleanup (orphans removed when a design is deleted or re-photographed) so photo counts are true; keep photos that past orders still show.
 - [ ] Tests for every limit and for trial expiry (inject the clock).
 
-### Phase 2: WhatsApp OTP login and the 10-user limit
-- [ ] WhatsApp sender interface: Meta Cloud API in production, console log in dev, fake in tests.
-- [ ] OTP send and verify: 6 digits, 5-minute expiry, hashed, 5 attempts, resend cooldown, rate limits per phone and IP, daily cap per store.
-- [ ] Replace buyer phone + password sign in and sign up with OTP; keep admin email + password.
+### Phase 2: WhatsApp OTP login and the 50-user limit (Basic; Pro unlimited)
+- [x] WhatsApp sender interface: Meta Cloud API in production, console log in dev, fake in tests.
+- [x] OTP send and verify: 6 digits, 5-minute expiry, hashed, 5 attempts, resend cooldown, rate limits per phone and IP, daily cap per store.
+- [x] Replace buyer phone + password sign in and sign up with OTP (client done; old password routes still on the server until migration); keep admin email + password.
 - [ ] Migrate Bhakti buyers (same phone number, sign in by OTP); retire buyer password screens, change password and owner password reset.
-- [ ] 10-user limit on Basic: a new number gets "catalogue full" and no code is sent; existing buyers always get in; owner can remove a buyer to free a slot.
+- [ ] 50-user limit on Basic (constant BASIC_BUYER_LIMIT in server/routes/otp.ts, not enforced yet): a new number gets "catalogue full" and no code is sent; existing buyers always get in; owner can remove a buyer to free a slot.
 - [ ] Session lifetime for buyers (web and the Android app).
-- [ ] Tests, including the 11th number and OTP abuse limits.
+- [ ] Tests: OTP abuse limits done (tests/otp.test.ts); the 51st number test comes with the limit.
 
 ### Phase 3: Basic mode in the app
 - [ ] Hide Orders tab, Add to order and order screens on Basic; show Enquire on WhatsApp instead.

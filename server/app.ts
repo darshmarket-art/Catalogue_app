@@ -19,8 +19,10 @@ import { adminBuyerRoutes } from './routes/adminBuyers';
 import { mediaRoute, photoUploadRoutes } from './routes/photos';
 import { createBlobs, type Blobs } from './blobs';
 import { createMedia } from './media';
+import { createOtpSender, type OtpSender } from './whatsapp';
+import { otpRoutes } from './routes/otp';
 
-export function createApp(config: Config, store: Store, blobs: Blobs = createBlobs(config)) {
+export function createApp(config: Config, store: Store, blobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config)) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -125,6 +127,7 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
   app.get('/media/:file', mediaRoute(blobs, media));
 
+  app.use('/api/auth', otpRoutes(config, store, sender));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
