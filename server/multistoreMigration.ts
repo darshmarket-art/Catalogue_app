@@ -35,6 +35,9 @@ export async function migrateToStore(o: {
   merchant: MerchantConfig;
   apply: boolean;
   overwrite?: boolean;
+  /** Collections to leave out (bulky analytics can be copied in a later pass). */
+  skip?: string[];
+  progress?: (msg: string) => void;
 }): Promise<MigrationReport> {
   const { src, root, blobs, id, apply } = o;
   const report: MigrationReport = { record: 'exists', docs: {}, blobs: { copied: 0, skipped: 0 } };
@@ -45,8 +48,9 @@ export async function migrateToStore(o: {
   }
 
   for (const col of await src.collections()) {
-    if (col === 'stores') continue;
+    if (col === 'stores' || o.skip?.includes(col)) continue;
     const r = (report.docs[col] = { copied: 0, skipped: 0 });
+    o.progress?.(`collection ${col}...`);
     for await (const { id: docId, data } of src.docs(col)) {
       const target = `stores/${id}/${col}`;
       const exists = !o.overwrite && (await root.get(target, docId)) !== null;
@@ -58,6 +62,7 @@ export async function migrateToStore(o: {
     }
   }
 
+  o.progress?.(`photos...`);
   for (const name of await src.blobNames()) {
     const target = `stores/${id}/${name}`;
     if (!o.overwrite && (await blobs.exists(target))) {

@@ -1,7 +1,7 @@
 // Copies the live single-store Firestore data and photos into the multi-store layout (see docs/multistore-design.md).
 // DRY RUN by default. Never deletes anything; the old service keeps reading the old locations.
 //   npx tsx scripts/migrate-multistore.ts --store bhakti                      (dry run, prints counts)
-//   npx tsx scripts/migrate-multistore.ts --store bhakti --apply --confirm-project <gcp-project-id> [--overwrite]
+//   npx tsx scripts/migrate-multistore.ts --store bhakti --apply --confirm-project <gcp-project-id> [--overwrite] [--skip a,b,c]
 // Needs GOOGLE_CLOUD_PROJECT, STORAGE_BUCKET and credentials (gcloud ADC).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +14,7 @@ import { migrateToStore, type LegacySource } from '../server/multistoreMigration
 
 const args = process.argv.slice(2);
 const flag = (n: string) => args.includes(`--${n}`);
-const val = (n: string) => args[args.indexOf(`--${n}`) + 1];
+const val = (n: string) => (args.includes(`--${n}`) ? args[args.indexOf(`--${n}`) + 1] : undefined);
 const id = val('store') || 'bhakti';
 const apply = flag('apply');
 const bucketName = process.env.STORAGE_BUCKET;
@@ -52,6 +52,6 @@ const live = await src.readBlob('merchant.json').catch(() => null);
 const raw = live ? JSON.parse(live.data.toString('utf8')) : JSON.parse(fs.readFileSync(path.resolve('merchants', id, 'merchant.json'), 'utf8'));
 const merchant = parseMerchant(raw, live ? 'merchant.json in storage' : `merchants/${id}/merchant.json`, id);
 
-const report = await migrateToStore({ src, root: new FirestoreStore(), blobs: new GcsBlobs(bucketName), id, merchant, apply, overwrite: flag('overwrite') });
+const report = await migrateToStore({ src, root: new FirestoreStore(), blobs: new GcsBlobs(bucketName), id, merchant, apply, overwrite: flag('overwrite'), skip: (val('skip') ?? '').split(',').filter(Boolean), progress: (msg) => console.log(msg) });
 console.log(apply ? 'APPLIED' : 'DRY RUN (nothing written)', `store=${id} project=${projectId}`);
 console.log(JSON.stringify(report, null, 2));
