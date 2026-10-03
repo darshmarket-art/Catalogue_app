@@ -78,7 +78,7 @@ export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shor
       </ul>
 
       {/* Send panel: sits above the bottom navigation */}
-      <div className="fixed inset-x-0 bottom-16 z-40 px-3 pb-2">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+var(--sab))] z-40 px-3 pb-2">
         <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-[0_-6px_24px_rgba(91,33,66,0.14)] border border-outline-variant p-4 flex flex-col gap-2.5">
           <div className="flex items-baseline justify-between">
             <span className="font-serif text-[22px] text-primary">{totalNet.toFixed(2)} g net</span>

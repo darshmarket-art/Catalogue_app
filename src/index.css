@@ -73,6 +73,20 @@
   --animate-page-back: page-back 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Space for the camera cut-out and the system buttons. The app draws edge to edge inside the native shell. */
+:root {
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+}
+
+@utility pt-safe {
+  padding-top: var(--sat);
+}
+
+@utility pb-safe {
+  padding-bottom: var(--sab);
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

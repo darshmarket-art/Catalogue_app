@@ -27,3 +27,22 @@ describe('CORS for native webviews', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
+
+describe('phone app sessions', () => {
+  const phone = '9876543210';
+  const expiryDays = (token: string) => {
+    const { exp, iat } = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+    return Math.round((exp - iat) / 86400);
+  };
+  it('lasts 90 days for the app, 1 day on the web, and renews on /me', async () => {
+    const body = { firmName: 'Test Shop', phone, password: 'StrongPass@1' };
+    const web = await request(app).post('/api/auth/retailer/signup').send(body);
+    expect(web.status).toBe(201);
+    expect(expiryDays(web.body.token)).toBe(1);
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${web.body.token}`).set('X-App-Client', 'native');
+    expect(me.status).toBe(200);
+    expect(expiryDays(me.body.token)).toBe(90);
+    const plain = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${web.body.token}`);
+    expect(plain.body.token).toBeUndefined();
+  });
+});

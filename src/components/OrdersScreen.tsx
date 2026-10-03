@@ -224,7 +224,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
           <p className="font-sans text-sm text-on-surface-variant text-center px-8 mt-4">{merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}</p>
 
           {/* Total and actions sit above the bottom navigation */}
-          <div className="fixed inset-x-0 bottom-16 z-40 px-3 pb-2">
+          <div className="fixed inset-x-0 bottom-[calc(4rem+var(--sab))] z-40 px-3 pb-2">
             <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-outline-variant shadow-[0_-6px_24px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-2.5">
               <div className="flex items-baseline justify-between">
                 <span className="font-serif text-[26px] text-primary">{totalNetGold.toFixed(3)} g net</span>

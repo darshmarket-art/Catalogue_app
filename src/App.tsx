@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
@@ -89,6 +91,14 @@ export default function App() {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Android Back button: on Home leave the app; anywhere else go Home first (the handler is kept current below).
+  const backRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const sub = NativeApp.addListener('backButton', () => backRef.current());
+    return () => void sub.then((s) => s.remove());
   }, []);
 
   // Restore a session saved earlier in this tab (survives reloads; ends when the tab is closed).
@@ -435,6 +445,16 @@ export default function App() {
   const shouldShowBottomNav =
     ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
 
+  const homeScreen: ActiveScreen = isAdminLoggedIn ? 'admin-hub' : currentMerchant ? 'categories' : 'welcome';
+  backRef.current = () => {
+    if (booting || activeScreen === homeScreen) {
+      void NativeApp.exitApp();
+      return;
+    }
+    handleNavigate(homeScreen, true);
+    setNavDir('back');
+  };
+
   if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
@@ -454,7 +474,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[72px]'}`}>
+      <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(72px+var(--sat))]'}`}>
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}

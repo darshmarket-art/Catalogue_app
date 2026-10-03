@@ -84,6 +84,7 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
   const headers = new Headers(init.headers);
   if (init.body) headers.set('Content-Type', 'application/json');
   if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+  if (native) headers.set('X-App-Client', 'native');
 
   const usedToken = authToken;
   const res = await fetch(API_BASE + path, { ...init, headers });
@@ -174,10 +175,11 @@ export const api = {
     if (native) authToken = (await Preferences.get({ key: SESSION_KEY })).value;
     if (!authToken) return null;
     try {
-      const res = await fetch(API_BASE + '/api/auth/me', { headers: { Authorization: `Bearer ${authToken}` } });
+      const res = await fetch(API_BASE + '/api/auth/me', { headers: { Authorization: `Bearer ${authToken}`, ...(native ? { 'X-App-Client': 'native' } : {}) } });
       if (res.status === 401) setAuthToken(null);
       if (!res.ok) return null;
       const json = await res.json();
+      if (native && typeof json.token === 'string') setAuthToken(json.token); // renewed: the session slides forward on every app start
       return json.type === 'admin'
         ? { type: 'admin' }
         : { type: 'retailer', user: json.user, mustChangePassword: Boolean(json.mustChangePassword) };

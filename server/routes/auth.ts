@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import type { Config } from '../config';
 import type { Store } from '../store';
-import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, user, verifyPassword } from '../auth';
+import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl, user, verifyPassword } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import {
   adminLoginSchema,
@@ -89,7 +89,7 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
 
       res.status(201).json({
         status: 'success',
-        token: signToken(config, { type: 'retailer', sub: buyer.phone }, RETAILER_TOKEN_TTL),
+        token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
         message: 'Wholesale account created successfully! You are now authenticated.',
         user: buyerView(buyer)
       });
@@ -115,7 +115,7 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
       await audit(store, req, 'RETAILER_LOGIN_SUCCESS', `Firm authenticated: ${buyer.firmName} (Phone: ${buyer.phone})`);
       res.json({
         status: 'success',
-        token: signToken(config, { type: 'retailer', sub: buyer.phone }, RETAILER_TOKEN_TTL),
+        token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
         user: buyerView(buyer)
       });
     })
@@ -169,7 +169,7 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
 
       res.status(201).json({
         status: 'success',
-        sessionToken: signToken(config, { type: 'admin', sub: admin.email }, ADMIN_TOKEN_TTL),
+        sessionToken: signToken(config, { type: 'admin', sub: admin.email }, tokenTtl(req, ADMIN_TOKEN_TTL)),
         message: 'Admin account provisioned successfully! You may now authenticate.',
         admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
       });
@@ -193,7 +193,7 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
       await audit(store, req, 'ADMIN_LOGIN_SUCCESS', `Admin session authenticated for ${admin.name} (${admin.email}) [Role: ${admin.role}]`);
       res.json({
         status: 'success',
-        sessionToken: signToken(config, { type: 'admin', sub: admin.email }, ADMIN_TOKEN_TTL),
+        sessionToken: signToken(config, { type: 'admin', sub: admin.email }, tokenTtl(req, ADMIN_TOKEN_TTL)),
         admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
       });
     })

@@ -7,6 +7,10 @@ import type { Store } from './store';
 
 export const RETAILER_TOKEN_TTL = '24h';
 export const ADMIN_TOKEN_TTL = '8h';
+/** The phone app keeps people signed in until they log out; every app start renews it via /api/auth/me. */
+export const NATIVE_TOKEN_TTL = '90d';
+export const isNativeClient = (req: Request) => req.header('x-app-client') === 'native';
+export const tokenTtl = (req: Request, web: string) => (isNativeClient(req) ? NATIVE_TOKEN_TTL : web);
 
 export interface TokenClaims {
   type: 'retailer' | 'admin';

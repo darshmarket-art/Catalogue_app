@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import type { Config } from './config';
 import type { Store } from './store';
-import { createAuth, user } from './auth';
+import { createAuth, isNativeClient, NATIVE_TOKEN_TTL, signToken, user } from './auth';
 import { errorHandler, handler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
@@ -97,16 +97,19 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   app.get(
     '/api/auth/me',
     auth.requireUser,
-    handler(async (_req, res) => {
+    handler(async (req, res) => {
       const me = user(res);
+      // Sliding session for the phone app: a fresh 90-day token on every app start.
+      const token = isNativeClient(req) ? signToken(config, { type: me.type, sub: me.id }, NATIVE_TOKEN_TTL) : undefined;
       if (me.type === 'admin') {
-        res.json({ status: 'success', type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
+        res.json({ status: 'success', token, type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
         return;
       }
       // The profile menu shows the buyer's own business details (never the password hash).
       const buyer = await store.get('buyers', me.id);
       res.json({
         status: 'success',
+        token,
         type: 'retailer',
         user: { storeName: me.name, phone: me.id, ownerName: buyer?.ownerName, gstin: buyer?.gstin, marketHub: buyer?.marketHub },
         mustChangePassword: Boolean(me.mustChangePassword)
