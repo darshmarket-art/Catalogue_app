@@ -6,7 +6,8 @@ import { createStore } from './server/store';
 import { createApp } from './server/app';
 import { seedDemoCatalogue } from './server/seed';
 import { migrateLegacyBuyers } from './server/migrate';
-import { parseMerchant, renderIndexHtml } from './server/merchant';
+import { renderIndexHtml } from './server/merchant';
+import { scopeStore } from './server/tenancy';
 import { createBlobs } from './server/blobs';
 import { logger } from './server/logger';
 
@@ -15,16 +16,11 @@ async function startServer() {
   const store = createStore(config);
   const blobs = createBlobs(config);
 
-  // A merchant.json in the merchant's bucket overrides the copy shipped in the image, so branding can change
-  // without a rebuild. An invalid file stops the server rather than silently serving the wrong config.
-  const stored = await blobs.get('merchant.json');
-  if (stored) {
-    config.merchant = parseMerchant(JSON.parse(stored.data.toString('utf-8')), 'merchant.json in storage', config.merchant.id);
-    logger.info('Loaded merchant config from storage');
-  }
-  const migrated = await migrateLegacyBuyers(store);
+  // Per-store config lives in the stores record (seeded from merchants/<id>/merchant.json for the default store).
+  const defaultData = scopeStore(store, config.defaultStore);
+  const migrated = await migrateLegacyBuyers(defaultData);
   if (migrated > 0) logger.info(`Moved ${migrated} buyer account(s) to the buyers collection`);
-  if (config.seedDemoCatalogue) await seedDemoCatalogue(store, config.merchant.id);
+  if (config.seedDemoCatalogue) await seedDemoCatalogue(defaultData, config.merchant.id);
 
   const app = createApp(config, store, blobs);
 
@@ -37,7 +33,7 @@ async function startServer() {
     app.get('*', async (req, res, next) => {
       try {
         const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-        const html = renderIndexHtml(await vite.transformIndexHtml(req.originalUrl, template), config.merchant);
+        const html = renderIndexHtml(await vite.transformIndexHtml(req.originalUrl, template), res.locals.merchant);
         res.status(200).type('html').send(html);
       } catch (err) {
         next(err);
@@ -47,14 +43,14 @@ async function startServer() {
     const distPath = path.resolve(process.cwd(), 'dist');
     const indexFile = path.join(distPath, 'index.html');
     if (!fs.existsSync(indexFile)) throw new Error(`Client build not found at ${distPath}. Run "npm run build" first.`);
-    const html = renderIndexHtml(fs.readFileSync(indexFile, 'utf-8'), config.merchant);
+    const template = fs.readFileSync(indexFile, 'utf-8');
     // The service worker must always be re-checked, or an old copy could outlive a deploy.
     app.get('/sw.js', (_req, res) => {
       res.set('Cache-Control', 'no-cache').type('js').sendFile(path.join(distPath, 'sw.js'));
     });
     app.use(express.static(distPath, { index: false }));
     app.get('*', (_req, res) => {
-      res.type('html').send(html);
+      res.type('html').send(renderIndexHtml(template, res.locals.merchant));
     });
   }
 

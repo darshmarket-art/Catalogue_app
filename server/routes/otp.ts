@@ -8,7 +8,7 @@ import type { OtpSender } from '../whatsapp';
 import { RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { logger } from '../logger';
-import { entitlements } from '../entitlements';
+import type { Entitlements } from '../entitlements';
 import { trimmed } from '../schemas';
 
 export const OTP_TTL_MS = 5 * 60 * 1000;
@@ -38,9 +38,8 @@ interface OtpDoc {
   hourCount: number;
 }
 
-export function otpRoutes(config: Config, store: Store, sender: OtpSender, now: () => number = Date.now) {
+export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: Entitlements, now: () => number = Date.now) {
   const router = Router();
-  const ent = entitlements(store, config.merchant.id);
   if (config.staticOtp) logger.warn('OTP_STATIC_CODE is set: sign-in uses a fixed code and nothing is sent on WhatsApp.');
   const hash = (ph: string, code: string) => crypto.createHmac('sha256', config.jwtSecret).update(`${ph}:${code}`).digest('hex');
   const ipLimiter = rateLimit({

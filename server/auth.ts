@@ -14,6 +14,7 @@ export const tokenTtl = (req: Request, web: string) => (isNativeClient(req) ? NA
 
 export interface TokenClaims {
   type: 'retailer' | 'admin';
+  storeId?: string; // the store the token was issued for
   sub: string; // merchant phone / admin email: the store document id
 }
 
@@ -26,7 +27,7 @@ export interface AuthedUser {
 }
 
 export function signToken(config: Config, claims: TokenClaims, expiresIn: string): string {
-  return jwt.sign(claims, config.jwtSecret, { algorithm: 'HS256', issuer: config.merchant.id, expiresIn } as jwt.SignOptions);
+  return jwt.sign({ ...claims, storeId: config.merchant.id }, config.jwtSecret, { algorithm: 'HS256', issuer: config.merchant.id, expiresIn } as jwt.SignOptions);
 }
 
 function readClaims(config: Config, req: Request): TokenClaims | null {
@@ -35,7 +36,9 @@ function readClaims(config: Config, req: Request): TokenClaims | null {
   try {
     const decoded = jwt.verify(header.slice(7), config.jwtSecret, { algorithms: ['HS256'], issuer: config.merchant.id });
     if (typeof decoded === 'string') return null;
-    const { type, sub } = decoded as Partial<TokenClaims>;
+    const { type, sub, storeId } = decoded as Partial<TokenClaims>;
+    // Tokens from before multi-store carry no storeId; only the default store (their origin) accepts them.
+    if (storeId ? storeId !== config.merchant.id : config.merchant.id !== config.defaultStore) return null;
     if ((type !== 'retailer' && type !== 'admin') || typeof sub !== 'string') return null;
     return { type, sub };
   } catch {

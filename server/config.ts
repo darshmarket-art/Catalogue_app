@@ -5,7 +5,14 @@ export type StoreKind = 'firestore' | 'file' | 'memory';
 
 export interface Config {
   port: number;
+  /** The default store's seed config (merchants/<id>/merchant.json); the live copy is the store record. */
   merchant: MerchantConfig;
+  /** Store served when the address names none (the existing run.app URL). */
+  defaultStore: string;
+  /** Stores live at [store].baseDomain. */
+  baseDomain: string;
+  /** How long a store record is cached, in ms. */
+  storeCacheMs: number;
   isProduction: boolean;
   minAppVersion: string;
   latestAppVersion: string;
@@ -61,9 +68,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid server configuration:\n - ${problems.join('\n - ')}`);
   }
 
+  const merchant = loadMerchant({ ...env, MERCHANT: env.DEFAULT_STORE || env.MERCHANT });
   return {
     port: env.PORT ? parseInt(env.PORT, 10) : 3000,
-    merchant: loadMerchant(env),
+    merchant,
+    defaultStore: merchant.id,
+    baseDomain: (env.BASE_DOMAIN?.trim() || 'antarixs.com').toLowerCase(),
+    storeCacheMs: env.STORE_CACHE_MS ? parseInt(env.STORE_CACHE_MS, 10) : env.NODE_ENV === 'test' ? 0 : 15000,
     isProduction,
     minAppVersion: env.MIN_APP_VERSION || '0.0.0',
     latestAppVersion: env.LATEST_APP_VERSION || '0.0.0',

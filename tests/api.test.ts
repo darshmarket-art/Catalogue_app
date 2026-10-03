@@ -5,7 +5,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { loadConfig, type Config } from '../server/config';
-import { MemoryStore } from '../server/store';
+import { MemoryStore, type Store } from '../server/store';
+import { scopeStore } from '../server/tenancy';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
 import { migrateLegacyBuyers } from '../server/migrate';
@@ -15,7 +16,8 @@ import { loadMerchant, renderIndexHtml, themeCss, THEME_TOKENS } from '../server
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
 
-let store: MemoryStore;
+let root: MemoryStore;
+let store: Store;
 let config: Config;
 
 async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'public' | 'login' = 'login') {
@@ -24,9 +26,10 @@ async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'publ
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000, ...overrides }
   };
   config.merchant = { ...config.merchant, catalogueAccess: access };
-  store = new MemoryStore();
+  root = new MemoryStore();
+  store = scopeStore(root, 'bhakti');
   await seedDemoCatalogue(store, 'bhakti');
-  return createApp(config, store);
+  return createApp(config, root);
 }
 
 const retailer = (n = 1) => ({
@@ -148,7 +151,7 @@ describe('admin provisioning', () => {
 
   it('is disabled when no master key is configured', async () => {
     await build();
-    const disabled = createApp({ ...config, masterProvisioningKey: null }, store);
+    const disabled = createApp({ ...config, masterProvisioningKey: null }, root);
     const res = await request(disabled)
       .post('/api/auth/admin/register')
       .send({ email: 'x@bhaktijewels.in', password: 'AdminPass@2026', masterProvisioningKey: 'anything' });
@@ -845,7 +848,8 @@ describe('roles and legacy data', () => {
   });
 
   it('moves buyer accounts from the old "merchants" collection, once and without overwriting', async () => {
-    const legacyStore = new MemoryStore();
+    const legacyRoot = new MemoryStore();
+    const legacyStore = scopeStore(legacyRoot, 'bhakti');
     const app = await build();
     void app;
     const bcrypt = (await import('bcryptjs')).default;
@@ -865,7 +869,7 @@ describe('roles and legacy data', () => {
 
     // and the moved account can sign in
     config = { ...config };
-    const liveApp = createApp(config, legacyStore);
+    const liveApp = createApp(config, legacyRoot);
     const login = await request(liveApp).post('/api/auth/retailer/login').send({ phone: account.phone, password: 'OldAccount@123' });
     expect(login.status).toBe(200);
   });

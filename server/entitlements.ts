@@ -31,10 +31,6 @@ export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {
   return { plan: doc.plan, effectivePlan: effective, trialEndsAt: doc.trialEndsAt ?? null, ownApp: Boolean(doc.ownApp), limits: LIMITS[effective], flags: flagsFor(effective) };
 };
 
-// ponytail: single store config doc (settings/plan); Phase 4 moves it per store. No doc = Bhakti is founder, anyone else Basic.
-export async function loadPlan(store: Store, merchantId: string): Promise<PlanDoc> {
-  return (await store.get<PlanDoc>('settings', 'plan')) ?? { plan: merchantId === 'bhakti' ? 'founder' : 'basic' };
-}
 
 /** Distinct photos in use across designs, categories and banners. Uploaded-but-unused (orphan) files are not counted. */
 export async function photosInUse(store: Store): Promise<Set<string>> {
@@ -47,8 +43,9 @@ export async function photosInUse(store: Store): Promise<Set<string>> {
 
 export type FlagName = keyof ReturnType<typeof flagsFor>;
 
-export function entitlements(store: Store, merchantId: string) {
-  const load = async () => makeEntitlements(await loadPlan(store, merchantId));
+/** `plan` reads the store record (plan, trialEndsAt, ownApp); `store` is that store's scoped data. */
+export function entitlements(store: Store, plan: () => Promise<PlanDoc>) {
+  const load = async () => makeEntitlements(await plan());
   const deny = (what: string, limit: number) => new HttpError(402, `Your plan allows ${limit} ${what}. Upgrade to Pro for more.`);
   return {
     load,

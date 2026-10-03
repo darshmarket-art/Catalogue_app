@@ -1,4 +1,6 @@
 import { entitlements } from './entitlements';
+import { createStoreResolver, planOf, scopeBlobs, scopeStore, secretFor } from './tenancy';
+import type { PlanDoc } from './entitlements';
 import express from 'express';
 import type { RequestHandler } from 'express';
 import helmet from 'helmet';
@@ -30,11 +32,12 @@ const cmpVersion = (a: string, b: string) => {
   return 0;
 };
 
-export function createApp(config: Config, store: Store, blobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config)) {
+/**
+ * One shared service, many stores. Global concerns live here; each request is handed to its store's own app,
+ * which only ever sees that store's scoped data and photos.
+ */
+export function createApp(config: Config, root: Store, rootBlobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config)) {
   const app = express();
-  const auth = createAuth(config, store);
-  const pack = getSectorPack(config.merchant.sector);
-  const media = createMedia(config.jwtSecret);
 
   app.disable('x-powered-by');
   // Cloud Run terminates TLS in front of the container; trust exactly one proxy hop for client IPs.
@@ -78,7 +81,7 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // helmet sets same-origin, which blocks photos in the app
-      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-App-Client, X-App-Version');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-App-Client, X-App-Version, X-Store');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       if (req.method === 'OPTIONS') return void res.sendStatus(204);
     }
@@ -98,11 +101,28 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   app.use(requestLogger);
   app.use(express.json({ limit: '100kb' }));
 
-  app.use(pwaRoutes(config.merchant));
-
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
+
+  const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
+    if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
+    const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec));
+  });
+  app.use(resolver.middleware);
+  return app;
+}
+
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>) {
+  const app = express();
+  const auth = createAuth(config, store);
+  const pack = getSectorPack(config.merchant.sector);
+  const media = createMedia(config.jwtSecret);
+  app.disable('x-powered-by');
+  if (config.isProduction) app.set('trust proxy', 1);
+
+  app.use(pwaRoutes(config.merchant));
 
   app.use(
     '/api',
@@ -148,7 +168,7 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
     })
   );
 
-  const ent = entitlements(store, config.merchant.id);
+  const ent = entitlements(store, plan);
   // Public: plan, limits and feature flags the app mirrors (the server enforces them). Usage is for the admin hub.
   app.get('/api/entitlements', handler(async (_req, res) => {
     res.json({ status: 'success', data: { ...(await ent.load()), usage: await ent.usage() } });
@@ -164,7 +184,7 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   app.get('/api/admin/audit-logs', ent.requireFlag('auditLog', 'The audit log'));
   app.post('/api/auth/admin/register', ent.requireFlag('staffRoles', 'Staff roles', (req) => req.body?.role !== 'owner'));
 
-  app.use('/api/auth', otpRoutes(config, store, sender));
+  app.use('/api/auth', otpRoutes(config, store, sender, ent));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));

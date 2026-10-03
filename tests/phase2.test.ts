@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { loadConfig, type Config } from '../server/config';
-import { MemoryStore } from '../server/store';
+import { MemoryStore, type Store } from '../server/store';
+import { scopeStore, newStoreRecord } from '../server/tenancy';
 import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
@@ -12,7 +13,8 @@ import type { ProductField } from '../server/merchant';
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
 
-let store: MemoryStore;
+let root: MemoryStore;
+let store: Store;
 let blobs: MemoryBlobs;
 let config: Config;
 
@@ -22,10 +24,11 @@ async function build(opts: { access?: 'public' | 'login'; productFields?: Produc
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 }
   };
   config.merchant = { ...config.merchant, catalogueAccess: opts.access ?? 'login', productFields: opts.productFields ?? [] };
-  store = new MemoryStore();
+  root = new MemoryStore();
+  store = scopeStore(root, 'bhakti');
   blobs = new MemoryBlobs();
   await seedDemoCatalogue(store, 'bhakti');
-  return createApp(config, store, blobs);
+  return createApp(config, root, blobs);
 }
 
 type App = ReturnType<typeof createApp>;
@@ -491,7 +494,8 @@ describe('installable app: manifest, icons and the Android link file', () => {
 
     const fp = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0').toUpperCase()).join(':');
     config = { ...config, merchant: { ...config.merchant, android: { packageName: 'com.bhaktijewels.catalogue', sha256CertFingerprints: [fp] } } };
-    const linked = createApp(config, store, blobs);
+    await root.update('stores', 'bhakti', { merchant: config.merchant }); // the store record is the live config
+    const linked = createApp(config, root, blobs);
     const body = (await request(linked).get('/.well-known/assetlinks.json')).body;
     expect(body[0].target).toEqual({ namespace: 'android_app', package_name: 'com.bhaktijewels.catalogue', sha256_cert_fingerprints: [fp] });
   });

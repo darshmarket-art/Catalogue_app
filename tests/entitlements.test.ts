@@ -3,6 +3,7 @@ import request from 'supertest';
 import { effectivePlan, makeEntitlements, trialEnd } from '../server/entitlements';
 import { loadConfig } from '../server/config';
 import { MemoryStore } from '../server/store';
+import { scopeStore, newStoreRecord } from '../server/tenancy';
 import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
 
@@ -22,14 +23,15 @@ describe('effectivePlan', () => {
 
 async function basicStore() {
   const config = { ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: KEY }), rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 } };
-  const store = new MemoryStore();
-  await store.set('settings', 'plan', { id: 'plan', plan: 'basic' });
-  const app = createApp(config, store, new MemoryBlobs());
+  const root = new MemoryStore();
+  const store = scopeStore(root, 'bhakti');
+  await root.set('stores', 'bhakti', newStoreRecord(config.merchant, { plan: 'basic' }));
+  const app = createApp(config, root, new MemoryBlobs());
   const r = await request(app).post('/api/auth/admin/register').send({ email: 'o@example.com', password: 'AdminPass@2026', role: 'owner', masterProvisioningKey: KEY });
   const auth = { Authorization: `Bearer ${r.body.sessionToken}` };
   const up = () => request(app).post('/api/admin/photos').set(auth).set('Content-Type', 'image/jpeg').send(JPEG);
   const photo = async () => (await up()).body.data?.ref as string;
-  return { app, auth, store, photo, up };
+  return { app, auth, store, root, photo, up };
 }
 
 describe('Basic plan enforcement', () => {
@@ -72,7 +74,7 @@ describe('Basic buyer limit', () => {
 
 describe('Pro feature gating', () => {
   it('Basic gets 402 on Pro routes; trial and founder are unaffected', async () => {
-    const { app, auth, store } = await basicStore();
+    const { app, auth, store, root } = await basicStore();
     const get = (path: string) => request(app).get(path).set(auth);
     for (const path of ['/api/orders', '/api/admin/orders', '/api/admin/visitors?kind=all', '/api/analytics', '/api/analytics/export', '/api/admin/audit-logs']) {
       expect((await get(path)).status, path).toBe(402);
@@ -82,7 +84,7 @@ describe('Pro feature gating', () => {
     // Free features still work, and so does tracking.
     expect((await get('/api/admin/buyers')).status).toBe(200);
     // A running trial is Pro.
-    await store.set('settings', 'plan', { id: 'plan', plan: 'basic', trialEndsAt: trialEnd() });
+    await root.update('stores', 'bhakti', { trialEndsAt: trialEnd() });
     expect((await get('/api/admin/orders')).status).toBe(200);
     expect((await get('/api/analytics')).status).toBe(200);
     expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(201);
