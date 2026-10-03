@@ -75,9 +75,9 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] The Master Provisioning Key stays for Antarixs support only.
 
 ### Phase 7: Trial lifecycle
-- [ ] Daily scheduled job (Cloud Scheduler) and reminders at days 7, 3 and 1.
-- [ ] End-of-trial lock; nothing deleted; restore on upgrade.
-- [ ] Clear warning before a store's behaviour changes, and the downgrade rules from plan.md.
+- [x] Reminders at days 7, 3 and 1 (code done; Cloud Scheduler job and Meta template still to create, see docs/trial-lifecycle.md).
+- [x] End-of-trial lock; nothing deleted; restore on upgrade.
+- [x] Clear warning before a store's behaviour changes, and the downgrade rules from plan.md.
 
 ### Phase 8: Antarixs console (`console.antarixs.com`)
 - [ ] Behind Google Identity-Aware Proxy, only Antarixs Google accounts.
