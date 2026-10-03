@@ -17,6 +17,11 @@ describe('CORS for native webviews', () => {
     expect(res.status).toBe(204);
     expect(res.headers['access-control-allow-origin']).toBe(o);
   });
+  it('lets the app load photos cross-origin', async () => {
+    const res = await request(app).get('/media/none.jpg').set('Origin', 'https://localhost');
+    expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(res.headers['access-control-allow-origin']).toBe('https://localhost');
+  });
   it('ignores other origins', async () => {
     const res = await request(app).get('/api/products').set('Origin', 'https://evil.example');
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
