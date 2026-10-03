@@ -68,6 +68,9 @@
   /* Toasts, banners and modals fading in; screen changes use the slightly larger page-in. */
   --animate-fade-in: fade-in 0.25s ease-out;
   --animate-page-in: page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Screen changes slide in from the right going forward and from the left going back. */
+  --animate-page-forward: page-forward 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-page-back: page-back 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes fade-in {
@@ -90,9 +93,33 @@
   }
 }
 
+@keyframes page-forward {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes page-back {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
-  .animate-page-in {
+  .animate-page-in,
+  .animate-page-forward,
+  .animate-page-back {
     animation: none;
   }
 }

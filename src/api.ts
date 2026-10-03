@@ -22,6 +22,10 @@ import { Preferences } from '@capacitor/preferences';
 const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
 const native = Capacitor.isNativePlatform();
 
+// The server returns photo links as /media/...; inside the native app those must point at the server, not the app itself.
+const withBase = (_key: string, v: unknown) => (typeof v === 'string' && v.startsWith('/media/') ? API_BASE + v : v);
+const parseJson = (res: Response) => res.text().then((t) => JSON.parse(t, API_BASE ? withBase : undefined)).catch(() => ({} as any));
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -83,7 +87,7 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
 
   const usedToken = authToken;
   const res = await fetch(API_BASE + path, { ...init, headers });
-  const json = await res.json().catch(() => ({}));
+  const json = await parseJson(res);
   const sessionExpired = res.status === 401 && usedToken !== null && authToken === usedToken;
   if (sessionExpired) {
     setAuthToken(null);
@@ -273,7 +277,7 @@ export const api = {
       headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
       body: file
     });
-    const json = await res.json().catch(() => ({}));
+    const json = await parseJson(res);
     if (res.status === 401) {
       setAuthToken(null);
       onUnauthorized?.();

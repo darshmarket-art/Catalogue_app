@@ -71,7 +71,11 @@ export default function App() {
   const [currentMerchant, setCurrentMerchant] = useState<ProfileUser | null>(null);
   const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
   
+  // Which way the last screen change went, so the page animation slides the right way.
+  const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
+
   const handleNavigate = (screen: ActiveScreen, replace = false) => {
+    setNavDir('forward');
     setCurrentScreen(screen);
     if (replace) window.history.replaceState({ screen }, '');
     else if (window.history.state?.screen !== screen) window.history.pushState({ screen }, '');
@@ -79,7 +83,10 @@ export default function App() {
 
   useEffect(() => {
     if (!window.history.state?.screen) window.history.replaceState({ screen: currentScreen }, '');
-    const onPop = (e: PopStateEvent) => setCurrentScreen((e.state?.screen as ActiveScreen | undefined) ?? 'welcome');
+    const onPop = (e: PopStateEvent) => {
+      setNavDir('back');
+      setCurrentScreen((e.state?.screen as ActiveScreen | undefined) ?? 'welcome');
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -431,7 +438,7 @@ export default function App() {
   if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface flex flex-col font-sans selection:bg-primary-fixed selection:text-primary">
+    <div className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {/* Persistent Header */}
       {activeScreen !== 'welcome' && (
         <Header
@@ -447,7 +454,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full animate-page-in ${activeScreen === 'welcome' ? '' : 'pt-[72px]'}`}>
+      <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[72px]'}`}>
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}
