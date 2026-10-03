@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from './api';
-import { trialDaysLeft } from '../shared/trial';
+import { trialDaysLeft, DOWNGRADE_CHANGES } from '../shared/trial';
 
 export interface Entitlements {
   effectivePlan: 'basic' | 'pro';
   plan: string;
   trialEndsAt: string | null;
+  trialNotice?: string | null;
   limits: { categories: number | null; photos: number | null; photosPerDesign: number; users: number | null };
   flags: Record<'orders' | 'insights' | 'liveVisitors' | 'buyerEngagement' | 'alerts' | 'auditLog' | 'pdfCatalogue' | 'staffRoles' | 'banners' | 'purities', boolean>;
   usage?: { categories: number; photos: number };
@@ -39,12 +40,23 @@ export const ProBadge: React.FC = () => (
   </span>
 );
 
+/** Escalating countdown at 7, 3 and 1 days; after the trial, what changed on Basic. */
 export const TrialBanner: React.FC = () => {
-  const days = trialDaysLeft(usePlan());
-  if (days === null) return null;
+  const ent = usePlan();
+  const days = trialDaysLeft(ent);
+  const ended = days === null && ent.plan === 'basic' && !!ent.trialEndsAt;
+  if (days === null && !ended) return null;
+  const tone = ended || days! <= 1 ? 'bg-error-container text-on-surface' : days! <= 3 ? 'bg-tertiary-container text-on-tertiary' : 'bg-secondary-container text-on-secondary-container';
   return (
-    <div role="status" className="px-4 py-2 bg-secondary-container text-on-secondary-container font-sans text-sm font-bold text-center">
-      {days} {days === 1 ? 'day' : 'days'} of Pro left
+    <div role="status" className={`px-4 py-2 ${tone} font-sans text-sm font-bold text-center`}>
+      {ended ? 'Your trial has ended: you are on Basic' : `${days} ${days === 1 ? 'day' : 'days'} of Pro left${days! <= 7 ? ': after that you move to Basic' : ''}`}
+      {(ended || days! <= 7) && (
+        <details className="font-normal mt-1">
+          <summary className="cursor-pointer font-bold">What changes</summary>
+          <ul className="text-left list-disc pl-5 max-w-md mx-auto">{DOWNGRADE_CHANGES.map((c) => <li key={c}>{c}</li>)}</ul>
+          <p className="mt-1">Upgrade to Pro: contact Antarixs. Everything you added comes straight back.</p>
+        </details>
+      )}
     </div>
   );
 };

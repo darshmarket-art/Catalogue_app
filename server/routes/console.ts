@@ -127,7 +127,7 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
     notFounder(rec);
     const from = Math.max(Date.now(), rec.trialEndsAt ? Date.parse(rec.trialEndsAt) : 0);
     const trialEndsAt = new Date(from + b.days * DAY).toISOString();
-    return { patch: { trialEndsAt }, what: `trial extended ${b.days} day(s) to ${trialEndsAt}` };
+    return { patch: { trialEndsAt, remindersSent: [], trialNotice: '' }, what: `trial extended ${b.days} day(s) to ${trialEndsAt}` };
   });
   write('suspend', z.object({}), () => ({ patch: { status: 'suspended' }, what: 'suspended' }));
   write('unsuspend', z.object({}), () => ({ patch: { status: 'active' }, what: 'unsuspended' }));

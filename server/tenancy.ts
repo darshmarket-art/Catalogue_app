@@ -15,6 +15,9 @@ export interface StoreRecord {
   plan: PlanDoc['plan'];
   trialEndsAt?: string;
   ownApp?: boolean;
+  /** Trial reminder marks already sent (7, 3, 1, ended); cleared when the trial is extended. */
+  remindersSent?: string[];
+  trialNotice?: string;
   owner?: { email?: string; phone?: string };
   /** Brand, theme, WhatsApp number and the rest of what merchants/<id>/merchant.json holds. */
   merchant: MerchantConfig;
@@ -27,7 +30,7 @@ export const newStoreRecord = (merchant: MerchantConfig, patch: Partial<StoreRec
   merchant, createdAt: new Date().toISOString(), ...patch
 });
 
-export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp });
+export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice });
 
 const COLLECTION = /^[A-Za-z0-9_]+$/;
 const nsOf = (storeId: string) => {

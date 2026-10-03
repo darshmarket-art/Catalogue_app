@@ -25,6 +25,7 @@ import { createMedia } from './media';
 import { createOtpSender, type OtpSender } from './whatsapp';
 import { otpRoutes } from './routes/otp';
 import { signupRoutes } from './routes/signup';
+import { sweepRoutes, createTrialSender, type TrialSender, type OidcKeys } from './trialSweep';
 import { consoleMount } from './routes/console';
 import { createNotify, createNotifiers, type Notifiers } from './notify';
 import { pushRoutes } from './routes/push';
@@ -40,7 +41,7 @@ const cmpVersion = (a: string, b: string) => {
  * One shared service, many stores. Global concerns live here; each request is handed to its store's own app,
  * which only ever sees that store's scoped data and photos.
  */
-export function createApp(config: Config, root: Store, rootBlobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config), notifiers: Notifiers = createNotifiers(config)) {
+export function createApp(config: Config, root: Store, rootBlobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config), notifiers: Notifiers = createNotifiers(config), sweep: { sender?: TrialSender; now?: () => number; keys?: OidcKeys } = {}) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -116,6 +117,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
     return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers);
   });
+  app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root));
   app.use(resolver.middleware);
   return app;

@@ -2,7 +2,7 @@ import type { Store } from './store';
 import { HttpError } from './http';
 
 export type Plan = 'basic' | 'pro' | 'founder';
-export interface PlanDoc { plan: Plan; trialEndsAt?: string; ownApp?: boolean }
+export interface PlanDoc { plan: Plan; trialEndsAt?: string; ownApp?: boolean; trialNotice?: string }
 export interface Limits { categories: number | null; photos: number | null; photosPerDesign: number; users: number | null }
 
 /** null = unlimited (JSON cannot carry Infinity). */
@@ -28,7 +28,7 @@ export const flagsFor = (p: 'basic' | 'pro') => ({
 
 export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {
   const effective = effectivePlan(doc, now);
-  return { plan: doc.plan, effectivePlan: effective, trialEndsAt: doc.trialEndsAt ?? null, ownApp: Boolean(doc.ownApp), limits: LIMITS[effective], flags: flagsFor(effective) };
+  return { plan: doc.plan, effectivePlan: effective, trialEndsAt: doc.trialEndsAt ?? null, ownApp: Boolean(doc.ownApp), trialNotice: effective === 'basic' && doc.plan === 'basic' ? doc.trialNotice || null : null, limits: LIMITS[effective], flags: flagsFor(effective) };
 };
 
 
