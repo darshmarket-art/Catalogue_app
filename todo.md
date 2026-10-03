@@ -1,5 +1,23 @@
 # To do
 
+## STATUS (2026-10-04): READ FIRST
+**Live on Cloud Run (asia-south1, project gen-lang-client-0273003651, service catalogue-app):** revision catalogue-app-00028-haw at 100% traffic = the multi-store SaaS build (branch saas/integration, 194 tests). Old single-store revision catalogue-app-00023-7pq is the rollback: .
+- Bhakti is store 1 (plan founder = permanent Pro). Its Firestore data was copied into stores/bhakti/* (core collections only: admins, banners, buyers, categories, inquiries, merchants, products, purchaseOrders, settings, shortlists; counts matched) and its 238 photos into gs://gen-lang-client-0273003651-bhakti-media/stores/bhakti/photos/. Legacy top-level data and photos are untouched. NOT copied (skipped on purpose, old history only): activityEvents, productViews, auditLogs, sessions, visitors, dailyStats.
+- Env on the service: BASE_DOMAIN=antarixs.com, DEFAULT_STORE=bhakti, STORE_CACHE_MS=15000, OTP_STATIC_CODE from Secret Manager secret otp-static-code (user chose the fixed code until Meta is live; value kept in local prod-static-otp.txt, never in git). RISK: anyone with the code can sign in as any buyer. Buyers now sign in by phone + that code; password sign-in for buyers is gone from the app (server routes remain). Remove OTP_STATIC_CODE once WhatsApp works.
+- **main is NOT yet updated.** origin/main is at 2da1a4c; saas/integration is a clean fast-forward ahead. The push to main was blocked by the Claude Code permission check; the user must run: git push origin saas/integration:main (or add a permission rule). Until then a push to old main would redeploy the old code. After the push, Cloud Build rebuilds the same code (env and secret stay on the service).
+- Migration lessons: scripts/migrate-multistore.ts photo copy via Node hung (use ); flags --skip a,b,c, --no-photos, --overwrite exist; do not use npx in Cloud Shell, use ./node_modules/.bin/tsx.
+- Cloud Run permissions: the user added a gcloud allow rule; direct pushes to main and some prod commands are still gated by the classifier.
+
+### Owner (user) pending
+- Meta: app "Antarixs Messaging" (id 1747707676519380) with the WhatsApp use case exists under business portfolio Antarixs (unverified). The test WABA (id 1403799705212979, phone number id 1379009651957695, number +1 555 637 7856) cannot create templates. Needs: register a real number, add payment method, business verification, permanent system-user token into Secret Manager. Then create templates: antarixs_login_code (authentication, copy code, en), order alert (WHATSAPP_ORDER_TEMPLATE), trial reminder (WHATSAPP_TRIAL_TEMPLATE); see docs/whatsapp-setup.md and docs/trial-lifecycle.md. A first Facebook-Login app named Antarixs (id 4421299164791985) also exists and is unused.
+- Payments (Phase 11): owner will handle; app text says contact sales at hello@antarixs.com (shared/sales.ts).
+- Load balancer + DNS: needs go-ahead (about 25-50 USD/month). DNS is at Hostinger; keep all mail records; antarixs.com and www stay as WordPress at Hostinger; only add _acme-challenge CNAME and * A for *.antarixs.com. See docs/load-balancer-runbook.md and docs/golive-runbook.md. Until then stores are reached as run.app/?store=<id> (and Bhakti on the existing URL).
+- Cloud Scheduler job for POST /api/v1/internal/trial-sweep (docs/trial-lifecycle.md); CONSOLE_ADMINS and IAP_AUDIENCE to enable the console (console.antarixs.com behind IAP, needs the LB).
+- Rotate old passwords (open since the audit); send a test alert from the monitoring channel.
+
+### Possible next work for Claude
+Phase 7 follow-ups (browser check of trial banner), console polish (owner contact, activity feed, cost view), plan and usage screen for owners, Android release signing + FCM, migrate remaining Bhakti buyers off passwords once Meta works, copy the skipped analytics history if wanted, retire password routes, browser tests on a phone-size screen, npm audit uuid item.
+
 ## Handoff: continue on the unrestricted device (updated 2026-10-03)
 The office laptop blocks the Android Studio / SDK install, so the native build moves to another machine. Everything up to the Android project is already committed.
 - [ ] Clone the repo, `npm install`, `npm run lint`, `npm test` (expect 115 passing).
@@ -64,12 +82,12 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Cross-store isolation tests; per-store data export (restoring one store from a shared database is harder).
 
 ### Phase 5: Subdomains
-- [ ] Wildcard DNS and wildcard certificate; Google Cloud load balancer in front of Cloud Run.
-- [ ] Reserved names (`www`, `console`, `api`, `app`, `admin`, ...) and the 3 to 30 character rule.
+- [ ] Wildcard DNS and wildcard certificate; Google Cloud load balancer in front of Cloud Run (runbooks written; needs owner go-ahead).
+- [x] Reserved names (`www`, `console`, `api`, `app`, `admin`, ...) and the 3 to 30 character rule.
 - [ ] `bhakti.antarixs.com` live; the old `run.app` address and installed apps keep working.
 
 ### Phase 6: Instant signup and trial start
-- [ ] Antarixs entry app: Create your store, Sign in (no store picker).
+- [x] Antarixs entry app: Create your store, Sign in (no store picker).
 - [ ] Creating a store starts the 14-day trial, creates the owner admin, logs the owner in and shows the share link.
 - [ ] Owner email and phone checks; one trial per phone and email; anti-abuse limits.
 - [ ] The Master Provisioning Key stays for Antarixs support only.
@@ -87,12 +105,12 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Limit what staff can see of buyers' personal data; mention it in the privacy text.
 
 ### Phase 9: Notifications
-- [ ] WhatsApp message to the store's admin number for every new order (utility template).
+- [x] WhatsApp message to the store's admin number for every new order (utility template).
 - [ ] Push notifications to admins on new orders (Firebase, per-store `google-services.json`).
-- [ ] Per-store admin numbers in config, not in code.
+- [x] Per-store admin numbers in config, not in code.
 
 ### Phase 10: Android app add-on
-- [ ] App request flow in the console; per-store build from the existing pipeline (name, icon, app ID from the store record).
+- [x] Per-store build (scripts/build-store-app.ts, docs/android-addon.md; workflow untested). Still open: console app request flow. (was: App request flow in the console; per-store build from the existing pipeline (name, icon, app ID from the store record).
 - [ ] Publishing route from Phase 0; signing keys kept out of the repo; privacy and support URLs; in-app account deletion.
 
 ### Phase 11: Payments (last)

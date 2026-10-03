@@ -1,5 +1,7 @@
 # Plan
 
+> **Status 2026-10-04:** the SaaS build (Phases 1-10 in code) is LIVE on Cloud Run revision catalogue-app-00028-haw; main still to be fast-forwarded. Basic buyer limit is 50 (not 10). Payments say "contact sales at hello@antarixs.com". Google Play is out of scope. See todo.md STATUS for details, pending owner items and rollback.
+
 ## Goal
 A configurable catalogue app that can be sold to many merchants. **Bhakti Jewels is our first merchant (the live pilot); its look and wording live in `merchants/bhakti/merchant.json` so every later merchant gets the same product with their own brand.**
 **Since 2026-10-04 this is a SaaS product (Antarixs):** any business creates a store in minutes, gets its own link (`[store].antarixs.com`), runs on the Basic plan, and gets all Pro features free for the first 14 days. See "SaaS model" below. Web link first; store apps are a paid add-on.
