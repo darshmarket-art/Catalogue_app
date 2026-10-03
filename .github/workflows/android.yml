@@ -1,7 +1,10 @@
 name: Android APK
 
-# Manual only: builds a debug APK for one merchant. Does not deploy anything.
+# Builds a debug APK for one merchant. Does not deploy anything.
+# Runs on pushes to android-pwa (defaults below) or manually from main.
 on:
+  push:
+    branches: [android-pwa]
   workflow_dispatch:
     inputs:
       merchant:
@@ -15,8 +18,8 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      MERCHANT: ${{ inputs.merchant }}
-      VITE_API_BASE: ${{ inputs.api_base }}
+      MERCHANT: ${{ inputs.merchant || 'bhakti' }}
+      VITE_API_BASE: ${{ inputs.api_base || 'https://catalogue-app-456376852191.asia-south1.run.app' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,5 +40,5 @@ jobs:
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.merchant }}-debug-apk-${{ github.run_number }}
+          name: ${{ env.MERCHANT }}-debug-apk-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
