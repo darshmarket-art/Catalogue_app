@@ -182,3 +182,21 @@ describe('isolation between stores', () => {
     expect((await request(app).get('/api/config').set(B)).status).toBe(200);
   });
 });
+
+describe('native app of a non-default store', () => {
+  const origin = { Origin: 'https://localhost' };
+  it('preflights X-Store/X-App-Version, loads config and photos by ?store= with no header', async () => {
+    const pre = await request(app).options('/api/config').set(origin);
+    expect(pre.headers['access-control-allow-headers']).toMatch(/X-Store.*|.*X-App-Version/);
+    expect(pre.headers['access-control-allow-headers']).toContain('X-App-Version');
+    const cfg = await request(app).get('/api/config').set(origin).set(B).set('X-App-Version', '1.0.0');
+    expect(cfg.body.data.id).toBe('example');
+    expect(cfg.headers['access-control-allow-origin']).toBe('https://localhost');
+    const t = await admin(B);
+    const up = await request(app).post('/api/admin/photos').set(B).set(bearer(t)).set('Content-Type', 'image/jpeg').send(JPEG);
+    // what src/api.ts withBase does: /media link + ?store=<id>; an <img> sends no X-Store
+    const img = await request(app).get(`${up.body.data.url}&store=example`);
+    expect(img.status).toBe(200);
+    expect(img.headers['cross-origin-resource-policy']).toBe('cross-origin');
+  });
+});

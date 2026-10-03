@@ -5,7 +5,7 @@ const m = JSON.parse(readFileSync(`merchants/${process.env.MERCHANT ?? 'bhakti'}
 
 const config: CapacitorConfig = {
   appId: m.android.packageName,
-  appName: m.brand.name,
+  appName: m.brand.name, // MERCHANT=<store> is set by scripts/build-store-app.ts
   webDir: 'dist',
   server: { androidScheme: 'https' }
 };

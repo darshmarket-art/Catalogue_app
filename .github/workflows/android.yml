@@ -7,8 +7,8 @@ on:
     branches: [android-pwa]
   workflow_dispatch:
     inputs:
-      merchant:
-        description: Merchant id (folder under merchants/)
+      store_id:
+        description: Store id (the subdomain); bhakti uses its committed merchants/bhakti config
         default: bhakti
       api_base:
         description: Cloud Run URL the app talks to
@@ -18,7 +18,7 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      MERCHANT: ${{ inputs.merchant || 'bhakti' }}
+      STORE_ID: ${{ inputs.store_id || 'bhakti' }}
       VITE_API_BASE: ${{ inputs.api_base || 'https://catalogue-app-456376852191.asia-south1.run.app' }}
     steps:
       - uses: actions/checkout@v4
@@ -32,13 +32,23 @@ jobs:
           java-version: 21
       - run: npm ci
       - run: npm test
+      # Writes merchants/<store>/merchant.json (app id, name, theme); exports MERCHANT, VITE_STORE, VITE_API_BASE, APP_ID.
+      - run: npx tsx scripts/build-store-app.ts
+        env:
+          API_BASE: ${{ env.VITE_API_BASE }}
       - run: npm run build:native
       # ponytail: android/ is generated each run (app id/name change per merchant); commit it once we customise it.
       - run: '[ -d android ] || npx cap add android'
       - run: npx cap sync android
+      - run: npx tsx scripts/build-store-app.ts --icons
       - run: ./gradlew assembleDebug
         working-directory: android
+      - name: Name the APK store-version
+        run: |
+          V=$(node -p "require('./package.json').version")
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$STORE_ID-$V.apk"
+          echo "APK=$STORE_ID-$V.apk" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.MERCHANT }}-debug-apk-${{ github.run_number }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ${{ env.STORE_ID }}-debug-apk-${{ github.run_number }}
+          path: ${{ env.APK }}
