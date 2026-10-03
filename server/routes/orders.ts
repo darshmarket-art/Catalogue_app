@@ -9,6 +9,7 @@ import { cartItemSchema } from '../schemas';
 import { recordDaily } from '../stats';
 import type { Media } from '../media';
 import { enabledKeys, loadPurities } from '../purities';
+import type { Notify } from '../notify';
 import { bumpVisitor, logActivity } from '../visitors';
 
 type CartItem = Record<string, any>;
@@ -16,7 +17,7 @@ type CartItem = Record<string, any>;
 const publicItem = ({ ownerId: _owner, createdAt: _created, ...item }: CartItem) => item;
 const sumNet = (items: CartItem[]) => items.reduce((sum, i) => sum + (i.totalNetGold || 0), 0);
 
-export function orderRoutes(store: Store, merchant: MerchantConfig, pack: SectorPack, media: Media, requireRetailer: RequestHandler) {
+export function orderRoutes(store: Store, merchant: MerchantConfig, pack: SectorPack, media: Media, requireRetailer: RequestHandler, notify: Notify) {
   const router = Router();
   router.use(requireRetailer);
   const shown = (item: CartItem) => media.presentItem(publicItem(item));
@@ -72,6 +73,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
       }
       await store.update('purchaseOrders', order.poId, { status: 'cancelled', statusUpdatedAt: new Date().toISOString(), cancelledBy: 'buyer' });
       await audit(store, req, 'ORDER_CANCELLED_BY_BUYER', `PO ${order.poId} cancelled by ${user(res).name}.`);
+      void notify('cancelled', order);
       res.json({ status: 'success', data: { poId: order.poId, status: 'cancelled' } });
     })
   );
@@ -153,6 +155,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
       await recordDaily(store, { booked: 1, bookedGrams: totalNet });
       await audit(store, null, 'WHOLESALE_BATCH_BOOKED_GRAM_BASIS', `PO ${poId} booked by ${owner.name} on Gram Basis: ${totalNet.toFixed(3)}g fine gold across ${items.length} items.`);
 
+      void notify('placed', { poId, firmName: owner.name, totalNetGrams: totalNet, itemCount: items.length });
       res.json({
         status: 'success',
         poId,

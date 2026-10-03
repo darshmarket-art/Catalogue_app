@@ -26,6 +26,12 @@ export interface Config {
   uploadsDir: string;
   /** WhatsApp Cloud API settings; null when unset (dev logs codes, production refuses to send). */
   whatsapp: { token: string; phoneNumberId: string; template: string; language: string; apiVersion: string } | null;
+  /** Meta utility template for owner order alerts; null = no WhatsApp alerts. */
+  orderTemplate: string | null;
+  /** WhatsApp alerts allowed per store per day. */
+  alertDailyCap: number;
+  /** Web Push VAPID keys; null = web push off. */
+  vapid: { publicKey: string; privateKey: string; subject: string } | null;
   /** OTP sends allowed per store per day. */
   otpDailyCap: number;
   /** TEMPORARY: when set, every OTP request uses this fixed 6-digit code and nothing is sent. Remove once WhatsApp is live. */
@@ -94,6 +100,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
             language: env.WHATSAPP_OTP_LANGUAGE?.trim() || 'en',
             apiVersion: env.WHATSAPP_API_VERSION?.trim() || 'v21.0'
           }
+        : null,
+    orderTemplate: env.WHATSAPP_ORDER_TEMPLATE?.trim() || null,
+    alertDailyCap: env.ALERT_DAILY_CAP ? parseInt(env.ALERT_DAILY_CAP, 10) : 200,
+    vapid:
+      env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
+        ? { publicKey: env.VAPID_PUBLIC_KEY.trim(), privateKey: env.VAPID_PRIVATE_KEY.trim(), subject: env.VAPID_SUBJECT?.trim() || 'mailto:admin@antarixs.com' }
         : null,
     staticOtp: /^\d{6}$/.test(env.OTP_STATIC_CODE ?? '') ? env.OTP_STATIC_CODE! : null,
     otpDailyCap: env.OTP_DAILY_CAP ? parseInt(env.OTP_DAILY_CAP, 10) : 500,
