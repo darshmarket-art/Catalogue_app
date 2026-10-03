@@ -24,6 +24,7 @@ import { createBlobs, type Blobs } from './blobs';
 import { createMedia } from './media';
 import { createOtpSender, type OtpSender } from './whatsapp';
 import { otpRoutes } from './routes/otp';
+import { consoleMount } from './routes/console';
 
 const cmpVersion = (a: string, b: string) => {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
@@ -110,6 +111,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
     return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec));
   });
+  app.use(consoleMount(config, root));
   app.use(resolver.middleware);
   return app;
 }
