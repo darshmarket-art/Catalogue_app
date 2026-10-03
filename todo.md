@@ -27,10 +27,10 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Set prices and the exact Pro and Android add-on charges (needed before Phase 11, not before).
 
 ### Phase 1: Plan flags and limits
-- [ ] `shared/plans.ts`: Basic and Pro limits (5 categories, 200 photos, 1 photo per design, 10 users vs unlimited, 3,000 photos, 3 per design) and the feature list.
-- [ ] `effectivePlan(store, now)`: Pro while before `trialEndsAt`, else the stored plan; `founder` plan for Bhakti. No job.
-- [ ] Server refuses locked features and over-limit actions with a clear message (6th category, 201st photo, 2nd photo per design, orders and Orders desk on Basic, locked analytics).
-- [ ] The config sent to the app carries `plan`, `trialEndsAt`, limits and which features are on.
+- [x] `shared/plans.ts`: Basic and Pro limits (done as server/entitlements.ts; Basic users now 50) (5 categories, 200 photos, 1 photo per design, 50 users vs unlimited, 3,000 photos, 3 per design) and the feature list.
+- [x] `effectivePlan(store, now)`: Pro while before `trialEndsAt`, else the stored plan; `founder` plan for Bhakti. No job.
+- [x] Server refuses locked features and over-limit actions (Phase 1 limits + Phase 3 flag gating, 402) with a clear message (6th category, 201st photo, 2nd photo per design, orders and Orders desk on Basic, locked analytics).
+- [x] The config sent to the app carries (GET /api/entitlements) `plan`, `trialEndsAt`, limits and which features are on.
 - [ ] Photo cleanup (orphans removed when a design is deleted or re-photographed) so photo counts are true; keep photos that past orders still show.
 - [ ] Tests for every limit and for trial expiry (inject the clock).
 
@@ -39,16 +39,16 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [x] OTP send and verify: 6 digits, 5-minute expiry, hashed, 5 attempts, resend cooldown, rate limits per phone and IP, daily cap per store.
 - [x] Replace buyer phone + password sign in and sign up with OTP (client done; old password routes still on the server until migration); keep admin email + password.
 - [ ] Migrate Bhakti buyers (same phone number, sign in by OTP); retire buyer password screens, change password and owner password reset.
-- [ ] 50-user limit on Basic (constant BASIC_BUYER_LIMIT in server/routes/otp.ts, not enforced yet): a new number gets "catalogue full" and no code is sent; existing buyers always get in; owner can remove a buyer to free a slot.
+- [x] 50-user limit on Basic (done in Phase 2b: CATALOGUE_FULL, owner can list/remove buyers) (constant BASIC_BUYER_LIMIT in server/routes/otp.ts, not enforced yet): a new number gets "catalogue full" and no code is sent; existing buyers always get in; owner can remove a buyer to free a slot.
 - [ ] Session lifetime for buyers (web and the Android app).
 - [ ] Tests: OTP abuse limits done (tests/otp.test.ts); the 51st number test comes with the limit.
 
 ### Phase 3: Basic mode in the app
-- [ ] Hide Orders tab, Add to order and order screens on Basic; show Enquire on WhatsApp instead.
-- [ ] Locked Pro tiles in the Admin Hub (Orders, buyer engagement, audit log, kg booked, views, live visitors) with the small "Pro" lock marker and an upgrade prompt.
-- [ ] Locked second and third photo slots on New design.
-- [ ] Home banner editing available on Basic (banner photos count toward the 200).
-- [ ] Trial countdown banner ("x days of Pro left") and a plan and usage screen.
+- [x] Hide Orders tab, Add to order and order screens on Basic; show Enquire on WhatsApp instead.
+- [x] Locked Pro tiles in the Admin Hub (Orders, buyer engagement, audit log, kg booked, views, live visitors) with the small "Pro" lock marker and an upgrade prompt.
+- [x] Locked second and third photo slots on New design.
+- [x] Home banner editing available on Basic (banner photos count toward the 200).
+- [ ] Trial countdown banner done; plan and usage screen still to build.
 - [ ] Check in a real browser and on the phone app.
 
 ### Phase 3b: Versioned API (before Phase 4)
