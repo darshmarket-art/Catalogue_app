@@ -180,6 +180,12 @@ export const trackSearch = (term: string) => pendingEvents.push({ type: 'search'
 export const trackSelect = (sku: string) => pendingEvents.push({ type: 'select', sku });
 
 export const api = {
+  pushKey: async (): Promise<string | null> => {
+    const d = (await request('/api/v1/admin/push/key')).data;
+    return d.enabled ? d.publicKey : null;
+  },
+  pushSubscribe: async (sub: unknown) => { await post('/api/v1/admin/push/subscribe', sub); },
+  pushUnsubscribe: async (endpoint: string) => { await post('/api/v1/admin/push/unsubscribe', { endpoint }); },
   /** Re-checks a stored token with the server; quietly forgets it if it is no longer valid. */
   async restoreSession(): Promise<RestoredSession> {
     if (native) authToken = (await Preferences.get({ key: SESSION_KEY })).value;

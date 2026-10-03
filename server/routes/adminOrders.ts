@@ -5,9 +5,10 @@ import { user } from '../auth';
 import { HttpError, audit, handler, parse } from '../http';
 import { orderListSchema, orderStatusSchema } from '../schemas';
 import type { Media } from '../media';
+import type { Notify } from '../notify';
 
 /** The merchant's view of the orders their buyers have placed. */
-export function adminOrderRoutes(store: Store, media: Media, requireAdmin: RequestHandler) {
+export function adminOrderRoutes(store: Store, media: Media, requireAdmin: RequestHandler, notify: Notify) {
   const router = Router();
   router.use(requireAdmin);
 
@@ -35,6 +36,7 @@ export function adminOrderRoutes(store: Store, media: Media, requireAdmin: Reque
       if (previous !== status) {
         await store.update('purchaseOrders', order.poId, { status, statusUpdatedAt: new Date().toISOString() });
         await audit(store, req, 'ORDER_STATUS_CHANGED', `PO ${order.poId}: ${previous} -> ${status} by ${user(res).name}`);
+        if (status === 'cancelled') void notify('cancelled', order);
       }
       res.json({ status: 'success', data: { ...order, status } });
     })

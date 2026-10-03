@@ -19,6 +19,7 @@
     "build:native": "vite build && tsx scripts/render-index.ts"
   },
   "dependencies": {
+    "web-push": "^3.6.7",
     "@capacitor/android": "^8.5.2",
     "@capacitor/app": "^8.1.2",
     "@capacitor/cli": "^8.5.2",

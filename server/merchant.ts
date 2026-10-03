@@ -138,6 +138,8 @@ export const merchantSchema = z.object({
   contact: z.object({
     /** Digits only, with country code, as used by wa.me links. */
     whatsapp: z.string().regex(/^[0-9]{8,15}$/),
+    /** Numbers that get order alerts; the WhatsApp number above is used when empty. */
+    alertNumbers: z.array(z.string().regex(/^[0-9]{8,15}$/)).max(5).optional(),
     deskPhone: text(30),
     address: text(200).optional(),
     showroomLabel: text(60).optional(),

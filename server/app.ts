@@ -26,6 +26,8 @@ import { createOtpSender, type OtpSender } from './whatsapp';
 import { otpRoutes } from './routes/otp';
 import { signupRoutes } from './routes/signup';
 import { consoleMount } from './routes/console';
+import { createNotify, createNotifiers, type Notifiers } from './notify';
+import { pushRoutes } from './routes/push';
 
 const cmpVersion = (a: string, b: string) => {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
@@ -38,7 +40,7 @@ const cmpVersion = (a: string, b: string) => {
  * One shared service, many stores. Global concerns live here; each request is handed to its store's own app,
  * which only ever sees that store's scoped data and photos.
  */
-export function createApp(config: Config, root: Store, rootBlobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config)) {
+export function createApp(config: Config, root: Store, rootBlobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config), notifiers: Notifiers = createNotifiers(config)) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -112,14 +114,14 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec));
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers);
   });
   app.use(consoleMount(config, root));
   app.use(resolver.middleware);
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -189,13 +191,15 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.get('/api/admin/audit-logs', ent.requireFlag('auditLog', 'The audit log'));
   app.post('/api/auth/admin/register', ent.requireFlag('staffRoles', 'Staff roles', (req) => req.body?.role !== 'owner'));
 
+  const notify = createNotify(config, store, ent, notifiers);
+  app.use('/api/admin/push', ent.requireFlag('alerts', 'Order notifications'), pushRoutes(store, notifiers, auth.requireAdmin));
   app.use('/api/auth', otpRoutes(config, store, sender, ent));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
-  app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer));
-  app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin));
+  app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer, notify));
+  app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin, notify));
   app.use('/api/admin/buyers', adminBuyerRoutes(store, auth.requireAdmin));
   app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));

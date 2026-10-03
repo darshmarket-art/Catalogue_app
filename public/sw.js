@@ -1,6 +1,6 @@
 // Service worker: makes the site installable and shows a friendly page when there is no connection.
 // It never stores anything private: API calls and signed photo links always go to the network.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = 'shell-' + VERSION;
 const ASSETS = 'assets-' + VERSION;
 
@@ -42,4 +42,14 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
+});
+
+// Owner order notifications (Web Push).
+self.addEventListener('push', (event) => {
+  const d = event.data ? event.data.json() : {};
+  event.waitUntil(self.registration.showNotification(d.title || 'New order', { body: d.body || '', tag: d.tag }));
+});
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow('/'));
 });

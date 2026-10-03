@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ActiveScreen, AnalyticsData } from '../types';
 import { api } from '../api';
+import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 import { PageTitle, Notice } from './ui';
 import { usePlan, ProBadge, upgradeNotice } from '../plan';
 
@@ -76,6 +77,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
             waiting for you to confirm.
           </button>
         )}
+        <OrderNotificationsToggle />
         {exportError && <Notice tone="error">{exportError}</Notice>}
 
         <button
