@@ -23,18 +23,33 @@ const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
 const native = Capacitor.isNativePlatform();
 declare const __APP_VERSION__: string;
 
+// Which store this app talks to. On a [store].antarixs.com address the host already says; on localhost, the Cloud Run address and native builds it comes from ?store=, remembered for the tab, or VITE_STORE.
+const STORE: string = (() => {
+  const built = import.meta.env.VITE_STORE ?? '';
+  try {
+    const q = new URLSearchParams(location.search).get('store');
+    if (q) sessionStorage.setItem('store', q);
+    return sessionStorage.getItem('store') || built;
+  } catch {
+    return built;
+  }
+})();
+
 // Every API call states the app version; a server that has raised its minimum answers 426 and the app shows "Please update".
 const apiFetch = async (url: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
   headers.set('X-App-Version', __APP_VERSION__);
+  if (STORE) headers.set('X-Store', STORE);
   const res = await fetch(url, { ...init, headers });
   if (res.status === 426) window.dispatchEvent(new Event('app-update-required'));
   return res;
 };
 
 // The server returns photo links as /media/...; inside the native app those must point at the server, not the app itself.
-const withBase = (_key: string, v: unknown) => (typeof v === 'string' && v.startsWith('/media/') ? API_BASE + v : v);
-const parseJson = (res: Response) => res.text().then((t) => JSON.parse(t, API_BASE ? withBase : undefined)).catch(() => ({} as any));
+// <img> loads cannot send X-Store, so photo links carry it as a query parameter.
+const withBase = (_key: string, v: unknown) =>
+  typeof v === 'string' && v.startsWith('/media/') ? API_BASE + v + (STORE ? (v.includes('?') ? '&' : '?') + 'store=' + encodeURIComponent(STORE) : '') : v;
+const parseJson = (res: Response) => res.text().then((t) => JSON.parse(t, API_BASE || STORE ? withBase : undefined)).catch(() => ({} as any));
 
 export class ApiError extends Error {
   constructor(
