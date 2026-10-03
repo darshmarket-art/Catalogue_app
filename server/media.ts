@@ -8,7 +8,8 @@ import { PLACEHOLDER_IMAGE } from './placeholder';
 /** Stored form of an uploaded photo: "media:<32 hex>.<jpg|png|webp>". Anything else must be an http(s) URL. */
 const FILE = /^[a-f0-9]{32}\.(jpg|png|webp)$/;
 const MEDIA_REF = /^media:([a-f0-9]{32}\.(?:jpg|png|webp))$/;
-const MEDIA_URL = /^\/media\/([a-f0-9]{32}\.(?:jpg|png|webp))(?:\?.*)?$/;
+// The native app sees these links with the server address in front, so allow an optional origin.
+const MEDIA_URL = /^(?:https?:\/\/[^/?#]+)?\/media\/([a-f0-9]{32}\.(?:jpg|png|webp))(?:\?.*)?$/;
 
 const LINK_WINDOW_MS = 6 * 60 * 60 * 1000;
 
