@@ -38,6 +38,8 @@ export async function migrateToStore(o: {
   /** Collections to leave out (bulky analytics can be copied in a later pass). */
   skip?: string[];
   progress?: (msg: string) => void;
+  /** Leave photos alone (copy them with `gcloud storage cp` instead). */
+  noPhotos?: boolean;
 }): Promise<MigrationReport> {
   const { src, root, blobs, id, apply } = o;
   const report: MigrationReport = { record: 'exists', docs: {}, blobs: { copied: 0, skipped: 0 } };
@@ -63,7 +65,7 @@ export async function migrateToStore(o: {
   }
 
   o.progress?.(`photos...`);
-  for (const name of await src.blobNames()) {
+  for (const name of o.noPhotos ? [] : await src.blobNames()) {
     const target = `stores/${id}/${name}`;
     if (!o.overwrite && (await blobs.exists(target))) {
       report.blobs.skipped++;

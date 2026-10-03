@@ -52,6 +52,6 @@ const live = await src.readBlob('merchant.json').catch(() => null);
 const raw = live ? JSON.parse(live.data.toString('utf8')) : JSON.parse(fs.readFileSync(path.resolve('merchants', id, 'merchant.json'), 'utf8'));
 const merchant = parseMerchant(raw, live ? 'merchant.json in storage' : `merchants/${id}/merchant.json`, id);
 
-const report = await migrateToStore({ src, root: new FirestoreStore(), blobs: new GcsBlobs(bucketName), id, merchant, apply, overwrite: flag('overwrite'), skip: (val('skip') ?? '').split(',').filter(Boolean), progress: (msg) => console.log(msg) });
+const report = await migrateToStore({ src, root: new FirestoreStore(), blobs: new GcsBlobs(bucketName), id, merchant, apply, overwrite: flag('overwrite'), skip: (val('skip') ?? '').split(',').filter(Boolean), noPhotos: flag('no-photos'), progress: (msg) => console.log(msg) });
 console.log(apply ? 'APPLIED' : 'DRY RUN (nothing written)', `store=${id} project=${projectId}`);
 console.log(JSON.stringify(report, null, 2));
