@@ -1,3 +1,4 @@
+import { usePlan } from '../plan';
 import React, { useEffect, useRef, useState } from 'react';
 import { canInstall, onInstallChange, promptInstall } from '../install';
 
@@ -25,6 +26,7 @@ const itemClass =
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onOpenAbout, onLogout }) => {
+  const orders = usePlan().flags.orders;
   const [open, setOpen] = useState(false);
   const [installable, setInstallable] = useState(canInstall());
   useEffect(() => onInstallChange(() => setInstallable(canInstall())), []);
@@ -109,18 +111,24 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
               <button role="menuitem" className={itemClass} onClick={choose(onOpenAdminConsole)} type="button">
                 Admin console
               </button>
-              <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
-                Placed orders
-              </button>
+              {orders && (
+                <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
+                  Placed orders
+                </button>
+              )}
             </>
           ) : (
             <>
-              <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
-                My order
-              </button>
-              <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('past'))} type="button">
-                Past orders
-              </button>
+              {orders && (
+                <>
+                  <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
+                    My order
+                  </button>
+                  <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('past'))} type="button">
+                    Past orders
+                  </button>
+                </>
+              )}
               <button role="menuitem" className={itemClass} onClick={choose(onChangePassword)} type="button">
                 Change password
               </button>

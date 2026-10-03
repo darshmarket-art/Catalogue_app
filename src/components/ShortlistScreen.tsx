@@ -1,3 +1,4 @@
+import { usePlan } from '../plan';
 import React, { useMemo, useState } from 'react';
 import { Product } from '../types';
 import { merchant } from '../merchant';
@@ -14,6 +15,7 @@ interface ShortlistScreenProps {
 }
 
 export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shortlist, storeName, onRemove, onAddAllToOrder, onBrowse }) => {
+  const canOrder = usePlan().flags.orders;
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -88,16 +90,16 @@ export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shor
           </div>
           <button onClick={sendOnWhatsApp} className="w-full h-12 rounded-2xl bg-[#25D366] text-[#06361a] font-sans text-sm font-extrabold flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-[20px]">chat</span>
-            Send shortlist on WhatsApp
+            {canOrder ? 'Send shortlist on WhatsApp' : 'Enquire on WhatsApp'}
           </button>
-          <button
+          {canOrder && <button
             onClick={addAll}
             disabled={adding}
             className="w-full h-12 rounded-2xl border-2 border-primary text-primary font-sans text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-60"
           >
             <span className="material-symbols-outlined text-[20px]">{added ? 'check' : 'add_shopping_cart'}</span>
             {adding ? 'Adding…' : added ? 'Added to your order' : 'Add all to order'}
-          </button>
+          </button>}
         </div>
       </div>
     </div>

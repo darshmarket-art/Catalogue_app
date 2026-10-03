@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActiveScreen, Category, Product, Purity } from '../types';
 import { sector } from '../sector';
 import { merchant } from '../merchant';
+import { usePlan, ProBadge, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { PageTitle, Field, Notice, Chip, inputClass, btnPrimary, btnDanger, btnLink } from './ui';
 
@@ -17,6 +18,7 @@ interface NewProductScreenProps {
 }
 
 export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, purities, editing, onNavigate, onSave, onDelete }) => {
+  const { limits } = usePlan();
   const [title, setTitle] = useState(editing?.title ?? '');
   const [sku, setSku] = useState(editing?.sku ?? '');
   const [category, setCategory] = useState(editing?.category ?? '');
@@ -100,7 +102,17 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
         <section className="flex flex-col gap-2">
           <h2 className="font-serif text-[22px] text-primary">Photos</h2>
-          <PhotoPicker photos={photos} onChange={setPhotos} max={3} onBusyChange={setUploading} />
+          <PhotoPicker photos={photos} onChange={setPhotos} max={Math.max(limits.photosPerDesign, editing?.images.length ?? 0)} onBusyChange={setUploading} />
+          {limits.photosPerDesign < 3 && (
+            <button type="button" onClick={() => upgradeNotice('Extra photos per design')} className="flex gap-2 items-center">
+              {[2, 3].map((n) => (
+                <span key={n} className="flex-1 h-16 rounded-2xl border-[1.5px] border-dashed border-outline-variant flex items-center justify-center text-outline font-sans text-sm font-bold">
+                  Photo {n}
+                  <ProBadge />
+                </span>
+              ))}
+            </button>
+          )}
         </section>
 
         <Field label="Design name" htmlFor="np-title">

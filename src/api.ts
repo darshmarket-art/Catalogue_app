@@ -367,6 +367,10 @@ export const api = {
     await request(`/api/admin/orders/${encodeURIComponent(poId)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   },
 
+  async getEntitlements(): Promise<any> {
+    return (await request('/api/entitlements')).data;
+  },
+
   async getAnalytics(): Promise<AnalyticsData> {
     return (await request('/api/analytics')).data;
   },

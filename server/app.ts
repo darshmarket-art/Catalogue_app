@@ -134,6 +134,13 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
   app.get('/media/:file', mediaRoute(blobs, media));
 
+  // Pro-only features: Basic gets 402 (the app mirrors this with locked tiles).
+  app.use(['/api/orders', '/api/admin/orders'], ent.requireFlag('orders', 'Ordering'));
+  app.use('/api/admin/visitors', ent.requireFlag('liveVisitors', 'Live visitors'));
+  app.get(['/api/analytics', '/api/analytics/export'], ent.requireFlag('insights', 'Insights'));
+  app.get('/api/admin/audit-logs', ent.requireFlag('auditLog', 'The audit log'));
+  app.post('/api/auth/admin/register', ent.requireFlag('staffRoles', 'Staff roles', (req) => req.body?.role !== 'owner'));
+
   app.use('/api/auth', otpRoutes(config, store, sender));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
