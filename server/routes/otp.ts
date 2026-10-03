@@ -41,6 +41,7 @@ interface OtpDoc {
 
 export function otpRoutes(config: Config, store: Store, sender: OtpSender, now: () => number = Date.now) {
   const router = Router();
+  if (config.staticOtp) logger.warn('OTP_STATIC_CODE is set: sign-in uses a fixed code and nothing is sent on WhatsApp.');
   const hash = (ph: string, code: string) => crypto.createHmac('sha256', config.jwtSecret).update(`${ph}:${code}`).digest('hex');
   const ipLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -69,9 +70,9 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, now: 
       const used = (await store.get<{ count: number }>('otpDaily', day))?.count ?? 0;
       if (used >= config.otpDailyCap) throw new HttpError(429, 'Sign-in codes are temporarily unavailable. Please try again tomorrow.');
 
-      const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+      const code = config.staticOtp ?? String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
       try {
-        await sender.sendOtp(ph, code);
+        if (!config.staticOtp) await sender.sendOtp(ph, code);
       } catch (err) {
         logger.error('OTP send failed', { error: String(err) });
         throw new HttpError(503, 'Could not send the code on WhatsApp. Please try again shortly.');

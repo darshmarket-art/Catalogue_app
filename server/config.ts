@@ -19,6 +19,8 @@ export interface Config {
   whatsapp: { token: string; phoneNumberId: string; template: string; language: string; apiVersion: string } | null;
   /** OTP sends allowed per store per day. */
   otpDailyCap: number;
+  /** TEMPORARY: when set, every OTP request uses this fixed 6-digit code and nothing is sent. Remove once WhatsApp is live. */
+  staticOtp: string | null;
   rateLimit: { auth: number; adminRegister: number; api: number; analytics: number };
 }
 
@@ -78,6 +80,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
             apiVersion: env.WHATSAPP_API_VERSION?.trim() || 'v21.0'
           }
         : null,
+    staticOtp: /^\d{6}$/.test(env.OTP_STATIC_CODE ?? '') ? env.OTP_STATIC_CODE! : null,
     otpDailyCap: env.OTP_DAILY_CAP ? parseInt(env.OTP_DAILY_CAP, 10) : 500,
     rateLimit: { auth: 10, adminRegister: 5, api: 1000, analytics: 300 }
   };

@@ -79,3 +79,18 @@ describe('WhatsApp OTP login', () => {
     expect((await verify('12ab')).status).toBe(400);
   });
 });
+
+describe('static OTP mode (temporary, until WhatsApp is live)', () => {
+  it('signs in with the fixed code and sends nothing', async () => {
+    const config = {
+      ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: 'test-master-provisioning-key', OTP_STATIC_CODE: '123456' }),
+      rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 }
+    };
+    sender = new FakeSender();
+    app = createApp(config, new MemoryStore(), new MemoryBlobs(), sender);
+    expect((await ask()).status).toBe(200);
+    expect(sender.sent).toHaveLength(0);
+    expect((await verify('000000')).status).toBe(401);
+    expect((await verify('123456', { firmName: 'Shiv Jewels' })).status).toBe(200);
+  });
+});
