@@ -7,6 +7,8 @@ export interface Config {
   port: number;
   merchant: MerchantConfig;
   isProduction: boolean;
+  minAppVersion: string;
+  latestAppVersion: string;
   jwtSecret: string;
   masterProvisioningKey: string | null;
   storeKind: StoreKind;
@@ -63,6 +65,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: env.PORT ? parseInt(env.PORT, 10) : 3000,
     merchant: loadMerchant(env),
     isProduction,
+    minAppVersion: env.MIN_APP_VERSION || '0.0.0',
+    latestAppVersion: env.LATEST_APP_VERSION || '0.0.0',
     jwtSecret,
     masterProvisioningKey: masterKey,
     storeKind,

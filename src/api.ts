@@ -21,6 +21,16 @@ import { Preferences } from '@capacitor/preferences';
 // Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
 const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
 const native = Capacitor.isNativePlatform();
+declare const __APP_VERSION__: string;
+
+// Every API call states the app version; a server that has raised its minimum answers 426 and the app shows "Please update".
+const apiFetch = async (url: string, init: RequestInit = {}) => {
+  const headers = new Headers(init.headers);
+  headers.set('X-App-Version', __APP_VERSION__);
+  const res = await fetch(url, { ...init, headers });
+  if (res.status === 426) window.dispatchEvent(new Event('app-update-required'));
+  return res;
+};
 
 // The server returns photo links as /media/...; inside the native app those must point at the server, not the app itself.
 const withBase = (_key: string, v: unknown) => (typeof v === 'string' && v.startsWith('/media/') ? API_BASE + v : v);
@@ -87,7 +97,7 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
   if (native) headers.set('X-App-Client', 'native');
 
   const usedToken = authToken;
-  const res = await fetch(API_BASE + path, { ...init, headers });
+  const res = await apiFetch(API_BASE + path, { ...init, headers });
   const json = await parseJson(res);
   const sessionExpired = res.status === 401 && usedToken !== null && authToken === usedToken;
   if (sessionExpired) {
@@ -130,7 +140,7 @@ async function flushProductViews() {
   pendingSkus.clear();
   for (let i = 0; i < skus.length; i += 50) {
     try {
-      await post('/api/analytics/product-views', { sessionId: getSessionId(), skus: skus.slice(i, i + 50) });
+      await post('/api/v1/analytics/product-views', { sessionId: getSessionId(), skus: skus.slice(i, i + 50) });
     } catch {
       // telemetry must never break the UI
     }
@@ -156,7 +166,7 @@ export function flushActivity() {
   if (pendingEvents.length === 0) return;
   const events = pendingEvents.splice(0, 60);
   // Signed-in buyers are recorded under their account; in a public catalogue a guest is recorded by browser session.
-  fetch(API_BASE + '/api/analytics/activity', {
+  apiFetch(API_BASE + '/api/v1/analytics/activity', {
     method: 'POST',
     keepalive: true,
     headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
@@ -175,7 +185,7 @@ export const api = {
     if (native) authToken = (await Preferences.get({ key: SESSION_KEY })).value;
     if (!authToken) return null;
     try {
-      const res = await fetch(API_BASE + '/api/auth/me', { headers: { Authorization: `Bearer ${authToken}`, ...(native ? { 'X-App-Client': 'native' } : {}) } });
+      const res = await apiFetch(API_BASE + '/api/v1/auth/me', { headers: { Authorization: `Bearer ${authToken}`, ...(native ? { 'X-App-Client': 'native' } : {}) } });
       if (res.status === 401) setAuthToken(null);
       if (!res.ok) return null;
       const json = await res.json();
@@ -190,91 +200,91 @@ export const api = {
 
   async getCategories(): Promise<Category[]> {
     try {
-      return (await request('/api/categories')).data;
+      return (await request('/api/v1/categories')).data;
     } catch {
       return [];
     }
   },
 
   async createCategory(cat: Partial<Category>): Promise<Category> {
-    return (await post('/api/categories', cat)).data;
+    return (await post('/api/v1/categories', cat)).data;
   },
 
   async updateCategory(id: string, cat: Partial<Category>): Promise<Category> {
-    return (await request(`/api/categories/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(cat) })).data;
+    return (await request(`/api/v1/categories/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(cat) })).data;
   },
 
   async deleteCategory(id: string): Promise<void> {
-    await request(`/api/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await request(`/api/v1/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   async getBanners(): Promise<Banner[]> {
     try {
-      return (await request('/api/banners')).data;
+      return (await request('/api/v1/banners')).data;
     } catch {
       return [];
     }
   },
 
   async addBanner(image: string, category?: string): Promise<Banner> {
-    return (await post('/api/banners', { image, ...(category ? { category } : {}) })).data;
+    return (await post('/api/v1/banners', { image, ...(category ? { category } : {}) })).data;
   },
 
   async setBannerLink(id: string, category: string | null): Promise<Banner> {
-    return (await request(`/api/banners/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ category }) })).data;
+    return (await request(`/api/v1/banners/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ category }) })).data;
   },
 
   async reorderBanners(ids: string[]): Promise<void> {
-    await request('/api/banners/order', { method: 'PUT', body: JSON.stringify({ ids }) });
+    await request('/api/v1/banners/order', { method: 'PUT', body: JSON.stringify({ ids }) });
   },
 
   async getAbout(): Promise<About> {
     try {
-      return (await request('/api/about')).data;
+      return (await request('/api/v1/about')).data;
     } catch {
       return {};
     }
   },
 
   async saveAbout(about: About): Promise<About> {
-    return (await request('/api/about', { method: 'PUT', body: JSON.stringify(about) })).data;
+    return (await request('/api/v1/about', { method: 'PUT', body: JSON.stringify(about) })).data;
   },
 
   async cancelOrder(poId: string): Promise<void> {
-    await request(`/api/orders/${encodeURIComponent(poId)}/cancel`, { method: 'POST' });
+    await request(`/api/v1/orders/${encodeURIComponent(poId)}/cancel`, { method: 'POST' });
   },
 
   async getPurities(): Promise<Purity[] | null> {
     try {
-      return (await request('/api/purities')).data;
+      return (await request('/api/v1/purities')).data;
     } catch {
       return null;
     }
   },
 
   async savePurities(purities: Array<{ key: string; enabled: boolean }>): Promise<Purity[]> {
-    return (await request('/api/purities', { method: 'PUT', body: JSON.stringify({ purities }) })).data;
+    return (await request('/api/v1/purities', { method: 'PUT', body: JSON.stringify({ purities }) })).data;
   },
 
   async getShortlist(): Promise<string[]> {
     try {
-      return (await request('/api/shortlist')).data.skus;
+      return (await request('/api/v1/shortlist')).data.skus;
     } catch {
       return [];
     }
   },
 
   async saveShortlist(skus: string[]): Promise<void> {
-    await request('/api/shortlist', { method: 'PUT', body: JSON.stringify({ skus }) });
+    await request('/api/v1/shortlist', { method: 'PUT', body: JSON.stringify({ skus }) });
   },
 
   async deleteBanner(id: string): Promise<void> {
-    await request(`/api/banners/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await request(`/api/v1/banners/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   /** Sends the original photo, untouched, to the merchant's storage. Returns the stored reference and a display link. */
   async uploadPhoto(file: File): Promise<{ ref: string; url: string }> {
-    const res = await fetch(API_BASE + '/api/admin/photos', {
+    const res = await apiFetch(API_BASE + '/api/v1/admin/photos', {
       method: 'POST',
       headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
       body: file
@@ -292,55 +302,55 @@ export const api = {
   async getProducts(params?: { search?: string; category?: string; purity?: string }): Promise<Product[]> {
     try {
       const query = new URLSearchParams(params as Record<string, string>).toString();
-      return (await request(`/api/products?${query}`)).data;
+      return (await request(`/api/v1/products?${query}`)).data;
     } catch {
       return [];
     }
   },
 
   async createProduct(prod: Partial<Product>): Promise<Product> {
-    return (await post('/api/products', prod)).data;
+    return (await post('/api/v1/products', prod)).data;
   },
 
   async updateProduct(id: string, prod: Partial<Product>): Promise<Product> {
-    return (await request(`/api/products/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(prod) })).data;
+    return (await request(`/api/v1/products/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(prod) })).data;
   },
 
   async deleteProduct(id: string): Promise<void> {
-    await request(`/api/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await request(`/api/v1/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   async getOrderHistory(): Promise<PastOrder[]> {
     try {
-      return (await request('/api/orders/history')).data;
+      return (await request('/api/v1/orders/history')).data;
     } catch {
       return [];
     }
   },
 
   async getVisitors(kind: VisitorKind): Promise<VisitorSummary[]> {
-    return (await request(`/api/admin/visitors?kind=${kind}`)).data;
+    return (await request(`/api/v1/admin/visitors?kind=${kind}`)).data;
   },
 
   async getVisitor(id: string): Promise<VisitorDetail> {
-    return (await request(`/api/admin/visitors/${encodeURIComponent(id)}`)).data;
+    return (await request(`/api/v1/admin/visitors/${encodeURIComponent(id)}`)).data;
   },
 
   async getBuyers(): Promise<BuyerRow[]> {
-    return (await request('/api/admin/buyers')).data;
+    return (await request('/api/v1/admin/buyers')).data;
   },
 
   async resetBuyerPassword(phone: string): Promise<{ firmName: string; temporaryPassword: string }> {
-    return (await post(`/api/admin/buyers/${encodeURIComponent(phone)}/reset-password`)).data;
+    return (await post(`/api/v1/admin/buyers/${encodeURIComponent(phone)}/reset-password`)).data;
   },
 
   async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
-    await post('/api/auth/retailer/change-password', payload);
+    await post('/api/v1/auth/retailer/change-password', payload);
   },
 
   async getOrders(): Promise<{ items: OrderItem[]; totalWeight: number; totalPieces: number }> {
     try {
-      const json = await request('/api/orders');
+      const json = await request('/api/v1/orders');
       return { items: json.data, totalWeight: json.totalWeightNetGrams, totalPieces: json.totalPieces };
     } catch {
       return { items: [], totalWeight: 0, totalPieces: 0 };
@@ -348,36 +358,36 @@ export const api = {
   },
 
   async addOrderItem(item: { sku: string; batchQty: number; qtyUnit?: string; note?: string; purity?: string }): Promise<OrderItem> {
-    return (await post('/api/orders/items', item)).data;
+    return (await post('/api/v1/orders/items', item)).data;
   },
 
   async removeOrderItem(id: string): Promise<void> {
-    await request(`/api/orders/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    await request(`/api/v1/orders/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   async confirmOrder(): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
-    return post('/api/orders/confirm');
+    return post('/api/v1/orders/confirm');
   },
 
   async getAdminOrders(): Promise<AdminOrder[]> {
-    return (await request('/api/admin/orders?limit=100')).data;
+    return (await request('/api/v1/admin/orders?limit=100')).data;
   },
 
   async setOrderStatus(poId: string, status: OrderStatus): Promise<void> {
-    await request(`/api/admin/orders/${encodeURIComponent(poId)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    await request(`/api/v1/admin/orders/${encodeURIComponent(poId)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   },
 
   async getEntitlements(): Promise<any> {
-    return (await request('/api/entitlements')).data;
+    return (await request('/api/v1/entitlements')).data;
   },
 
   async getAnalytics(): Promise<AnalyticsData> {
-    return (await request('/api/analytics')).data;
+    return (await request('/api/v1/analytics')).data;
   },
 
   async recordInquiry(payload?: { clientFirm?: string; itemsCount?: number; totalNetWeight?: number }): Promise<void> {
     try {
-      await post('/api/analytics/track-inquiry', payload || {});
+      await post('/api/v1/analytics/track-inquiry', payload || {});
     } catch {
       // telemetry must never break the UI
     }
@@ -385,7 +395,7 @@ export const api = {
 
   async sendHeartbeat(): Promise<void> {
     try {
-      await post('/api/analytics/heartbeat', { sessionId: getSessionId() });
+      await post('/api/v1/analytics/heartbeat', { sessionId: getSessionId() });
     } catch {
       // telemetry must never break the UI
     }
@@ -399,29 +409,29 @@ export const api = {
     password: string;
     marketHub: string;
   }) {
-    const json = await post('/api/auth/retailer/signup', payload);
+    const json = await post('/api/v1/auth/retailer/signup', payload);
     setAuthToken(json.token);
     return json;
   },
 
   async requestOtp(phone: string) {
-    return post('/api/auth/retailer/request-otp', { phone });
+    return post('/api/v1/auth/retailer/request-otp', { phone });
   },
 
   async verifyOtp(payload: { phone: string; code: string; firmName?: string }) {
-    const json = await post('/api/auth/retailer/verify-otp', payload);
+    const json = await post('/api/v1/auth/retailer/verify-otp', payload);
     setAuthToken(json.token);
     return json;
   },
 
   async loginRetailer(payload: { phone: string; password: string }) {
-    const json = await post('/api/auth/retailer/login', payload);
+    const json = await post('/api/v1/auth/retailer/login', payload);
     setAuthToken(json.token);
     return json;
   },
 
   async loginAdmin(payload: { adminId: string; password: string }) {
-    const json = await post('/api/auth/admin/login', payload);
+    const json = await post('/api/v1/auth/admin/login', payload);
     setAuthToken(json.sessionToken);
     return json;
   },
@@ -434,19 +444,19 @@ export const api = {
     masterProvisioningKey: string;
   }) {
     // Provisioning does not sign the new admin in; they authenticate on the login form.
-    return post('/api/auth/admin/register', payload);
+    return post('/api/v1/auth/admin/register', payload);
   },
 
   async getAuditLogs() {
     try {
-      return (await request('/api/admin/audit-logs')).data || [];
+      return (await request('/api/v1/admin/audit-logs')).data || [];
     } catch {
       return [];
     }
   },
 
   async downloadAuditExport(): Promise<void> {
-    const res = await fetch(API_BASE + '/api/analytics/export', { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
+    const res = await apiFetch(API_BASE + '/api/v1/analytics/export', { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
     if (!res.ok) throw new ApiError(res.status, 'Export failed. Please sign in again.');
     const url = URL.createObjectURL(await res.blob());
     const link = document.createElement('a');

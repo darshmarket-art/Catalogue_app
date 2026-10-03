@@ -35,6 +35,7 @@ export default function App() {
     () => (window.history.state?.screen as ActiveScreen | undefined) ?? 'welcome'
   );
   // True while a session saved earlier in this tab is being re-checked, so we never flash the login screen.
+  const [mustUpdate, setMustUpdate] = useState(false);
   const [booting, setBooting] = useState(() => hasStoredSession());
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -118,6 +119,12 @@ export default function App() {
         }
       })
       .finally(() => setBooting(false));
+  }, []);
+
+  useEffect(() => {
+    const on = () => setMustUpdate(true);
+    window.addEventListener('app-update-required', on);
+    return () => window.removeEventListener('app-update-required', on);
   }, []);
 
   // Any request that finds the token expired or revoked signs the user out once, with a clear message.
@@ -460,6 +467,13 @@ export default function App() {
     setNavDir('back');
   };
 
+  if (mustUpdate)
+    return (
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center gap-3 p-8 text-center">
+        <h1 className="text-xl font-semibold">Please update the app</h1>
+        <p>This version is no longer supported. Install the latest version to continue.</p>
+      </div>
+    );
   if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
