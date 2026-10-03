@@ -1,3 +1,5 @@
+import { usePlan } from '../plan';
+import { merchant } from '../merchant';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product, Purity } from '../types';
 import { trackProductView, trackSearch, trackSelect } from '../api';
@@ -41,6 +43,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   onToggleShortlist
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { flags } = usePlan();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>('default');
@@ -198,7 +201,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
               </button>
             )}
           </div>
-          {isAdmin && (
+          {isAdmin && flags.pdfCatalogue && (
             <button
               type="button"
               onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
@@ -291,7 +294,17 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
                     Edit
                   </button>
                 ) : (
-                  <div className="flex items-center gap-2 mt-auto">
+                  !flags.orders ? (
+                    <a
+                      href={`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.brand.name}, I'm interested in ${prod.title} (${prod.sku}), ${prod.purity}, net ${prod.netWt.toFixed(2)} g.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-auto w-full h-11 rounded-xl bg-[#25D366] text-[#06361a] font-sans text-sm font-extrabold flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">chat</span>
+                      Enquire on WhatsApp
+                    </a>
+                  ) : <div className="flex items-center gap-2 mt-auto">
                     {/* On phones the quantity is chosen in the design's detail sheet; here Add puts one piece in the order. */}
                     <div className="hidden md:flex items-center rounded-xl bg-white border border-outline-variant">
                       <button

@@ -1,3 +1,4 @@
+import { usePlan, TrialBanner } from './plan';
 import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
@@ -28,6 +29,7 @@ import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 
 export default function App() {
+  const { flags } = usePlan();
   // The current screen lives in the browser history too, so Back/Forward (and a reload) stay inside the app.
   const [currentScreen, setCurrentScreen] = useState<ActiveScreen>(
     () => (window.history.state?.screen as ActiveScreen | undefined) ?? 'welcome'
@@ -110,7 +112,7 @@ export default function App() {
         if (session?.type === 'retailer') {
           setCurrentMerchant(session.user);
           setMustChangePassword(session.mustChangePassword);
-          api.getOrders().then((result) => setOrders(result.items));
+          api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
         } else if (session?.type === 'admin') {
           setIsAdminLoggedIn(true);
         }
@@ -146,7 +148,7 @@ export default function App() {
 
   // Admin Hub numbers: fetched on open, then every 15 seconds while the tab is visible.
   useEffect(() => {
-    if (currentScreen !== 'admin-hub' || !isAdminLoggedIn) return;
+    if (currentScreen !== 'admin-hub' || !isAdminLoggedIn || !flags.insights) return;
 
     const refresh = () => {
       if (document.hidden) return;
@@ -166,7 +168,7 @@ export default function App() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', refresh);
     };
-  }, [currentScreen, isAdminLoggedIn]);
+  }, [currentScreen, isAdminLoggedIn, flags.insights]);
 
   // Catalogue data. A members-only catalogue is loaded after sign-in and cleared on sign-out.
   useEffect(() => {
@@ -442,6 +444,9 @@ export default function App() {
             ? 'categories'
             : screen;
 
+  // Basic has no ordering: order screens fall back to Home.
+  if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
+
   const shouldShowBottomNav =
     ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
 
@@ -475,6 +480,8 @@ export default function App() {
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
       <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
+        {isAdminLoggedIn && activeScreen !== 'welcome' && <TrialBanner />}
+
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}
@@ -538,7 +545,7 @@ export default function App() {
               setCurrentMerchant(user);
               setMustChangePassword(mustChange);
               handleNavigate(categoryFilter ? 'catalogue' : 'categories', true);
-              api.getOrders().then((result) => setOrders(result.items));
+              if (flags.orders) api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
             }}
           />
         )}

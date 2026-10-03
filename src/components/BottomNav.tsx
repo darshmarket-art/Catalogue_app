@@ -1,3 +1,4 @@
+import { usePlan } from '../plan';
 import React from 'react';
 import { ActiveScreen } from '../types';
 
@@ -14,6 +15,7 @@ interface BottomNavProps {
  * 'catalogue' screen is the Catalogue tab (every design).
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate, orderCount, shortlistCount, isAdminLoggedIn }) => {
+  const { flags } = usePlan();
   const adminScreens: ActiveScreen[] = ['admin-hub', 'admin-orders', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about'];
 
   const tabs: Array<{ screen: ActiveScreen; label: string; icon: string; active: boolean; badge?: number }> = [
@@ -21,7 +23,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate,
     { screen: 'catalogue', label: 'Catalogue', icon: 'grid_view', active: currentScreen === 'catalogue' },
     // Buyers only: designs they have hearted
     ...(isAdminLoggedIn ? [] : [{ screen: 'shortlist' as const, label: 'Shortlist', icon: 'favorite', active: currentScreen === 'shortlist', badge: shortlistCount }]),
-    { screen: 'orders', label: 'Orders', icon: 'receipt_long', active: currentScreen === 'orders', badge: orderCount },
+    ...(flags.orders ? [{ screen: 'orders' as const, label: 'Orders', icon: 'receipt_long', active: currentScreen === 'orders', badge: orderCount }] : []),
     // Staff only
     ...(isAdminLoggedIn
       ? [{ screen: 'admin-hub' as const, label: 'Admin', icon: 'admin_panel_settings', active: adminScreens.includes(currentScreen) }]

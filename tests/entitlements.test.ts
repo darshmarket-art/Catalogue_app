@@ -69,3 +69,22 @@ describe('Basic buyer limit', () => {
     expect((await request(app).post('/api/auth/retailer/request-otp').send({ phone: '9999999999' })).status).toBe(200);
   });
 });
+
+describe('Pro feature gating', () => {
+  it('Basic gets 402 on Pro routes; trial and founder are unaffected', async () => {
+    const { app, auth, store } = await basicStore();
+    const get = (path: string) => request(app).get(path).set(auth);
+    for (const path of ['/api/orders', '/api/admin/orders', '/api/admin/visitors?kind=all', '/api/analytics', '/api/analytics/export', '/api/admin/audit-logs']) {
+      expect((await get(path)).status, path).toBe(402);
+    }
+    const staff = { email: 's@example.com', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: KEY };
+    expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(402);
+    // Free features still work, and so does tracking.
+    expect((await get('/api/admin/buyers')).status).toBe(200);
+    // A running trial is Pro.
+    await store.set('settings', 'plan', { id: 'plan', plan: 'basic', trialEndsAt: trialEnd() });
+    expect((await get('/api/admin/orders')).status).toBe(200);
+    expect((await get('/api/analytics')).status).toBe(200);
+    expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(201);
+  });
+});

@@ -45,11 +45,23 @@ export async function photosInUse(store: Store): Promise<Set<string>> {
   return used;
 }
 
+export type FlagName = keyof ReturnType<typeof flagsFor>;
+
 export function entitlements(store: Store, merchantId: string) {
   const load = async () => makeEntitlements(await loadPlan(store, merchantId));
   const deny = (what: string, limit: number) => new HttpError(402, `Your plan allows ${limit} ${what}. Upgrade to Pro for more.`);
   return {
     load,
+    /** Express middleware: 402 when the plan lacks the feature. `when` lets a route gate only some requests. */
+    requireFlag: (flag: FlagName, what: string, when: (req: any) => boolean = () => true) =>
+      async (req: any, _res: any, next: (e?: unknown) => void) => {
+        try {
+          if (when(req) && !(await load()).flags[flag]) throw new HttpError(402, `${what} is a Pro feature. Upgrade to Pro to use it.`);
+          next();
+        } catch (e) {
+          next(e);
+        }
+      },
     async usage() {
       return { categories: (await store.list('categories')).length, photos: (await photosInUse(store)).size, users: (await store.list('buyers')).length };
     },

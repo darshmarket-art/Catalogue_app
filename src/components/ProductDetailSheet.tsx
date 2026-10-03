@@ -1,3 +1,4 @@
+import { usePlan } from '../plan';
 import React, { useEffect, useRef, useState } from 'react';
 import { Product, Purity } from '../types';
 import { merchant } from '../merchant';
@@ -27,6 +28,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
   onEdit,
   onAddToOrder
 }) => {
+  const canOrder = usePlan().flags.orders;
   const [slide, setSlide] = useState(0);
   const [qty, setQty] = useState(1);
   const [purity, setPurity] = useState('');
@@ -177,7 +179,7 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
             </button>
           ) : (
             <>
-              <div className="flex items-center rounded-2xl border border-outline-variant">
+              {canOrder && <div className="flex items-center rounded-2xl border border-outline-variant">
                 <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity" className="w-10 h-12 flex items-center justify-center text-primary">
                   <span className="material-symbols-outlined text-[20px]">remove</span>
                 </button>
@@ -187,8 +189,8 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
                 <button onClick={() => setQty((q) => q + 1)} aria-label="Increase quantity" className="w-10 h-12 flex items-center justify-center text-primary">
                   <span className="material-symbols-outlined text-[20px]">add</span>
                 </button>
-              </div>
-              <button
+              </div>}
+              {canOrder && <button
                 onClick={() => {
                   onAddToOrder(product, qty, purity || undefined);
                   onClose();
@@ -196,15 +198,16 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
                 className="flex-1 h-12 rounded-2xl bg-secondary hover:bg-secondary-dark text-white font-sans text-sm font-bold active:scale-95 transition-all"
               >
                 Add to order
-              </button>
+              </button>}
               <a
                 href={`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(askText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Ask about this design on WhatsApp"
-                className="w-12 h-12 rounded-2xl bg-[#25D366] text-[#06361a] flex items-center justify-center flex-shrink-0"
+                className={`h-12 rounded-2xl bg-[#25D366] text-[#06361a] flex items-center justify-center flex-shrink-0 gap-2 font-sans text-sm font-extrabold ${canOrder ? 'w-12' : 'flex-1'}`}
               >
                 <span className="material-symbols-outlined text-[22px]">chat</span>
+                {!canOrder && 'Enquire on WhatsApp'}
               </a>
             </>
           )}
