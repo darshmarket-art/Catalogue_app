@@ -168,7 +168,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       )}
 
       {/* Search, count and sort stay in view while scrolling */}
-      <section className="sticky top-[72px] z-30 bg-surface/95 backdrop-blur-md px-4 pt-2 pb-2 flex flex-col gap-2.5">
+      <section className="sticky top-[calc(var(--header-h)+var(--sat))] z-30 bg-surface/95 backdrop-blur-md px-4 pt-2 pb-2 flex flex-col gap-2.5">
         <div className="relative">
           <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-outline">search</span>
           <input

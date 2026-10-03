@@ -75,8 +75,13 @@
 
 /* Space for the camera cut-out and the system buttons. The app draws edge to edge inside the native shell. */
 :root {
+  --header-h: 72px;
   --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+}
+
+html.native {
+  --header-h: 56px;
 }
 
 @utility pt-safe {

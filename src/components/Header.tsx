@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
 
   return (
     <header className="fixed top-0 w-full z-50 pt-safe bg-surface/95 backdrop-blur-xl border-b border-outline-variant/60">
-      <div className="h-[72px] px-3 max-w-5xl mx-auto grid grid-cols-[44px_1fr_44px] items-center gap-2">
+      <div className="h-[var(--header-h)] px-3 max-w-5xl mx-auto grid grid-cols-[44px_1fr_44px] items-center gap-2">
         {/* Left: back on inner screens, otherwise the logo */}
         <div className="flex items-center justify-start">
           {isSubScreen ? (

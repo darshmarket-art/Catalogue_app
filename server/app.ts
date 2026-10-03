@@ -52,6 +52,11 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
     })
   );
   // Native (Capacitor) webviews call the API cross-origin; web stays same-origin.
+  // Photo links are signed and expire; <img> loads send no Origin header, so CORP must be relaxed for every /media response.
+  app.use('/media', (_req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  });
   app.use(['/api', '/media'], (req, res, next) => {
     const origin = req.headers.origin;
     if (origin === 'https://localhost' || origin === 'capacitor://localhost') {

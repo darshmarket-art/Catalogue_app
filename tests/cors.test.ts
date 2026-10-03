@@ -18,10 +18,13 @@ describe('CORS for native webviews', () => {
     expect(res.headers['access-control-allow-origin']).toBe(o);
     expect(res.headers['access-control-allow-headers']).toContain('X-App-Client'); // the app sends it on every call
   });
-  it('lets the app load photos cross-origin', async () => {
-    const res = await request(app).get('/media/none.jpg').set('Origin', 'https://localhost');
-    expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
-    expect(res.headers['access-control-allow-origin']).toBe('https://localhost');
+  it('lets the app load photos cross-origin, with or without an Origin header', async () => {
+    const withOrigin = await request(app).get('/media/none.jpg').set('Origin', 'https://localhost');
+    expect(withOrigin.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(withOrigin.headers['access-control-allow-origin']).toBe('https://localhost');
+    // An <img> tag sends no Origin header at all.
+    const img = await request(app).get('/media/none.jpg');
+    expect(img.headers['cross-origin-resource-policy']).toBe('cross-origin');
   });
   it('ignores other origins', async () => {
     const res = await request(app).get('/api/products').set('Origin', 'https://evil.example');

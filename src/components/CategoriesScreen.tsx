@@ -135,7 +135,7 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
       )}
 
       {/* Search & Sort Bar */}
-      <div className="py-2 flex items-center gap-2 sticky top-[72px] z-20 bg-surface/95 backdrop-blur-md">
+      <div className="py-2 flex items-center gap-2 sticky top-[calc(var(--header-h)+var(--sat))] z-20 bg-surface/95 backdrop-blur-md">
         <div className="relative flex-1">
           <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">
             search

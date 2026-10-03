@@ -474,7 +474,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(72px+var(--sat))]'}`}>
+      <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
         )}
