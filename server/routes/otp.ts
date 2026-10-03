@@ -8,14 +8,13 @@ import type { OtpSender } from '../whatsapp';
 import { RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { logger } from '../logger';
+import { entitlements } from '../entitlements';
 import { trimmed } from '../schemas';
 
 export const OTP_TTL_MS = 5 * 60 * 1000;
 export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_RESEND_MS = 30 * 1000;
 export const OTP_PHONE_PER_HOUR = 5;
-/** Phase 2b hook: Basic plan buyer limit. Not enforced yet (needs the plan flags from Phase 1). */
-export const BASIC_BUYER_LIMIT = 50;
 
 const phone = z
   .string()
@@ -41,6 +40,7 @@ interface OtpDoc {
 
 export function otpRoutes(config: Config, store: Store, sender: OtpSender, now: () => number = Date.now) {
   const router = Router();
+  const ent = entitlements(store, config.merchant.id);
   if (config.staticOtp) logger.warn('OTP_STATIC_CODE is set: sign-in uses a fixed code and nothing is sent on WhatsApp.');
   const hash = (ph: string, code: string) => crypto.createHmac('sha256', config.jwtSecret).update(`${ph}:${code}`).digest('hex');
   const ipLimiter = rateLimit({
@@ -56,6 +56,7 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, now: 
     ipLimiter,
     handler(async (req, res) => {
       const { phone: ph } = parse(requestSchema, req.body);
+      await ent.assertCanAddBuyer(ph); // before any code is sent
       const t = now();
       const prev = await store.get<OtpDoc>('otps', ph);
       if (prev && t - prev.sentAt < OTP_RESEND_MS) {
@@ -107,7 +108,7 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, now: 
 
       let buyer = await store.get('buyers', body.phone);
       if (!buyer) {
-        // ponytail: Phase 2b enforces BASIC_BUYER_LIMIT here (and before sending a code) once plan flags exist.
+        await ent.assertCanAddBuyer(body.phone); // re-check at creation
         buyer = {
           id: newId('merch'),
           firmName: body.firmName || `Buyer ${body.phone.slice(-4)}`,

@@ -51,5 +51,18 @@ export function adminBuyerRoutes(store: Store, requireAdmin: RequestHandler) {
     })
   );
 
+  router.delete(
+    '/:phone',
+    handler(async (req, res) => {
+      const admin = user(res);
+      if (admin.role !== 'owner') throw new HttpError(403, 'Only the owner can remove a buyer.');
+      const buyer = await store.get('buyers', req.params.phone);
+      if (!buyer) throw new HttpError(404, 'Buyer not found.');
+      await store.delete('buyers', buyer.phone);
+      await audit(store, req, 'BUYER_REMOVED', `Removed buyer ${buyer.firmName} (${buyer.phone}) by ${admin.name}.`);
+      res.json({ status: 'success' });
+    })
+  );
+
   return router;
 }

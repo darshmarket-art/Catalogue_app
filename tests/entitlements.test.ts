@@ -54,3 +54,18 @@ describe('Basic plan enforcement', () => {
     expect((await up()).status).toBe(402);
   });
 });
+
+describe('Basic buyer limit', () => {
+  it('refuses new numbers (no OTP sent) when full; existing buyers and the owner list/remove still work', async () => {
+    const { app, auth, store } = await basicStore();
+    for (let i = 0; i < 50; i++) await store.set('buyers', `98200000${String(i).padStart(2, '0')}`, { id: `b${i}`, phone: `98200000${String(i).padStart(2, '0')}`, firmName: `F${i}`, createdAt: '2026-01-01' });
+    const full = await request(app).post('/api/auth/retailer/request-otp').send({ phone: '9999999999' });
+    expect(full.status).toBe(403);
+    expect(full.body.code).toBe('CATALOGUE_FULL');
+    expect((await request(app).post('/api/auth/retailer/request-otp').send({ phone: '9820000001' })).status).toBe(200);
+    expect((await request(app).get('/api/entitlements')).body.data.usage.users).toBe(50);
+    expect((await request(app).get('/api/admin/buyers').set(auth)).body.count).toBe(50);
+    expect((await request(app).delete('/api/admin/buyers/9820000001').set(auth)).status).toBe(200);
+    expect((await request(app).post('/api/auth/retailer/request-otp').send({ phone: '9999999999' })).status).toBe(200);
+  });
+});

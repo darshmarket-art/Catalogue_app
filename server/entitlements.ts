@@ -51,7 +51,15 @@ export function entitlements(store: Store, merchantId: string) {
   return {
     load,
     async usage() {
-      return { categories: (await store.list('categories')).length, photos: (await photosInUse(store)).size };
+      return { categories: (await store.list('categories')).length, photos: (await photosInUse(store)).size, users: (await store.list('buyers')).length };
+    },
+    /** A NEW buyer phone is refused once the plan's user limit is reached; existing buyers always pass. */
+    async assertCanAddBuyer(phone: string) {
+      const { limits } = await load();
+      if (limits.users === null || (await store.get('buyers', phone))) return;
+      if ((await store.list('buyers')).length >= limits.users) {
+        throw new HttpError(403, 'This catalogue is full and cannot accept new buyers right now. Please contact the store.', 'CATALOGUE_FULL');
+      }
     },
     async assertCanAddCategory() {
       const { limits } = await load();
