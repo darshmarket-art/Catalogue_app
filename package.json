@@ -18,6 +18,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/preferences": "^8.0.1",
     "@google-cloud/firestore": "^7.11.0",
     "@google-cloud/storage": "^8.2.0",
     "bcryptjs": "^2.4.3",

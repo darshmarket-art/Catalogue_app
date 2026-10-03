@@ -51,6 +51,18 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
         : false
     })
   );
+  // Native (Capacitor) webviews call the API cross-origin; web stays same-origin.
+  app.use('/api', (req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin === 'https://localhost' || origin === 'capacitor://localhost') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      if (req.method === 'OPTIONS') return void res.sendStatus(204);
+    }
+    next();
+  });
   app.use(requestLogger);
   app.use(express.json({ limit: '100kb' }));
 

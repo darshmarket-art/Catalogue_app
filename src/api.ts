@@ -15,6 +15,12 @@ import {
   BuyerRow
 } from './types';
 import { merchant } from './merchant';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
+
+// Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
+const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
+const native = Capacitor.isNativePlatform();
 
 export class ApiError extends Error {
   constructor(
@@ -46,10 +52,14 @@ const readStoredToken = (): string | null => {
   }
 };
 
-let authToken: string | null = readStoredToken();
+let authToken: string | null = native ? null : readStoredToken();
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
+  if (native) {
+    void (token ? Preferences.set({ key: SESSION_KEY, value: token }) : Preferences.remove({ key: SESSION_KEY }));
+    return;
+  }
   try {
     if (token) sessionStorage.setItem(SESSION_KEY, token);
     else sessionStorage.removeItem(SESSION_KEY);
@@ -58,7 +68,8 @@ export const setAuthToken = (token: string | null) => {
   }
 };
 
-export const hasStoredSession = () => authToken !== null;
+// Native: the token loads asynchronously (in restoreSession), so assume one may exist and let it resolve.
+export const hasStoredSession = () => native || authToken !== null;
 
 export type RestoredSession =
   | { type: 'retailer'; user: { storeName: string; phone: string; ownerName?: string; gstin?: string; marketHub?: string }; mustChangePassword: boolean }
@@ -71,7 +82,7 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
   if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
 
   const usedToken = authToken;
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(API_BASE + path, { ...init, headers });
   const json = await res.json().catch(() => ({}));
   const sessionExpired = res.status === 401 && usedToken !== null && authToken === usedToken;
   if (sessionExpired) {
@@ -140,7 +151,7 @@ export function flushActivity() {
   if (pendingEvents.length === 0) return;
   const events = pendingEvents.splice(0, 60);
   // Signed-in buyers are recorded under their account; in a public catalogue a guest is recorded by browser session.
-  fetch('/api/analytics/activity', {
+  fetch(API_BASE + '/api/analytics/activity', {
     method: 'POST',
     keepalive: true,
     headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
@@ -156,9 +167,10 @@ export const trackSelect = (sku: string) => pendingEvents.push({ type: 'select',
 export const api = {
   /** Re-checks a stored token with the server; quietly forgets it if it is no longer valid. */
   async restoreSession(): Promise<RestoredSession> {
+    if (native) authToken = (await Preferences.get({ key: SESSION_KEY })).value;
     if (!authToken) return null;
     try {
-      const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${authToken}` } });
+      const res = await fetch(API_BASE + '/api/auth/me', { headers: { Authorization: `Bearer ${authToken}` } });
       if (res.status === 401) setAuthToken(null);
       if (!res.ok) return null;
       const json = await res.json();
@@ -256,7 +268,7 @@ export const api = {
 
   /** Sends the original photo, untouched, to the merchant's storage. Returns the stored reference and a display link. */
   async uploadPhoto(file: File): Promise<{ ref: string; url: string }> {
-    const res = await fetch('/api/admin/photos', {
+    const res = await fetch(API_BASE + '/api/admin/photos', {
       method: 'POST',
       headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
       body: file
@@ -414,7 +426,7 @@ export const api = {
   },
 
   async downloadAuditExport(): Promise<void> {
-    const res = await fetch('/api/analytics/export', { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
+    const res = await fetch(API_BASE + '/api/analytics/export', { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
     if (!res.ok) throw new ApiError(res.status, 'Export failed. Please sign in again.');
     const url = URL.createObjectURL(await res.blob());
     const link = document.createElement('a');
