@@ -48,6 +48,10 @@ async function startServer() {
     const indexFile = path.join(distPath, 'index.html');
     if (!fs.existsSync(indexFile)) throw new Error(`Client build not found at ${distPath}. Run "npm run build" first.`);
     const html = renderIndexHtml(fs.readFileSync(indexFile, 'utf-8'), config.merchant);
+    // The service worker must always be re-checked, or an old copy could outlive a deploy.
+    app.get('/sw.js', (_req, res) => {
+      res.set('Cache-Control', 'no-cache').type('js').sendFile(path.join(distPath, 'sw.js'));
+    });
     app.use(express.static(distPath, { index: false }));
     app.get('*', (_req, res) => {
       res.type('html').send(html);

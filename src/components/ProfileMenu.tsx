@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { canInstall, onInstallChange, promptInstall } from '../install';
 
 export interface ProfileUser {
   storeName: string;
@@ -25,6 +26,8 @@ const itemClass =
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onOpenAbout, onLogout }) => {
   const [open, setOpen] = useState(false);
+  const [installable, setInstallable] = useState(canInstall());
+  useEffect(() => onInstallChange(() => setInstallable(canInstall())), []);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -122,6 +125,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
                 Change password
               </button>
             </>
+          )}
+
+          {installable && (
+            <button role="menuitem" className={itemClass} onClick={choose(promptInstall)} type="button">
+              Install app
+            </button>
           )}
 
           <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">

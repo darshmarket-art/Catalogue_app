@@ -165,6 +165,14 @@ export const merchantSchema = z.object({
     .default([])
     .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, 'Each product field needs a unique key'),
 
+  /** The merchant's Android app on the Play Store. Fingerprints come from Play Console once the app is created. */
+  android: z
+    .object({
+      packageName: z.string().regex(/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/, 'Use a package name such as com.bhaktijewels.catalogue'),
+      sha256CertFingerprints: z.array(z.string().regex(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/, 'Use the SHA-256 fingerprint with colons, in capitals')).max(4).default([])
+    })
+    .optional(),
+
   /** Banner carousel on the Categories screen; hidden when empty. */
   promotions: z.array(promotion).max(5).default([]),
 

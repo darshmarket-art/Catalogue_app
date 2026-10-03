@@ -20,6 +20,11 @@
     "address": "Chandni Chowk, Delhi",
     "showroomLabel": "Showroom (temporary)"
   },
+  "android": {
+    "packageName": "com.bhaktijewels.catalogue",
+    "sha256CertFingerprints": []
+  },
+
   "legal": {
     "registrationLine": "BIS Reg. No. HM/C-728190 • GST Verified Enterprise"
   },

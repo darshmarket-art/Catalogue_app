@@ -11,6 +11,7 @@ import { catalogueRoutes } from './routes/catalogue';
 import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
 import { aboutRoutes } from './routes/about';
+import { pwaRoutes } from './routes/pwa';
 import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
@@ -52,6 +53,8 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
   );
   app.use(requestLogger);
   app.use(express.json({ limit: '100kb' }));
+
+  app.use(pwaRoutes(config.merchant));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });

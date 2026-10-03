@@ -462,6 +462,49 @@ describe('cancelling an order, the order message, and About us', () => {
   });
 });
 
+describe('installable app: manifest, icons and the Android link file', () => {
+  it('serves a manifest built from the merchant, with working icons', async () => {
+    const app = await build();
+    const res = await request(app).get('/manifest.webmanifest');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('application/manifest+json');
+    expect(res.body).toMatchObject({ name: 'Bhakti Jewels', start_url: '/', display: 'standalone', scope: '/' });
+    const sizes = res.body.icons.map((i: any) => `${i.sizes}:${i.purpose}`);
+    expect(sizes).toEqual(expect.arrayContaining(['192x192:any', '512x512:any', '512x512:maskable']));
+    for (const icon of res.body.icons) {
+      const img = await request(app).get(icon.src);
+      expect(img.status, icon.src).toBe(200);
+      expect(img.headers['content-type']).toBe('image/png');
+    }
+  });
+
+  it('only serves the icon files it knows about', async () => {
+    const app = await build();
+    expect((await request(app).get('/pwa/apple-touch-icon.png')).status).toBe(200);
+    expect((await request(app).get('/pwa/merchant.json')).status).toBe(404);
+    expect((await request(app).get('/pwa/..%2fmerchant.json')).status).toBe(404);
+  });
+
+  it('publishes the Android link only once the app\'s signing fingerprints are known', async () => {
+    const app = await build();
+    expect((await request(app).get('/.well-known/assetlinks.json')).body).toEqual([]);
+
+    const fp = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0').toUpperCase()).join(':');
+    config = { ...config, merchant: { ...config.merchant, android: { packageName: 'com.bhaktijewels.catalogue', sha256CertFingerprints: [fp] } } };
+    const linked = createApp(config, store, blobs);
+    const body = (await request(linked).get('/.well-known/assetlinks.json')).body;
+    expect(body[0].target).toEqual({ namespace: 'android_app', package_name: 'com.bhaktijewels.catalogue', sha256_cert_fingerprints: [fp] });
+  });
+
+  it('rejects a bad package name or fingerprint in the merchant config', () => {
+    const base = JSON.parse(JSON.stringify(loadConfig({ NODE_ENV: 'test', STORE: 'memory' }).merchant));
+    const bad = (android: object) => () => parseMerchant({ ...base, android }, 'test');
+    expect(bad({ packageName: 'Bhakti App' })).toThrow();
+    expect(bad({ packageName: 'com.bhakti.app', sha256CertFingerprints: ['abc'] })).toThrow();
+    expect(bad({ packageName: 'com.bhakti.app', sha256CertFingerprints: [] })).not.toThrow();
+  });
+});
+
 describe('merchant theme: colours and fonts', () => {
   const base = () => JSON.parse(JSON.stringify(loadConfig({ NODE_ENV: 'test', STORE: 'memory' }).merchant));
 
