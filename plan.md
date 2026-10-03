@@ -12,6 +12,12 @@ Each merchant gets its own deployment, branding, sector rules and data. Web link
 - **Merchant onboarding/billing, second sector, mobile tech, Google Cloud layout and store accounts are deferred** to a later brainstorm. Store-account ownership depends on each client (Apple restricts template apps: likely each merchant publishes under their own developer account).
 - **Nothing is invented for the merchant:** HUID, prices, photos, rates, counts and security features are real or absent.
 
+## Decisions for the native app (made 2026-10-03)
+- **Capacitor** wrapping the existing React app (no UI rewrite). PWA files stay in the repo.
+- **One app per merchant**: name, icon and app ID come from `merchants/<id>/merchant.json` (`android.packageName`, `brand.name`).
+- **Android first** via Google Play; iOS waits for an Apple developer account.
+- Native builds set `VITE_API_BASE` to the merchant's Cloud Run URL; the server allows the webview origins (`https://localhost`, `capacitor://localhost`). Native login token is kept in Capacitor Preferences; web keeps `sessionStorage`.
+
 ## Decisions for Phase 2 (made)
 - **Per-merchant Cloud Storage bucket** (`asia-south1`, private, versioned). Photos picked from the gallery or camera upload automatically. Merchant config (`merchant.json`) is also read from the bucket at startup, with the repo copy as fallback. Secrets stay in Secret Manager.
 - **Photos are private.** The catalogue is login-only, so the app is given short-lived signed links (6 to 12 hours, stable within a window so browsers can cache), not public URLs. The app signs the links itself, so no extra Google permissions are needed.
@@ -51,8 +57,8 @@ Each merchant gets its own deployment, branding, sector rules and data. Web link
 | Admin Hub analytics | real views/inquiries/bookings/visitors, 15 s polling | Done |
 | 1. Template foundation | (a) config + theming, (b) access modes + Orders desk, (c) jewellery pack + no invented data, (d) roles/buyers cleanup | **Done** |
 | 2. Catalogue core and photos | (a) bucket per merchant, config from bucket, signed photo links; (b) camera/gallery upload, originals kept, 1 photo per category, 1-3 per product; (c) merchant-defined product fields, price modes, edit/delete; (d) buyer order history, owner password reset, change password; (e) per-buyer engagement analytics | **Done** (the bucket still has to be set up on the live service: see todo) |
-| 3. Provisioning and releases | scripted new-merchant setup (service, database, bucket, secrets), deploy-to-all with checks, versioned API | **Next** |
-| 4. Mobile apps | PWA first, then Capacitor shells with native features; per-merchant build automation | Deferred |
+| 3. Native Android app | Capacitor shell, per-merchant app, native features, then Play release (see todo Stages 1 and 4) | **In progress** (config committed; Android project/build pending on an unrestricted device) |
+| 3b. Provisioning and releases | scripted new-merchant setup, deploy-to-all with checks, versioned API `/api/v1`, min app version | Next |
 | 5. Sellability | password reset, real OTP/2FA, buyer approval, staff permissions, data export/delete, legal templates, merchant onboarding | Planned |
 
 ## Reference
@@ -60,3 +66,9 @@ Each merchant gets its own deployment, branding, sector rules and data. Web link
 - Check: `npm run lint`, `npm test`, `npm run build`.
 - Deploy: push to `main` (Cloud Build to Cloud Run). Setup steps are in `DEPLOY_TO_CLOUD_RUN.md`.
 - Live service: https://catalogue-app-456376852191.asia-south1.run.app (health at `/health`, not `/healthz`).
+
+## Handoff to the unrestricted device (2026-10-03)
+- Office laptop blocks the Android SDK install; continue the native build elsewhere from the todo.md "Handoff" and "Stage 1" lists.
+- State: Stage 0 hygiene done except password-rotation confirmation, alert test email, and the uuid audit fix. Capacitor config, API base, native token storage and CORS are committed and tested (lint clean, 115 tests).
+- GCP project `gen-lang-client-0273003651`, region `asia-south1`, service `catalogue-app`. Monitoring alerts email hello@antarixs.com.
+- Do not commit keystores, `.env` files or the Master Provisioning Key.
