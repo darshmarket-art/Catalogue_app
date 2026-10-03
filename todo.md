@@ -56,10 +56,10 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [x] Minimum-app-version check so a breaking change can force an update.
 
 ### Phase 4: Multi-store core (largest)
-- [ ] `stores` collection (plan, trialEndsAt, owner, subdomain, status, brand and theme).
-- [ ] Data kept per store (sub-collections) so a query can never cross stores; the store is picked from the web address.
-- [ ] Per-store config from the record instead of `merchants/<id>/merchant.json` (keep the file as the seed and for tests).
-- [ ] Photo paths and signed links per store; tokens carry the store; rate limits per store.
+- [x] `stores` collection (plan, trialEndsAt, owner, subdomain, status, brand and theme).
+- [x] Data kept per store (sub-collections) so a query can never cross stores; the store is picked from the web address.
+- [x] Per-store config from the record instead of `merchants/<id>/merchant.json` (keep the file as the seed and for tests).
+- [x] Photo paths and signed links per store; tokens carry the store; rate limits per store.
 - [ ] Move Bhakti in as store 1 on the Pro founder plan with a migration script and no downtime; keep the old service working until cut-over.
 - [ ] Cross-store isolation tests; per-store data export (restoring one store from a shared database is harder).
 
