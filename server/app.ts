@@ -23,6 +23,13 @@ import { createMedia } from './media';
 import { createOtpSender, type OtpSender } from './whatsapp';
 import { otpRoutes } from './routes/otp';
 
+const cmpVersion = (a: string, b: string) => {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+  return 0;
+};
+
 export function createApp(config: Config, store: Store, blobs: Blobs = createBlobs(config), sender: OtpSender = createOtpSender(config)) {
   const app = express();
   const auth = createAuth(config, store);
@@ -54,6 +61,11 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
         : false
     })
   );
+  // /api/v1 is the stable public path; /api stays as an alias so existing web and installed apps keep working.
+  app.use((req, _res, next) => {
+    if (/^\/api\/v1(\/|\?|$)/.test(req.url)) req.url = '/api' + req.url.slice(7);
+    next();
+  });
   // Native (Capacitor) webviews call the API cross-origin; web stays same-origin.
   // Photo links are signed and expire; <img> loads send no Origin header, so CORP must be relaxed for every /media response.
   app.use('/media', (_req, res, next) => {
@@ -66,9 +78,20 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // helmet sets same-origin, which blocks photos in the app
-      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-App-Client');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-App-Client, X-App-Version');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       if (req.method === 'OPTIONS') return void res.sendStatus(204);
+    }
+    next();
+  });
+  // Minimum supported app version. Requests without the header (web, curl) are never blocked.
+  app.get('/api/app-config', (_req, res) => {
+    res.json({ status: 'success', data: { minAppVersion: config.minAppVersion, latestAppVersion: config.latestAppVersion } });
+  });
+  app.use('/api', (req, res, next) => {
+    const v = req.header('x-app-version');
+    if (v && cmpVersion(v, config.minAppVersion) < 0) {
+      return void res.status(426).json({ status: 'error', message: `Please update the app (version ${config.minAppVersion} or newer is required).` });
     }
     next();
   });
