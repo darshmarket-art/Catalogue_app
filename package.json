@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist dist-server",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:native": "vite build && tsx scripts/render-index.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
