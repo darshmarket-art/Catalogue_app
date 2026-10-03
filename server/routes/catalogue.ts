@@ -8,6 +8,7 @@ import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, paginationSchema } from '../schemas';
+import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
 
 const byPosition = (a: any, b: any) =>
@@ -24,9 +25,10 @@ interface Deps {
   pack: SectorPack;
   requireAdmin: RequestHandler;
   readGuard: RequestHandler;
+  ent: Entitlements;
 }
 
-export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAdmin, readGuard }: Deps) {
+export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAdmin, readGuard, ent }: Deps) {
   const router = Router();
 
   const categoryDoc = (body: ReturnType<typeof categorySchema.parse>, base: { id: string; createdAt: string }) => {
@@ -67,6 +69,8 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       if ((await store.list('categories', { where: [{ field: 'name', op: '==', value: body.name }], limit: 1 })).length > 0) {
         throw new HttpError(409, `A category named "${body.name}" already exists.`);
       }
+      await ent.assertCanAddCategory();
+      await ent.assertPhotos([body.image]);
       const id = newId('cat');
       const category = categoryDoc(body, { id, createdAt: new Date().toISOString() });
       await store.set('categories', id, category);
@@ -85,6 +89,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
 
       const clash = await store.list('categories', { where: [{ field: 'name', op: '==', value: body.name }], limit: 2 });
       if (clash.some((c) => c.id !== existing.id)) throw new HttpError(409, `A category named "${body.name}" already exists.`);
+      await ent.assertPhotos([body.image]);
 
       const category = categoryDoc(body, { id: existing.id, createdAt: existing.createdAt });
       await store.set('categories', existing.id, category);
@@ -139,6 +144,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const body = parse(bannerSchema, req.body);
       await assertPhotosExist(blobs, [body.image]);
       await assertCategory(body.category);
+      await ent.assertPhotos([body.image]);
       const existing = await store.list('banners');
       if (existing.length >= 8) throw new HttpError(409, 'You can keep up to 8 banners. Delete one first.');
       const id = newId('ban');
@@ -247,6 +253,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     }
     const extra = parseExtras(merchant.productFields, (body as { extra?: unknown } | undefined)?.extra);
     await assertPhotosExist(blobs, input.images);
+    await ent.assertPhotos(input.images, true);
     const categories = await store.list('categories', { where: [{ field: 'name', op: '==', value: input.category }], limit: 1 });
     if (categories.length === 0) throw new HttpError(400, `Category "${input.category}" does not exist. Create it first.`);
 

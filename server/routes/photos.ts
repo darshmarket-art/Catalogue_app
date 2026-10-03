@@ -2,6 +2,7 @@ import express, { Router } from 'express';
 import type { RequestHandler } from 'express';
 import type { Blobs } from '../blobs';
 import { newPhotoFile, objectName, type Media } from '../media';
+import type { Entitlements } from '../entitlements';
 import { HttpError, handler } from '../http';
 
 // Originals are kept as uploaded (no resizing), so the limit is generous. Cloud Run accepts requests up to 32 MB.
@@ -18,7 +19,7 @@ function sniff(data: Buffer): 'image/jpeg' | 'image/png' | 'image/webp' | null {
 }
 
 /** Admin-only: the browser sends the photo as the raw request body; it is stored in the merchant's bucket. */
-export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler) {
+export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements) {
   const router = Router();
 
   router.post(
@@ -26,6 +27,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
     requireAdmin,
     express.raw({ type: Object.keys(TYPES), limit: MAX_PHOTO_BYTES }),
     handler(async (req, res) => {
+      await ent.assertCanUpload();
       const body = req.body as unknown;
       if (!Buffer.isBuffer(body) || body.length === 0) {
         throw new HttpError(415, 'Send the photo as a JPEG, PNG or WebP image.');

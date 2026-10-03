@@ -1,3 +1,4 @@
+import { entitlements } from './entitlements';
 import express from 'express';
 import type { RequestHandler } from 'express';
 import helmet from 'helmet';
@@ -122,17 +123,23 @@ export function createApp(config: Config, store: Store, blobs: Blobs = createBlo
     })
   );
 
+  const ent = entitlements(store, config.merchant.id);
+  // Public: plan, limits and feature flags the app mirrors (the server enforces them). Usage is for the admin hub.
+  app.get('/api/entitlements', handler(async (_req, res) => {
+    res.json({ status: 'success', data: { ...(await ent.load()), usage: await ent.usage() } });
+  }));
+
   // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
   app.get('/media/:file', mediaRoute(blobs, media));
 
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
-  app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard }));
+  app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin));
   app.use('/api/admin/buyers', adminBuyerRoutes(store, auth.requireAdmin));
-  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin));
+  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));
 
   app.use('/api', notFoundApi);
