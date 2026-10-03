@@ -16,6 +16,7 @@ describe('CORS for native webviews', () => {
     const res = await request(app).options('/api/products').set('Origin', o);
     expect(res.status).toBe(204);
     expect(res.headers['access-control-allow-origin']).toBe(o);
+    expect(res.headers['access-control-allow-headers']).toContain('X-App-Client'); // the app sends it on every call
   });
   it('lets the app load photos cross-origin', async () => {
     const res = await request(app).get('/media/none.jpg').set('Origin', 'https://localhost');
