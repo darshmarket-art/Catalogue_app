@@ -30,6 +30,14 @@ async function startServer() {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'custom' });
     app.use(vite.middlewares);
+    // Antarixs console page (dev); production serves dist/console.html from consoleMount.
+    app.get('/console', async (req, res, next) => {
+      try {
+        res.type('html').send(await vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.resolve(process.cwd(), 'console.html'), 'utf-8')));
+      } catch (err) {
+        next(err);
+      }
+    });
     app.get('*', async (req, res, next) => {
       try {
         const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
