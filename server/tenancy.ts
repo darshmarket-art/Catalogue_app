@@ -77,12 +77,26 @@ export const secretFor = (config: Config, storeId: string) =>
   storeId === config.defaultStore ? config.jwtSecret : crypto.createHmac('sha256', config.jwtSecret).update(`store:${storeId}`).digest('hex');
 
 /**
+ * The host the client asked for: the Host header only, lowercased, port and trailing dot removed. X-Forwarded-Host is
+ * deliberately ignored: Cloud Run and the load balancer pass the real Host through, and a client-sent forwarded
+ * header must never pick the store.
+ */
+export function hostOf(req: Request): string {
+  const raw = (req.headers?.host ?? req.hostname ?? '').toString().toLowerCase();
+  return raw.replace(/:\d+$/, '').replace(/\.$/, '');
+}
+
+/** Bare domain and www belong to the marketing site (WordPress at Hostinger); the app never serves them. */
+export const isMarketingHost = (host: string, config: Config) => host === config.baseDomain || host === `www.${config.baseDomain}`;
+
+/**
  * Which store a request is for. A [store].<baseDomain> host wins and cannot be overridden; otherwise the X-Store
  * header or ?store= (localhost, installed apps, tests); otherwise the default store (the existing run.app address).
- * Returns null for a host that is not a valid store address (reserved names such as www, console).
+ * Returns null for a host that is not a valid store address (bare domain, reserved names such as www, console).
  */
 export function storeIdOf(req: Request, config: Config): string | null {
-  const host = (req.hostname || '').toLowerCase();
+  const host = hostOf(req);
+  if (host === config.baseDomain) return null;
   const suffix = `.${config.baseDomain}`;
   if (host.endsWith(suffix)) {
     const sub = host.slice(0, -suffix.length);
@@ -137,7 +151,7 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
     try {
       const id = storeIdOf(req, config);
       const entry = id ? await resolve(id) : null;
-      const wantsJson = req.path.startsWith('/api') || req.path.startsWith('/media');
+      const wantsJson = req.path.startsWith('/api') || req.path.startsWith('/media') || isMarketingHost(hostOf(req), config);
       if (!entry) return void (wantsJson ? res.status(404).json({ status: 'error', message: 'Store not found.' }) : res.status(404).type('text').send('Store not found.'));
       if (entry.rec.status !== 'active') {
         return void (wantsJson ? res.status(403).json({ status: 'error', message: 'This store is not available right now.' }) : res.status(403).type('text').send('This store is not available right now.'));

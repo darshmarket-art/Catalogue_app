@@ -11,7 +11,7 @@ import { ADMIN_TOKEN_TTL, safeEqual, signToken } from '../auth';
 import { HttpError, errorHandler, handler, newId, parse } from '../http';
 import { logger } from '../logger';
 import { parseMerchant } from '../merchant';
-import { newStoreRecord, scopeStore, secretFor, type StoreRecord } from '../tenancy';
+import { hostOf, newStoreRecord, scopeStore, secretFor, type StoreRecord } from '../tenancy';
 import { isAvailableStoreName, isReservedStoreName, isValidStoreName } from '../../shared/storeName';
 import { trimmed } from '../schemas';
 
@@ -70,7 +70,7 @@ function defaultMerchant(id: string, brandName: string, ownerPhone: string, bran
 
 /** Public URL of a store: [id].<baseDomain> on the real domain; ?store= on localhost and run.app addresses. */
 export function storeUrlFor(req: Request, config: Config, id: string) {
-  const host = req.hostname.toLowerCase();
+  const host = hostOf(req);
   if (host === config.baseDomain || host.endsWith(`.${config.baseDomain}`)) return `https://${id}.${config.baseDomain}`;
   return `${req.protocol}://${req.get('host')}/?store=${id}`;
 }

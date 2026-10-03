@@ -9,7 +9,7 @@ import type { Config } from '../config';
 import type { Store } from '../store';
 import { HttpError, handler, parse } from '../http';
 import { effectivePlan, photosInUse } from '../entitlements';
-import { planOf, scopeStore, type StoreRecord } from '../tenancy';
+import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 
 const IAP_KEYS_URL = 'https://www.gstatic.com/iap/verify/public_key';
 export type IapKeys = () => Promise<Record<string, string>>;
@@ -148,14 +148,14 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
 export function consoleMount(config: Config, root: Store, keys?: IapKeys) {
   const r = Router();
   const isConsoleHost: RequestHandler = (req, _res, next) =>
-    req.hostname.toLowerCase() === `console.${config.baseDomain}` || !config.isProduction ? next() : next('router');
+    hostOf(req) === `console.${config.baseDomain}` || !config.isProduction ? next() : next('router');
   r.use('/api/console', isConsoleHost, consoleApi(config, root, keys));
   if (config.isProduction) {
     const dist = path.resolve(process.cwd(), 'dist');
     const page = path.join(dist, 'console.html');
     const assets = express.static(dist, { index: false });
     r.get('*', (req, res, next) => {
-      if (req.hostname.toLowerCase() !== `console.${config.baseDomain}`) return next();
+      if (hostOf(req) !== `console.${config.baseDomain}`) return next();
       assets(req, res, () => (fs.existsSync(page) ? res.sendFile(page) : next()));
     });
   }
