@@ -39,12 +39,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
           >
             {isPublic ? 'Browse the catalogue' : 'Enter the portal'}
           </button>
+          {isPublic && (
           <button
             onClick={() => onNavigate('retailer-auth')}
             className="w-full h-14 rounded-2xl border-2 border-white/70 text-white font-sans text-base font-extrabold active:scale-[0.99] transition-all"
           >
-            Register your store
+            Sign in with WhatsApp
           </button>
+          )}
         </div>
 
         <div className="mt-6 flex flex-col items-center gap-1 text-white/70 font-sans text-sm">

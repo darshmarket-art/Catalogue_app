@@ -93,3 +93,16 @@ describe('self-serve signup', () => {
     expect(r.body.storeUrl).toBe('https://sparkle-gems.antarixs.com');
   });
 });
+
+describe('signup brand colour', () => {
+  it('applies an optional brand colour as the store primary and rejects a bad one', async () => {
+    expect((await signup({ brandColor: 'red' })).status).toBe(400);
+    expect((await signup({ brandColor: '#0a7d5a' })).status).toBe(201);
+    const rec = (await root.get('stores', 'sparkle-gems')) as any;
+    expect(rec.merchant.theme.colors.primary).toBe('#0a7d5a');
+  });
+  it('keeps the core theme when no colour is chosen', async () => {
+    await signup();
+    expect(((await root.get('stores', 'sparkle-gems')) as any).merchant.theme.colors).toEqual({});
+  });
+});

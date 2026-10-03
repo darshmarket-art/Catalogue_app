@@ -30,6 +30,8 @@ const signupSchema = z.object({
   storeName,
   brandName: trimmed(60, 2),
   ownerName: trimmed(100).optional(),
+  /** Optional brand colour (#rrggbb) for the store's primary colour; omitted keeps the core theme. */
+  brandColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   phone,
   email: z.string().trim().toLowerCase().email().max(254),
   password: trimmed(128, 10),
@@ -37,7 +39,7 @@ const signupSchema = z.object({
 });
 
 /** The starting point for every new store: core-app theme (no colour overrides), editable later by the owner. */
-function defaultMerchant(id: string, brandName: string, ownerPhone: string) {
+function defaultMerchant(id: string, brandName: string, ownerPhone: string, brandColor?: string) {
   const initials = encodeURIComponent(brandName.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || 'ST');
   return parseMerchant(
     {
@@ -52,7 +54,7 @@ function defaultMerchant(id: string, brandName: string, ownerPhone: string) {
         seoTitle: `${brandName} - Catalogue`,
         seoDescription: `Browse the ${brandName} catalogue and order on WhatsApp.`
       },
-      theme: { colors: {} },
+      theme: { colors: brandColor ? { primary: brandColor } : {} },
       contact: { whatsapp: ownerPhone, deskPhone: `+${ownerPhone}` },
       legal: {},
       orders: { poPrefix: `PO-${id.toUpperCase()}`.slice(0, 20).replace(/-$/, 'X') },
@@ -155,7 +157,7 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
         throw new HttpError(409, 'This phone number or email has already been used to start a free trial. Please sign in to your store.');
       }
 
-      const merchant = defaultMerchant(b.storeName, b.brandName, b.phone);
+      const merchant = defaultMerchant(b.storeName, b.brandName, b.phone, b.brandColor);
       const rec = newStoreRecord(merchant, {
         plan: 'basic',
         trialEndsAt: new Date(now() + TRIAL_DAYS * 86400000).toISOString(),

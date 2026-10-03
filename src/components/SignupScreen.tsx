@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import { setAuthToken } from '../api';
 import { merchant } from '../merchant';
 import { PageTitle, Field, Notice, inputClass, btnPrimary, btnOutline, btnLink } from './ui';
@@ -17,12 +18,17 @@ type Step = 'name' | 'owner' | 'code' | 'done';
 /** /signup: create a store in four steps. Uses the core app theme. */
 export const SignupScreen: React.FC = () => {
   const [step, setStep] = useState<Step>('name');
-  const [f, setF] = useState({ brandName: '', storeName: '', ownerName: '', phone: '', email: '', password: '', code: '' });
+  const [f, setF] = useState({ brandName: '', storeName: '', ownerName: '', phone: '', email: '', password: '', code: '', brandColor: '' });
+  const [qr, setQr] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<{ storeUrl: string; sessionToken: string } | null>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
+
+  useEffect(() => {
+    if (result) void QRCode.toDataURL(result.storeUrl, { margin: 1, width: 320 }).then(setQr).catch(() => {});
+  }, [result]);
 
   const run = (fn: () => Promise<void>) => async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +54,7 @@ export const SignupScreen: React.FC = () => {
     setStep('code');
   });
   const create = run(async () => {
-    const r = await call('', f);
+    const r = await call('', { ...f, brandColor: f.brandColor || undefined });
     // Same origin (localhost, run.app): the owner is signed in already. On [store].antarixs.com they sign in once.
     if (new URL(r.storeUrl).origin === window.location.origin) setAuthToken(r.sessionToken);
     setResult(r);
@@ -66,6 +72,9 @@ export const SignupScreen: React.FC = () => {
           </Field>
           <Field label="Store address" htmlFor="sn" hint={`${f.storeName || 'your-name'}.antarixs.com`}>
             <input id="sn" className={inputClass} required value={f.storeName} onChange={(e) => setF({ ...f, storeName: slug(e.target.value) })} />
+          </Field>
+          <Field label="Brand colour (optional)" htmlFor="bc" hint="Tints your store; you can change it later.">
+            <input id="bc" type="color" className="h-12 w-full rounded-xl border border-outline-variant bg-white p-1" value={f.brandColor || '#5b0043'} onChange={set('brandColor')} />
           </Field>
           {err && <Notice tone="error">{err}</Notice>}
           {suggestions.length > 0 && (
@@ -103,8 +112,9 @@ export const SignupScreen: React.FC = () => {
         <div className="flex flex-col gap-4 px-5">
           <PageTitle title="Your store is ready" sub="Your 14-day free trial has started. Share this link with your buyers." />
           <Notice tone="ok"><a href={result.storeUrl} className="underline break-all">{result.storeUrl}</a></Notice>
-          <div className="h-40 w-40 self-center rounded-2xl border-2 border-dashed border-outline-variant flex items-center justify-center text-sm text-outline" aria-label="QR code placeholder">QR code</div>
+          {qr && <img src={qr} alt="QR code for your store link" className="h-40 w-40 self-center rounded-2xl bg-white p-2" />}
           <a href={result.storeUrl} className={btnPrimary}>Open admin</a>
+          {new URL(result.storeUrl).origin !== window.location.origin && <p className="text-sm text-outline">On your store, sign in once with the email and password you just set (staff sign-in).</p>}
           <button className={btnOutline} onClick={() => void navigator.clipboard?.writeText(result.storeUrl)}>Copy link</button>
         </div>
       )}
