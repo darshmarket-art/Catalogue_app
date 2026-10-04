@@ -1,4 +1,13 @@
-import { gilded, type LayoutKit } from '../gilded';
+import type { LayoutKit } from '../gilded';
+import './emergent.css';
+import { Header } from './Header';
+import { BottomNav } from './BottomNav';
+import { Welcome } from './Welcome';
+import { Home } from './Home';
+import { Catalogue } from './Catalogue';
+import { Shortlist } from './Shortlist';
+import { Orders } from './Orders';
+import { About } from './About';
 
-// Emergent (boutique, Pro). Each screen below is replaced by its Emergent version as it is built; until then it is the Gilded one.
-export const emergent: LayoutKit = { ...gilded };
+// Emergent (boutique, Pro): the same screens and props as Gilded, laid out like the Emergent Screen Atlas. Home is the 'Categories' slot.
+export const emergent: LayoutKit = { Header, BottomNav, Welcome, Categories: Home, Catalogue, Shortlist, Orders, About };

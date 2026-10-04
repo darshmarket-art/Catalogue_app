@@ -1,8 +1,8 @@
 import type { Store } from './store';
 import { HttpError } from './http';
 import { UPGRADE_TO_PRO } from '../shared/sales';
-import { LIMITS, TRIAL_DAYS, type Limits } from '../shared/limits';
-export { LIMITS, TRIAL_DAYS };
+import { LIMITS, TRIAL_DAYS, flagsFor, type Limits } from '../shared/limits';
+export { LIMITS, TRIAL_DAYS, flagsFor };
 export type { Limits };
 
 export type Plan = 'basic' | 'pro' | 'founder';
@@ -15,12 +15,6 @@ export function effectivePlan(doc: PlanDoc, now = Date.now()): 'basic' | 'pro' {
   if (doc.plan === 'pro' || doc.plan === 'founder' || doc.ownApp) return 'pro';
   return doc.trialEndsAt && Date.parse(doc.trialEndsAt) > now ? 'pro' : 'basic';
 }
-
-/** Feature flags: Basic has no ordering/insights; banners and purities are on both plans. */
-export const flagsFor = (p: 'basic' | 'pro') => ({
-  orders: p === 'pro', insights: p === 'pro', liveVisitors: p === 'pro', buyerEngagement: p === 'pro',
-  auditLog: p === 'pro', alerts: p === 'pro', pdfCatalogue: p === 'pro', staffRoles: p === 'pro', premiumLayouts: p === 'pro', banners: true, purities: true
-});
 
 export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {
   const effective = effectivePlan(doc, now);

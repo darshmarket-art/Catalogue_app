@@ -143,6 +143,22 @@ export const SignupScreen: React.FC = () => {
             </div>
           </div>
         )}
+        <a className="btn wa" href={`https://wa.me/?text=${encodeURIComponent(`${f.brandName}: browse our catalogue at ${result.storeUrl}`)}`} target="_blank" rel="noreferrer">
+          <I n="whats" />
+          Share on WhatsApp
+        </a>
+        <button
+          type="button"
+          className="btn alt"
+          onClick={() => {
+            // Phones open the share sheet; elsewhere the link is copied.
+            if (typeof navigator.share === 'function') void navigator.share({ title: f.brandName, url: result.storeUrl }).catch(() => {});
+            else void navigator.clipboard?.writeText(result.storeUrl).then(() => setCopied(true));
+          }}
+        >
+          <I n="link" />
+          Share link
+        </button>
         <span className="grow" />
         <a className="btn" href={result.storeUrl}>
           Open admin

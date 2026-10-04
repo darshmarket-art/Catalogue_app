@@ -3,12 +3,15 @@ import { usePlan } from '../plan';
 import { trialDaysLeft, DOWNGRADE_CHANGES } from '../../shared/trial';
 import { LIMITS } from '../../shared/limits';
 import { SALES_EMAIL } from '../../shared/sales';
+import { LAYOUTS } from '../../shared/layouts';
+import { merchant } from '../merchant';
+import type { ActiveScreen } from '../types';
 import { I } from './ui';
 
 const n = (v: number | null) => (v === null ? 'unlimited' : v.toLocaleString('en-IN'));
 
 /** Plan and usage (artboard 3.11 during the Pro trial, 4.6 once it has ended or on Basic). */
-export const AdminPlanScreen: React.FC<{ categories: number }> = ({ categories }) => {
+export const AdminPlanScreen: React.FC<{ categories: number; onNavigate: (screen: ActiveScreen) => void }> = ({ categories, onNavigate }) => {
   const ent = usePlan();
   const days = trialDaysLeft(ent);
   const isPro = ent.effectivePlan === 'pro';
@@ -89,6 +92,18 @@ export const AdminPlanScreen: React.FC<{ categories: number }> = ({ categories }
         </div>
       </div>
 
+      <button type="button" className="card row" data-testid="plan-layout-link" onClick={() => onNavigate('admin-layout')}>
+        <I n="sparkle" />
+        <span className="grow">
+          <b>Storefront layout</b>
+          <span className="sub" style={{ display: 'block', fontSize: 13.5 }}>
+            {LAYOUTS.find((l) => l.id === merchant.layout)?.name ?? merchant.layout}
+            {isPro ? '' : ' · Emergent is part of Pro'}
+          </span>
+        </span>
+        <I n="chev" size="s" style={{ color: 'var(--mut)' }} />
+      </button>
+
       {!(isPro && days === null) && (
         <div className="card">
           <b>{isPro ? 'If you stay on Basic' : 'What changed'}</b>
@@ -109,6 +124,10 @@ export const AdminPlanScreen: React.FC<{ categories: number }> = ({ categories }
           Email sales to upgrade
         </a>
       )}
+
+      <button type="button" className="lnk" style={{ alignSelf: 'center' }} data-testid="plan-compare-link" onClick={() => onNavigate('plans')}>
+        Compare Basic and Pro
+      </button>
     </div>
   );
 };

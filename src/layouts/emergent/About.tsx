@@ -1,0 +1,78 @@
+import React from 'react';
+import { merchant } from '../../merchant';
+import { Icon, type KitProps } from './ui';
+
+/** "About us" (atlas About): a hero under the top bar, then the store's details as icon rows. Anything the owner leaves empty falls back to the merchant's own details, or is hidden. */
+export const About: React.FC<KitProps<'About'>> = ({ about }) => {
+  const phone = about.phone || merchant.contact.deskPhone;
+  const address = about.address || merchant.contact.address;
+  const digits = phone.replace(/[^0-9+]/g, '');
+  const story = about.story || merchant.brand.description;
+
+  const actions = [
+    { label: 'Call', href: `tel:${digits}`, icon: 'phone' },
+    ...(about.email ? [{ label: 'Email', href: `mailto:${about.email}`, icon: 'mail' }] : []),
+    ...(address ? [{ label: 'Map', href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, icon: 'pin' }] : []),
+    ...(about.website ? [{ label: 'Website', href: about.website, icon: 'globe' }] : [])
+  ];
+
+  const details: Array<[string, string, string | undefined]> = [
+    ['user', 'Owner', about.ownerName ? `${about.ownerName}${about.ownerRole ? `, ${about.ownerRole}` : ''}` : undefined],
+    ['phone', 'Phone', phone],
+    ['mail', 'Email', about.email],
+    ['clock', 'Hours', about.openingHours],
+    ['pin', 'Address', address],
+    ['file', 'GST', about.gstin || undefined],
+    ['shield', 'Registration', merchant.legal.registrationLine]
+  ];
+
+  return (
+    <div className="em-page notabs" style={{ paddingTop: 0 }}>
+      <section className="em-hero about">
+        <div className="em-ey g">About the house</div>
+        <h1 className="em-ser" style={{ fontSize: 33, lineHeight: 1.2, marginTop: 8, color: 'var(--em-on-primary)' }}>
+          {merchant.brand.name}
+        </h1>
+        <p style={{ fontSize: 13, opacity: 0.75, margin: '6px 0 0' }}>{merchant.brand.tagline}</p>
+      </section>
+
+      <div className="em-pad" style={{ paddingTop: 20 }}>
+        <div className="em-rule" />
+        <p className="em-mut" style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line' }}>
+          {story}
+        </p>
+
+        <div style={{ marginTop: 22 }}>
+          {details.map(([icon, label, value]) =>
+            value ? (
+              <div key={label} className="em-feature">
+                <span className="em-ico">
+                  <Icon n={icon} size={16} />
+                </span>
+                <div className="em-grow">
+                  <div className="em-ey">{label}</div>
+                  <div style={{ marginTop: 2, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>{value}</div>
+                </div>
+              </div>
+            ) : null
+          )}
+        </div>
+
+        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <a className="em-btn wa" href={`https://wa.me/${merchant.contact.whatsapp}`} target="_blank" rel="noopener noreferrer">
+            <Icon n="wa" />
+            WhatsApp us
+          </a>
+          <div className="em-row" style={{ flexWrap: 'wrap', gap: 8 }}>
+            {actions.map((a) => (
+              <a key={a.label} className="em-btn sec sm" href={a.href} target={a.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
+                <Icon n={a.icon} size={15} />
+                {a.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

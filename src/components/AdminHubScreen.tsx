@@ -5,6 +5,8 @@ import { trialDaysLeft } from '../../shared/trial';
 import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 import { I, Notice } from './ui';
 import { usePlan, upgradeNotice } from '../plan';
+import { LAYOUTS } from '../../shared/layouts';
+import { merchant } from '../merchant';
 
 interface AdminHubScreenProps {
   analytics: AnalyticsData;
@@ -46,7 +48,8 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categ
     { label: 'Home banners', note: 'Photos on the home', go: () => onNavigate('admin-banners') },
     { label: 'Purity options', note: 'Karat list for designs', go: () => onNavigate('admin-purities') },
     { label: 'About us', note: 'Your details for buyers', go: () => onNavigate('admin-about') },
-    ...(isPro ? [{ label: 'PDF catalogue', note: 'Pick designs, download', go: () => onNavigate('catalogue'), locked: !flags.pdfCatalogue }] : []),
+    { label: 'Storefront layout', note: LAYOUTS.find((l) => l.id === merchant.layout)?.name ?? merchant.layout, go: () => onNavigate('admin-layout'), testId: 'tile-layout' },
+    ...(isPro ? [{ label: 'PDF catalogue', note: 'Pick designs, download', go: () => onNavigate('admin-pdf'), locked: !flags.pdfCatalogue, testId: 'tile-pdf' }] : []),
     { label: 'Audit log', note: flags.auditLog ? (downloading ? 'Downloading…' : 'Export CSV') : 'Pro feature', go: handleExportCSV, locked: !flags.auditLog },
     ...(!isPro || days === null ? [{ label: 'Plan and usage', note: isPro ? 'Your plan' : 'See what Pro adds', go: () => onNavigate('admin-plan') }] : [])
   ];

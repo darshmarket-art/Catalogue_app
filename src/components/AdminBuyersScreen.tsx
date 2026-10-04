@@ -12,6 +12,8 @@ export const AdminBuyersScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [reset, setReset] = useState<{ firmName: string; phone: string; temporaryPassword: string } | null>(null);
   const [busyPhone, setBusyPhone] = useState<string | null>(null);
+  // Removing takes two taps, so a stray tap cannot remove a buyer.
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const load = () =>
     api
@@ -32,6 +34,25 @@ export const AdminBuyersScreen: React.FC = () => {
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not reset the password.');
+    } finally {
+      setBusyPhone(null);
+    }
+  };
+
+  const handleRemove = async (buyer: BuyerRow) => {
+    if (removing !== buyer.phone) {
+      setRemoving(buyer.phone);
+      setTimeout(() => setRemoving((p) => (p === buyer.phone ? null : p)), 4000);
+      return;
+    }
+    setRemoving(null);
+    setBusyPhone(buyer.phone);
+    setError(null);
+    try {
+      await api.removeBuyer(buyer.phone);
+      setBuyers((list) => list?.filter((b) => b.phone !== buyer.phone) ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not remove the buyer.');
     } finally {
       setBusyPhone(null);
     }
@@ -105,6 +126,9 @@ export const AdminBuyersScreen: React.FC = () => {
             </div>
             <button type="button" className="btn sm alt" style={{ height: 40 }} disabled={busyPhone === b.phone} onClick={() => handleReset(b)}>
               Reset
+            </button>
+            <button type="button" data-testid={`remove-buyer-${b.phone}`} className="btn sm alt danger" style={{ height: 40 }} disabled={busyPhone === b.phone} onClick={() => handleRemove(b)}>
+              {removing === b.phone ? 'Tap again' : 'Remove'}
             </button>
           </div>
         ))}

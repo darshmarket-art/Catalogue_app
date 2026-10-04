@@ -1,22 +1,8 @@
 import React, { useState } from 'react';
-import { LIMITS, TRIAL_DAYS } from '../../shared/limits';
-import { SALES_EMAIL } from '../../shared/sales';
+import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
 import { I, Notice } from './ui';
-
-const n = (v: number | null) => (v === null ? 'Unlimited' : v.toLocaleString('en-IN'));
-const rows: Array<[string, string]> = [
-  ['Collections', `${n(LIMITS.basic.categories)} · ${n(LIMITS.pro.categories)}`],
-  ['Photos', `${n(LIMITS.basic.photos)} · ${n(LIMITS.pro.photos)}`],
-  ['Photos per design', `${n(LIMITS.basic.photosPerDesign)} · ${n(LIMITS.pro.photosPerDesign)}`],
-  ['Buyers', `${n(LIMITS.basic.users)} · ${n(LIMITS.pro.users)}`],
-  ['Enquire on WhatsApp', 'Both'],
-  ['Home banners, purity options', 'Both'],
-  ['Orders and orders desk', 'Pro'],
-  ['Insights, live visitors', 'Pro'],
-  ['Order alerts, audit log', 'Pro'],
-  ['PDF catalogue, staff roles', 'Pro']
-];
+import { PlansCompare } from './PlansCompare';
 
 /** Where "Sign in to your store" goes: [store].<platform domain>, or ?store= on localhost. */
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
@@ -64,38 +50,7 @@ export const EntryScreen: React.FC = () => {
     return (
       <main className="scroll no-tabs" style={{ gap: 12, paddingTop: 'var(--sat)', maxWidth: 480 }}>
         <Top onBack={() => setView('home')} right={<h1 style={{ fontSize: 26, flex: 'none' }}>Basic and Pro</h1>} />
-        <div className="note trial">
-          <b>Every new store starts with Pro for {TRIAL_DAYS} days.</b> Then it moves to Basic unless you upgrade. Nothing is deleted.
-        </div>
-        <div className="grid2">
-          <div className="card col" style={{ gap: 6 }}>
-            <span className="tag mut" style={{ alignSelf: 'flex-start' }}>
-              Basic
-            </span>
-            <span className="stat" style={{ fontSize: 30 }}>
-              Free
-            </span>
-            <p className="sub">To get started</p>
-          </div>
-          <div className="card col" style={{ gap: 6, borderColor: 'var(--plum)' }}>
-            <span className="pro dark" style={{ alignSelf: 'flex-start' }}>
-              Pro
-            </span>
-            <span className="stat" style={{ fontSize: 30 }}>
-              Contact us
-            </span>
-            <p className="sub">To grow</p>
-          </div>
-        </div>
-        <section aria-label="Plans" className="card kvs" style={{ padding: '4px 14px' }}>
-          {rows.map(([k, v]) => (
-            <div key={k} className="kv">
-              <span>{k}</span>
-              <b>{v}</b>
-            </div>
-          ))}
-        </section>
-        <p className="hint">Columns read Basic · Pro. Payments are handled by our sales team for now: {SALES_EMAIL}.</p>
+        <PlansCompare />
         <a className="btn" href="/signup">
           Start free trial
         </a>

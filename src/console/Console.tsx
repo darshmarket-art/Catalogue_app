@@ -1,190 +1,134 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
+import { Activity, Award, FileText, HardDrive, LayoutDashboard, Package, RefreshCw, Store, UserRound, Users } from 'lucide-react';
+import { call, num, useApi, type Action, type Row, type Summary } from './api';
+import { ActivityPage, AuditPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, StoresPage, type PageProps } from './pages';
 
-interface Row {
-  id: string; name: string; subdomain: string; plan: string; effectivePlan: string; trialEndsAt: string | null;
-  status: string; ownApp: boolean; createdAt: string; buyers: number; photos: number; categories?: number;
-  owner?: { email?: string; phone?: string } | null;
-  audit?: { id: string; at: string; who: string; what: string }[];
-}
-interface Action { label: string; path: string; body: object; warn: string }
+const NAV: Array<{ id: string; label: string; icon: ComponentType<{ size?: number; 'aria-hidden'?: boolean }>; page: ComponentType<PageProps> }> = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, page: Overview },
+  { id: 'stores', label: 'Stores', icon: Store, page: StoresPage },
+  { id: 'owners', label: 'Owners', icon: UserRound, page: OwnersPage },
+  { id: 'buyers', label: 'Buyers', icon: Users, page: BuyersPage },
+  { id: 'orders', label: 'Orders', icon: Package, page: OrdersPage },
+  { id: 'plans', label: 'Plans & trials', icon: Award, page: PlansPage },
+  { id: 'activity', label: 'Activity', icon: Activity, page: ActivityPage },
+  { id: 'storage', label: 'Storage', icon: HardDrive, page: StoragePage },
+  { id: 'audit', label: 'Audit log', icon: FileText, page: AuditPage }
+];
 
-const API = '/api/v1/console';
-const call = async (path: string, body?: object) => {
-  const res = await fetch(API + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.message ?? `Request failed (${res.status})`);
-  return j.data;
+/** Hash routing (#/stores, #/stores/<id>): no router dependency, and the browser's back button just works. */
+const useHash = () => {
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const on = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const [page = '', id] = hash.replace(/^#\/?/, '').split('/');
+  return { page: NAV.some((n) => n.id === page) ? page : 'overview', id: id ? decodeURIComponent(id) : undefined };
 };
-const day = (s: string | null) => (s ? new Date(s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
-const daysLeft = (s: string | null) => {
-  if (!s) return '—';
-  const d = Math.ceil((Date.parse(s) - Date.now()) / 86400000);
-  return d > 0 ? `${d} ${d === 1 ? 'day' : 'days'}` : 'Ended';
-};
 
-const PlanTag = ({ s }: { s: Row }) =>
-  s.plan === 'basic' ? <span className="tag mut">Basic</span> : <span className={s.plan === 'pro' && !s.trialEndsAt ? 'pro dark' : 'pro'}>{s.plan === 'founder' ? 'Founder' : s.trialEndsAt && s.effectivePlan === 'pro' && s.plan !== 'pro' ? 'Pro trial' : s.plan}</span>;
-const StatusTag = ({ s }: { s: Row }) => <span className={s.status === 'active' ? 'tag ok' : 'tag bad'}>{s.status === 'active' ? 'Active' : 'Suspended'}</span>;
+interface Pending { store: Pick<Row, 'id' | 'name'>; action: Action }
 
-/** Antarixs console (artboard 5.2 the store list, 5.3 one store). */
-export default function Console() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState('');
-  const [plan, setPlan] = useState('');
-  const [status, setStatus] = useState('');
-  const [open, setOpen] = useState<Row | null>(null);
-  const [pending, setPending] = useState<Action | null>(null);
-  const [error, setError] = useState('');
-
-  const load = useCallback(async () => {
-    try {
-      setError('');
-      setRows(await call(`/stores?${new URLSearchParams({ q, plan, status })}`));
-    } catch (e) {
-      setError((e as Error).message);
+/** Confirm before any change. A native <dialog> gives focus trapping, Escape and a dimmed page for free. */
+function Confirm({ pending, busy, error, onYes, onNo }: { pending: Pending | null; busy: boolean; error: string; onYes: () => void; onNo: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (pending && !d.open) {
+      d.showModal();
+      d.querySelector<HTMLButtonElement>('.ghost')?.focus(); // land on Cancel, the safe choice
     }
-  }, [q, plan, status]);
-  useEffect(() => { void load(); }, [load]);
-
-  const show = async (id: string) => {
-    try { setOpen(await call(`/stores/${id}`)); } catch (e) { setError((e as Error).message); }
-  };
-  const run = async () => {
-    if (!open || !pending) return;
-    try {
-      await call(`/stores/${open.id}${pending.path}`, pending.body);
-      setPending(null);
-      await Promise.all([show(open.id), load()]);
-    } catch (e) {
-      setError((e as Error).message);
-      setPending(null);
-    }
-  };
-
-  const actions = (s: Row): Action[] => [
-    { label: 'Set Basic', path: '/plan', body: { plan: 'basic' }, warn: 'Pro features lock after any trial ends.' },
-    { label: 'Set Pro', path: '/plan', body: { plan: 'pro' }, warn: 'The store gets all Pro features.' },
-    { label: 'Extend trial 14 days', path: '/trial', body: { days: 14 }, warn: 'Adds 14 days of Pro.' },
-    s.status === 'active'
-      ? { label: 'Suspend', path: '/suspend', body: {}, warn: 'The store and its app stop working for everyone.' }
-      : { label: 'Unsuspend', path: '/unsuspend', body: {}, warn: 'The store comes back online.' },
-    { label: s.ownApp ? 'Unmark own app' : 'Mark own app', path: '/own-app', body: { ownApp: !s.ownApp }, warn: 'Own-app stores get Pro features.' }
-  ];
-
-  const stats: Array<[string, number]> = [
-    ['Stores', rows.length],
-    ['On a Pro trial', rows.filter((r) => r.trialEndsAt && r.plan !== 'pro' && Date.parse(r.trialEndsAt) > Date.now()).length],
-    ['Paid Pro', rows.filter((r) => r.plan === 'pro').length],
-    ['Suspended', rows.filter((r) => r.status !== 'active').length]
-  ];
-
+    if (!pending && d.open) d.close();
+  }, [pending]);
   return (
-    <div className="console" style={{ minHeight: '100vh' }}>
-      <header className="console-bar">
-        <i aria-hidden="true" className="i l i-gem" />
-        <span className="serif" style={{ fontSize: 22 }}>Antarixs console</span>
-      </header>
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {error && <p role="alert" className="note bad">{error}</p>}
+    <dialog ref={ref} className="cn-dlg" role="alertdialog" aria-labelledby="cn-dlg-t" aria-describedby="cn-dlg-d" onClose={onNo} onCancel={(e) => busy && e.preventDefault()}>
+      {pending && (
+        <div className="cn-stack">
+          <h2 id="cn-dlg-t" className="ser">{pending.action.label}?</h2>
+          <p id="cn-dlg-d">For <b>{pending.store.name}</b>. {pending.action.warn}</p>
+          {error && <p role="alert" className="cn-note">{error}</p>}
+          <div className="cn-row">
+            <button type="button" className="cn-btn" disabled={busy} onClick={onYes}>{busy ? 'Working…' : 'Confirm'}</button>
+            <button type="button" className="cn-btn ghost" onClick={onNo}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </dialog>
+  );
+}
 
-        {open ? (
-          <>
-            <button type="button" className="lnk" style={{ alignSelf: 'flex-start', textDecoration: 'none' }} onClick={() => { setOpen(null); setPending(null); }}>
-              <i aria-hidden="true" className="i s i-back" /> All stores
-            </button>
-            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              <section aria-label="Store detail" className="card col" style={{ flex: '1 1 420px', gap: 12, padding: 20 }}>
-                <div className="row"><h1 style={{ fontSize: 28 }} className="grow">{open.name}</h1><StatusTag s={open} /></div>
-                <p className="sub">{open.subdomain}</p>
-                <hr className="sep" />
-                <div className="kv"><span>Owner</span><b>{open.owner?.email ?? open.owner?.phone ?? '—'}</b></div>
-                <div className="kv"><span>Plan</span><b>{open.plan}{open.effectivePlan !== open.plan ? ` (acts as ${open.effectivePlan})` : ''}</b></div>
-                <div className="kv"><span>Trial ends</span><b>{open.trialEndsAt ? `${day(open.trialEndsAt)} · ${daysLeft(open.trialEndsAt)}` : '—'}</b></div>
-                <div className="kv"><span>Buyers</span><b>{open.buyers}</b></div>
-                <div className="kv"><span>Photos</span><b>{open.photos}</b></div>
-                <div className="kv"><span>Collections</span><b>{open.categories ?? '—'}</b></div>
-                <div className="kv"><span>Own Android app</span><b>{open.ownApp ? 'Yes' : 'No'}</b></div>
-                <div className="kv"><span>Created</span><b>{day(open.createdAt)}</b></div>
-              </section>
-              <section aria-label="Actions" className="card col" style={{ flex: '1 1 320px', gap: 12, padding: 20 }}>
-                <h2 style={{ fontSize: 20 }}>Change store</h2>
-                <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-                  {actions(open).map((a) => (
-                    <button key={a.label} type="button" className={`btn sm ${pending?.label === a.label ? '' : 'soft'}`} onClick={() => setPending(a)}>{a.label}</button>
-                  ))}
-                </div>
-                {pending ? (
-                  <div role="alertdialog" className="note col" style={{ gap: 10 }}>
-                    <p><b>{pending.label}</b> for {open.name}? {pending.warn}</p>
-                    <div className="row">
-                      <button type="button" className="btn sm" onClick={() => void run()}>Confirm</button>
-                      <button type="button" className="btn sm alt" onClick={() => setPending(null)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="hint" style={{ margin: 0 }}>Every change is recorded below.</p>
-                )}
-              </section>
-            </div>
-            <section className="card col" style={{ gap: 8, padding: 20 }}>
-              <h2 style={{ fontSize: 20 }}>Recent changes</h2>
-              {open.audit?.map((a) => (
-                <div key={a.id} className="kv"><span>{a.what} · by {a.who}</span><b>{new Date(a.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</b></div>
-              ))}
-              {!open.audit?.length && <div className="sub" style={{ fontSize: 13 }}>None yet.</div>}
-            </section>
-          </>
-        ) : (
-          <>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-              {stats.map(([label, value]) => (
-                <div key={label} className="card" style={{ flex: '1 1 160px' }}>
-                  <span className="stat" style={{ fontSize: 30 }}>{value}</span>
-                  <span className="sub" style={{ display: 'block', fontSize: 13 }}>{label}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <div className="inp-icon" style={{ flex: '1 1 280px' }}>
-                <i aria-hidden="true" className="i i-search" />
-                <input className="inp" placeholder="Search name or subdomain" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
-              </div>
-              <select className="inp" style={{ flex: '0 0 170px' }} value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan">
-                <option value="">All plans</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="founder">Founder</option>
-              </select>
-              <select className="inp" style={{ flex: '0 0 170px' }} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
-                <option value="">Any status</option><option value="active">Active</option><option value="suspended">Suspended</option>
-              </select>
-            </div>
-            <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-              <table className="t" style={{ minWidth: 860 }}>
-                <thead>
-                  <tr>{['Store', 'Plan', 'Status', 'Trial ends', 'Buyers', 'Photos', 'App'].map((h) => <th key={h}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {rows.map((s) => (
-                    <tr key={s.id} onClick={() => void show(s.id)} style={{ cursor: 'pointer' }}>
-                      <td>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); void show(s.id); }} style={{ border: 0, background: 'none', padding: 0, textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
-                          <b>{s.name}</b><br /><span className="sub" style={{ fontSize: 13 }}>{s.subdomain}</span>
-                        </button>
-                      </td>
-                      <td><PlanTag s={s} /></td>
-                      <td><StatusTag s={s} /></td>
-                      <td>{daysLeft(s.trialEndsAt)}</td>
-                      <td>{s.buyers}</td>
-                      <td>{s.photos.toLocaleString('en-IN')}</td>
-                      <td>{s.ownApp ? <span className="tag">Own app</span> : '—'}</td>
-                    </tr>
-                  ))}
-                  {rows.length === 0 && <tr><td colSpan={7} className="sub" style={{ textAlign: 'center', padding: 24 }}>No stores match.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-            <p className="hint" style={{ margin: 0 }}>Sign-in is through Google (IAP) and limited to the admin list.</p>
-          </>
-        )}
+/** Antarixs console (console.antarixs.com): every store, owner and buyer on the cloud, from real data. */
+export default function Console() {
+  const { page, id } = useHash();
+  const [v, setV] = useState(0);
+  const stores = useApi<Row[]>('/stores', v);
+  const summary = useApi<Summary>('/summary', v);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const title = useRef<HTMLHeadingElement>(null);
+  const first = useRef(true);
+
+  const nav = NAV.find((n) => n.id === page)!;
+  const heading = id ? 'Store' : nav.label;
+  useEffect(() => {
+    document.title = `${heading} · Antarixs console`;
+    if (first.current) first.current = false;
+    else title.current?.focus(); // tell screen-reader users the page changed
+  }, [heading, page, id]);
+
+  const ask = useCallback((store: Pending['store'], action: Action) => { setError(''); setNotice(''); setPending({ store, action }); }, []);
+  const run = async () => {
+    if (!pending) return;
+    setBusy(true);
+    try {
+      await call(`/stores/${pending.store.id}${pending.action.path}`, pending.action.body);
+      setNotice(`${pending.action.label}: done for ${pending.store.name}.`);
+      setPending(null);
+      setV((n) => n + 1);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const Page = nav.page;
+  const props: PageProps = { stores, summary, v, ask };
+  return (
+    <div className="cn-body">
+      <a className="skip" href="#main">Skip to content</a>
+      <aside className="cn-side">
+        <div className="cn-brand">
+          <span className="cn-mk" aria-hidden="true">
+            <svg viewBox="0 0 100 100" width="20" height="20"><path d="M50 8L92 90L75 90L50 40L25 90L8 90Z" fill="#7cc4ff" /><path d="M45 42C46.6 51 49.4 53.8 58 55.5C49.4 57.2 46.6 60 45 69C43.4 60 40.6 57.2 32 55.5C40.6 53.8 43.4 51 45 42Z" fill="#f3e35a" /></svg>
+          </span>
+          <div><b className="ser">Antarixs</b><small>Console</small></div>
+        </div>
+        <nav aria-label="Console sections">
+          {NAV.map((n) => (
+            <a key={n.id} href={`#/${n.id}`} aria-current={n.id === page ? 'page' : undefined}>
+              <n.icon size={17} aria-hidden />{n.label}
+              {n.id === 'stores' && summary.data && <em>{num(summary.data.stores.total)}</em>}
+            </a>
+          ))}
+        </nav>
+        <div className="cn-env"><small>Revision</small><b>{summary.data ? summary.data.env.revision ?? 'Not connected' : '—'}</b></div>
+      </aside>
+      <main id="main" className="cn-main">
+        <header className="cn-top">
+          <div><div className="ey">Platform</div><h1 ref={title} tabIndex={-1} className="ser cn-h">{heading}</h1><div className="rule" /></div>
+          <div className="cn-tools">
+            {summary.data && <small>Updated {new Date(summary.data.generatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</small>}
+            <button type="button" className="cn-btn sm soft" onClick={() => setV((n) => n + 1)}><RefreshCw size={14} aria-hidden /> Refresh</button>
+          </div>
+        </header>
+        {notice && <p role="status" className="cn-note ok">{notice}</p>}
+        {id ? <StoreDetail {...props} id={id} /> : <Page {...props} />}
       </main>
+      <Confirm pending={pending} busy={busy} error={error} onYes={() => void run()} onNo={() => { if (!busy) { setPending(null); setError(''); } }} />
     </div>
   );
 }

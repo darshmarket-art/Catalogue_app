@@ -83,6 +83,9 @@ export const cartItemSchema = z.object({
   note: trimmed(300).optional()
 });
 
+/** The buyer's optional note to the store, sent with the order (delivery date, finish, size changes). */
+export const orderConfirmSchema = z.object({ note: trimmed(300).optional() });
+
 export const inquirySchema = z.object({
   clientFirm: trimmed(120).optional(),
   itemsCount: z.coerce.number().int().min(0).max(100000).optional(),

@@ -21,6 +21,10 @@ import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
+import { LayoutPickerScreen } from './components/LayoutPickerScreen';
+import { PdfCatalogueScreen } from './components/PdfCatalogueScreen';
+import { PlansScreen } from './components/PlansCompare';
+import { ScreenTop } from './components/ScreenTop';
 
 // The server embeds the effective layout for this store, so it is fixed for the life of the page.
 const K = kitFor(merchant.layout);
@@ -237,9 +241,9 @@ export default function App() {
   };
 
   // Confirm Order (Pure Gram Settlement Allocation)
-  const handleConfirmOrder = async (): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null> => {
+  const handleConfirmOrder = async (note?: string): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null> => {
     try {
-      const result = await api.confirmOrder();
+      const result = await api.confirmOrder(note);
       // The server has turned the batch into an order; the next batch starts empty.
       setOrders([]);
       return result;
@@ -257,7 +261,7 @@ export default function App() {
   };
 
   // WhatsApp PO generation
-  const handleGenerateWhatsAppPO = () => {
+  const handleGenerateWhatsAppPO = (note?: string) => {
     const totalNet = orders.reduce((sum, item) => sum + (item.totalNetGold || 0), 0);
     const store = currentMerchant ? currentMerchant.storeName : 'Guest Jeweller';
 
@@ -268,7 +272,7 @@ export default function App() {
       totalNetWeight: parseFloat(totalNet.toFixed(3))
     });
 
-    const msg = sector.orderManifest({ brandName: merchant.brand.name, store, orders });
+    const msg = sector.orderManifest({ brandName: merchant.brand.name, store, orders }) + (note?.trim() ? `\n\n*Note:* ${note.trim()}` : '');
 
     window.open(`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -432,9 +436,12 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-layout', 'admin-pdf'];
   const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
   let screen: ActiveScreen = currentScreen;
+  // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
+  if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
+  if (!flags.pdfCatalogue && screen === 'admin-pdf') screen = 'admin-hub';
   // Home is the 'categories' screen; the Catalogue tab is the 'catalogue' screen.
   if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
@@ -449,11 +456,15 @@ export default function App() {
             ? 'categories'
             : screen;
 
-  // Basic has no ordering: order screens fall back to Home.
-  if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
-
   const shouldShowBottomNav =
     ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
+
+  const ownTop: Partial<Record<ActiveScreen, { title: string; back: ActiveScreen }>> = {
+    'admin-layout': { title: 'Storefront layout', back: 'admin-hub' },
+    'admin-pdf': { title: 'PDF catalogue', back: 'admin-hub' },
+    plans: { title: 'Basic and Pro', back: isAdminLoggedIn ? 'admin-plan' : 'welcome' }
+  };
+  const top = ownTop[activeScreen];
 
   const homeScreen: ActiveScreen = isAdminLoggedIn ? 'admin-hub' : currentMerchant ? 'categories' : 'welcome';
   backRef.current = () => {
@@ -477,7 +488,8 @@ export default function App() {
   return (
     <div data-layout={merchant.layout} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {/* Persistent Header */}
-      {activeScreen !== 'welcome' && (
+      {top && <ScreenTop title={top.title} onBack={() => handleNavigate(top.back)} />}
+      {activeScreen !== 'welcome' && !top && (
         <K.Header
           currentScreen={activeScreen}
           onNavigate={handleNavigate}
@@ -595,7 +607,13 @@ export default function App() {
 
         {activeScreen === 'admin-visitors' && <AdminVisitorsScreen analytics={analytics} />}
 
-        {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} />}
+        {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} onNavigate={handleNavigate} />}
+
+        {activeScreen === 'admin-layout' && <LayoutPickerScreen onNavigate={handleNavigate} />}
+
+        {activeScreen === 'admin-pdf' && <PdfCatalogueScreen products={products} categories={categories} />}
+
+        {activeScreen === 'plans' && <PlansScreen />}
 
         {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
 

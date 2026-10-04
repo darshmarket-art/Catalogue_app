@@ -8,8 +8,10 @@ import { z } from 'zod';
 import type { Config } from '../config';
 import type { Store } from '../store';
 import { HttpError, handler, parse } from '../http';
-import { effectivePlan, photosInUse } from '../entitlements';
-import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
+import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
+import { effectiveLayout, hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
+import { DEFAULT_LAYOUT, LAYOUT_IDS } from '../../shared/layouts';
+import { activity, buyers, orders, owners, summary } from '../consoleStats';
 
 const IAP_KEYS_URL = 'https://www.gstatic.com/iap/verify/public_key';
 export type IapKeys = () => Promise<Record<string, string>>;
@@ -64,10 +66,18 @@ export function consoleAuth(config: Config, keys: IapKeys): RequestHandler {
 
 const view = async (root: Store, rec: StoreRecord) => {
   const data = scopeStore(root, rec.id);
+  const plan = effectivePlan(planOf(rec));
+  const [buyerDocs, photos, [seen]] = await Promise.all([
+    data.list('buyers'), photosInUse(data), data.list('visitors', { orderBy: { field: 'lastSeen', direction: 'desc' }, limit: 1 })
+  ]);
   return {
-    id: rec.id, name: rec.merchant.brand.name, subdomain: rec.subdomain, plan: rec.plan, effectivePlan: effectivePlan(planOf(rec)),
+    id: rec.id, name: rec.merchant.brand.name, subdomain: rec.subdomain, plan: rec.plan, effectivePlan: plan,
     trialEndsAt: rec.trialEndsAt ?? null, status: rec.status, ownApp: Boolean(rec.ownApp), owner: rec.owner ?? null, createdAt: rec.createdAt,
-    buyers: (await data.list('buyers')).length, photos: (await photosInUse(data)).size
+    buyers: buyerDocs.length, photos: photos.size, limits: { buyers: LIMITS[plan].users, photos: LIMITS[plan].photos },
+    // The saved choice, and what the store really shows (a Pro layout falls back to Gilded while the store is on Basic).
+    layout: rec.merchant.layout ?? DEFAULT_LAYOUT, effectiveLayout: effectiveLayout(rec),
+    // Latest time any tracked buyer or guest was seen in the store; null when nobody has visited yet.
+    lastActiveAt: seen?.lastSeen ? new Date(Number(seen.lastSeen)).toISOString() : null
   };
 };
 
@@ -99,6 +109,12 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   r.get('/audit', handler(async (req, res) => {
     res.json({ status: 'success', data: await audits(typeof req.query.storeId === 'string' ? req.query.storeId : undefined) });
   }));
+  // Cross-store reads for the platform console (see consoleStats.ts: bounded queries, masked buyer phones, no hashes).
+  r.get('/summary', handler(async (_req, res) => void res.json({ status: 'success', data: await summary(root) })));
+  r.get('/activity', handler(async (req, res) => void res.json({ status: 'success', data: await activity(root, Number(req.query.limit)) })));
+  r.get('/owners', handler(async (_req, res) => void res.json({ status: 'success', data: await owners(root) })));
+  r.get('/buyers', handler(async (_req, res) => void res.json({ status: 'success', data: await buyers(root) })));
+  r.get('/orders', handler(async (_req, res) => void res.json({ status: 'success', data: await orders(root) })));
   r.get('/stores/:id', handler(async (req, res) => {
     const rec = await getRec(req.params.id);
     const data = scopeStore(root, rec.id);
@@ -131,6 +147,10 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   });
   write('suspend', z.object({}), () => ({ patch: { status: 'suspended' }, what: 'suspended' }));
   write('unsuspend', z.object({}), () => ({ patch: { status: 'active' }, what: 'unsuspended' }));
+  // Console staff may set any layout whatever the plan; a Pro layout on a Basic store shows only once the store is on Pro.
+  write('layout', z.object({ layout: z.enum(LAYOUT_IDS) }), (rec, b) => ({
+    patch: { merchant: { ...rec.merchant, layout: b.layout } }, what: `layout ${rec.merchant.layout ?? DEFAULT_LAYOUT} -> ${b.layout}`
+  }));
   write('own-app', z.object({ ownApp: z.boolean() }), (_rec, b) => ({ patch: { ownApp: b.ownApp }, what: `ownApp ${b.ownApp}` }));
 
   r.use((_req, _res, next) => next(new HttpError(404, 'Not found.')));

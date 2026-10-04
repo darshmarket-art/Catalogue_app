@@ -369,6 +369,10 @@ export const api = {
     return (await post(`/api/v1/admin/buyers/${encodeURIComponent(phone)}/reset-password`)).data;
   },
 
+  async removeBuyer(phone: string): Promise<void> {
+    await request(`/api/v1/admin/buyers/${encodeURIComponent(phone)}`, { method: 'DELETE' });
+  },
+
   async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
     await post('/api/v1/auth/retailer/change-password', payload);
   },
@@ -390,8 +394,9 @@ export const api = {
     await request(`/api/v1/orders/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
-  async confirmOrder(): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
-    return post('/api/v1/orders/confirm');
+  /** Books the current batch as an order; the optional note goes to the store with it (and into the WhatsApp text). */
+  async confirmOrder(note?: string): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
+    return post('/api/v1/orders/confirm', note?.trim() ? { note: note.trim() } : undefined);
   },
 
   async getAdminOrders(): Promise<AdminOrder[]> {

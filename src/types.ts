@@ -97,6 +97,8 @@ export interface PastOrder {
   totalNetGrams: number;
   itemCount: number;
   items: Array<Pick<OrderItem, 'id' | 'title' | 'sku' | 'purity' | 'totalNetGold' | 'batchQty' | 'qtyUnit' | 'image'>>;
+  /** The buyer's note to the store, if they left one when placing the order. */
+  note?: string;
   timestamp: string;
 }
 
@@ -141,6 +143,7 @@ export interface AdminOrder {
   totalNetGrams: number;
   itemCount: number;
   items: Array<{ id: string; title: string; sku: string; purity: string; totalNetGold: number; batchQty: number; qtyUnit: string }>;
+  note?: string;
   timestamp: string;
 }
 
@@ -163,4 +166,7 @@ export type ActiveScreen =
   | 'shortlist'
   | 'change-password'
   | 'retailer-auth'
-  | 'admin-plan';
+  | 'admin-plan'
+  | 'admin-layout'
+  | 'admin-pdf'
+  | 'plans';

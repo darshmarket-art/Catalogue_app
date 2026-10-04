@@ -43,8 +43,8 @@ export async function downloadCataloguePdf(category: Category, products: Product
   return downloadDesignsPdf(category.name, items, onProgress);
 }
 
-/** The same PDF for designs the owner picked by hand. `title` appears top right and in the file name. */
-export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void) {
+/** The same PDF for designs the owner picked by hand. `title` appears top right and in the file name. `mode: 'share'` opens the phone's share sheet where it can send files, and downloads otherwise. */
+export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void, mode: 'save' | 'share' = 'save') {
   if (items.length === 0) throw new Error('Pick at least one design first.');
 
   const { jsPDF } = await import('jspdf');
@@ -121,5 +121,18 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   }
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  doc.save(`${safe(brand)}-${safe(title)}.pdf`);
+  const fileName = `${safe(brand)}-${safe(title)}.pdf`;
+  if (mode === 'share') {
+    const file = new File([doc.output('blob')], fileName, { type: 'application/pdf' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `${brand} · ${title}` });
+      } catch (err) {
+        // closing the share sheet is not an error
+        if ((err as Error).name !== 'AbortError') throw err;
+      }
+      return;
+    }
+  }
+  doc.save(fileName);
 }

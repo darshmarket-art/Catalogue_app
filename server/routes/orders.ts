@@ -5,7 +5,7 @@ import type { MerchantConfig } from '../merchant';
 import type { SectorPack } from '../sectors';
 import { user } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { cartItemSchema } from '../schemas';
+import { cartItemSchema, orderConfirmSchema } from '../schemas';
 import { recordDaily } from '../stats';
 import type { Media } from '../media';
 import { enabledKeys, loadPurities } from '../purities';
@@ -125,7 +125,8 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
 
   router.post(
     '/confirm',
-    handler(async (_req, res) => {
+    handler(async (req, res) => {
+      const { note } = parse(orderConfirmSchema, req.body);
       const owner = user(res);
       const items = await loadCart(owner.id);
       if (items.length === 0) throw new HttpError(400, 'Your batch order is empty. Add items before confirming.');
@@ -148,6 +149,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
         totalNetGrams: totalNet,
         itemCount: items.length,
         items: items.map(publicItem),
+        ...(note ? { note } : {}),
         timestamp: bookedAt
       });
       // The batch is now an order; the next batch starts empty instead of re-ordering these items.
@@ -163,13 +165,14 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
         settlementBasis: 'GRAM_WEIGHT',
         totalNetGrams: totalNet,
         itemCount: items.length,
-        whatsappMessage: pack.confirmationMessage({
-          brandName: merchant.brand.name,
-          poId,
-          firmName: owner.name,
-          totalNet,
-          items: items.map((i) => ({ title: i.title, sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
-        })
+        whatsappMessage:
+          pack.confirmationMessage({
+            brandName: merchant.brand.name,
+            poId,
+            firmName: owner.name,
+            totalNet,
+            items: items.map((i) => ({ title: i.title, sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
+          }) + (note ? `\n\n*Note:* ${note}` : '')
       });
     })
   );

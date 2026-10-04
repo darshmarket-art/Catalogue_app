@@ -110,6 +110,11 @@ export const AdminOrdersScreen: React.FC = () => {
                 <b>{item.totalNetGold.toFixed(3)} g</b>
               </div>
             ))}
+            {order.note && (
+              <p className="note" data-testid="order-note" style={{ fontSize: 13.5, padding: '9px 12px' }}>
+                <b>Note:</b> {order.note}
+              </p>
+            )}
             {order.items.length > 1 && (
               <>
                 <hr className="sep" />
