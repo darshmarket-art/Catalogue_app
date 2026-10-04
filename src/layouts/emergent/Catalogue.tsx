@@ -2,28 +2,36 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { usePlan } from '../../plan';
 import type { Product } from '../../types';
 import { merchant } from '../../merchant';
-import { trackProductView, trackSearch, trackSelect } from '../../api';
+import { sector } from '../../sector';
+import { api, trackProductView, trackSearch, trackSelect } from '../../api';
 import { clearOnScreen, setOnScreen } from '../../attention';
 import { downloadDesignsPdf } from '../../cataloguePdf';
-import { Icon, Ph, Pill, StockPill, Title, Toast, fmtG, type KitProps } from './ui';
+import { SORT_KEYS, SORT_LABELS, type SortKey } from '../../../shared/jewellery';
+import { Icon, Ph, Pill, Sheet, StockPill, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { withTransition } from '../../viewTransition';
 
-type SortKey = 'default' | 'net-asc' | 'net-desc' | 'name';
+const PAGE = 24;
 
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'default', label: 'Newest' },
-  { key: 'net-asc', label: 'Lightest first' },
-  { key: 'net-desc', label: 'Heaviest first' },
-  { key: 'name', label: 'A to Z' }
-];
+/** Everything a buyer can narrow the catalogue by, besides the collection chips and the search box. */
+interface Filters {
+  purity: string[];
+  minWt: string;
+  maxWt: string;
+  priceMode: string[];
+  availability: string[];
+}
+const NO_FILTERS: Filters = { purity: [], minWt: '', maxWt: '', priceMode: [], availability: [] };
+const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
 // The bar at the foot of the grid (atlas "cart bar") shows the order's size (orderCount) and opens it (onNavigate); App.tsx passes both.
 type CatalogueProps = KitProps<'Catalogue'>;
 
-/** Catalogue (atlas Catalogue): sticky title, search and collection chips over a two-column grid of photo cards. The owner's "Select" mode builds a PDF. */
+/**
+ * Catalogue (atlas Catalogue): sticky title, search, collection chips and a filter sheet over a two-column grid of photo cards.
+ * The server does the searching, filtering, sorting and paging; the grid loads more as the buyer scrolls. The owner's "Select" mode builds a PDF.
+ */
 export const Catalogue: React.FC<CatalogueProps> = ({
-  products,
   isAdmin,
   categoryFilter,
   categories,
@@ -38,18 +46,94 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   onNavigate
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [draft, setDraft] = useState<Filters>(NO_FILTERS);
+  const [sheet, setSheet] = useState(false);
+  const [sort, setSort] = useState<SortKey>('newest');
   const { flags } = usePlan();
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [addedCount, setAddedCount] = useState(0);
-  const [sort, setSort] = useState<SortKey>('default');
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   // Admin only: pick designs by hand and turn them into one PDF
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const openProduct = products.find((p) => p.id === openProductId) ?? null;
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const hearted = useMemo(() => new Set(shortlist), [shortlist]);
+
+  // What the server has answered so far: the loaded pages, the full count and whether more exist.
+  const [items, setItems] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  const reqId = useRef(0);
+  const openProduct = items.find((p) => p.id === openProductId) ?? null;
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const query = useMemo(
+    () => ({
+      search: debounced,
+      category: categoryFilter ?? '',
+      purity: filters.purity.join(','),
+      minWt: filters.minWt,
+      maxWt: filters.maxWt,
+      priceMode: filters.priceMode.join(','),
+      availability: filters.availability.join(','),
+      sort
+    }),
+    [debounced, categoryFilter, filters, sort]
+  );
+
+  // First page for the current search, filters and sort. A later answer never overwrites a newer question.
+  useEffect(() => {
+    const id = ++reqId.current;
+    setLoading(true);
+    setError(null);
+    api
+      .queryProducts({ ...query, limit: PAGE, offset: 0 })
+      .then((page) => {
+        if (id !== reqId.current) return;
+        setItems(page.items);
+        setTotal(page.total);
+        setHasMore(page.hasMore);
+      })
+      .catch((err) => id === reqId.current && setError(err instanceof Error ? err.message : 'Could not load the catalogue.'))
+      .finally(() => id === reqId.current && setLoading(false));
+  }, [query, retry]);
+
+  const loadMore = () => {
+    if (loadingMore || loading || !hasMore) return;
+    const id = reqId.current;
+    setLoadingMore(true);
+    api
+      .queryProducts({ ...query, limit: PAGE, offset: items.length })
+      .then((page) => {
+        if (id !== reqId.current) return;
+        setItems((prev) => [...prev, ...page.items.filter((p) => !prev.some((q) => q.id === p.id))]);
+        setTotal(page.total);
+        setHasMore(page.hasMore);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  };
+
+  // Loads the next page when the buyer nears the foot of the grid.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && loadMore(), { rootMargin: '480px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, items.length, loading, loadingMore]);
 
   // The Back button closes an open design before it leaves the screen (see goBack in App).
   useEffect(() => {
@@ -69,18 +153,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     const timer = setTimeout(() => trackSearch(term), 1500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  const filteredProducts = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    const list = products.filter((p) => {
-      const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.purity.toLowerCase().includes(q);
-      return matchesSearch && (!categoryFilter || p.category === categoryFilter);
-    });
-    if (sort === 'net-asc') list.sort((a, b) => a.netWt - b.netWt);
-    else if (sort === 'net-desc') list.sort((a, b) => b.netWt - a.netWt);
-    else if (sort === 'name') list.sort((a, b) => a.title.localeCompare(b.title));
-    return list;
-  }, [products, searchQuery, categoryFilter, sort]);
 
   // Counts one view per design once it has been on screen, and times how long each is looked at.
   useEffect(() => {
@@ -112,7 +184,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       timing.disconnect();
       seen.forEach((sku) => setOnScreen(sku, false));
     };
-  }, [filteredProducts]);
+  }, [items]);
 
   useEffect(() => clearOnScreen, []);
 
@@ -137,7 +209,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   };
 
   const makePdf = async () => {
-    const chosen = products.filter((p) => picked.has(p.id));
+    const chosen = items.filter((p) => picked.has(p.id));
     setPdfStatus('Preparing the PDF…');
     try {
       await downloadDesignsPdf('Selection', chosen, (done, total) => setPdfStatus(`Preparing the PDF… ${done} of ${total} photos`));
@@ -158,9 +230,36 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   };
 
   // Collections that have designs, in the owner's order, plus any the filter names
-  const collectionChips = categories.map((c) => c.name).filter((n) => products.some((p) => p.category === n) || n === categoryFilter);
+  const collectionChips = categories.filter((c) => c.designCount > 0 || c.name === categoryFilter).map((c) => c.name);
   const inOrder = orderCount ?? addedCount;
   const showCartBar = flags.orders && !isAdmin && !selecting && inOrder > 0;
+
+  // The chips under the search that name every active filter, each removable on its own.
+  const purityTitle = (key: string) => purities.find((p) => p.key === key)?.title ?? key;
+  const priceLabel = (key: string) => sector.priceModes.find((m) => m.key === key)?.label ?? key;
+  const active: Array<{ key: string; label: string; clear: () => void }> = [
+    ...filters.purity.map((v) => ({ key: `purity:${v}`, label: purityTitle(v), clear: () => setFilters((f) => ({ ...f, purity: f.purity.filter((x) => x !== v) })) })),
+    ...(filters.minWt || filters.maxWt
+      ? [{ key: 'weight', label: `${filters.minWt || '0'} – ${filters.maxWt || '∞'} g`, clear: () => setFilters((f) => ({ ...f, minWt: '', maxWt: '' })) }]
+      : []),
+    ...filters.availability.map((v) => ({ key: `avail:${v}`, label: v, clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) })),
+    ...filters.priceMode.map((v) => ({ key: `price:${v}`, label: priceLabel(v), clear: () => setFilters((f) => ({ ...f, priceMode: f.priceMode.filter((x) => x !== v) })) }))
+  ];
+  const anyNarrowing = Boolean(debounced || categoryFilter || active.length);
+  const clearAll = () => {
+    setSearchQuery('');
+    setFilters(NO_FILTERS);
+    onClearCategoryFilter();
+  };
+  const openSheet = () => {
+    setDraft(filters);
+    setSheet(true);
+  };
+  const applyDraft = () => {
+    setFilters(draft);
+    setSheet(false);
+  };
+  const draftCount = draft.purity.length + draft.availability.length + draft.priceMode.length + (draft.minWt || draft.maxWt ? 1 : 0);
 
   return (
     <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
@@ -183,7 +282,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             />
           ) : (
             <Title
-              eyebrow={`${merchant.brand.name} · ${filteredProducts.length} ${filteredProducts.length === 1 ? 'design' : 'designs'}`}
+              eyebrow={<span data-testid="catalogue-count">{loading && items.length === 0 ? `${merchant.brand.name} · searching…` : `${merchant.brand.name} · ${total} ${total === 1 ? 'design' : 'designs'}`}</span>}
               title="Catalogue"
               right={
                 <span className="em-row" style={{ gap: 8, marginBottom: 8 }}>
@@ -195,10 +294,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   )}
                   <label className="em-circ gold em-sortbox" title="Sort designs">
                     <Icon n="sliders" />
-                    <select aria-label="Sort designs" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-                      {SORT_OPTIONS.map((o) => (
-                        <option key={o.key} value={o.key}>
-                          {o.label}
+                    <select aria-label="Sort designs" data-testid="catalogue-sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+                      {SORT_KEYS.map((k) => (
+                        <option key={k} value={k}>
+                          {SORT_LABELS[k]}
                         </option>
                       ))}
                     </select>
@@ -208,10 +307,21 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             />
           )}
           {!selecting && (
-            <label className="em-srch" style={{ height: 44 }}>
-              <Icon n="search" size={16} />
-              <input aria-label="Search designs" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </label>
+            <div className="em-row" style={{ gap: 8 }}>
+              <label className="em-srch em-grow" style={{ height: 44 }}>
+                <Icon n="search" size={16} />
+                <input aria-label="Search designs" data-testid="catalogue-search" placeholder={sector.filters.searchPlaceholder} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                {searchQuery && (
+                  <button type="button" aria-label="Clear search" className="em-x" onClick={() => setSearchQuery('')}>
+                    <Icon n="x" size={14} />
+                  </button>
+                )}
+              </label>
+              <button type="button" className={`em-filterbtn${active.length ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label="Filters" onClick={openSheet}>
+                <Icon n="sliders" size={16} />
+                {active.length > 0 && <i>{active.length}</i>}
+              </button>
+            </div>
           )}
         </div>
         <div className="em-chips" role="group" aria-label="Collections">
@@ -224,15 +334,37 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             </button>
           ))}
         </div>
+        {active.length > 0 && !selecting && (
+          <div className="em-chips em-active" role="group" aria-label="Active filters" data-testid="active-filters">
+            {active.map((a) => (
+              <button key={a.key} type="button" className="em-chip on" onClick={a.clear} aria-label={`Remove filter ${a.label}`}>
+                {a.label}
+                <Icon n="x" size={12} />
+              </button>
+            ))}
+            <button type="button" className="em-link" style={{ flex: 'none', fontSize: 12 }} data-testid="clear-filters" onClick={clearAll}>
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="em-pad" style={{ paddingTop: 16 }}>
-        <div ref={gridRef} className="em-grid">
-          {filteredProducts.map((prod, i) => {
+        {error && (
+          <div className="em-empty" style={{ paddingTop: 24 }}>
+            <p className="em-mut">{error}</p>
+            <button type="button" className="em-link" onClick={() => setRetry((n) => n + 1)}>
+              Try again
+            </button>
+          </div>
+        )}
+        <div ref={gridRef} className="em-grid" aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1, transition: 'opacity 0.2s' }}>
+          {loading && items.length === 0 && !error && Array.from({ length: 6 }, (_, i) => <div key={`skel-${i}`} className="em-sq em-skel" aria-hidden="true" />)}
+          {items.map((prod, i) => {
             const isHearted = hearted.has(prod.sku);
             const isPicked = picked.has(prod.id);
             return (
-              <article key={prod.id} data-sku={prod.sku} className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
+              <article key={prod.id} data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
                 <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" />
                   <span className="em-sc" />
@@ -272,27 +404,87 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           })}
         </div>
 
-        {filteredProducts.length === 0 && (
-          <div className="em-empty" style={{ paddingTop: 40 }}>
+        {hasMore && !error && (
+          <div ref={sentinelRef} className="em-more" data-testid="load-more">
+            <button type="button" className="em-btn sec sm" disabled={loadingMore} onClick={loadMore}>
+              {loadingMore ? 'Loading…' : `Show more · ${total - items.length} left`}
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && items.length === 0 && (
+          <div className="em-empty" style={{ paddingTop: 40 }} data-testid="catalogue-empty">
             <span className="em-badge">
               <Icon n="search" size={24} />
             </span>
-            <p className="em-mut">{products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search.'}</p>
-            {(searchQuery || categoryFilter) && (
-              <button
-                type="button"
-                className="em-link"
-                onClick={() => {
-                  setSearchQuery('');
-                  onClearCategoryFilter();
-                }}
-              >
-                Clear search
+            <p className="em-mut">{anyNarrowing ? 'No designs match your search and filters.' : 'No designs have been added yet.'}</p>
+            {anyNarrowing && (
+              <button type="button" className="em-link" onClick={clearAll}>
+                Clear search and filters
               </button>
             )}
           </div>
         )}
       </div>
+
+      {sheet && (
+        <Sheet label="Filter designs" onClose={() => setSheet(false)}>
+          <div className="em-row em-sb">
+            <span className="em-ser" style={{ fontSize: 22 }}>
+              Filters
+            </span>
+            <button type="button" className="em-link" onClick={() => setDraft(NO_FILTERS)} disabled={draftCount === 0}>
+              Reset
+            </button>
+          </div>
+
+          <div className="em-ey">{sector.filters.purity}</div>
+          <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {purities
+              .filter((p) => p.enabled)
+              .map((p) => (
+                <button key={p.key} type="button" className={`em-chip${draft.purity.includes(p.key) ? ' on' : ''}`} aria-pressed={draft.purity.includes(p.key)} onClick={() => setDraft({ ...draft, purity: toggle(draft.purity, p.key) })}>
+                  {p.title}
+                </button>
+              ))}
+          </div>
+
+          <div className="em-ey" style={{ marginTop: 6 }}>
+            {sector.filters.weight}
+          </div>
+          <div className="em-row" style={{ gap: 10 }}>
+            <input aria-label="Minimum net weight" data-testid="filter-min-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder="Min" value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
+            <span className="em-mut">to</span>
+            <input aria-label="Maximum net weight" data-testid="filter-max-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder="Max" value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
+          </div>
+
+          <div className="em-ey" style={{ marginTop: 6 }}>
+            {sector.filters.availability}
+          </div>
+          <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {sector.stockStatuses.map((s) => (
+              <button key={s.key} type="button" className={`em-chip${draft.availability.includes(s.key) ? ' on' : ''}`} aria-pressed={draft.availability.includes(s.key)} onClick={() => setDraft({ ...draft, availability: toggle(draft.availability, s.key) })}>
+                {s.key}
+              </button>
+            ))}
+          </div>
+
+          <div className="em-ey" style={{ marginTop: 6 }}>
+            {sector.filters.price}
+          </div>
+          <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {sector.priceModes.map((m) => (
+              <button key={m.key} type="button" className={`em-chip${draft.priceMode.includes(m.key) ? ' on' : ''}`} aria-pressed={draft.priceMode.includes(m.key)} onClick={() => setDraft({ ...draft, priceMode: toggle(draft.priceMode, m.key) })}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          <button type="button" className="em-btn" style={{ marginTop: 8 }} data-testid="apply-filters" onClick={applyDraft}>
+            {draftCount ? `Apply ${draftCount} ${draftCount === 1 ? 'filter' : 'filters'}` : 'Show all designs'}
+          </button>
+        </Sheet>
+      )}
 
       <ProductDetail
         product={openProduct}
@@ -328,8 +520,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           <div className="em-dock-in">
             <div className="em-grow">
               <b style={{ fontWeight: 600 }}>{picked.size} selected</b>
-              <button type="button" className="em-link" style={{ display: 'flex', minHeight: 30 }} onClick={() => setPicked(picked.size === filteredProducts.length ? new Set() : new Set(filteredProducts.map((p) => p.id)))}>
-                {picked.size === filteredProducts.length ? 'Clear' : `Select all ${filteredProducts.length}`}
+              <button type="button" className="em-link" style={{ display: 'flex', minHeight: 30 }} onClick={() => setPicked(picked.size === items.length ? new Set() : new Set(items.map((p) => p.id)))}>
+                {picked.size === items.length ? 'Clear' : `Select all ${items.length}`}
               </button>
             </div>
             <button type="button" className="em-btn" disabled={picked.size === 0} onClick={makePdf}>

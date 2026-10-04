@@ -6,8 +6,23 @@ export const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(
 
 export const adminLoginSchema = z.object({
   adminId: trimmed(254),
-  password: z.string().trim().min(1).max(128)
+  password: z.string().trim().min(1).max(128),
+  remember: z.boolean().optional()
 });
+
+export const adminChangePasswordSchema = z.object({
+  currentPassword: z.string().trim().min(1).max(128),
+  newPassword: trimmed(128, 10)
+});
+
+export const adminAddSchema = z.object({
+  name: trimmed(100).optional(),
+  email: z.string().trim().toLowerCase().email().max(254),
+  /** A temporary password the new admin must change at their first sign-in. */
+  password: trimmed(128, 10)
+});
+
+export const adminResetSchema = z.object({ password: trimmed(128, 10) });
 
 export const adminRegisterSchema = z.object({
   name: trimmed(100).optional(),

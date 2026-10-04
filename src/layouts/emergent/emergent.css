@@ -196,6 +196,24 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-sticky { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 20; background: var(--em-bg); border-bottom: 1px solid var(--em-line); }
 [data-layout="emergent"] .em-sortbox { overflow: visible; }
 [data-layout="emergent"] .em-sortbox select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+
+/* ---------- catalogue search and filters ---------- */
+[data-layout="emergent"] .em-srch .em-x { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--em-tint); color: var(--em-mut); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+[data-layout="emergent"] .em-filterbtn { flex: none; height: 44px; min-width: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--em-line); background: var(--em-card); color: var(--em-primary); display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+[data-layout="emergent"] .em-filterbtn.on { background: var(--em-primary); color: var(--em-on-primary); border-color: var(--em-primary); }
+[data-layout="emergent"] .em-filterbtn i { font-style: normal; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px; background: var(--em-gold); color: #2a1a05; display: inline-flex; align-items: center; justify-content: center; }
+[data-layout="emergent"] .em-chips.em-active { padding-top: 0; margin-top: -6px; align-items: center; }
+[data-layout="emergent"] .em-chips.em-active .em-chip { height: 30px; font-size: 11.5px; padding-inline: 11px 9px; }
+[data-layout="emergent"] .em-skel { border-style: dashed; background: linear-gradient(100deg, var(--em-tint) 30%, color-mix(in srgb, var(--em-card) 70%, var(--em-tint)) 50%, var(--em-tint) 70%); background-size: 240% 100%; animation: em-shimmer 1.4s ease-in-out infinite; }
+@keyframes em-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+[data-layout="emergent"] .em-more { display: flex; justify-content: center; padding: 22px 0 8px; }
+
+/* ---------- trial line on owner screens ---------- */
+[data-layout="emergent"] .em-trialbar { width: 100%; max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 8px; padding: 8px var(--em-px); border: 0; background: var(--em-tint); color: var(--em-ink); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+[data-layout="emergent"] .em-trialbar span { flex: 1; min-width: 0; }
+[data-layout="emergent"] .em-trialbar b { color: var(--em-primary); font-weight: 700; }
+[data-layout="emergent"] .em-trialbar.urgent { background: var(--warn-bg, #fbefd6); color: var(--warn-ink, #6e4b0a); }
+[data-layout="emergent"] .em-trialbar.urgent b { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 [data-layout="emergent"] .em-cartbar { position: fixed; left: 0; right: 0; bottom: calc(var(--em-tab-h) + var(--sab) + 12px); z-index: 40; padding: 0 16px; pointer-events: none; }
 [data-layout="emergent"] .em-cartbar > div { pointer-events: auto; max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 12px; background: var(--em-primary); color: var(--em-on-primary); border-radius: 999px; padding: 12px 18px; box-shadow: 0 8px 20px color-mix(in srgb, var(--em-deep) 40%, transparent); font-size: 14px; }
 [data-layout="emergent"] .em-cartbar .n { width: 28px; height: 28px; border-radius: 50%; background: var(--em-gold); color: var(--em-on-gold); font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; flex: none; }
@@ -415,6 +433,8 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-countdown .big { font-family: var(--font-serif); font-weight: 500; font-size: 54px; line-height: 1.1; margin-top: 14px; }
 [data-layout="emergent"] .em-countdown .of { font-size: 13px; font-weight: 500; color: var(--em-gold-hi); }
 [data-layout="emergent"] .em-countdown p { font-size: 12px; line-height: 1.6; opacity: 0.75; margin: 14px 0 0; }
+[data-layout="emergent"] .em-countdown.urgent { box-shadow: inset 0 0 0 2px var(--em-gold); }
+[data-layout="emergent"] .em-countdown.urgent p { opacity: 0.95; color: var(--em-gold-hi); }
 [data-layout="emergent"] .em-usage { padding: 12px 0; border-bottom: 1px solid var(--em-line); }
 [data-layout="emergent"] .em-usage .em-ser { color: var(--em-primary); font-size: 16px; }
 [data-layout="emergent"] .em-usage .em-ser span { font-family: var(--font-sans); font-size: 12px; color: var(--em-mut); }

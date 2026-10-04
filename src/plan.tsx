@@ -10,7 +10,9 @@ export interface Entitlements {
   trialNotice?: string | null;
   limits: { categories: number | null; photos: number | null; photosPerDesign: number; users: number | null };
   flags: Record<'orders' | 'insights' | 'liveVisitors' | 'buyerEngagement' | 'alerts' | 'auditLog' | 'pdfCatalogue' | 'banners' | 'purities', boolean>;
-  usage?: { categories: number; photos: number };
+  usage?: { categories: number; photos: number; users?: number };
+  /** Buyers a full store turned away (Basic buyer limit). */
+  turnedAway?: { today: number; total: number };
 }
 
 // Until the server answers (or if it cannot be reached) the app behaves as Pro, exactly as it did before plans existed. The server enforces the real limits.

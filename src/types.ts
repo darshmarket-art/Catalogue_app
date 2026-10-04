@@ -17,6 +17,20 @@ export interface Product {
   leadDays?: number;
   huid?: string;
   description?: string;
+  /** How the design is priced; absent on older records means "by-weight". */
+  priceMode?: 'by-weight' | 'fixed' | 'on-request';
+  /** Fixed price in rupees, only when priceMode is "fixed". */
+  price?: number;
+}
+
+/** One admin account of the store, as the Admins screen lists them. */
+export interface AdminRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  mustChangePassword: boolean;
 }
 
 export interface Category {
@@ -170,4 +184,9 @@ export type ActiveScreen =
   | 'retailer-auth'
   | 'admin-plan'
   | 'admin-pdf'
+  | 'admin-admins'
+  | 'admin-alerts'
+  | 'admin-messages'
+  | 'admin-insights'
+  | 'admin-password'
   | 'plans';

@@ -23,6 +23,12 @@ import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
 import { PdfCatalogueScreen } from './components/PdfCatalogueScreen';
+import { AdminAdminsScreen } from './components/AdminAdminsScreen';
+import { AdminAlertsScreen } from './components/AdminAlertsScreen';
+import { AdminMessagesScreen } from './components/AdminMessagesScreen';
+import { AdminInsightsScreen } from './components/AdminInsightsScreen';
+import { AdminChangePasswordScreen } from './components/AdminChangePasswordScreen';
+import { TrialBanner } from './components/TrialBanner';
 import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
 
@@ -35,7 +41,8 @@ export default function App() {
   const { flags } = plan;
   // The current screen lives in the browser history too, so Back/Forward (and a reload) stay inside the app.
   const [currentScreen, setCurrentScreen] = useState<ActiveScreen>(
-    () => (window.history.state?.screen as ActiveScreen | undefined) ?? 'welcome'
+    // A new owner arriving from signup with #new-collection lands straight on the first-collection form.
+    () => (window.history.state?.screen as ActiveScreen | undefined) ?? (window.location.hash === '#new-collection' ? 'add-category' : 'welcome')
   );
   // True while a session saved earlier in this tab is being re-checked, so we never flash the login screen.
   const [mustUpdate, setMustUpdate] = useState(false);
@@ -78,6 +85,9 @@ export default function App() {
   // Which Orders tab to open first (the profile menu links straight to past orders).
   const [ordersTab, setOrdersTab] = useState<'current' | 'past'>('current');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  // Signed in with a temporary password: the admin must set their own before any other admin screen opens.
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [currentMerchant, setCurrentMerchant] = useState<ProfileUser | null>(null);
   const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
   
@@ -101,11 +111,11 @@ export default function App() {
   useEffect(() => {
     // Arrived from creating the store (#new): the signup pages must not be reachable by Back, so leaving closes the tab (or blanks it).
     try {
-      if (window.location.hash === '#new') sessionStorage.setItem('fresh-store', '1');
+      if (window.location.hash === '#new' || window.location.hash === '#new-collection') sessionStorage.setItem('fresh-store', '1');
     } catch {
       // storage blocked: Back then leaves to the previous page
     }
-    if (window.location.hash === '#new') window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    if (window.location.hash === '#new' || window.location.hash === '#new-collection') window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
     // Browsers (Chrome, Android) skip history entries a page adds before the visitor has touched it, so the guard entry is added on
     // the first tap or key press, not on load. Until then Back simply leaves, as it would on any page.
     const arm = () => {
@@ -155,6 +165,8 @@ export default function App() {
           api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
         } else if (session?.type === 'admin') {
           setIsAdminLoggedIn(true);
+          setMustChangePassword(session.mustChangePassword);
+          setAdminEmail(session.email);
         }
       })
       .finally(() => setBooting(false));
@@ -480,6 +492,8 @@ export default function App() {
     setOrders([]);
     setCurrentMerchant(null);
     setIsAdminLoggedIn(false);
+    setMustChangePassword(false);
+    setAdminEmail(null);
     setEditingProduct(null);
     setEditingCategory(null);
     setCategoryFilter(null);
@@ -489,15 +503,18 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-admins', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
   const buyerOnlyScreens: ActiveScreen[] = ['shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
   if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
   if (!flags.pdfCatalogue && screen === 'admin-pdf') screen = 'admin-hub';
+  if (!flags.alerts && screen === 'admin-alerts') screen = 'admin-hub';
+  if (!flags.insights && screen === 'admin-insights') screen = 'admin-hub';
   // Home is the 'categories' screen; the Catalogue tab is the 'catalogue' screen.
   if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
+  if (isAdminLoggedIn && mustChangePassword) screen = 'admin-password';
   const activeScreen: ActiveScreen =
     adminScreens.includes(screen) && !isAdminLoggedIn
         ? 'admin-login'
@@ -572,9 +589,7 @@ export default function App() {
               : undefined
           }
           aside={
-            activeScreen === 'catalogue' ? (
-              <span className="tag">{products.length} designs</span>
-            ) : activeScreen === 'shortlist' && shortlist.length > 0 ? (
+            activeScreen === 'shortlist' && shortlist.length > 0 ? (
               <span className="tag">
                 {shortlist.length} {shortlist.length === 1 ? 'design' : 'designs'}
               </span>
@@ -585,6 +600,12 @@ export default function App() {
             ) : undefined
           }
         />
+      )}
+
+      {isAdminLoggedIn && activeScreen !== 'admin-hub' && activeScreen !== 'admin-plan' && activeScreen !== 'plans' && (
+        <div style={{ paddingTop: 'calc(var(--header-h) + var(--sat))', marginBottom: 'calc(-1 * (var(--header-h) + var(--sat)))' }}>
+          <TrialBanner onOpenPlan={() => handleNavigate('admin-plan')} />
+        </div>
       )}
 
       {/* Main View Container */}
@@ -666,9 +687,11 @@ export default function App() {
         {activeScreen === 'admin-login' && (
           <AdminLoginScreen
             onNavigate={(next) => handleNavigate(next, true)}
-            onAdminLoginSuccess={() => {
+            onAdminLoginSuccess={(forced, email) => {
               setIsAdminLoggedIn(true);
-              handleNavigate('admin-hub', true);
+              setAdminEmail(email);
+              setMustChangePassword(forced);
+              handleNavigate(forced ? 'admin-password' : 'admin-hub', true);
             }}
           />
         )}
@@ -678,6 +701,24 @@ export default function App() {
         {activeScreen === 'admin-visitors' && <AdminVisitorsScreen analytics={analytics} />}
 
         {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} onNavigate={handleNavigate} />}
+
+        {activeScreen === 'admin-admins' && <AdminAdminsScreen meEmail={adminEmail} />}
+
+        {activeScreen === 'admin-alerts' && <AdminAlertsScreen />}
+
+        {activeScreen === 'admin-messages' && <AdminMessagesScreen />}
+
+        {activeScreen === 'admin-insights' && <AdminInsightsScreen />}
+
+        {activeScreen === 'admin-password' && (
+          <AdminChangePasswordScreen
+            forced={mustChangePassword}
+            onDone={() => {
+              setMustChangePassword(false);
+              handleNavigate('admin-hub', true);
+            }}
+          />
+        )}
 
 
         {activeScreen === 'admin-pdf' && <PdfCatalogueScreen products={products} categories={categories} />}

@@ -9,7 +9,8 @@ import { AdminForgotPassword } from './AdminForgotPassword';
 
 interface AdminLoginScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onAdminLoginSuccess: () => void;
+  /** mustChangePassword: the admin signed in with a temporary password and must set their own before anything else. */
+  onAdminLoginSuccess: (mustChangePassword: boolean, email: string) => void;
 }
 
 /** Administrator sign-in (artboard 1.7). Creating an admin with the provisioning key stays one quiet link away. */
@@ -20,6 +21,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
   const [adminId, setAdminId] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   // Create an admin account
   const [newAdminName, setNewAdminName] = useState('');
@@ -39,10 +41,10 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
     setErrorMsg(null);
     setSuccessMsg(null);
     try {
-      const res = await api.loginAdmin({ adminId: adminId.trim(), password: password.trim() });
+      const res = await api.loginAdmin({ adminId: adminId.trim(), password: password.trim(), remember });
       if (res.status === 'success') {
         setSuccessMsg(`Signed in as ${res.admin.name} (${roleLabel(res.admin.role)}).`);
-        onAdminLoginSuccess();
+        onAdminLoginSuccess(Boolean(res.admin.mustChangePassword), res.admin.email);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Sign-in failed.');
@@ -96,15 +98,21 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
           {errorMsg && <Notice tone="error">{errorMsg}</Notice>}
           {successMsg && <Notice tone="ok">{successMsg}</Notice>}
           <Field label="Admin email" htmlFor="admin-id">
-            <input id="admin-id" type="email" autoComplete="username" className="inp" value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="name@company.com" required />
+            <input id="admin-id" data-testid="admin-email-input" type="email" autoComplete="username" className="inp" value={adminId} onChange={(e) => setAdminId(e.target.value)} placeholder="name@company.com" required />
           </Field>
           <Field label="Password" htmlFor="admin-password">
             <div className="relative">
-              <input id="admin-password" autoComplete="current-password" className="inp" style={{ paddingRight: 48 }} type={showPass ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required />
+              <input id="admin-password" data-testid="admin-password-input" autoComplete="current-password" className="inp" style={{ paddingRight: 48 }} type={showPass ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required />
               {eye(showPass, () => setShowPass(!showPass))}
             </div>
           </Field>
-          <button type="submit" disabled={isSubmitting} className="btn">
+          <label className="row" style={{ gap: 10, cursor: 'pointer', fontSize: 14.5 }}>
+            <input type="checkbox" data-testid="admin-remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 20, height: 20, accentColor: 'var(--plum)' }} />
+            <span>
+              Keep me signed in <span className="sub" style={{ fontSize: 13 }}>· a month on this device, otherwise 8 hours</span>
+            </span>
+          </label>
+          <button type="submit" disabled={isSubmitting} className="btn" data-testid="admin-login-submit">
             {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
           <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={() => { setErrorMsg(null); setSuccessMsg(null); setMode('forgot'); }}>

@@ -9,6 +9,8 @@ import { HttpError, audit, handler, newId, parse } from '../http';
 import { activitySchema, heartbeatSchema, inquirySchema, productViewsSchema } from '../schemas';
 import { actorFor, bumpVisitor, logActivity } from '../visitors';
 import { dayKey, loadDaily, recordDaily, sumDays, trendLabel } from '../stats';
+import { buildInsights } from '../insights';
+import type { MessageLog } from '../messages';
 
 // Visitors ping every 15s; a session counts as live for three missed beats' worth of grace.
 const LIVE_WINDOW_MS = 45 * 1000;
@@ -44,9 +46,19 @@ export function analyticsRoutes(
   config: Config,
   store: Store,
   requireAdmin: RequestHandler,
-  auth: Pick<ReturnType<typeof createAuth>, 'tokenType' | 'optionalUser'>
+  auth: Pick<ReturnType<typeof createAuth>, 'tokenType' | 'optionalUser'>,
+  insights: { log: MessageLog | null; receiptsConnected: boolean } = { log: null, receiptsConnected: false }
 ) {
   const router = Router();
+
+  // Owner dashboard: what buyers looked at, what they ordered, who is active, how WhatsApp is doing.
+  router.get(
+    '/analytics/insights',
+    requireAdmin,
+    handler(async (_req, res) => {
+      res.json({ status: 'success', data: await buildInsights(store, config.merchant.id, insights.log, insights.receiptsConnected) });
+    })
+  );
 
   const publicCatalogue = config.merchant.catalogueAccess === 'public';
 

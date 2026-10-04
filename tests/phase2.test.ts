@@ -466,20 +466,10 @@ describe('cancelling an order, the order message, and About us', () => {
   });
 });
 
-describe('installable app: manifest, icons and the Android link file', () => {
-  it('serves a manifest built from the merchant, with working icons', async () => {
+describe('store icons and the Android link file (no web app manifest: install prompts are disabled by decision)', () => {
+  it('serves no manifest, so browsers never offer "add to home screen"', async () => {
     const app = await build();
-    const res = await request(app).get('/manifest.webmanifest');
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toContain('application/manifest+json');
-    expect(res.body).toMatchObject({ name: 'Bhakti Jewels', start_url: '/', display: 'standalone', scope: '/' });
-    const sizes = res.body.icons.map((i: any) => `${i.sizes}:${i.purpose}`);
-    expect(sizes).toEqual(expect.arrayContaining(['192x192:any', '512x512:any', '512x512:maskable']));
-    for (const icon of res.body.icons) {
-      const img = await request(app).get(icon.src);
-      expect(img.status, icon.src).toBe(200);
-      expect(img.headers['content-type']).toBe('image/png');
-    }
+    expect((await request(app).get('/manifest.webmanifest')).status).toBe(404);
   });
 
   it('only serves the icon files it knows about', async () => {

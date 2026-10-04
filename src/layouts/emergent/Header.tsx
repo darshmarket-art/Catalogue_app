@@ -5,7 +5,7 @@ import { BrandMark } from '../../components/BrandMark';
 import { ProfileMenu } from '../../components/ProfileMenu';
 import { Icon, type KitProps } from './ui';
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-admins', 'admin-alerts', 'admin-password'];
 const TAB_SCREENS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders'];
 
 const TITLES: Partial<Record<ActiveScreen, string>> = {
@@ -20,6 +20,9 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-purities': 'Purity options',
   'admin-about': 'About us',
   'admin-plan': 'Plan and usage',
+  'admin-admins': 'Admin accounts',
+  'admin-alerts': 'WhatsApp alerts',
+  'admin-password': 'Change password',
   about: 'About us',
 };
 
@@ -62,6 +65,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
       onOpenAdminConsole={() => onNavigate('admin-hub')}
       onOpenAbout={() => onNavigate(isAdminLoggedIn ? 'admin-about' : 'about')}
       onLogout={onLogout}
+      onNavigate={onNavigate}
     />
   ) : showSignIn ? (
     <button type="button" className="em-circ" aria-label="Sign in" onClick={() => onNavigate('retailer-auth')}>

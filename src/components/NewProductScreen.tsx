@@ -29,6 +29,9 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [purity, setPurity] = useState(editing?.purity ?? '');
   const [huid, setHuid] = useState(editing?.huid ?? '');
   const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
+  const [priceMode, setPriceMode] = useState<string>(editing?.priceMode ?? 'by-weight');
+  const [price, setPrice] = useState(editing?.price !== undefined ? String(editing.price) : '');
+  const [description, setDescription] = useState(editing?.description ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
   const [extra, setExtra] = useState<Record<string, string>>(Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)])));
   const [uploading, setUploading] = useState(false);
@@ -55,9 +58,11 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
               ? 'Enter the gross weight'
               : stone >= gross
                 ? 'Stone weight must be less than gross weight'
-                : missingExtra
-                  ? `Enter ${missingExtra.label}`
-                  : null;
+                : priceMode === 'fixed' && !(parseFloat(price) > 0)
+                  ? 'Enter the fixed price'
+                  : missingExtra
+                    ? `Enter ${missingExtra.label}`
+                    : null;
 
   const handleSave = async () => {
     if (problem) return;
@@ -72,7 +77,10 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         grossWt: gross,
         stoneWt: stone,
         ...(huid.trim() ? { huid: huid.trim() } : {}),
+        ...(description.trim() ? { description: description.trim() } : {}),
         stockStatus,
+        priceMode,
+        ...(priceMode === 'fixed' ? { price: parseFloat(price) } : {}),
         images: photos.map((p) => p.ref),
         extra: extraOut
       } as Partial<Product>,
@@ -167,6 +175,25 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
       <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
         <input id="np-huid" className="inp" style={{ height: 48 }} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
+      </Field>
+
+      <div>
+        <span className="lab">Pricing</span>
+        <div className="em-seg">
+          {sector.priceModes.map((m) => (
+            <button key={m.key} type="button" data-testid={`np-price-${m.key}`} className={`chip${priceMode === m.key ? ' on' : ''}`} aria-pressed={priceMode === m.key} onClick={() => setPriceMode(m.key)}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        {priceMode === 'fixed' && (
+          <input id="np-price" data-testid="np-price" aria-label="Fixed price (₹)" className="inp" style={{ height: 48, marginTop: 10 }} value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ''))} inputMode="decimal" placeholder="Fixed price in ₹" />
+        )}
+        <p className="hint">{priceMode === 'by-weight' ? 'Buyers see the net weight; the rate is agreed on the day.' : priceMode === 'fixed' ? 'Shown to buyers on the design.' : 'Buyers are asked to enquire for the price.'}</p>
+      </div>
+
+      <Field label="Description (optional)" htmlFor="np-desc" hint="Searchable: a few words on the motif, finish or occasion help buyers find it.">
+        <textarea id="np-desc" data-testid="np-description" className="inp" style={{ height: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Antique temple work with a matte finish, bridal set" />
       </Field>
 
       <Field label={editing ? 'SKU' : 'SKU (optional)'} htmlFor="np-sku">

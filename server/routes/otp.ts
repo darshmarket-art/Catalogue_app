@@ -5,17 +5,31 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import type { Config } from '../config';
 import type { Store } from '../store';
-import type { OtpSender } from '../whatsapp';
+import type { OtpDelivery } from '../whatsapp';
 import { RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { logger } from '../logger';
 import type { Entitlements } from '../entitlements';
+import type { StoreFullNotify } from '../notify';
+import type { MessageLog } from '../messages';
+import { receiptsEnabled } from './whatsappWebhook';
+import { recordTurnedAway } from '../storeFull';
 import { trimmed } from '../schemas';
 
 export const OTP_TTL_MS = 5 * 60 * 1000;
 export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_RESEND_MS = 30 * 1000;
 export const OTP_PHONE_PER_HOUR = 5;
+
+/**
+ * Development and test only: the code travels back in the response (and the log) so the app can show it and nobody needs WhatsApp.
+ * In production nothing is ever revealed, even when OTP_STATIC_CODE is set. The real sender drops in without touching this.
+ */
+export function devCode(config: Config, phone: string, code: string): { devCode?: string } {
+  if (config.isProduction) return {};
+  if (config.staticOtp) logger.info(`[dev] OTP for ${phone} is the static code ${code}`);
+  return { devCode: code };
+}
 
 const phone = z
   .string()
@@ -39,12 +53,24 @@ interface OtpDoc {
   sentAt: number;
   hourStart: number;
   hourCount: number;
+  /** Message-log id of the WhatsApp send, when there was one. */
+  messageId?: string | null;
 }
 
-export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: Entitlements, now: () => number = Date.now) {
+export interface OtpDeps { delivery: OtpDelivery; log?: MessageLog | null; onStoreFull?: StoreFullNotify; now?: () => number }
+
+export function otpRoutes(config: Config, store: Store, ent: Entitlements, deps: OtpDeps) {
+  const { delivery, log = null, onStoreFull } = deps;
+  const now = deps.now ?? Date.now;
   const router = Router();
   if (config.staticOtp) logger.warn('OTP_STATIC_CODE is set: sign-in uses a fixed code and nothing is sent on WhatsApp.');
   const hash = (ph: string, code: string) => crypto.createHmac('sha256', config.jwtSecret).update(`${ph}:${code}`).digest('hex');
+  // The 30-second resend wait is waived once when WhatsApp reported the previous code as failed.
+  const resendBlocked = async (prev: OtpDoc | null, t: number) => {
+    if (!prev || t - prev.sentAt >= OTP_RESEND_MS) return false;
+    const m = prev.messageId && log ? await log.get(prev.messageId) : null;
+    return m?.status !== 'failed';
+  };
   const ipLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: config.rateLimit.auth * 3,
@@ -58,11 +84,21 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
     ipLimiter,
     handler(async (req, res) => {
       const { phone: ph } = parse(requestSchema, req.body);
-      await ent.assertCanAddBuyer(ph); // before any code is sent
       const t = now();
+      try {
+        await ent.assertCanAddBuyer(ph); // before any code is sent
+      } catch (e) {
+        if (e instanceof HttpError && e.code === 'CATALOGUE_FULL') {
+          // A full store: count the buyer (once per day), tell the owner, spend nothing on a code.
+          const { today } = await recordTurnedAway(store, ph, t);
+          await audit(store, req, 'BUYER_TURNED_AWAY', `Catalogue full: ${ph} asked to join (${today} today).`);
+          void onStoreFull?.(today);
+        }
+        throw e;
+      }
       const prev = await store.get<OtpDoc>('otps', ph);
-      if (prev && t - prev.sentAt < OTP_RESEND_MS) {
-        throw new HttpError(429, `Please wait ${Math.ceil((OTP_RESEND_MS - (t - prev.sentAt)) / 1000)} seconds before asking for another code.`);
+      if (await resendBlocked(prev, t)) {
+        throw new HttpError(429, `Please wait ${Math.ceil((OTP_RESEND_MS - (t - prev!.sentAt)) / 1000)} seconds before asking for another code.`);
       }
       const sameHour = Boolean(prev && t - prev.hourStart < 3600_000);
       if (prev && sameHour && prev.hourCount >= OTP_PHONE_PER_HOUR) {
@@ -74,12 +110,7 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
       if (used >= config.otpDailyCap) throw new HttpError(429, 'Sign-in codes are temporarily unavailable. Please try again tomorrow.');
 
       const code = config.staticOtp ?? String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
-      try {
-        if (!config.staticOtp) await sender.sendOtp(ph, code);
-      } catch (err) {
-        logger.error('OTP send failed', { error: String(err) });
-        throw new HttpError(503, 'Could not send the code on WhatsApp. Please try again shortly.');
-      }
+      const { channel, messageId } = await delivery(ph, code, 'otp');
       await store.increment('otpDaily', day, { count: 1 });
       await store.set('otps', ph, {
         hash: hash(ph, code),
@@ -87,9 +118,20 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
         attempts: 0,
         sentAt: t,
         hourStart: sameHour ? prev!.hourStart : t,
-        hourCount: sameHour ? prev!.hourCount + 1 : 1
+        hourCount: sameHour ? prev!.hourCount + 1 : 1,
+        messageId
       } satisfies OtpDoc);
-      res.json({ status: 'success', message: 'We sent a 6-digit code to your WhatsApp.', expiresInSeconds: OTP_TTL_MS / 1000 });
+      res.json({ status: 'success', message: 'We sent a 6-digit code to your WhatsApp.', expiresInSeconds: OTP_TTL_MS / 1000, channel, messageId, receipts: receiptsEnabled(config), ...devCode(config, ph, code) });
+    })
+  );
+
+  // The buyer's code screen polls this while waiting: did WhatsApp deliver the code? No PII comes back.
+  router.get(
+    '/otp-status/:id',
+    handler(async (req, res) => {
+      const m = log ? await log.get(String(req.params.id)) : null;
+      if (!m || m.storeId !== config.merchant.id) throw new HttpError(404, 'Unknown message.');
+      res.json({ status: 'success', data: { status: m.status, failure: m.failure ?? null, receipts: receiptsEnabled(config) } });
     })
   );
 
@@ -154,7 +196,7 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
     handler(async (req, res) => {
       const { email } = parse(forgotSchema, req.body);
       const ph = config.merchant.contact.whatsapp.replace(/[^0-9]/g, '');
-      const reply = () => res.json({ status: 'success', message: `If that is the store admin, a 6-digit code was sent to the store's WhatsApp number ending ${ph.slice(-4)}.`, expiresInSeconds: OTP_TTL_MS / 1000 });
+      const reply = (code?: string) => res.json({ status: 'success', message: `If that is the store admin, a 6-digit code was sent to the store's WhatsApp number ending ${ph.slice(-4)}.`, expiresInSeconds: OTP_TTL_MS / 1000, ...(code ? devCode(config, ph, code) : {}) });
       if (!(await store.get('admins', email))) return void reply();
       const key = `admin-reset:${email}`;
       const t = now();
@@ -163,15 +205,12 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
       const sameHour = Boolean(prev && t - prev.hourStart < 3600_000);
       if (prev && sameHour && prev.hourCount >= OTP_PHONE_PER_HOUR) throw new HttpError(429, 'Too many codes requested. Please try again later.');
       const code = config.staticOtp ?? String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
-      try {
-        if (!config.staticOtp) await sender.sendOtp(ph, code);
-      } catch (err) {
-        logger.error('Admin reset OTP send failed', { error: String(err) });
-        throw new HttpError(503, 'Could not send the code on WhatsApp. Please try again shortly.');
-      }
-      await store.set('otps', key, { hash: hash(key, code), expiresAt: t + OTP_TTL_MS, attempts: 0, sentAt: t, hourStart: sameHour ? prev!.hourStart : t, hourCount: sameHour ? prev!.hourCount + 1 : 1 } satisfies OtpDoc);
+      const { messageId } = await delivery(ph, code, 'admin-reset');
+      await store.set('otps', key, {
+        hash: hash(key, code), expiresAt: t + OTP_TTL_MS, attempts: 0, sentAt: t, hourStart: sameHour ? prev!.hourStart : t, hourCount: sameHour ? prev!.hourCount + 1 : 1, messageId
+      } satisfies OtpDoc);
       await audit(store, req, 'ADMIN_RESET_CODE_SENT', `Password reset code requested for ${email}.`);
-      reply();
+      reply(code);
     })
   );
 

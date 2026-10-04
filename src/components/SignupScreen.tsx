@@ -3,16 +3,18 @@ import QRCode from 'qrcode';
 import { setAuthToken } from '../api';
 import '../layouts/emergent/emergent.css';
 import { Field, I, Notice } from './ui';
+import { DevOtpHint } from './DevOtpHint';
 import { Icon } from '../layouts/emergent/ui';
 import { AntarixsMark, AntarixsWordmark, PoweredByAntarixs } from './AntarixsBrand';
-import { shareStoreQr } from '../storeQrCard';
+import { shareStoreQr, storeQrBlob } from '../storeQrCard';
+import { saveFile } from '../saveFile';
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
 async function call(path: string, body?: unknown) {
   const res = await fetch(`/api/v1/signup${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.message || `Request failed (${res.status})`);
+  if (!res.ok) throw Object.assign(new Error(json.message || `Request failed (${res.status})`), { code: json.code });
   return json;
 }
 
@@ -56,11 +58,16 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 /** /signup: create a store (artboards 1.3 to 1.6). */
 export const SignupScreen: React.FC = () => {
   const [step, setStep] = useState<Step>('name');
-  const [f, setF] = useState({ brandName: '', storeName: '', ownerName: '', phone: '', email: '', password: '', code: '' });
+  const [f, setF] = useState({ brandName: '', storeName: '', ownerName: '', phone: '', email: '', password: '', code: '', website: '' });
   const [qr, setQr] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [avail, setAvail] = useState<{ name: string; ok: boolean; reason?: string } | null>(null);
+  const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [errCode, setErrCode] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const [channel, setChannel] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [result, setResult] = useState<{ storeUrl: string; sessionToken: string } | null>(null);
@@ -74,14 +81,36 @@ export const SignupScreen: React.FC = () => {
     document.title = 'Create your store · Antarixs';
   }, []);
 
+  // Live availability while the owner types: a short pause, then one check; suggestions appear when the name is taken.
+  useEffect(() => {
+    const name = f.storeName;
+    if (step !== 'name' || name.length < 3) {
+      setAvail(null);
+      return;
+    }
+    setChecking(true);
+    const t = setTimeout(() => {
+      call(`/check?name=${encodeURIComponent(name)}`)
+        .then((r) => {
+          setAvail({ name, ok: r.available, reason: r.reason });
+          setSuggestions(r.available ? [] : r.suggestions);
+        })
+        .catch(() => setAvail(null))
+        .finally(() => setChecking(false));
+    }, 450);
+    return () => clearTimeout(t);
+  }, [f.storeName, step]);
+
   const run = (fn: () => Promise<void>) => async (e?: React.FormEvent) => {
     e?.preventDefault();
     setBusy(true);
     setErr(null);
+    setErrCode(null);
     try {
       await fn();
     } catch (x: any) {
       setErr(x.message);
+      setErrCode(x.code ?? null);
     } finally {
       setBusy(false);
     }
@@ -94,7 +123,9 @@ export const SignupScreen: React.FC = () => {
     setStep('owner');
   });
   const sendCode = run(async () => {
-    await call('/request-otp', { phone: f.phone });
+    const r = await call('/request-otp', { phone: f.phone, website: f.website });
+    setDevCode(r.devCode ?? null);
+    setChannel(r.channel ?? null);
     setStep('code');
   });
   const create = run(async () => {
@@ -105,6 +136,19 @@ export const SignupScreen: React.FC = () => {
     setStep('done');
   });
 
+  const copyLink = () => {
+    if (!result) return;
+    void navigator.clipboard?.writeText(result.storeUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  const downloadQr = async () => {
+    if (!result) return;
+    saveFile(await storeQrBlob(f.brandName.trim() || 'Your store', result.storeUrl), `${f.storeName}-qr.png`);
+  };
+  const open = (hash: string) => result && window.location.replace(`${result.storeUrl}${hash}`);
+
   const back = () => {
     setErr(null);
     if (step === 'owner') setStep('name');
@@ -112,51 +156,68 @@ export const SignupScreen: React.FC = () => {
     else window.location.href = '/';
   };
 
+  const errorBox = err && (
+    <Notice tone="error">
+      {err}
+      {errCode === 'TRIAL_USED' && (
+        <>
+          {' '}
+          <a href="/welcome-antarixs" style={{ fontWeight: 700, textDecoration: 'underline' }} data-testid="signup-signin-link">
+            Sign in to your store
+          </a>
+        </>
+      )}
+    </Notice>
+  );
+
   if (step === 'done' && result) {
     const sameOrigin = new URL(result.storeUrl).origin === window.location.origin;
     const host = result.storeUrl.replace(/^https?:\/\//, '');
     return (
       <Shell>
-        <main className="scroll no-tabs step-in" style={{ gap: 16, maxWidth: 480, margin: '0 auto', minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }}>
+        <main className="scroll no-tabs step-in" style={{ gap: 14, maxWidth: 480, margin: '0 auto', minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }} data-testid="store-ready">
           <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--em-ok)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
             <Icon n="check" size={26} />
           </span>
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.2 }}>
-            {f.brandName.trim() || 'Your store'} is live
+            {f.brandName.trim() || 'Your store'} is ready
           </h1>
           <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.5 }}>
-            Your 14-day free trial has started. Share this QR or link with your buyers. They can browse and enquire instantly.
+            Your 14-day Pro trial has started. Share this link or QR with your buyers. They sign in with their WhatsApp number and browse.
           </p>
-          <div className="em-card" style={{ width: '100%', padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div className="em-card" style={{ width: '100%', padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <span className="em-ey">Scan to open</span>
-            {qr && <img src={qr} alt={`QR code for ${f.brandName}`} style={{ width: 188, height: 188, borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
-            <span className="em-ser" style={{ fontSize: 20 }}>
-              {f.brandName.trim() || 'Your store'}
-            </span>
-            <a href={result.storeUrl} style={{ color: 'var(--em-primary)', fontSize: 13, fontWeight: 600, wordBreak: 'break-all' }}>
+            {qr && <img src={qr} alt={`QR code for ${f.brandName}`} data-testid="store-ready-qr" style={{ width: 188, height: 188, borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
+            <a href={result.storeUrl} data-testid="store-ready-link" style={{ color: 'var(--em-primary)', fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
               {host}
             </a>
+            <div className="row" style={{ gap: 8, width: '100%' }}>
+              <button type="button" className="btn alt sm" style={{ flex: 1 }} data-testid="store-ready-copy" onClick={copyLink}>
+                <I n={copied ? 'check' : 'link'} size="s" />
+                {copied ? 'Copied' : 'Copy link'}
+              </button>
+              <button type="button" className="btn alt sm" style={{ flex: 1 }} data-testid="store-ready-download" onClick={() => void downloadQr()}>
+                <I n="down" size="s" />
+                Download QR
+              </button>
+            </div>
             <PoweredByAntarixs />
           </div>
           <button type="button" className="btn wa" style={{ width: '100%' }} disabled={sharing} onClick={() => { setSharing(true); void shareStoreQr(f.brandName.trim() || host, result.storeUrl).finally(() => setSharing(false)); }}>
             <I n="whats" />
             {sharing ? 'Preparing…' : 'Share QR on WhatsApp'}
           </button>
-          <button
-            type="button"
-            className="btn alt"
-            style={{ width: '100%' }}
-            onClick={() => {
-              if (typeof navigator.share === 'function') void navigator.share({ title: f.brandName, url: result.storeUrl }).catch(() => {});
-              else void navigator.clipboard?.writeText(result.storeUrl).then(() => setCopied(true));
-            }}
-          >
-            <I n={copied ? 'check' : 'link'} />
-            {copied ? 'Link copied' : 'Share link'}
-          </button>
-          <a className="btn" style={{ width: '100%' }} href={result.storeUrl} onClick={(e) => { e.preventDefault(); window.location.replace(`${result.storeUrl}#new`); }}>
+          <div className="em-card" style={{ width: '100%', padding: 16, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span className="em-ey">Next step</span>
+            <b style={{ fontSize: 15 }}>Add your first collection, then your designs</b>
+            <p className="em-mut" style={{ fontSize: 13, margin: 0 }}>Buyers see collections first (e.g. Rings, Bridal, Chains). Each design belongs to one.</p>
+            <a className="btn" href={result.storeUrl} data-testid="store-ready-first-collection" onClick={(e) => { e.preventDefault(); open('#new-collection'); }}>
+              Add your first collection
+              <I n="chev" />
+            </a>
+          </div>
+          <a className="lnk" href={result.storeUrl} data-testid="store-ready-open" onClick={(e) => { e.preventDefault(); open('#new'); }}>
             Open my store
-            <I n="chev" />
           </a>
           <p className="hint">{sameOrigin ? 'You are signed in as the owner on this device.' : 'On your store, sign in once with the email and password you just set.'}</p>
         </main>
@@ -187,7 +248,7 @@ export const SignupScreen: React.FC = () => {
             </p>
           </div>
           <Field label="Business name" htmlFor="brand">
-            <input id="brand" className="inp" required minLength={2} value={f.brandName} onChange={(e) => setF({ ...f, brandName: e.target.value, storeName: slug(e.target.value) })} placeholder="e.g. Mahalakshmi Jewellers" />
+            <input id="brand" data-testid="signup-brand" className="inp" required minLength={2} value={f.brandName} onChange={(e) => setF({ ...f, brandName: e.target.value, storeName: slug(e.target.value) })} placeholder="e.g. Mahalakshmi Jewellers" />
           </Field>
           <div>
             <label className="lab" htmlFor="sn">
@@ -196,6 +257,7 @@ export const SignupScreen: React.FC = () => {
             <div className="inp" style={{ padding: 0 }}>
               <input
                 id="sn"
+                data-testid="signup-store-name"
                 required
                 value={f.storeName}
                 onChange={(e) => setF({ ...f, storeName: slug(e.target.value) })}
@@ -204,6 +266,11 @@ export const SignupScreen: React.FC = () => {
               />
               <span style={{ color: 'var(--mut)', paddingRight: 15 }}>.antarixs.com</span>
             </div>
+            {f.storeName.length >= 3 && (
+              <p className="hint" data-testid="store-name-status" style={{ color: avail && avail.name === f.storeName ? (avail.ok ? 'var(--ok)' : 'var(--bad)') : undefined }}>
+                {checking || !avail || avail.name !== f.storeName ? 'Checking availability…' : avail.ok ? `${f.storeName}.antarixs.com is available` : avail.reason}
+              </p>
+            )}
             {suggestions.length > 0 && (
               <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                 {suggestions.map((s) => (
@@ -222,9 +289,9 @@ export const SignupScreen: React.FC = () => {
               </div>
             )}
           </div>
-          {err && <Notice tone="error">{err}</Notice>}
+          {errorBox}
           <span className="grow" />
-          <button type="submit" className="btn" disabled={busy}>
+          <button type="submit" className="btn" data-testid="signup-continue" disabled={busy || (avail?.name === f.storeName && !avail.ok)}>
             {busy ? 'Checking…' : 'Continue'}
           </button>
         </form>
@@ -242,17 +309,22 @@ export const SignupScreen: React.FC = () => {
             <input id="on" className="inp" value={f.ownerName} onChange={set('ownerName')} autoComplete="name" />
           </Field>
           <Field label="Mobile number (WhatsApp)" htmlFor="ph">
-            <input id="ph" type="tel" className="inp" required value={f.phone} onChange={set('phone')} autoComplete="tel" />
+            <input id="ph" data-testid="signup-phone" type="tel" className="inp" required value={f.phone} onChange={set('phone')} autoComplete="tel" />
           </Field>
           <Field label="Email" htmlFor="em">
-            <input id="em" type="email" className="inp" required value={f.email} onChange={set('email')} autoComplete="email" />
+            <input id="em" data-testid="signup-email" type="email" className="inp" required value={f.email} onChange={set('email')} autoComplete="email" />
           </Field>
           <Field label="Password" htmlFor="pw" hint="At least 10 characters. You use it to sign in as the owner.">
-            <input id="pw" type="password" className="inp" required minLength={10} value={f.password} onChange={set('password')} autoComplete="new-password" />
+            <input id="pw" data-testid="signup-password" type="password" className="inp" required minLength={10} value={f.password} onChange={set('password')} autoComplete="new-password" />
           </Field>
-          {err && <Notice tone="error">{err}</Notice>}
+          {/* Honeypot: hidden from people, filled by bots. */}
+          <div aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, overflow: 'hidden' }}>
+            <label htmlFor="website">Website</label>
+            <input id="website" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={set('website')} />
+          </div>
+          {errorBox}
           <span className="grow" />
-          <button type="submit" className="btn" disabled={busy}>
+          <button type="submit" className="btn" data-testid="signup-send-code" disabled={busy}>
             <I n="whats" />
             {busy ? 'Sending…' : 'Send code on WhatsApp'}
           </button>
@@ -267,6 +339,7 @@ export const SignupScreen: React.FC = () => {
               Sent to {f.phone} on WhatsApp.
             </p>
           </div>
+          <DevOtpHint code={devCode} channel={channel} />
           <CodeBoxes value={f.code} onChange={(code) => setF({ ...f, code })} />
           <div className="row">
             <I n="clock" size="s" style={{ color: 'var(--mut)' }} />
@@ -275,9 +348,9 @@ export const SignupScreen: React.FC = () => {
               Resend
             </button>
           </div>
-          {err && <Notice tone="error">{err}</Notice>}
+          {errorBox}
           <span className="grow" />
-          <button type="submit" className="btn" disabled={busy || f.code.length !== 6}>
+          <button type="submit" className="btn" data-testid="signup-create" disabled={busy || f.code.length !== 6}>
             {busy ? 'Creating…' : 'Create my store'}
           </button>
           <p className="hint" style={{ textAlign: 'center' }}>

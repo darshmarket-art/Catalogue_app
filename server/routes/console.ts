@@ -11,6 +11,7 @@ import { HttpError, handler, parse } from '../http';
 import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
 import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 import { activity, buyers, orders, owners, summary } from '../consoleStats';
+import { deliverySummary, type MessageDoc, type MessageLog } from '../messages';
 
 const IAP_KEYS_URL = 'https://www.gstatic.com/iap/verify/public_key';
 export type IapKeys = () => Promise<Record<string, string>>;
@@ -80,9 +81,30 @@ const view = async (root: Store, rec: StoreRecord) => {
 
 const DAY = 86400000;
 
-export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIapKeys) {
+export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIapKeys, log: MessageLog | null = null) {
   const r = Router();
   r.use(consoleAuth(config, keys));
+
+  // Delivery health across stores: is the token alive, are templates approved, which numbers fail.
+  r.get('/delivery', handler(async (_req, res) => {
+    const rows = log ? await log.listSince(Date.now() - 7 * 24 * 60 * 60 * 1000) : [];
+    const perStore = new Map<string, MessageDoc[]>();
+    for (const m of rows) perStore.set(m.storeId ?? 'platform', [...(perStore.get(m.storeId ?? 'platform') ?? []), m]);
+    const codes = new Map<string, number>();
+    for (const m of rows) if (m.status === 'failed') codes.set(`${m.errorCode ?? 'n/a'}: ${m.errorTitle ?? 'unknown'}`, (codes.get(`${m.errorCode ?? 'n/a'}: ${m.errorTitle ?? 'unknown'}`) ?? 0) + 1);
+    const byKind: Record<string, number> = {};
+    for (const m of rows) byKind[m.kind] = (byKind[m.kind] ?? 0) + 1;
+    res.json({
+      status: 'success',
+      data: {
+        receipts: { connected: Boolean(config.whatsappAppSecret && config.webhookVerifyToken), lastAt: log ? await log.lastReceiptAt() : null },
+        whatsappConfigured: Boolean(config.whatsapp),
+        week: { ...deliverySummary(rows), byKind },
+        failures: [...codes.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, 8),
+        perStore: [...perStore.entries()].map(([id, ms]) => ({ id, ...deliverySummary(ms) })).sort((a, b) => b.failed - a.failed || b.total - a.total)
+      }
+    });
+  }));
 
   const getRec = async (id: string) => {
     const rec = await root.get<StoreRecord>('stores', id);
@@ -158,11 +180,11 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
  * Mounted ahead of the store resolver: the API (and, built, the page) on console.<baseDomain>,
  * and on any host outside production so it can be tried locally at /console.
  */
-export function consoleMount(config: Config, root: Store, keys?: IapKeys) {
+export function consoleMount(config: Config, root: Store, keys?: IapKeys, log: MessageLog | null = null) {
   const r = Router();
   const isConsoleHost: RequestHandler = (req, _res, next) =>
     hostOf(req) === `console.${config.baseDomain}` || !config.isProduction ? next() : next('router');
-  r.use('/api/console', isConsoleHost, consoleApi(config, root, keys));
+  r.use('/api/console', isConsoleHost, consoleApi(config, root, keys, log));
   if (config.isProduction) {
     const dist = path.resolve(process.cwd(), 'dist');
     const page = path.join(dist, 'console.html');

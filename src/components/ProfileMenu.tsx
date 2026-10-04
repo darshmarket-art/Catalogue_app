@@ -1,6 +1,9 @@
 import { usePlan } from '../plan';
 import React, { useEffect, useRef, useState } from 'react';
-import { canInstall, onInstallChange, promptInstall } from '../install';
+import type { ActiveScreen } from '../types';
+import { merchant } from '../merchant';
+import { currentStoreUrl } from '../storeLink';
+import { StoreShareSheet } from './StoreShareSheet';
 
 export interface ProfileUser {
   storeName: string;
@@ -18,17 +21,18 @@ interface ProfileMenuProps {
   onOpenAdminConsole: () => void;
   onOpenAbout: () => void;
   onLogout: () => void;
+  /** Admin-only entries (share the store, admin accounts, change password) go through here. */
+  onNavigate?: (screen: ActiveScreen) => void;
 }
 
 const itemClass =
   'w-full flex items-center gap-3 px-5 min-h-[50px] text-left text-[15px] font-semibold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-[rgb(74_24_53/0.07)]';
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
-export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout }) => {
+export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout, onNavigate }) => {
   const orders = usePlan().flags.orders;
   const [open, setOpen] = useState(false);
-  const [installable, setInstallable] = useState(canInstall());
-  useEffect(() => onInstallChange(() => setInstallable(canInstall())), []);
+  const [sharing, setSharing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -109,10 +113,23 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
               <button role="menuitem" className={itemClass} onClick={choose(onOpenAdminConsole)} type="button">
                 Admin console
               </button>
+              <button role="menuitem" className={itemClass} data-testid="menu-share-store" onClick={choose(() => setSharing(true))} type="button">
+                Share store link / QR
+              </button>
               {orders && (
                 <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
                   Placed orders
                 </button>
+              )}
+              {onNavigate && (
+                <>
+                  <button role="menuitem" className={itemClass} data-testid="menu-admins" onClick={choose(() => onNavigate('admin-admins'))} type="button">
+                    Admin accounts
+                  </button>
+                  <button role="menuitem" className={itemClass} data-testid="menu-change-password" onClick={choose(() => onNavigate('admin-password'))} type="button">
+                    Change password
+                  </button>
+                </>
               )}
             </>
           ) : (
@@ -130,12 +147,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
             </>
           )}
 
-          {installable && (
-            <button role="menuitem" className={itemClass} onClick={choose(promptInstall)} type="button">
-              Install app
-            </button>
-          )}
-
           <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
             About us
           </button>
@@ -145,6 +156,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
           </button>
         </div>
       )}
+      {sharing && <StoreShareSheet name={merchant.brand.name} url={currentStoreUrl()} onClose={() => setSharing(false)} />}
     </div>
   );
 };

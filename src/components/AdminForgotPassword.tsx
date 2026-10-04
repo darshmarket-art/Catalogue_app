@@ -6,6 +6,7 @@ import { Field, Notice } from './ui';
 export const AdminForgotPassword: React.FC<{ email: string; onBack: () => void; onDone: (message: string) => void }> = ({ email: initial, onBack, onDone }) => {
   const [email, setEmail] = useState(initial);
   const [sent, setSent] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,8 +28,11 @@ export const AdminForgotPassword: React.FC<{ email: string; onBack: () => void; 
   return (
     <form
       onSubmit={run(async () => {
-        if (!sent) setSent(await api.adminForgotRequest(email.trim()));
-        else {
+        if (!sent) {
+          const r = await api.adminForgotRequest(email.trim());
+          setSent(r.message);
+          setDevCode(r.devCode ?? null);
+        } else {
           await api.adminForgotReset({ email: email.trim(), code, newPassword: pw });
           onDone('Password updated. Sign in with the new password.');
         }
@@ -42,6 +46,11 @@ export const AdminForgotPassword: React.FC<{ email: string; onBack: () => void; 
       </div>
       {err && <Notice tone="error">{err}</Notice>}
       {sent && <Notice tone="ok">{sent}</Notice>}
+      {devCode && (
+        <Notice tone="warn">
+          <span data-testid="dev-otp-hint">Development mode: the code is <b>{devCode}</b>.</span>
+        </Notice>
+      )}
       <Field label="Admin email" htmlFor="fp-email">
         <input id="fp-email" type="email" className="inp" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={Boolean(sent)} />
       </Field>

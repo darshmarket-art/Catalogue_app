@@ -129,8 +129,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 <Pill tone="plum">{product.purity.replace(' ', ' · ')}</Pill>
               )}
               <StockPill status={product.stockStatus} />
+              {product.priceMode === 'fixed' && product.price !== undefined && <Pill tone="gold">₹ {product.price.toLocaleString('en-IN')}</Pill>}
+              {product.priceMode === 'on-request' && <Pill>Price on request</Pill>}
               {product.huid && <Pill tone="gold">HUID {product.huid}</Pill>}
             </div>
+
+            {product.description && (
+              <p className="em-mut" style={{ marginTop: 14, fontSize: 14, lineHeight: 1.5 }} data-testid="product-description">
+                {product.description}
+              </p>
+            )}
 
             <div className="em-rule" style={{ width: 48, marginTop: 16 }} />
             <div className="em-ey">Specifications</div>

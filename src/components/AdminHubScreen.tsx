@@ -6,6 +6,9 @@ import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 import { Notice } from './ui';
 import { Icon } from '../layouts/emergent/ui';
 import { usePlan, upgradeNotice } from '../plan';
+import { merchant } from '../merchant';
+import { currentStoreUrl } from '../storeLink';
+import { StoreShareSheet } from './StoreShareSheet';
 
 interface AdminHubScreenProps {
   analytics: AnalyticsData;
@@ -27,6 +30,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categ
   const days = trialDaysLeft(ent);
   const trialEnded = days === null && ent.plan === 'basic' && !!ent.trialEndsAt;
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const usedCategories = ent.usage?.categories ?? categories;
   const usedPhotos = ent.usage?.photos ?? 0;
@@ -43,17 +47,21 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categ
   const tiles: Array<{ icon: string; label: string; note: string; go: () => void; locked?: boolean; testId?: string }> = [
     { icon: 'package', label: 'Orders', note: flags.orders ? (analytics.newOrders > 0 ? `${analytics.newOrders} new` : 'All buyers') : 'Enquire on WhatsApp instead', go: () => onNavigate('orders'), locked: !flags.orders },
     { icon: 'users', label: 'Buyers', note: limits.users === null ? 'Signed-in buyers' : `Up to ${limits.users}`, go: () => onNavigate('admin-buyers') },
+    { icon: 'bell', label: 'WhatsApp alerts', note: flags.alerts ? 'Numbers · test alert' : 'Pro feature', go: () => onNavigate('admin-alerts'), locked: !flags.alerts, testId: 'tile-alerts' },
+    { icon: 'share', label: 'Share store', note: 'Link and QR for buyers', go: () => setSharing(true), testId: 'tile-share' },
     { icon: 'act', label: 'Engagement', note: flags.liveVisitors ? `${analytics.todayVisitors} today · ${analytics.liveVisitors} online` : 'Pro feature', go: onOpenVisitors, testId: 'block-all', locked: !flags.liveVisitors },
     { icon: 'image', label: 'Banners', note: 'Photos on the home', go: () => onNavigate('admin-banners') },
     { icon: 'disc', label: 'Purity', note: 'Karat list for designs', go: () => onNavigate('admin-purities') },
     { icon: 'info', label: 'About us', note: 'Buyer-facing details', go: () => onNavigate('admin-about') },
     { icon: 'down', label: 'PDF catalogue', note: flags.pdfCatalogue ? 'Pick · share on WhatsApp' : 'Pro feature', go: () => onNavigate('admin-pdf'), locked: !flags.pdfCatalogue, testId: 'tile-pdf' },
     { icon: 'file', label: 'Audit log', note: flags.auditLog ? (downloading ? 'Downloading…' : 'Export CSV') : 'Pro feature', go: handleExportCSV, locked: !flags.auditLog },
-    ...(!isPro || days === null ? [{ icon: 'award', label: 'Plan and usage', note: isPro ? 'Your plan' : 'See what Pro adds', go: () => onNavigate('admin-plan') }] : [])
+    { icon: 'shield', label: 'Admin accounts', note: 'Add or remove admins', go: () => onNavigate('admin-admins'), testId: 'tile-admins' },
+    ...(!isPro || days === null ? [{ icon: 'award', label: 'Plan and usage', note: isPro ? 'Your plan' : 'See what Pro adds', go: () => onNavigate('admin-plan'), testId: 'tile-plan' }] : [])
   ];
 
   return (
     <div className="scroll" style={{ gap: 12 }}>
+      {sharing && <StoreShareSheet name={merchant.brand.name} url={currentStoreUrl()} onClose={() => setSharing(false)} />}
       {flags.liveVisitors && (
         <div className="em-chipbox" data-testid="live-chip">
           <i />
@@ -63,14 +71,14 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categ
       )}
 
       {days !== null && (
-        <button type="button" className="em-banner" data-testid="trial-banner" onClick={() => onNavigate('admin-plan')}>
+        <button type="button" className={`em-banner${days <= 3 ? ' urgent' : ''}`} data-testid="trial-banner" onClick={() => onNavigate('admin-plan')}>
           <span className="em-badge">
-            <Icon n="award" />
+            <Icon n={days <= 3 ? 'clock' : 'award'} />
           </span>
           <span className="em-grow">
-            <span className="em-ey">Pro Trial</span>
+            <span className="em-ey">{days <= 3 ? 'Pro trial ending soon' : 'Pro Trial'}</span>
             <span style={{ display: 'block', fontSize: 14, marginTop: 2 }}>
-              {days} {days === 1 ? 'day' : 'days'} of Pro left. Then you move to Basic.
+              {days} {days === 1 ? 'day' : 'days'} of Pro left. {days <= 3 ? 'Upgrade to keep orders, insights and PDF.' : 'Then you move to Basic.'}
             </span>
           </span>
           <Icon n="next" className="em-chev" />

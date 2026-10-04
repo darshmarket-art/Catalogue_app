@@ -13,6 +13,16 @@ export const purityTitle = (key: string) => key.replace(' ', ' · ');
 export const STOCK_STATUSES = ['Ready in Vault', 'Made-to-Order', 'Draft'] as const;
 export type StockStatus = (typeof STOCK_STATUSES)[number];
 
+/** How a design is priced: on gram weight (the trade default), a fixed amount, or only on request. */
+export const PRICE_MODES = ['by-weight', 'fixed', 'on-request'] as const;
+export type PriceMode = (typeof PRICE_MODES)[number];
+export const PRICE_MODE_LABELS: Record<PriceMode, string> = { 'by-weight': 'By weight', fixed: 'Fixed price', 'on-request': 'Price on request' };
+
+/** Sort orders the catalogue offers; the server and the Catalogue screen read the same list. */
+export const SORT_KEYS = ['newest', 'weight-asc', 'weight-desc', 'name'] as const;
+export type SortKey = (typeof SORT_KEYS)[number];
+export const SORT_LABELS: Record<SortKey, string> = { newest: 'Newest', 'weight-asc': 'Lightest first', 'weight-desc': 'Heaviest first', name: 'A to Z' };
+
 const round3 = (n: number) => parseFloat(n.toFixed(3));
 
 /** Net metal weight in grams: gross weight minus stones / tare. */

@@ -5,8 +5,11 @@ import jwt from 'jsonwebtoken';
 import type { Config } from './config';
 import type { Store } from './store';
 
-export const RETAILER_TOKEN_TTL = '7d';
+/** Buyers stay signed in for a month; every visit renews it via /api/auth/me (sliding), so a regular buyer is never asked again. */
+export const RETAILER_TOKEN_TTL = '30d';
 export const ADMIN_TOKEN_TTL = '8h';
+/** "Keep me signed in" at the admin login: a month, renewed on every visit like the buyer session. */
+export const ADMIN_REMEMBER_TTL = '30d';
 /** The phone app keeps people signed in until they log out; every app start renews it via /api/auth/me. */
 export const NATIVE_TOKEN_TTL = '90d';
 export const isNativeClient = (req: Request) => req.header('x-app-client') === 'native';
@@ -16,6 +19,8 @@ export interface TokenClaims {
   type: 'retailer' | 'admin';
   storeId?: string; // the store the token was issued for
   sub: string; // merchant phone / admin email: the store document id
+  /** Admin chose "Keep me signed in": the session is long and slides forward on use. */
+  remember?: boolean;
 }
 
 export interface AuthedUser {
@@ -36,11 +41,11 @@ function readClaims(config: Config, req: Request): TokenClaims | null {
   try {
     const decoded = jwt.verify(header.slice(7), config.jwtSecret, { algorithms: ['HS256'], issuer: config.merchant.id });
     if (typeof decoded === 'string') return null;
-    const { type, sub, storeId } = decoded as Partial<TokenClaims>;
+    const { type, sub, storeId, remember } = decoded as Partial<TokenClaims>;
     // Tokens from before multi-store carry no storeId; only the default store (their origin) accepts them.
     if (storeId ? storeId !== config.merchant.id : config.merchant.id !== config.defaultStore) return null;
     if ((type !== 'retailer' && type !== 'admin') || typeof sub !== 'string') return null;
-    return { type, sub };
+    return { type, sub, ...(remember ? { remember: true } : {}) };
   } catch {
     return null;
   }
@@ -51,7 +56,7 @@ async function resolveUser(store: Store, claims: TokenClaims): Promise<AuthedUse
   if (claims.type === 'admin') {
     const admin = await store.get('admins', claims.sub);
     return admin
-      ? { type: 'admin', id: admin.email, name: admin.name, role: admin.role }
+      ? { type: 'admin', id: admin.email, name: admin.name, role: admin.role, mustChangePassword: Boolean(admin.mustChangePassword) }
       : null;
   }
   const buyer = await store.get('buyers', claims.sub);
@@ -78,6 +83,7 @@ export function createAuth(config: Config, store: Store) {
           return res.status(401).json({ status: 'error', message: 'Session is no longer valid. Please sign in again.' });
         }
         res.locals.user = user;
+        res.locals.claims = claims;
         next();
       } catch (err) {
         next(err);
@@ -97,6 +103,7 @@ export function createAuth(config: Config, store: Store) {
 }
 
 export const user = (res: Response) => res.locals.user as AuthedUser;
+export const claimsOf = (res: Response) => res.locals.claims as TokenClaims;
 
 const DUMMY_HASH = '$2a$10$CwTycUXWue0Thq9StjUM0uJ8.6bEuQnYVYHYTBbtDIrnHo0ATTHzy';
 

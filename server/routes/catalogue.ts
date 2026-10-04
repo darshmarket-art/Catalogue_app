@@ -7,7 +7,7 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, paginationSchema } from '../schemas';
+import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
 
@@ -193,33 +193,22 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // Search, filters, sort and paging all happen here, so the app only ever downloads the page it shows.
   router.get(
     '/products',
     readGuard,
     handler(async (req, res) => {
-      const { limit, offset } = parse(paginationSchema, req.query);
-      const { search, category, purity } = req.query;
-      let list = (await store.list('products')).sort(byCreatedAt(-1));
-
-      if (typeof search === 'string' && search) {
-        const q = search.toLowerCase();
-        list = list.filter(
-          (p) => p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
-        );
-      }
-      if (typeof category === 'string' && category && category !== 'all') {
-        list = list.filter((p) => p.category.toLowerCase().includes(category.toLowerCase()));
-      }
-      if (typeof purity === 'string' && purity && purity !== 'all') {
-        list = list.filter((p) => p.purity.toLowerCase().includes(purity.toLowerCase()));
-      }
-
+      const q = parse(pack.querySchema, req.query);
+      const list = pack.applyQuery(await store.list('products'), q);
+      const page = list.slice(q.offset, q.offset + q.limit);
       res.json({
         status: 'success',
         count: list.length,
-        offset,
-        limit,
-        data: list.slice(offset, offset + limit).map((p) => media.present(p))
+        total: list.length,
+        offset: q.offset,
+        limit: q.limit,
+        hasMore: q.offset + page.length < list.length,
+        data: page.map((p) => media.present(p))
       });
     })
   );

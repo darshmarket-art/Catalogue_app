@@ -4,9 +4,10 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import type { Config } from '../config';
 import type { Store } from '../store';
-import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl, user, verifyPassword } from '../auth';
+import { ADMIN_REMEMBER_TTL, ADMIN_TOKEN_TTL, safeEqual, signToken, tokenTtl, user, verifyPassword } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import {
+  adminChangePasswordSchema,
   adminLoginSchema,
   adminRegisterSchema
 } from '../schemas';
@@ -16,7 +17,7 @@ const HOUR = 60 * 60 * 1000;
 
 const limited = (message: string) => ({ status: 'error', message });
 
-export function authRoutes(config: Config, store: Store, requireRetailer: RequestHandler) {
+export function authRoutes(config: Config, store: Store, requireRetailer: RequestHandler, requireAdmin: RequestHandler) {
   const router = Router();
 
   const loginLimiter = rateLimit({
@@ -99,15 +100,34 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
       const ok = await verifyPassword(body.password, admin?.password);
       if (!admin || !ok) {
         await audit(store, req, 'ADMIN_LOGIN_FAILED', `Failed admin login for identifier ${email}.`);
-        throw new HttpError(401, 'Access Denied: Invalid admin identifier or security key.');
+        throw new HttpError(401, 'That email or password is not right. Check both and try again, or use "Forgot password".');
       }
 
-      await audit(store, req, 'ADMIN_LOGIN_SUCCESS', `Admin session authenticated for ${admin.name} (${admin.email}) [Role: ${admin.role}]`);
+      // "Keep me signed in" gives a month that renews on use (see /api/auth/me); otherwise the session ends after 8 hours.
+      const remember = Boolean(body.remember);
+      await audit(store, req, 'ADMIN_LOGIN_SUCCESS', `Admin session authenticated for ${admin.name} (${admin.email}) [Role: ${admin.role}]${remember ? ' (kept signed in)' : ''}`);
       res.json({
         status: 'success',
-        sessionToken: signToken(config, { type: 'admin', sub: admin.email }, tokenTtl(req, ADMIN_TOKEN_TTL)),
-        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
+        sessionToken: signToken(config, { type: 'admin', sub: admin.email, ...(remember ? { remember: true } : {}) }, tokenTtl(req, remember ? ADMIN_REMEMBER_TTL : ADMIN_TOKEN_TTL)),
+        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, mustChangePassword: Boolean(admin.mustChangePassword) }
       });
+    })
+  );
+
+  // An admin sets their own password: after a temporary one from another admin (forced change), or whenever they like.
+  router.post(
+    '/admin/change-password',
+    requireAdmin,
+    handler(async (req, res) => {
+      const body = parse(adminChangePasswordSchema, req.body);
+      const me = user(res);
+      const admin = await store.get('admins', me.id);
+      if (!admin || !(await verifyPassword(body.currentPassword, admin.password))) {
+        throw new HttpError(401, 'Your current password is not right.');
+      }
+      await store.update('admins', me.id, { password: await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS), mustChangePassword: false, passwordChangedAt: new Date().toISOString() });
+      await audit(store, req, 'ADMIN_PASSWORD_CHANGED', `${admin.name} (${admin.email}) changed their password.`);
+      res.json({ status: 'success', message: 'Password updated.' });
     })
   );
 
