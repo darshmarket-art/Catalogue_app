@@ -21,7 +21,7 @@ Branch `saas/layouts` (worktree `catalogue-app/wt-layouts`, cut from `saas/integ
 ## Agents and file ownership
 | Agent | Owns | Status when this was written |
 |---|---|---|
-| B | `src/layouts/emergent/**` | working |
+| B | `src/layouts/emergent/**` | DONE |
 | C | `src/App.tsx`, `types.ts`, `api.ts`, `plan.tsx`, new standard screens, `LayoutPickerScreen` (`admin-layout`), `docs/screen-parity.md` | DONE |
 | D | `server/routes/console.ts`, `server/consoleStats.ts`, `src/console/**`, `console.html`, `tests/console*.test.ts` | DONE |
 | QA | `tests/**`, browser check vs the atlas | not started |
@@ -58,3 +58,13 @@ Branch `saas/layouts` (worktree `catalogue-app/wt-layouts`, cut from `saas/integ
 - Known limits: "online now" counts only the `visitors` collection; cross-store calls walk every store (ponytail comment: paging or counters past a few hundred stores).
 - New tests: `tests/consoleStats.test.ts` (14).
 - QA to do: look at the console in a browser at desktop and 390px widths and compare with the atlas "Antarixs Console" section.
+
+## Agent B: DONE (tsc clean, vite build ok; screens rendered headless at 390/1280 px by B; interactions untested)
+- Files in `src/layouts/emergent/`: emergent.css (scoped `[data-layout="emergent"]`, `.em-*`), ui.tsx, Header, BottomNav, Welcome, Home (Categories slot), Catalogue, ProductDetail (full page, not a sheet), Shortlist, Orders, About. Props derived from Gilded's prop types.
+- Cart = Orders "Current order" tab with a note box (testid `order-note-input`, `past-order-note`).
+- Open: Emergent Catalogue has optional `orderCount` and `onNavigate` props that App.tsx does not pass yet (need LayoutKit prop type widened in `src/layouts/gilded.ts`); until then the cart bar counts only this visit and has no Review button.
+- Labels like "Gross weight" are still hard-coded (same as Gilded); sector hook for dynamic detail lines still open.
+- Deviations: Welcome and About hero use a gradient (no photo); featured piece opens its collection (no product link from Home); no Share on product detail.
+
+## Commit
+Checkpoint commit of B + C + D work on saas/layouts (209 tests passing). Next: QA agent (tests + browser check vs atlas), then fix the open items above.
