@@ -110,13 +110,24 @@ export function storeIdOf(req: Request, config: Config): string | null {
 /**
  * True when the request is for the Antarixs entry page, not a store: app.<baseDomain>, or (PLATFORM_MODE=true) any
  * host that is not a store host and names no store via X-Store or ?store=. Off by default, so run.app keeps serving the default store.
+ * Android apps built before multi-store name no store; they keep reaching the default store (see fromStorelessApp).
  */
 export function isPlatformRequest(req: Request, config: Config): boolean {
   const host = (req.hostname || '').toLowerCase();
   if (host === `app.${config.baseDomain}`) return true;
   if (!config.platformMode || host.endsWith(`.${config.baseDomain}`)) return false;
-  return !req.header('x-store') && typeof req.query.store !== 'string';
+  if (req.header('x-store') || typeof req.query.store === 'string') return false;
+  return !fromStorelessApp(req);
 }
+
+/**
+ * An installed app that predates X-Store: its API calls come from the Capacitor WebView (origin https://localhost) or say
+ * X-App-Client: native, and its <img> photo loads send neither, so /media also goes to the default store (the entry page has no photos).
+ * ponytail: drop once every installed app is a per-store build that sends X-Store.
+ */
+const APP_ORIGINS = new Set(['https://localhost', 'capacitor://localhost', 'http://localhost']);
+const fromStorelessApp = (req: Request) =>
+  req.header('x-app-client') === 'native' || APP_ORIGINS.has(req.header('origin') ?? '') || (req.path ?? '').startsWith('/media/');
 
 export interface StoreEntry<A> {
   rec: StoreRecord;

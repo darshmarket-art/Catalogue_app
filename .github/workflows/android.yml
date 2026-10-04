@@ -11,15 +11,15 @@ on:
         description: Store id (the subdomain); bhakti uses its committed merchants/bhakti config
         default: bhakti
       api_base:
-        description: Cloud Run URL the app talks to
-        default: https://catalogue-app-456376852191.asia-south1.run.app
+        description: Server the app talks to; leave empty for the store's own address, https://<store_id>.antarixs.com
+        default: ''
 
 jobs:
   apk:
     runs-on: ubuntu-latest
     env:
       STORE_ID: ${{ inputs.store_id || 'bhakti' }}
-      VITE_API_BASE: ${{ inputs.api_base || 'https://catalogue-app-456376852191.asia-south1.run.app' }}
+      VITE_API_BASE: ${{ inputs.api_base || format('https://{0}.antarixs.com', inputs.store_id || 'bhakti') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

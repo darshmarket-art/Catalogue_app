@@ -27,11 +27,23 @@ describe('platform detection', () => {
     expect(isPlatformRequest(req('localhost', { store: 'sharma' }), on)).toBe(false);
     expect(isPlatformRequest(req('localhost', { header: 'sharma' }), on)).toBe(false);
   });
+  it('an installed app that names no store still reaches the default store', () => {
+    const app = (headers: Record<string, string>, path = '/api/products') =>
+      ({ hostname: 'x.run.app', path, query: {}, header: (h: string) => headers[h] }) as any;
+    expect(isPlatformRequest(app({ 'x-app-client': 'native' }), on)).toBe(false);
+    expect(isPlatformRequest(app({ origin: 'https://localhost' }, '/api/analytics/activity'), on)).toBe(false);
+    expect(isPlatformRequest(app({}, '/media/photos/a.jpg'), on)).toBe(false);
+    expect(isPlatformRequest(app({ origin: 'https://evil.example' }), on)).toBe(true);
+    expect(isPlatformRequest(app({}, '/'), on)).toBe(true);
+  });
   it('serves the entry route, not the store, in platform mode; default untouched', async () => {
     const mk = (c: typeof off) => createApp(c, new MemoryStore(), new MemoryBlobs());
     expect((await request(mk(on)).get('/')).headers.location).toBe('/welcome-antarixs');
     expect((await request(mk(on)).get('/api/v1/products')).status).toBe(404);
     expect((await request(mk(off)).get('/api/v1/products')).status).not.toBe(404);
+    // The pre-multi-store Android app on the run.app address keeps working with the entry page switched on.
+    expect((await request(mk(on)).get('/api/products').set('X-App-Client', 'native')).status).not.toBe(404);
+    expect((await request(mk(on)).options('/api/products').set('Origin', 'https://localhost')).status).not.toBe(404);
   });
 });
 
