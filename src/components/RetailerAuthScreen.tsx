@@ -154,9 +154,9 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
           </form>
         )}
 
-        {/* Staff entry: deliberately quiet, so buyers are not shown admin tools */}
+        {/* Admin entry: deliberately quiet, so buyers are not shown admin tools */}
         <button type="button" className="em-link" style={{ alignSelf: 'center' }} onClick={() => onNavigate('admin-login')}>
-          Staff sign-in
+          Admin sign-in
         </button>
       </div>
     </div>

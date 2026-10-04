@@ -13,7 +13,7 @@ export const adminRegisterSchema = z.object({
   name: trimmed(100).optional(),
   email: z.string().trim().toLowerCase().email().max(254),
   password: trimmed(128, 10),
-  role: z.enum(ADMIN_ROLES).default('staff'),
+  role: z.enum(ADMIN_ROLES).default('owner'),
   masterProvisioningKey: z.string().trim().min(1).max(256)
 });
 

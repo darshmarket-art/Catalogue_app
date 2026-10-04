@@ -12,7 +12,7 @@ interface AdminLoginScreenProps {
   onAdminLoginSuccess: () => void;
 }
 
-/** Owner and staff sign-in (artboard 1.7). Creating an admin with the provisioning key stays one quiet link away. */
+/** Administrator sign-in (artboard 1.7). Creating an admin with the provisioning key stays one quiet link away. */
 export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, onAdminLoginSuccess }) => {
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
 
@@ -90,7 +90,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
           <div>
             <h1 style={{ fontSize: 32, lineHeight: 1.05 }}>Sign in to your store</h1>
             <p className="sub" style={{ marginTop: 6 }}>
-              Owners and staff of {merchant.brand.name} sign in with email and password.
+              The administrator of {merchant.brand.name} signs in with email and password.
             </p>
           </div>
           {errorMsg && <Notice tone="error">{errorMsg}</Notice>}

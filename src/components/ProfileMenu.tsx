@@ -32,7 +32,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const name = buyer?.storeName ?? 'Staff account';
+  const name = buyer?.storeName ?? 'Administrator';
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +89,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
           <div className="px-5 pt-4 pb-3">
             <p className="serif text-[21px] leading-tight truncate">{name}</p>
             {isAdmin ? (
-              <p className="sub mt-0.5">Staff</p>
+              <p className="sub mt-0.5">Administrator</p>
             ) : (
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                 {details.map(([label, value]) =>

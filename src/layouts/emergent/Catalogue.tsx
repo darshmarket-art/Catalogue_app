@@ -51,6 +51,17 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const openProduct = products.find((p) => p.id === openProductId) ?? null;
   const hearted = useMemo(() => new Set(shortlist), [shortlist]);
 
+  // The Back button closes an open design before it leaves the screen (see goBack in App).
+  useEffect(() => {
+    if (!openProductId) return;
+    const close = (e: Event) => {
+      e.preventDefault();
+      withTransition(() => setOpenProductId(null));
+    };
+    window.addEventListener('app-back', close);
+    return () => window.removeEventListener('app-back', close);
+  }, [openProductId]);
+
   // What a buyer searches for tells the owner what they are after. Recorded once they pause typing.
   useEffect(() => {
     const term = searchQuery.trim();

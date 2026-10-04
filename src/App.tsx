@@ -483,6 +483,8 @@ export default function App() {
             : screen;
   useEffect(() => {
     lastScreen.current = activeScreen;
+    // After a restored sign-in the screen changes without a navigation: keep the history entry in step (never touch the guard).
+    if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen }, '');
   }, [activeScreen]);
 
   const shouldShowBottomNav =
@@ -498,6 +500,7 @@ export default function App() {
   screenRef.current = activeScreen;
   backRef.current = (leave) => {
     if (booting) return;
+    if (!window.dispatchEvent(new Event('app-back', { cancelable: true }))) return; // an open design handled it
     const act = backAction(activeScreen, homeScreen, lastAskAt.current, Date.now());
     if (act === 'home') {
       handleNavigate(homeScreen, true);

@@ -70,6 +70,10 @@ export const SignupScreen: React.FC = () => {
     if (result) void QRCode.toDataURL(result.storeUrl, { margin: 1, width: 320 }).then(setQr).catch(() => {});
   }, [result]);
 
+  useEffect(() => {
+    document.title = 'Create your store · Antarixs';
+  }, []);
+
   const run = (fn: () => Promise<void>) => async (e?: React.FormEvent) => {
     e?.preventDefault();
     setBusy(true);

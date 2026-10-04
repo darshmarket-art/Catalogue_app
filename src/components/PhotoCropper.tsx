@@ -7,12 +7,15 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [off, setOff] = useState({ ox: 0, oy: 0 });
-  const [url] = useState(() => URL.createObjectURL(file));
+  const [url, setUrl] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const CW = Math.min(320, window.innerWidth - 64);
   const CH = CW / spec.ratio;
 
+  // The object URL is made and revoked inside the effect, so React StrictMode's mount, cleanup, mount does not leave a revoked URL behind.
   useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
     const i = new Image();
     i.onload = () => {
       setImg(i);
@@ -20,8 +23,11 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
       const s = Math.max(CW / i.naturalWidth, CH / i.naturalHeight);
       setOff({ ox: (CW - i.naturalWidth * s) / 2, oy: (CH - i.naturalHeight * s) / 2 });
     };
-    i.src = url;
-    return () => URL.revokeObjectURL(url);
+    i.src = u;
+    return () => {
+      i.onload = null;
+      URL.revokeObjectURL(u);
+    };
   }, []);
 
   const view = img ? { nw: img.naturalWidth, nh: img.naturalHeight, cw: CW, ch: CH, zoom, ...off } : null;
@@ -60,7 +66,7 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
           onPointerUp={() => (drag.current = null)}
           style={{ width: CW, height: CH, overflow: 'hidden', position: 'relative', borderRadius: 12, border: '1px solid var(--line)', touchAction: 'none', cursor: 'grab', background: '#222' }}
         >
-          {img && <img src={url} alt="" draggable={false} style={{ position: 'absolute', left: place.ox, top: place.oy, width: img.naturalWidth * scale, height: img.naturalHeight * scale, maxWidth: 'none', userSelect: 'none' }} />}
+          {img && url && <img src={url} alt="" draggable={false} style={{ position: 'absolute', left: place.ox, top: place.oy, width: img.naturalWidth * scale, height: img.naturalHeight * scale, maxWidth: 'none', userSelect: 'none' }} />}
         </div>
         <label className="row" style={{ gap: 10, width: '100%' }}>
           <I n="minus" size="s" />

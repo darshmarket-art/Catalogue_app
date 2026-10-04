@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
 import '../layouts/emergent/emergent.css';
@@ -55,6 +55,9 @@ export const EntryScreen: React.FC = () => {
   const [who, setWho] = useState<'buyer' | 'admin'>('buyer');
   const [name, setName] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    document.title = 'Antarixs · Storefronts for jewellery wholesalers';
+  }, []);
   const go = (e: React.FormEvent) => {
     e.preventDefault();
     const u = storeUrl(name);
@@ -92,7 +95,7 @@ export const EntryScreen: React.FC = () => {
               {who === 'buyer' ? 'Which showroom?' : 'Sign in to your store'}
             </h1>
             <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
-              {who === 'buyer' ? 'Enter the store address you were sent. You sign in there with a WhatsApp code.' : 'Owners and staff sign in with email and password on their store.'}
+              {who === 'buyer' ? 'Enter the store address you were sent. You sign in there with a WhatsApp code.' : 'The store administrator signs in with email and password on their store.'}
             </p>
           </div>
           <form onSubmit={go} className="col" style={{ gap: 16 }}>
