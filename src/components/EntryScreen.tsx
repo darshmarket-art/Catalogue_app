@@ -58,7 +58,7 @@ export const EntryScreen: React.FC = () => {
   const go = (e: React.FormEvent) => {
     e.preventDefault();
     const u = storeUrl(name);
-    if (u) window.location.href = u;
+    if (u) window.location.replace(u);
     else setErr('Enter your store address, for example sharma-jewellers.');
   };
   const pick = (w: 'buyer' | 'admin') => {

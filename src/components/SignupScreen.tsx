@@ -150,7 +150,7 @@ export const SignupScreen: React.FC = () => {
             <I n={copied ? 'check' : 'link'} />
             {copied ? 'Link copied' : 'Share link'}
           </button>
-          <a className="btn" style={{ width: '100%' }} href={result.storeUrl}>
+          <a className="btn" style={{ width: '100%' }} href={result.storeUrl} onClick={(e) => { e.preventDefault(); window.location.replace(`${result.storeUrl}#new`); }}>
             Open my store
             <I n="chev" />
           </a>

@@ -1,3 +1,4 @@
+import { backAction, EXIT_WINDOW_MS } from './nav';
 import { usePlan } from './plan';
 import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
@@ -79,28 +80,50 @@ export default function App() {
   // Switching between the four tabs fades; going deeper or back slides.
   const lastScreen = useRef<ActiveScreen>(currentScreen);
 
-  const handleNavigate = (screen: ActiveScreen, replace = false) => {
+  const handleNavigate = (screen: ActiveScreen, _replace = false) => {
     setNavDir('forward');
     setCurrentScreen(screen);
-    if (replace) window.history.replaceState({ screen }, '');
-    else if (window.history.state?.screen !== screen) window.history.pushState({ screen }, '');
+    // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
+    window.history.replaceState({ screen }, '');
   };
 
+  // Back on the web: the page sits on one entry above a "guard" entry. Pressing Back lands on the guard; we put the page back
+  // and run goBack (home first, then "press back again to exit", then really leave).
+  const screenRef = useRef<ActiveScreen>(currentScreen);
   useEffect(() => {
-    if (!window.history.state?.screen) window.history.replaceState({ screen: currentScreen }, '');
+    // Arrived from creating the store (#new): the signup pages must not be reachable by Back, so leaving closes the tab (or blanks it).
+    try {
+      if (window.location.hash === '#new') sessionStorage.setItem('fresh-store', '1');
+    } catch {
+      // storage blocked: Back then leaves to the previous page
+    }
+    if (window.location.hash === '#new') window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    if (!window.history.state?.screen) {
+      window.history.replaceState({ screen: 'guard' }, '');
+      window.history.pushState({ screen: currentScreen }, '');
+    }
     const onPop = (e: PopStateEvent) => {
-      setNavDir('back');
-      setCurrentScreen((e.state?.screen as ActiveScreen | undefined) ?? 'welcome');
+      const to = e.state?.screen as string | undefined;
+      if (to && to !== 'guard') return void setCurrentScreen(to as ActiveScreen);
+      window.history.pushState({ screen: screenRef.current }, '');
+      backRef.current(() => {
+        if (sessionStorage.getItem('fresh-store')) {
+          window.close(); // only works for tabs the page opened
+          setTimeout(() => window.location.replace('about:blank'), 150);
+        } else window.history.go(-2); // past the guard and the page: back to wherever the visitor came from
+      });
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   // Android Back button: on Home leave the app; anywhere else go Home first (the handler is kept current below).
-  const backRef = useRef<() => void>(() => {});
+  const backRef = useRef<(leave: () => void) => void>(() => {});
+  const lastAskAt = useRef(0);
+  const [exitHint, setExitHint] = useState(false);
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const sub = NativeApp.addListener('backButton', () => backRef.current());
+    const sub = NativeApp.addListener('backButton', () => backRef.current(() => void NativeApp.exitApp()));
     return () => void sub.then((s) => s.remove());
   }, []);
 
@@ -472,13 +495,19 @@ export default function App() {
   const top = ownTop[activeScreen];
 
   const homeScreen: ActiveScreen = isAdminLoggedIn ? 'admin-hub' : currentMerchant ? 'categories' : 'welcome';
-  backRef.current = () => {
-    if (booting || activeScreen === homeScreen) {
-      void NativeApp.exitApp();
-      return;
+  screenRef.current = activeScreen;
+  backRef.current = (leave) => {
+    if (booting) return;
+    const act = backAction(activeScreen, homeScreen, lastAskAt.current, Date.now());
+    if (act === 'home') {
+      handleNavigate(homeScreen, true);
+      setNavDir('back');
+    } else if (act === 'leave') leave();
+    else {
+      lastAskAt.current = Date.now();
+      setExitHint(true);
+      setTimeout(() => setExitHint(false), EXIT_WINDOW_MS);
     }
-    handleNavigate(homeScreen, true);
-    setNavDir('back');
   };
 
   if (mustUpdate)
@@ -492,6 +521,11 @@ export default function App() {
 
   return (
     <div data-layout={DEFAULT_LAYOUT} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+      {exitHint && (
+        <div role="status" className="em-toast">
+          Press back again to exit
+        </div>
+      )}
       {/* Persistent Header */}
       {top && <ScreenTop title={top.title} onBack={() => handleNavigate(top.back)} />}
       {activeScreen !== 'welcome' && !top && (
