@@ -132,10 +132,12 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
           <div className="em-ey">{merchant.brand.name}</div>
           <div className="em-rule" style={{ width: 48 }} />
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
-            {codeSent ? 'Enter the code' : 'Buyer showroom'}
+            {needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Buyer showroom'}
           </h1>
           <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
-            {codeSent ? (
+            {needsName ? (
+              'Your number is verified. Tell us your name to finish signing in.'
+            ) : codeSent ? (
               <>
                 Sent to +91 {phone.trim()} on WhatsApp.
                 {delivery.status && <> <DeliveryPill status={delivery.status} testId="otp-delivery-status" /></>}
