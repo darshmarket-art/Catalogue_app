@@ -1,5 +1,6 @@
 import React from 'react';
 import { merchant } from '../../merchant';
+import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
 
 /** "About us" (atlas About): a hero under the top bar, then the store's details as icon rows. Anything the owner leaves empty falls back to the merchant's own details, or is hidden. */
@@ -71,6 +72,10 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
               </a>
             ))}
           </div>
+        </div>
+        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <PoweredByAntarixs />
+          <span className="em-hint">{window.location.hostname}</span>
         </div>
       </div>
     </div>

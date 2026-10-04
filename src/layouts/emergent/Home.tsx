@@ -74,8 +74,6 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const q = searchQuery.toLowerCase();
   const filteredCategories = categories.filter((c) => c.name.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q));
   const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ') : `avg ${cat.avgNetWt}`);
-  // Products arrive newest first, so the featured piece is the latest design.
-  const featured = products[0];
 
   return (
     <div className="em-page home">
@@ -159,25 +157,6 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <button type="button" className="em-chip" onClick={() => shareLink(window.location.origin)}>
             <Icon n="link" size={15} />
             Share catalogue link
-          </button>
-        </div>
-      )}
-
-      {featured && (
-        <div className="em-pad" style={{ marginTop: 20 }}>
-          <button type="button" className="em-feat" aria-label={`Open ${featured.category}: ${featured.title}`} onClick={() => onFilterCategoryInCatalogue(featured.category)}>
-            <Ph src={featured.image} tone={0} className="em-fill" />
-            <span className="em-sc" />
-            <span className="em-tl">
-              <Pill tone="gold">Latest design</Pill>
-            </span>
-            <span className="em-ov">
-              <span className="em-ey g">Featured piece</span>
-              <span className="em-ser">{featured.title}</span>
-              <small>
-                {featured.sku} · {featured.purity.split(' ')[0]} · {fmtG(featured.netWt)} net
-              </small>
-            </span>
           </button>
         </div>
       )}

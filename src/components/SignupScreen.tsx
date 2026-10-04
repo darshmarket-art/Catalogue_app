@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { setAuthToken } from '../api';
+import '../layouts/emergent/emergent.css';
 import { Field, I, Notice } from './ui';
+import { Icon } from '../layouts/emergent/ui';
+import { AntarixsMark, AntarixsWordmark, PoweredByAntarixs } from './AntarixsBrand';
+import { shareStoreQr } from '../storeQrCard';
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
@@ -43,15 +47,22 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
   );
 };
 
+const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div data-layout="emergent" className="min-h-screen bg-surface text-on-surface">
+    {children}
+  </div>
+);
+
 /** /signup: create a store (artboards 1.3 to 1.6). */
 export const SignupScreen: React.FC = () => {
   const [step, setStep] = useState<Step>('name');
-  const [f, setF] = useState({ brandName: '', storeName: '', ownerName: '', phone: '', email: '', password: '', code: '', brandColor: '' });
+  const [f, setF] = useState({ brandName: '', storeName: '', ownerName: '', phone: '', email: '', password: '', code: '' });
   const [qr, setQr] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [result, setResult] = useState<{ storeUrl: string; sessionToken: string } | null>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
@@ -83,7 +94,7 @@ export const SignupScreen: React.FC = () => {
     setStep('code');
   });
   const create = run(async () => {
-    const r = await call('', { ...f, brandColor: f.brandColor || undefined });
+    const r = await call('', f);
     // Same origin (localhost, run.app): the owner is signed in already. On [store].antarixs.com they sign in once.
     if (new URL(r.storeUrl).origin === window.location.origin) setAuthToken(r.sessionToken);
     setResult(r);
@@ -99,88 +110,65 @@ export const SignupScreen: React.FC = () => {
 
   if (step === 'done' && result) {
     const sameOrigin = new URL(result.storeUrl).origin === window.location.origin;
+    const host = result.storeUrl.replace(/^https?:\/\//, '');
     return (
-      <main className="scroll no-tabs" style={{ gap: 16, paddingTop: 'calc(28px + var(--sat))', maxWidth: 480, minHeight: '100dvh' }}>
-        <section className="hero col" style={{ gap: 10, padding: '24px 20px 50px' }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--gold-grad)', color: '#2a1a05', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <I n="check" />
-          </div>
-          <span className="eyebrow" style={{ marginTop: 6 }}>
-            Store created
+      <Shell>
+        <main className="scroll no-tabs" style={{ gap: 16, maxWidth: 480, margin: '0 auto', minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }}>
+          <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--em-ok)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
+            <Icon n="check" size={26} />
           </span>
-          <h1 style={{ fontSize: 36, lineHeight: 1.04 }}>Your store is ready</h1>
-          <p className="sub" style={{ maxWidth: 260 }}>
-            Your 14-day free trial has started. Share this link with your buyers.
+          <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.2 }}>
+            {f.brandName.trim() || 'Your store'} is live
+          </h1>
+          <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.5 }}>
+            Your 14-day free trial has started. Share this QR or link with your buyers. They can browse and enquire instantly.
           </p>
-        </section>
-        <div className="card row" style={{ margin: '-46px 14px 0', position: 'relative', zIndex: 2, boxShadow: 'var(--sh-2)' }}>
-          <I n="link" style={{ color: 'var(--gold)' }} />
-          <a href={result.storeUrl} className="grow" style={{ wordBreak: 'break-all', fontSize: 14.5, fontWeight: 700, textDecoration: 'none' }}>
-            {result.storeUrl.replace(/^https?:\/\//, '')}
-          </a>
+          <div className="em-card" style={{ width: '100%', padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <span className="em-ey">Scan to open</span>
+            {qr && <img src={qr} alt={`QR code for ${f.brandName}`} style={{ width: 188, height: 188, borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
+            <span className="em-ser" style={{ fontSize: 20 }}>
+              {f.brandName.trim() || 'Your store'}
+            </span>
+            <a href={result.storeUrl} style={{ color: 'var(--em-primary)', fontSize: 13, fontWeight: 600, wordBreak: 'break-all' }}>
+              {host}
+            </a>
+            <PoweredByAntarixs />
+          </div>
+          <button type="button" className="btn wa" style={{ width: '100%' }} disabled={sharing} onClick={() => { setSharing(true); void shareStoreQr(f.brandName.trim() || host, result.storeUrl).finally(() => setSharing(false)); }}>
+            <I n="whats" />
+            {sharing ? 'Preparing…' : 'Share QR on WhatsApp'}
+          </button>
           <button
             type="button"
-            className="ib"
-            aria-label={copied ? 'Copied' : 'Copy link'}
-            style={{ width: 40, height: 40 }}
-            onClick={() => void navigator.clipboard?.writeText(result.storeUrl).then(() => setCopied(true))}
+            className="btn alt"
+            style={{ width: '100%' }}
+            onClick={() => {
+              if (typeof navigator.share === 'function') void navigator.share({ title: f.brandName, url: result.storeUrl }).catch(() => {});
+              else void navigator.clipboard?.writeText(result.storeUrl).then(() => setCopied(true));
+            }}
           >
-            <I n={copied ? 'check' : 'copy'} size="s" />
+            <I n={copied ? 'check' : 'link'} />
+            {copied ? 'Link copied' : 'Share link'}
           </button>
-        </div>
-        {qr && (
-          <div className="card row" style={{ gap: 16, padding: 16 }}>
-            <img src={qr} alt="QR code for your store link" style={{ width: 104, height: 104, borderRadius: 12, border: '6px solid var(--card)', outline: '1px solid var(--line)', flex: 'none' }} />
-            <div className="col" style={{ gap: 6, alignItems: 'flex-start' }}>
-              <b>Scan to open</b>
-              <p className="sub" style={{ fontSize: 13.5 }}>
-                Print it for the counter or send it on WhatsApp.
-              </p>
-              <a className="lnk" style={{ minHeight: 32 }} href={qr} download="store-qr.png">
-                <I n="download" size="s" />
-                Save QR
-              </a>
-            </div>
-          </div>
-        )}
-        <a className="btn wa" href={`https://wa.me/?text=${encodeURIComponent(`${f.brandName}: browse our catalogue at ${result.storeUrl}`)}`} target="_blank" rel="noreferrer">
-          <I n="whats" />
-          Share on WhatsApp
-        </a>
-        <button
-          type="button"
-          className="btn alt"
-          onClick={() => {
-            // Phones open the share sheet; elsewhere the link is copied.
-            if (typeof navigator.share === 'function') void navigator.share({ title: f.brandName, url: result.storeUrl }).catch(() => {});
-            else void navigator.clipboard?.writeText(result.storeUrl).then(() => setCopied(true));
-          }}
-        >
-          <I n="link" />
-          Share link
-        </button>
-        <span className="grow" />
-        <a className="btn" href={result.storeUrl}>
-          Open admin
-          <I n="chev" />
-        </a>
-        <p className="hint" style={{ textAlign: 'center' }}>
-          {sameOrigin ? 'You are signed in as the owner on this device.' : 'On your store, sign in once with the email and password you just set.'}
-        </p>
-      </main>
+          <a className="btn" style={{ width: '100%' }} href={result.storeUrl}>
+            Open my store
+            <I n="chev" />
+          </a>
+          <p className="hint">{sameOrigin ? 'You are signed in as the owner on this device.' : 'On your store, sign in once with the email and password you just set.'}</p>
+        </main>
+      </Shell>
     );
   }
 
   return (
-    <main className="scroll no-tabs" style={{ gap: 16, paddingTop: 'var(--sat)', maxWidth: 480, minHeight: '100dvh' }}>
-      <div className="top" style={{ padding: '18px 0 10px', minHeight: 0 }}>
+    <Shell>
+    <main className="scroll no-tabs" style={{ gap: 16, maxWidth: 480, margin: '0 auto', minHeight: '100dvh' }}>
+      <div className="em-row em-sb" style={{ padding: '18px 0 10px' }}>
         <button type="button" className="ib" aria-label="Back" onClick={back}>
           <I n="back" />
         </button>
-        <span className="grow" />
-        <span className="sub">
-          <b>Step {STEP_NO[step]} of 3</b>
-        </span>
+        <AntarixsWordmark />
+        <span className="em-ey">Step {STEP_NO[step]} of 3</span>
       </div>
       <div className="meter">
         <i style={{ width: `${Math.round((STEP_NO[step] / 3) * 100)}%` }} />
@@ -189,8 +177,8 @@ export const SignupScreen: React.FC = () => {
       {step === 'name' && (
         <form onSubmit={checkName} className="col" style={{ gap: 16, flex: 1 }}>
           <div>
-            <h1 style={{ fontSize: 32 }}>Create your store</h1>
-            <p className="sub" style={{ marginTop: 6 }}>
+            <h1 className="em-ser" style={{ fontSize: 32 }}>Create your store</h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
               Free for 14 days. No card needed.
             </p>
           </div>
@@ -230,15 +218,6 @@ export const SignupScreen: React.FC = () => {
               </div>
             )}
           </div>
-          <div>
-            <label className="lab" htmlFor="bc">
-              Brand colour (optional)
-            </label>
-            <div className="row">
-              <input id="bc" type="color" value={f.brandColor || '#4a1835'} onChange={set('brandColor')} style={{ width: 52, height: 52, borderRadius: 14, border: '1.5px solid var(--line)', padding: 3, background: 'var(--card)', flex: 'none', cursor: 'pointer' }} />
-              <p className="sub">Tints your store. You can change it later.</p>
-            </div>
-          </div>
           {err && <Notice tone="error">{err}</Notice>}
           <span className="grow" />
           <button type="submit" className="btn" disabled={busy}>
@@ -250,8 +229,8 @@ export const SignupScreen: React.FC = () => {
       {step === 'owner' && (
         <form onSubmit={sendCode} className="col" style={{ gap: 14, flex: 1 }}>
           <div>
-            <h1 style={{ fontSize: 32 }}>About you</h1>
-            <p className="sub" style={{ marginTop: 6 }}>
+            <h1 className="em-ser" style={{ fontSize: 32 }}>About you</h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
               We verify your phone on WhatsApp.
             </p>
           </div>
@@ -279,8 +258,8 @@ export const SignupScreen: React.FC = () => {
       {step === 'code' && (
         <form onSubmit={create} className="col" style={{ gap: 16, flex: 1 }}>
           <div>
-            <h1 style={{ fontSize: 32 }}>Enter the code</h1>
-            <p className="sub" style={{ marginTop: 6 }}>
+            <h1 className="em-ser" style={{ fontSize: 32 }}>Enter the code</h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
               Sent to {f.phone} on WhatsApp.
             </p>
           </div>
@@ -303,5 +282,6 @@ export const SignupScreen: React.FC = () => {
         </form>
       )}
     </main>
+    </Shell>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { merchant } from '../../merchant';
 import { BrandMark } from '../../components/BrandMark';
+import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
 
 /** The store's first screen (atlas Welcome): the brand on a deep panel, then the way in as role-style cards, what the store offers, and the legal footer. */
@@ -66,7 +67,8 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
           </div>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: 22, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ textAlign: 'center', marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <PoweredByAntarixs />
           {merchant.welcome.footerLine && <span className="em-hint">{merchant.welcome.footerLine}</span>}
           {merchant.legal.registrationLine && <span className="em-hint">{merchant.legal.registrationLine}</span>}
         </div>
