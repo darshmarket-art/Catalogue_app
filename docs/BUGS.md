@@ -44,7 +44,7 @@ B4 (small) -> B3 (security-sensitive, test well) -> B2 (largest) -> B1 (data cha
 - **Decide:** after the second Back on the web, is "leave the site" acceptable instead of closing the tab? (Browsers do not allow closing a tab the script did not open.)
 
 ## B6. Photo shape rules: catalogue, banner, collection (PLANNED)
-- **Verified:** nothing guides or checks photo shape. `PhotoPicker.tsx` accepts any JPEG/PNG/WebP (server limit 25 MB, `server/routes/photos.ts`) with no size, ratio or crop check. Display crops with `object-fit: cover`, so the result depends on the owner's photo and the phone width: banner slide is `width: 100%; height: 210px` (`emergent.css:165`, ratio changes with screen width), collection card is `aspect-ratio: 1` (`.em-sq`), catalogue list thumb is a fixed 88x88, product gallery is a fixed 360px tall (`.em-gal`). A wrong-shaped banner is cut at the sides or top, and different phones crop it differently.
+- **Verified:** nothing guides or checks photo shape. `PhotoPicker.tsx` accepts any JPEG/PNG/WebP (server limit 25 MB, `server/routes/photos.ts`) with no size, ratio or crop check. Display crops with `object-fit: cover`, so the result depends on the owner's photo and the phone width: banner slide is `width: 100%; height: 210px` (`emergent.css:165`, ratio changes with screen width), collection and catalogue grid cards are both `aspect-ratio: 1` (`.em-sq`), small thumbs are a fixed 88x88, product gallery is a fixed 360px tall (`.em-gal`). A wrong-shaped banner is cut at the sides or top, and different phones crop it differently.
 - **Rules (one source of truth, `shared/photoSpecs.ts`):**
   | Photo | Ratio | Upload size | Min |
   |---|---|---|---|
