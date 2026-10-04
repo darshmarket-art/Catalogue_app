@@ -128,9 +128,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
                   </button>
                 </>
               )}
-              <button role="menuitem" className={itemClass} onClick={choose(onChangePassword)} type="button">
-                Change password
-              </button>
             </>
           )}
 
