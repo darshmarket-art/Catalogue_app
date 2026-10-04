@@ -26,6 +26,8 @@ import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
 
 
+const TABS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders'];
+
 export default function App() {
   const plan = usePlan();
   const { flags } = plan;
@@ -74,6 +76,8 @@ export default function App() {
   
   // Which way the last screen change went, so the page animation slides the right way.
   const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
+  // Switching between the four tabs fades; going deeper or back slides.
+  const lastScreen = useRef<ActiveScreen>(currentScreen);
 
   const handleNavigate = (screen: ActiveScreen, replace = false) => {
     setNavDir('forward');
@@ -454,6 +458,9 @@ export default function App() {
           : buyerOnlyScreens.includes(screen) && !currentMerchant
             ? 'categories'
             : screen;
+  useEffect(() => {
+    lastScreen.current = activeScreen;
+  }, [activeScreen]);
 
   const shouldShowBottomNav =
     ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'].includes(activeScreen);
@@ -519,7 +526,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
+      <main key={activeScreen} className={`flex-1 w-full ${TABS.includes(lastScreen.current) && TABS.includes(activeScreen) ? 'animate-page-in' : navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
 
         {activeScreen === 'welcome' && (
           <K.Welcome onNavigate={handleNavigate} />

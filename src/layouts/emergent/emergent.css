@@ -458,3 +458,6 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .tile .em-tile-t { color: var(--em-ink); font-size: 16px; }
 [data-layout="emergent"] .tile .em-tile-n { font-size: 10px; }
 [data-layout="emergent"] .tile.lk .em-tile-t { color: var(--em-mut); }
+
+/* Order cards and buyer rows fade in as they appear. */
+[data-layout="emergent"] .em-ordcard, [data-layout="emergent"] .em-row.em-buyer { animation: row-in 0.22s ease-out both; }

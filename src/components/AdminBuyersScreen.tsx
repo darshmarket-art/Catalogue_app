@@ -90,7 +90,7 @@ export const AdminBuyersScreen: React.FC = () => {
 
       <div data-testid="buyer-list">
         {shown.map((b, i) => (
-          <div key={b.phone} className="em-row" style={{ gap: 14, padding: '16px 0', borderBottom: i < shown.length - 1 ? '1px solid var(--em-line)' : 0 }}>
+          <div key={b.phone} className="em-row em-buyer" style={{ gap: 14, padding: '16px 0', borderBottom: i < shown.length - 1 ? '1px solid var(--em-line)' : 0 }}>
             <div className="em-av" style={{ position: "relative" }}>
               {initials(b.firmName)}
               {online(b.lastSeen) && <span data-testid="buyer-online" aria-label="online" style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: 5, background: "var(--em-ok, #2f8f5b)", border: "2px solid var(--em-card, #fff)" }} />}

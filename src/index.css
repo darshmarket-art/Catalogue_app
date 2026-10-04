@@ -148,7 +148,65 @@ html.native {
   }
 }
 
+/* Sign-up steps and the OTP block slide in from the right (Emergent onboarding). */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.step-in {
+  animation: step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Rows (orders, buyers, visitors) fade in; the live dot pulses once a second. */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes live-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok, #2f8f5b) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+.live-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--ok, #2f8f5b);
+  vertical-align: middle;
+  animation: live-ring 1.1s ease-out infinite;
+}
+
+/* The tapped design's photo grows into the detail screen, and shrinks back (browsers with View Transitions; others just fade). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+::view-transition-group(product-photo) {
+  animation-duration: 0.44s;
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .step-in,
+  .live-dot,
+  [data-layout="emergent"] .em-ordcard,
   .animate-fade-in,
   .animate-page-in,
   .animate-page-forward,

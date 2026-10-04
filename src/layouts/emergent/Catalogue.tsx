@@ -7,6 +7,7 @@ import { clearOnScreen, setOnScreen } from '../../attention';
 import { downloadDesignsPdf } from '../../cataloguePdf';
 import { Icon, Ph, Pill, StockPill, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
+import { withTransition } from '../../viewTransition';
 
 type SortKey = 'default' | 'net-asc' | 'net-desc' | 'name';
 
@@ -138,7 +139,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   };
 
   /** Tapping a design opens its details; while the owner is picking designs it ticks them instead. */
-  const openOrPick = (prod: Product) => (selecting ? togglePick(prod.id) : setOpenProductId(prod.id));
+  const openOrPick = (prod: Product, photo?: Element | null) => (selecting ? togglePick(prod.id) : withTransition(() => setOpenProductId(prod.id), photo));
 
   const toggleHeart = (prod: Product) => {
     if (!hearted.has(prod.sku)) trackSelect(prod.sku);
@@ -221,7 +222,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             const isPicked = picked.has(prod.id);
             return (
               <article key={prod.id} data-sku={prod.sku} className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
-                <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} aria-pressed={selecting ? isPicked : undefined} onClick={() => openOrPick(prod)}>
+                <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" />
                   <span className="em-sc" />
                   <span className="em-tl">
@@ -288,7 +289,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         purities={purities}
         hearted={openProduct ? hearted.has(openProduct.sku) : false}
         onToggleShortlist={onToggleShortlist}
-        onClose={() => setOpenProductId(null)}
+        onClose={() => withTransition(() => setOpenProductId(null))}
         onEdit={(p) => {
           setOpenProductId(null);
           onEditProduct(p);

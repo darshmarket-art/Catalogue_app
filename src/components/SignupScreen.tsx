@@ -113,7 +113,7 @@ export const SignupScreen: React.FC = () => {
     const host = result.storeUrl.replace(/^https?:\/\//, '');
     return (
       <Shell>
-        <main className="scroll no-tabs" style={{ gap: 16, maxWidth: 480, margin: '0 auto', minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }}>
+        <main className="scroll no-tabs step-in" style={{ gap: 16, maxWidth: 480, margin: '0 auto', minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }}>
           <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--em-ok)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
             <Icon n="check" size={26} />
           </span>
@@ -175,7 +175,7 @@ export const SignupScreen: React.FC = () => {
       </div>
 
       {step === 'name' && (
-        <form onSubmit={checkName} className="col" style={{ gap: 16, flex: 1 }}>
+        <form onSubmit={checkName} className="col step-in" style={{ gap: 16, flex: 1 }}>
           <div>
             <h1 className="em-ser" style={{ fontSize: 32 }}>Create your store</h1>
             <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
@@ -227,7 +227,7 @@ export const SignupScreen: React.FC = () => {
       )}
 
       {step === 'owner' && (
-        <form onSubmit={sendCode} className="col" style={{ gap: 14, flex: 1 }}>
+        <form onSubmit={sendCode} className="col step-in" style={{ gap: 14, flex: 1 }}>
           <div>
             <h1 className="em-ser" style={{ fontSize: 32 }}>About you</h1>
             <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
@@ -256,7 +256,7 @@ export const SignupScreen: React.FC = () => {
       )}
 
       {step === 'code' && (
-        <form onSubmit={create} className="col" style={{ gap: 16, flex: 1 }}>
+        <form onSubmit={create} className="col step-in" style={{ gap: 16, flex: 1 }}>
           <div>
             <h1 className="em-ser" style={{ fontSize: 32 }}>Enter the code</h1>
             <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>

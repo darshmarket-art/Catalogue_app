@@ -87,3 +87,22 @@ Removed: buyer password sign-up and sign-in endpoints too (`retailer/signup`, `r
   5. Live visitors pulse ring and ticker fade for the engagement screen.
   6. All inside `prefers-reduced-motion`; QA at phone width on real devices (animation cost on low-end Android).
 - **Decide:** include the grow-from-card transition (the signature one, biggest effort, needs the View Transitions API) or only fades and slides?
+
+## B9 built (2026-10-04)
+Tab switches fade; drill-in/back still slide; product detail grows from the tapped card photo (View Transitions API via `src/viewTransition.ts`, 440 ms open, fade on close, plain fade where unsupported); sign-up steps slide in (`.step-in`); order cards and buyer rows fade in; live-visitors dot pulses. All off under reduced motion. Not seen in a browser yet.
+Skipped from the plan: slide-OUT of the previous onboarding step (React unmounts at once), collapse animation on row removal.
+
+## Merge list (what `saas/layouts` carries beyond origin/main 34315d5)
+| # | Item | State |
+|---|---|---|
+| B2 | One admin per store (all plans), staff removed, admin forgot-password by WhatsApp code | BUILT, tests |
+| B3 | Buyer session 7 days in localStorage | BUILT |
+| B4 | Same opening page ("Enter the portal") for every store; new signups login-only | BUILT |
+| B8 | Buyers code-only: no change/reset password, password sign-up/sign-in endpoints removed | BUILT, tests rewritten |
+| B9 | Screen animations | BUILT, not seen in browser |
+| Home | "Powered by Antarixs" below The House | BUILT |
+| B1 | bhakti founder -> pro | DATA ONLY: user runs `scripts/bhakti-to-pro.ps1` |
+| Order alerts | needs VAPID keys | USER runs `scripts/enable-push.ps1` |
+| B5 | Back button trail | PLANNED, not built |
+| B6 | Photo ratio rules | PLANNED, not built |
+| B7 | PDF atlas layout + real download | PLANNED, not built |
