@@ -2,9 +2,9 @@ import crypto from 'crypto';
 import { loadMerchant, type MerchantConfig } from './merchant';
 
 export type StoreKind = 'firestore' | 'file' | 'memory';
-/** whatsapp: live Meta Cloud API sends. static: fixed OTP_STATIC_CODE, nothing sent. console: codes printed to the log (dev only). */
-export type OtpProvider = 'whatsapp' | 'static' | 'console';
-const OTP_PROVIDERS: OtpProvider[] = ['whatsapp', 'static', 'console'];
+/** wisesender: codes sent as a WhatsApp template through WiseSender. whatsapp: live Meta Cloud API sends. static: fixed OTP_STATIC_CODE, nothing sent. console: codes printed to the log (dev only). */
+export type OtpProvider = 'wisesender' | 'whatsapp' | 'static' | 'console';
+const OTP_PROVIDERS: OtpProvider[] = ['wisesender', 'whatsapp', 'static', 'console'];
 
 export interface Config {
   port: number;
@@ -31,6 +31,8 @@ export interface Config {
   uploadsDir: string;
   /** WhatsApp Cloud API settings; null when unset (dev logs codes, production refuses to send). */
   whatsapp: { token: string; phoneNumberId: string; template: string; language: string; apiVersion: string } | null;
+  /** WiseSender (WhatsApp provider) settings for sign-in codes; null when unset. */
+  wisesender: { baseUrl: string; vendorUid: string; token: string; template: string; language: string } | null;
   /** Meta utility template for owner order alerts; null = no WhatsApp alerts. */
   orderTemplate: string | null;
   /** Meta utility template for the daily "catalogue full" owner nudge; null = push only. */
@@ -92,12 +94,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
           apiVersion: env.WHATSAPP_API_VERSION?.trim() || 'v25.0'
         }
       : null;
+  const wisesender =
+    env.WISESENDER_VENDOR_UID && env.WISESENDER_TOKEN && env.WISESENDER_OTP_TEMPLATE
+      ? {
+          baseUrl: (env.WISESENDER_BASE_URL?.trim() || 'https://app.wisesender.in').replace(/\/+$/, ''),
+          vendorUid: env.WISESENDER_VENDOR_UID.trim(),
+          token: env.WISESENDER_TOKEN.trim(),
+          template: env.WISESENDER_OTP_TEMPLATE.trim(),
+          language: env.WISESENDER_OTP_LANGUAGE?.trim() || 'en_US'
+        }
+      : null;
   const staticCode = /^\d{6}$/.test(env.OTP_STATIC_CODE ?? '') ? env.OTP_STATIC_CODE! : null;
   const requestedOtp = env.OTP_PROVIDER?.trim().toLowerCase() as OtpProvider | undefined;
-  let otpProvider: OtpProvider = whatsapp ? 'whatsapp' : staticCode ? 'static' : 'console';
+  let otpProvider: OtpProvider = wisesender ? 'wisesender' : whatsapp ? 'whatsapp' : staticCode ? 'static' : 'console';
   if (requestedOtp) {
     otpProvider = requestedOtp;
     if (!OTP_PROVIDERS.includes(requestedOtp)) problems.push(`OTP_PROVIDER must be one of ${OTP_PROVIDERS.join(', ')} (got "${requestedOtp}")`);
+    else if (requestedOtp === 'wisesender' && !wisesender) problems.push('OTP_PROVIDER=wisesender needs WISESENDER_VENDOR_UID, WISESENDER_TOKEN and WISESENDER_OTP_TEMPLATE');
     else if (requestedOtp === 'whatsapp' && !whatsapp) problems.push('OTP_PROVIDER=whatsapp needs WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_OTP_TEMPLATE');
     else if (requestedOtp === 'static' && !staticCode) problems.push('OTP_PROVIDER=static needs OTP_STATIC_CODE (exactly 6 digits)');
     else if (requestedOtp === 'console' && isProduction) problems.push('OTP_PROVIDER=console is not allowed in production');
@@ -126,6 +139,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     storageBucket: env.STORAGE_BUCKET?.trim() || null,
     uploadsDir: env.UPLOADS_DIR || 'data/uploads',
     whatsapp,
+    wisesender,
     orderTemplate: env.WHATSAPP_ORDER_TEMPLATE?.trim() || null,
     storeFullTemplate: env.WHATSAPP_STORE_FULL_TEMPLATE?.trim() || null,
     whatsappAppSecret: env.WHATSAPP_APP_SECRET?.trim() || null,

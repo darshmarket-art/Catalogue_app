@@ -97,6 +97,54 @@ export class MetaOtpSender implements OtpSender {
   }
 }
 
+/**
+ * WiseSender: our own 6-digit code goes out as an approved Authentication template (code in the body and on the copy-code button).
+ * https://app.wisesender.in/api/docs/ (POST /api/{vendorUid}/contact/send-template-message, Bearer token). One retry on 429, 5xx and network errors.
+ */
+export class WiseSenderOtpSender implements OtpSender {
+  constructor(
+    private c: NonNullable<Config['wisesender']>,
+    private fetchFn: typeof fetch = fetch
+  ) {}
+
+  async sendOtp(phone: string, code: string): Promise<string> {
+    try {
+      return await this.post(phone, code);
+    } catch (e) {
+      if (!(e instanceof WhatsAppSendError) || !e.retryable) throw e;
+      return this.post(phone, code);
+    }
+  }
+
+  private async post(phone: string, code: string): Promise<string> {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEND_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await this.fetchFn(`${this.c.baseUrl}/api/${encodeURIComponent(this.c.vendorUid)}/contact/send-template-message`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.c.token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: phone, template_name: this.c.template, template_language: this.c.language, field_1: code, copy_code: code }),
+        signal: ctrl.signal
+      });
+    } catch (e: any) {
+      const msg = e?.name === 'AbortError' ? `WiseSender did not answer within ${SEND_TIMEOUT_MS / 1000}s` : `WiseSender request failed: ${e?.message ?? e}`;
+      throw new WhatsAppSendError(msg, 0, null, null, true);
+    } finally {
+      clearTimeout(timer);
+    }
+    const body: any = await res.json().catch(() => ({}));
+    const ok = res.ok && body?.status !== 'failed' && body?.result !== 'failed' && body?.success !== false;
+    if (ok) {
+      const id: string = body?.data?.messages?.[0]?.id ?? body?.messages?.[0]?.id ?? '';
+      logger.info('WiseSender OTP accepted', { to: maskPhone(phone), messageId: id || null });
+      return id;
+    }
+    const detail = `${res.status} ${String(body?.message ?? body?.error ?? '').slice(0, 300)}`.trim();
+    throw new WhatsAppSendError(`WiseSender send failed: ${detail}`, res.status, null, null, res.status >= 500 || res.status === 429);
+  }
+}
+
 /** Development only: prints the code instead of sending it. */
 export class ConsoleOtpSender implements OtpSender {
   async sendOtp(phone: string, code: string) {
@@ -106,6 +154,8 @@ export class ConsoleOtpSender implements OtpSender {
 
 export function createOtpSender(config: Config): OtpSender {
   switch (config.otpProvider) {
+    case 'wisesender':
+      return new WiseSenderOtpSender(config.wisesender!);
     case 'whatsapp':
       return new MetaOtpSender(config.whatsapp!);
     case 'static':
@@ -128,7 +178,7 @@ export function createOtpDelivery(config: Config, sender: OtpSender, log: Messag
     if (config.staticOtp) return { channel: 'dev', messageId: null };
     try {
       const wamid = (await sender.sendOtp(phone, code)) || null;
-      const live = config.otpProvider === 'whatsapp';
+      const live = config.otpProvider === 'whatsapp' || config.otpProvider === 'wisesender';
       const rec = live && log ? await log.record({ storeId, kind, to: phone, wamid }) : null;
       return { channel: live ? 'whatsapp' : 'dev', messageId: rec?.id ?? null };
     } catch (err) {
