@@ -103,8 +103,17 @@ export const AdminBuyersScreen: React.FC = () => {
                 {b.phone} · joined {joined(b.createdAt)}
                 {seen(b.lastSeen)}
               </div>
+              <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }} data-testid="buyer-contact">
+                {[b.ownerName && b.ownerName !== b.firmName ? `Contact: ${b.ownerName}` : '', b.marketHub ? `Hub: ${b.marketHub}` : '', b.gstin && b.gstin !== 'PENDING-VERIFY' ? `GSTIN ${b.gstin}` : ''].filter(Boolean).join(' · ')}
+              </div>
             </div>
             <div className="em-row" style={{ gap: 6, flexDirection: 'column', alignItems: 'stretch' }}>
+              <a className="em-rm n" href={`tel:+${b.phone.replace(/[^0-9]/g, '')}`} style={{ textAlign: 'center', textDecoration: 'none' }}>
+                Call
+              </a>
+              <a className="em-rm n" href={`https://wa.me/${b.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`} target="_blank" rel="noopener noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>
+                WhatsApp
+              </a>
               <button type="button" data-testid={`remove-buyer-${b.phone}`} className="em-rm" disabled={busyPhone === b.phone} onClick={() => handleRemove(b)}>
                 {removing === b.phone ? 'Tap again' : 'Remove'}
               </button>

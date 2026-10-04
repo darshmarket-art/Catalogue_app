@@ -44,7 +44,12 @@ export default function App() {
   const [banners, setBanners] = useState<Banner[]>([]);
   // The owner's purity list (defaults until it loads) and the buyer's hearted SKUs.
   const [purities, setPurities] = useState<Purity[]>(sector.purities);
-  const [shortlist, setShortlist] = useState<string[]>([]);
+  const [shortlist, setShortlistState] = useState<string[]>([]);
+  const shortlistRef = useRef<string[]>([]);
+  const setShortlist = (next: string[]) => {
+    shortlistRef.current = next;
+    setShortlistState(next);
+  };
   const [about, setAbout] = useState<About>({});
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
@@ -80,11 +85,13 @@ export default function App() {
   // Switching between the four tabs fades; going deeper or back slides.
   const lastScreen = useRef<ActiveScreen>(currentScreen);
 
+  // Set once the guard entry exists (see the Back handling below); remembered in the history state so a reload keeps it.
+  const guardArmed = useRef(Boolean(window.history.state?.g));
   const handleNavigate = (screen: ActiveScreen, _replace = false) => {
     setNavDir('forward');
     setCurrentScreen(screen);
     // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
-    window.history.replaceState({ screen }, '');
+    window.history.replaceState({ screen, g: guardArmed.current ? 1 : undefined }, '');
   };
 
   // Back on the web: the page sits on one entry above a "guard" entry. Pressing Back lands on the guard; we put the page back
@@ -98,14 +105,20 @@ export default function App() {
       // storage blocked: Back then leaves to the previous page
     }
     if (window.location.hash === '#new') window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
-    if (!window.history.state?.screen) {
-      window.history.replaceState({ screen: 'guard' }, '');
-      window.history.pushState({ screen: currentScreen }, '');
-    }
+    // Browsers (Chrome, Android) skip history entries a page adds before the visitor has touched it, so the guard entry is added on
+    // the first tap or key press, not on load. Until then Back simply leaves, as it would on any page.
+    const arm = () => {
+      if (guardArmed.current) return;
+      guardArmed.current = true;
+      window.history.replaceState({ screen: 'guard', g: 1 }, '');
+      window.history.pushState({ screen: screenRef.current, g: 1 }, '');
+    };
+    const gestures = ['pointerdown', 'touchstart', 'keydown'] as const;
+    if (!guardArmed.current) gestures.forEach((ev) => window.addEventListener(ev, arm, { passive: true }));
     const onPop = (e: PopStateEvent) => {
       const to = e.state?.screen as string | undefined;
       if (to && to !== 'guard') return void setCurrentScreen(to as ActiveScreen);
-      window.history.pushState({ screen: screenRef.current }, '');
+      window.history.pushState({ screen: screenRef.current, g: 1 }, '');
       backRef.current(() => {
         if (sessionStorage.getItem('fresh-store')) {
           window.close(); // only works for tabs the page opened
@@ -114,7 +127,10 @@ export default function App() {
       });
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      gestures.forEach((ev) => window.removeEventListener(ev, arm));
+    };
   }, []);
 
   // Android Back button: on Home leave the app; anywhere else go Home first (the handler is kept current below).
@@ -226,7 +242,8 @@ export default function App() {
   }, [currentMerchant?.phone]);
 
   const toggleShortlist = (product: Product) => {
-    const next = shortlist.includes(product.sku) ? shortlist.filter((sku) => sku !== product.sku) : [...shortlist, product.sku];
+    const cur = shortlistRef.current;
+    const next = cur.includes(product.sku) ? cur.filter((sku) => sku !== product.sku) : [...cur, product.sku];
     setShortlist(next);
     api.saveShortlist(next).catch(() => {
       // keep what the buyer sees; it is saved again on their next tap
@@ -237,7 +254,14 @@ export default function App() {
   const handleAddToOrder = async (product: Product, quantity: number, purity?: string) => {
     try {
       const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity, ...(purity ? { purity } : {}) });
-      setOrders((prev) => [...prev, newItem]);
+      // The server merges a repeat add into the existing line, so replace by id rather than append.
+      setOrders((prev) => (prev.some((i) => i.id === newItem.id) ? prev.map((i) => (i.id === newItem.id ? newItem : i)) : [...prev, newItem]));
+      // Once a design is in the order it leaves the shortlist.
+      if (shortlistRef.current.includes(product.sku)) {
+        const next = shortlistRef.current.filter((sku) => sku !== product.sku);
+        setShortlist(next);
+        api.saveShortlist(next).catch(() => {});
+      }
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
@@ -483,8 +507,9 @@ export default function App() {
             : screen;
   useEffect(() => {
     lastScreen.current = activeScreen;
+    window.scrollTo(0, 0); // a new screen always opens at its top, not where the last one was scrolled
     // After a restored sign-in the screen changes without a navigation: keep the history entry in step (never touch the guard).
-    if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen }, '');
+    if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen, g: guardArmed.current ? 1 : undefined }, '');
   }, [activeScreen]);
 
   const shouldShowBottomNav =

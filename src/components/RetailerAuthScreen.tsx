@@ -49,6 +49,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
 
 /** Buyer showroom sign-in (atlas): the number first, then the 6-digit code sent on WhatsApp. New numbers get an account; no shop name is asked. */
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNavigate, onLoginSuccess }) => {
+  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
@@ -83,7 +84,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     setLoading(true);
     setErrorMessage(null);
     try {
-      const res = await api.verifyOtp({ phone: phone.trim(), code: code.trim() });
+      const res = await api.verifyOtp({ phone: phone.trim(), code: code.trim(), firmName: name.trim(), ownerName: name.trim() });
       onLoginSuccess(profileOf(res.user));
     } catch (err: any) {
       setErrorMessage(err.message || 'That code did not work.');
@@ -102,7 +103,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
             {codeSent ? 'Enter the code' : 'Buyer showroom'}
           </h1>
           <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
-            {codeSent ? `Sent to +91 ${phone.trim()} on WhatsApp.` : 'Sign in with your WhatsApp number to browse the catalogue, shortlist and place orders.'}
+            {codeSent ? `Sent to +91 ${phone.trim()} on WhatsApp.` : 'Sign in with your name and WhatsApp number to browse the catalogue, shortlist and place orders.'}
           </p>
         </div>
 
@@ -111,6 +112,12 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
         {!codeSent ? (
           <form onSubmit={sendCode} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
+              <label className="lab" htmlFor="login-name">
+                Your name
+              </label>
+              <input id="login-name" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramesh Shah" autoComplete="name" required minLength={2} maxLength={100} autoFocus />
+            </div>
+            <div>
               <label className="lab" htmlFor="login-phone">
                 WhatsApp number
               </label>
@@ -118,10 +125,10 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
                 <span className="inp" style={{ width: 64, justifyContent: 'center', fontWeight: 600, padding: 0, background: 'var(--em-tint)' }}>
                   +91
                 </span>
-                <input id="login-phone" className="inp" style={{ flex: 1, minWidth: 0 }} value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, '').slice(0, 11))} placeholder="98765 43210" type="tel" inputMode="numeric" autoComplete="tel-national" required autoFocus />
+                <input id="login-phone" className="inp" style={{ flex: 1, minWidth: 0 }} value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, '').slice(0, 11))} placeholder="98765 43210" type="tel" inputMode="numeric" autoComplete="tel-national" required />
               </div>
             </div>
-            <button type="submit" className="btn wa" disabled={loading || phone.replace(/\D/g, '').length < 10}>
+            <button type="submit" className="btn wa" disabled={loading || name.trim().length < 2 || phone.replace(/\D/g, '').length < 10}>
               <Icon n="wa" />
               {loading ? 'Sending…' : 'Send code on WhatsApp'}
             </button>

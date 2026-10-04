@@ -12,10 +12,9 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
   const CW = Math.min(320, window.innerWidth - 64);
   const CH = CW / spec.ratio;
 
-  // The object URL is made and revoked inside the effect, so React StrictMode's mount, cleanup, mount does not leave a revoked URL behind.
+  // Read as a data URL: the production CSP blocks blob: images, and this also survives React StrictMode's double mount.
   useEffect(() => {
-    const u = URL.createObjectURL(file);
-    setUrl(u);
+    let alive = true;
     const i = new Image();
     i.onload = () => {
       setImg(i);
@@ -23,10 +22,16 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
       const s = Math.max(CW / i.naturalWidth, CH / i.naturalHeight);
       setOff({ ox: (CW - i.naturalWidth * s) / 2, oy: (CH - i.naturalHeight * s) / 2 });
     };
-    i.src = u;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (!alive) return;
+      setUrl(String(reader.result));
+      i.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
     return () => {
+      alive = false;
       i.onload = null;
-      URL.revokeObjectURL(u);
     };
   }, []);
 

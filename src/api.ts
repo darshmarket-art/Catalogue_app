@@ -427,7 +427,7 @@ export const api = {
     return post('/api/v1/auth/retailer/request-otp', { phone });
   },
 
-  async verifyOtp(payload: { phone: string; code: string; firmName?: string }) {
+  async verifyOtp(payload: { phone: string; code: string; firmName?: string; ownerName?: string }) {
     const json = await post('/api/v1/auth/retailer/verify-otp', payload);
     setAuthToken(json.token);
     return json;

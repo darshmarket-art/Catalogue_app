@@ -123,6 +123,11 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
         };
         await store.create('buyers', body.phone, buyer);
       }
+      if (body.firmName && body.firmName !== buyer.firmName) {
+        // A returning buyer who types a name at sign-in is renaming themselves (they just proved the number with a code).
+        buyer = { ...buyer, firmName: body.firmName, ownerName: body.ownerName || body.firmName };
+        await store.update('buyers', body.phone, { firmName: buyer.firmName, ownerName: buyer.ownerName });
+      }
       await audit(store, req, 'RETAILER_OTP_LOGIN', `Signed in by WhatsApp OTP: ${buyer.firmName} (Phone: ${body.phone})`);
       res.json({
         status: 'success',

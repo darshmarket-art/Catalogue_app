@@ -90,6 +90,16 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
       const line = pack.cartLine(product, body.batchQty);
       // A purity the buyer asks for is used only if the owner offers it; anything else falls back to the design's own.
       const purity = body.purity && enabledKeys(await loadPurities(store)).includes(body.purity) ? body.purity : line.purity;
+      // The same design (and purity) already in the buyer's order: add to that line instead of making a second one.
+      const same = (await loadCart(user(res).id)).find((i) => i.sku === product.sku && i.purity === purity);
+      if (same) {
+        const batchQty = Math.min(10000, same.batchQty + body.batchQty);
+        const next = { totalNetGold: pack.cartLine(product, batchQty).totalNetGold, batchQty, qtyUnit: batchQty > 1 ? 'Pcs' : 'Set' };
+        await store.update('cartItems', same.id, next);
+        const me = user(res);
+        await logActivity(store, { id: me.id, kind: 'verified' as const, name: me.name }, { type: 'cart', sku: product.sku });
+        return res.status(200).json({ status: 'success', message: 'Quantity updated', data: shown({ ...same, ...next }) });
+      }
       const item: CartItem = {
         id,
         ownerId: user(res).id,
