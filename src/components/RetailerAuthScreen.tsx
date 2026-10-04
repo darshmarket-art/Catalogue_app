@@ -70,6 +70,14 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
   // The form shows a fixed +91; the server and WhatsApp need the country code in the number.
   const fullPhone = () => `91${phone.replace(/\D/g, '')}`;
 
+  // After a good code, hold a 2 s greeting before entering the showroom.
+  const [welcome, setWelcome] = useState<{ user: ProfileUser; isNew: boolean } | null>(null);
+  useEffect(() => {
+    if (!welcome) return;
+    const t = setTimeout(() => onLoginSuccess(welcome.user), 2000);
+    return () => clearTimeout(t);
+  }, [welcome]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (wait <= 0) return;
     const t = setTimeout(() => setWait(wait - 1), 1000);
@@ -104,13 +112,33 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     try {
       const res = await api.verifyOtp({ phone: fullPhone(), code: code.trim(), ...(needsName ? { firmName: name.trim(), ownerName: name.trim() } : {}) });
       if (res.status === 'needs-name') setNeedsName(true);
-      else onLoginSuccess(profileOf(res.user));
+      else setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
     } catch (err: any) {
       setErrorMessage(err.message || 'That code did not work.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (welcome) {
+    return (
+      <div className="em-page notabs" style={{ maxWidth: 480 }} data-testid="buyer-welcome">
+        <div className="em-pad" style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center' }}>
+          <div className="welcome-ring" style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--em-primary)' }} />
+          <div className="welcome-rise">
+            <div className="em-ey">{merchant.brand.name}</div>
+            <h1 className="em-ser" style={{ fontSize: 32, lineHeight: 1.2, marginTop: 8 }}>
+              {welcome.isNew ? 'Welcome' : 'Welcome back'}, {welcome.user.ownerName || welcome.user.storeName}
+            </h1>
+            <p className="em-mut" style={{ marginTop: 8, fontSize: 14 }}>Opening your showroom…</p>
+          </div>
+          <div style={{ width: 140, height: 3, borderRadius: 2, background: 'var(--em-tint)', overflow: 'hidden' }}>
+            <div className="welcome-bar" style={{ height: '100%', background: 'var(--em-primary)' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (full) {
     return (

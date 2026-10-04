@@ -163,6 +163,44 @@ html.native {
   animation: step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Post-login welcome screen: the greeting rises in, a ring pulses, and a bar fills over the 2 s hold. */
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes welcome-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--em-primary) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 28px transparent;
+  }
+}
+@keyframes welcome-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.welcome-rise {
+  animation: welcome-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.welcome-ring {
+  animation: welcome-ring 1.2s ease-out infinite;
+}
+.welcome-bar {
+  transform-origin: left;
+  animation: welcome-fill 2s linear forwards;
+}
+
 /* Rows (orders, buyers, visitors) fade in; the live dot pulses once a second. */
 @keyframes row-in {
   from {
