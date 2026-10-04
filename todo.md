@@ -8,6 +8,13 @@
 - Migration lessons: scripts/migrate-multistore.ts photo copy via Node hung (use instead: gcloud storage cp -r --no-clobber "gs://BUCKET/photos/*" "gs://BUCKET/stores/bhakti/photos/"); flags --skip a,b,c, --no-photos, --overwrite exist; do not use npx in Cloud Shell, use ./node_modules/.bin/tsx.
 - Cloud Run permissions: the user added a gcloud allow rule; direct pushes to main and some prod commands are still gated by the classifier.
 
+### Update 2026-10-04 (later)
+- DONE: main pushed (0644d14); Cloud Build deployed it as catalogue-app-00025-wv6 (100%, routes to latest). Load balancer built (IP antarixs-lb-ip 35.244.250.222, global ALB, serverless NEG antarixs-neg, wildcard cert antarixs-wildcard-cert ACTIVE, cert map antarixs-cert-map). Hostinger DNS has `*` A and `_acme-challenge` CNAME. https://bhakti.antarixs.com serves Bhakti; unknown subdomain gives 404. Entry page = https://app.antarixs.com (302 at last check; not yet viewed). Installed Android app still has the OLD bundled login: rebuild APK on the unrestricted machine.
+- TODO: Cloud Scheduler (daily POST /api/internal/trial-sweep with OIDC; set SWEEP_AUDIENCE and SWEEP_SERVICE_ACCOUNT on the service).
+- TODO: HTTP to HTTPS redirect on port 80 (url map antarixs-http-redirect, http proxy, forwarding rule on antarixs-lb-ip). Blocked by the classifier; user to run or add a gcloud compute allow rule.
+- TODO: Console at https://console.antarixs.com via IAP: see console-setup.sh in the repo parent folder (needs IAP_AUDIENCE and CONSOLE_ADMINS on the service).
+- TODO: restore DNS _dmarc to "v=DMARC1; p=none".
+
 ### Owner (user) pending
 - Meta: app "Antarixs Messaging" (id 1747707676519380) with the WhatsApp use case exists under business portfolio Antarixs (unverified). The test WABA (id 1403799705212979, phone number id 1379009651957695, number +1 555 637 7856) cannot create templates. Needs: register a real number, add payment method, business verification, permanent system-user token into Secret Manager. Then create templates: antarixs_login_code (authentication, copy code, en), order alert (WHATSAPP_ORDER_TEMPLATE), trial reminder (WHATSAPP_TRIAL_TEMPLATE); see docs/whatsapp-setup.md and docs/trial-lifecycle.md. A first Facebook-Login app named Antarixs (id 4421299164791985) also exists and is unused.
 - Payments (Phase 11): owner will handle; app text says contact sales at hello@antarixs.com (shared/sales.ts).
