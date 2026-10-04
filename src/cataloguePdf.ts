@@ -23,25 +23,23 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-/** Tiles the brand name diagonally over the whole photo, in the pixels themselves, so it cannot be peeled off the PDF as a separate layer. */
+/** One brand mark across the middle of the photo, in the pixels themselves, so it cannot be peeled off the PDF as a separate layer and does not blur the design. */
 function stamp(ctx: CanvasRenderingContext2D, text: string) {
+  const label = text.toUpperCase();
   ctx.save();
   ctx.translate(PHOTO_PX / 2, PHOTO_PX / 2);
   ctx.rotate(-Math.PI / 6);
-  ctx.font = '700 26px Helvetica, Arial, sans-serif';
+  // the largest size that keeps the name within 70% of the photo width
+  let size = 40;
+  do ctx.font = `700 ${size--}px Helvetica, Arial, sans-serif`;
+  while (ctx.measureText(label).width > PHOTO_PX * 0.7 && size > 14);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(0,0,0,0.28)';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  const label = text.toUpperCase();
-  const stepX = ctx.measureText(label).width + 70;
-  for (let y = -PHOTO_PX; y <= PHOTO_PX; y += 90) {
-    for (let x = -PHOTO_PX - ((y / 90) % 2 ? stepX / 2 : 0); x <= PHOTO_PX; x += stepX) {
-      ctx.strokeText(label, x, y);
-      ctx.fillText(label, x, y);
-    }
-  }
+  ctx.strokeText(label, 0, 0);
+  ctx.fillText(label, 0, 0);
   ctx.restore();
 }
 
@@ -70,7 +68,7 @@ export async function downloadCataloguePdf(category: Category, products: Product
   return downloadDesignsPdf(category.name, items, onProgress);
 }
 
-/** The same PDF for designs the owner picked by hand. `title` appears in the file name and on the cover. The file is downloaded (on phones too), and every photo carries the brand watermark in its pixels. */
+/** The same PDF for designs the owner picked by hand. `title` appears in the file name and on the cover. The file is downloaded (on phones too), and every photo carries one brand watermark in its pixels, and the last page thanks the buyer with the store's quick links. */
 export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void, _mode: 'save' | 'share' = 'save') {
   if (items.length === 0) throw new Error('Pick at least one design first.');
 
@@ -148,7 +146,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
     doc.setFontSize(7);
     doc.setTextColor(112, 104, 99);
     doc.text(`Weights are net of stones and tare. Enquire on WhatsApp ${phone}`, MARGIN, y);
-    doc.text(`Page ${page + 1} of ${pages.length}`, MARGIN, y + 4.5);
+    doc.text(`Page ${page + 1} of ${pages.length + 1}`, MARGIN, y + 4.5);
     // "Powered by [mark] Antarixs", right-aligned
     doc.setFont('times', 'normal');
     doc.setFontSize(10);
@@ -207,6 +205,60 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
     }
     footer(page);
   });
+
+  // Last page: thank you, with the store's quick links (each is tappable in the PDF).
+  doc.addPage();
+  {
+    const x = MARGIN;
+    const y = 30;
+    const w = W - 2 * MARGIN;
+    doc.setFillColor(...deep);
+    doc.roundedRect(x, y, w, 160, 4, 4, 'F');
+    doc.setTextColor(...GOLD);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text('THANK YOU FOR BROWSING', x + 12, y + 18);
+    doc.setTextColor(250, 246, 241);
+    doc.setFont('times', 'normal');
+    doc.setFontSize(30);
+    doc.text('Thank you', x + 12, y + 36);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(222, 214, 218);
+    doc.text(doc.splitTextToSize(`We would love to make these pieces yours. Message us on WhatsApp for rates, availability and orders.`, w - 24), x + 12, y + 45);
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.3);
+    doc.line(x + 12, y + 58, x + 12 + 18, y + 58);
+    const c = merchant.contact;
+    const digits = c.whatsapp.replace(/[^0-9]/g, '');
+    const links: Array<[string, string, string]> = [
+      ['WHATSAPP', phone, `https://wa.me/${digits}`],
+      ['CALL', phone, `tel:+${digits}`],
+      ...(c.address ? ([['SHOWROOM', c.address, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`]] as Array<[string, string, string]>) : []),
+      ['ONLINE CATALOGUE', window.location.host, window.location.origin],
+      ...(c.instagramUrl ? ([['INSTAGRAM', c.instagramUrl.replace(/^https?:\/\/(www\.)?/, ''), c.instagramUrl]] as Array<[string, string, string]>) : []),
+      ...(c.facebookUrl ? ([['FACEBOOK', c.facebookUrl.replace(/^https?:\/\/(www\.)?/, ''), c.facebookUrl]] as Array<[string, string, string]>) : []),
+      ...(c.youtubeUrl ? ([['YOUTUBE', c.youtubeUrl.replace(/^https?:\/\/(www\.)?/, ''), c.youtubeUrl]] as Array<[string, string, string]>) : [])
+    ];
+    let ly = y + 70;
+    for (const [label, text, url] of links.slice(0, 6)) {
+      doc.setTextColor(...GOLD);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.text(label, x + 12, ly);
+      doc.setTextColor(250, 246, 241);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const line = doc.splitTextToSize(text, w - 24)[0] as string;
+      doc.textWithLink(line, x + 12, ly + 5, { url });
+      ly += 14;
+    }
+    doc.setTextColor(112, 104, 99);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Prices and availability are confirmed on WhatsApp. ${brand}`, x, y + 172);
+  }
+  footer(pages.length);
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
