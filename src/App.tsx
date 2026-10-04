@@ -5,13 +5,8 @@ import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
+import { kitFor } from './layouts';
 import { sector } from './sector';
-import { Header } from './components/Header';
-import { BottomNav } from './components/BottomNav';
-import { WelcomeScreen } from './components/WelcomeScreen';
-import { CatalogueScreen } from './components/CatalogueScreen';
-import { CategoriesScreen } from './components/CategoriesScreen';
-import { OrdersScreen } from './components/OrdersScreen';
 import { RetailerAuthScreen } from './components/RetailerAuthScreen';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
 import { AdminHubScreen } from './components/AdminHubScreen';
@@ -21,13 +16,14 @@ import { AddCategoryScreen } from './components/AddCategoryScreen';
 import { AdminVisitorsScreen } from './components/AdminVisitorsScreen';
 import { AdminBannersScreen } from './components/AdminBannersScreen';
 import { AdminPuritiesScreen } from './components/AdminPuritiesScreen';
-import { AboutScreen } from './components/AboutScreen';
 import { AdminAboutScreen } from './components/AdminAboutScreen';
-import { ShortlistScreen } from './components/ShortlistScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
+
+// The server embeds the effective layout for this store, so it is fixed for the life of the page.
+const K = kitFor(merchant.layout);
 
 export default function App() {
   const plan = usePlan();
@@ -479,10 +475,10 @@ export default function App() {
   if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+    <div data-layout={merchant.layout} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {/* Persistent Header */}
       {activeScreen !== 'welcome' && (
-        <Header
+        <K.Header
           currentScreen={activeScreen}
           onNavigate={handleNavigate}
           isAdminLoggedIn={isAdminLoggedIn}
@@ -516,11 +512,11 @@ export default function App() {
       <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
 
         {activeScreen === 'welcome' && (
-          <WelcomeScreen onNavigate={handleNavigate} />
+          <K.Welcome onNavigate={handleNavigate} />
         )}
 
         {activeScreen === 'catalogue' && (
-          <CatalogueScreen
+          <K.Catalogue
             products={products}
             isAdmin={isAdminLoggedIn}
             categoryFilter={categoryFilter}
@@ -536,7 +532,7 @@ export default function App() {
         )}
 
         {activeScreen === 'shortlist' && (
-          <ShortlistScreen
+          <K.Shortlist
             products={products}
             shortlist={shortlist}
             storeName={currentMerchant?.storeName ?? ''}
@@ -547,7 +543,7 @@ export default function App() {
         )}
 
         {activeScreen === 'categories' && (
-          <CategoriesScreen
+          <K.Categories
             categories={categories}
             products={products}
             banners={banners}
@@ -562,7 +558,7 @@ export default function App() {
         {activeScreen === 'orders' && isAdminLoggedIn && <AdminOrdersScreen />}
 
         {activeScreen === 'orders' && !isAdminLoggedIn && (
-          <OrdersScreen
+          <K.Orders
             key={ordersTab}
             initialTab={ordersTab}
             orders={orders}
@@ -605,7 +601,7 @@ export default function App() {
 
         {activeScreen === 'admin-banners' && <AdminBannersScreen banners={banners} categories={categories} onLink={handleBannerLinked} onAdd={handleBannerAdded} onDelete={handleBannerDeleted} onReorder={handleBannersReordered} />}
 
-        {activeScreen === 'about' && <AboutScreen about={about} />}
+        {activeScreen === 'about' && <K.About about={about} />}
 
         {activeScreen === 'admin-about' && <AdminAboutScreen about={about} onSave={handleAboutSaved} />}
 
@@ -665,7 +661,7 @@ export default function App() {
 
       {/* Bottom Navigation */}
       {shouldShowBottomNav && (
-        <BottomNav
+        <K.BottomNav
           currentScreen={activeScreen}
           onNavigate={handleNavigate}
           orderCount={orders.length}

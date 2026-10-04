@@ -1,5 +1,7 @@
 import { entitlements } from './entitlements';
-import { createStoreResolver, planOf, scopeBlobs, scopeStore, secretFor } from './tenancy';
+import { createStoreResolver, planOf, scopeBlobs, scopeStore, secretFor, type StoreRecord } from './tenancy';
+import { layoutRoutes } from './routes/layout';
+import type { LayoutId } from '../shared/layouts';
 import type { PlanDoc } from './entitlements';
 import express from 'express';
 import type { RequestHandler } from 'express';
@@ -115,7 +117,11 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers);
+    const saveLayout = async (layout: LayoutId) => {
+      const rec = await root.get<StoreRecord>('stores', id);
+      if (rec) await root.update('stores', id, { merchant: { ...rec.merchant, layout } });
+    };
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, saveLayout);
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root));
@@ -123,7 +129,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, saveLayout: (layout: LayoutId) => Promise<void>) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -199,6 +205,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
+  app.use('/api/admin/layout', layoutRoutes(store, auth.requireAdmin, ent, saveLayout));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer, notify));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin, notify));

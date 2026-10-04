@@ -19,7 +19,7 @@ export function effectivePlan(doc: PlanDoc, now = Date.now()): 'basic' | 'pro' {
 /** Feature flags: Basic has no ordering/insights; banners and purities are on both plans. */
 export const flagsFor = (p: 'basic' | 'pro') => ({
   orders: p === 'pro', insights: p === 'pro', liveVisitors: p === 'pro', buyerEngagement: p === 'pro',
-  auditLog: p === 'pro', alerts: p === 'pro', pdfCatalogue: p === 'pro', staffRoles: p === 'pro', banners: true, purities: true
+  auditLog: p === 'pro', alerts: p === 'pro', pdfCatalogue: p === 'pro', staffRoles: p === 'pro', premiumLayouts: p === 'pro', banners: true, purities: true
 });
 
 export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {

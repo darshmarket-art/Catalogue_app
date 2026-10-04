@@ -4,7 +4,8 @@ import type { Config } from './config';
 import type { Blobs } from './blobs';
 import type { Store, Doc } from './store';
 import type { MerchantConfig } from './merchant';
-import type { PlanDoc } from './entitlements';
+import { effectivePlan, type PlanDoc } from './entitlements';
+import { DEFAULT_LAYOUT, LAYOUT_IDS, layoutPlan, type LayoutId } from '../shared/layouts';
 import { isReservedStoreName, isValidStoreName } from '../shared/storeName';
 
 /** One document per store in the top-level "stores" collection (the only data not inside a store's namespace). */
@@ -31,6 +32,12 @@ export const newStoreRecord = (merchant: MerchantConfig, patch: Partial<StoreRec
 });
 
 export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice });
+
+/** The layout a store actually gets: its choice when its plan allows it, otherwise the standard one (so a lapsed trial falls back to Gilded and comes back on upgrade). */
+/** Local preview only: DEV_FORCE_LAYOUT=emergent shows that layout for every store outside production, whatever the plan. */
+const devLayout = (config: Config) => (!config.isProduction && (LAYOUT_IDS as readonly string[]).includes(process.env.DEV_FORCE_LAYOUT ?? '') ? (process.env.DEV_FORCE_LAYOUT as LayoutId) : undefined);
+
+export const effectiveLayout = (r: StoreRecord) => (layoutPlan(r.merchant.layout) === 'pro' && effectivePlan(planOf(r)) !== 'pro' ? DEFAULT_LAYOUT : r.merchant.layout);
 
 const COLLECTION = /^[A-Za-z0-9_]+$/;
 const nsOf = (storeId: string) => {
@@ -186,7 +193,7 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
         return void (wantsJson ? res.status(403).json({ status: 'error', message: 'This store is not available right now.' }) : res.status(403).type('text').send('This store is not available right now.'));
       }
       res.locals.storeId = entry.rec.id;
-      res.locals.merchant = entry.rec.merchant;
+      res.locals.merchant = { ...entry.rec.merchant, layout: devLayout(config) ?? effectiveLayout(entry.rec) };
       (entry.app as unknown as (a: Request, b: Response, c: NextFunction) => void)(req, res, next);
     } catch (e) {
       next(e);

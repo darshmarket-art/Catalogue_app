@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
+import { DEFAULT_LAYOUT, LAYOUT_IDS } from '../shared/layouts';
 
 /** Theme colour tokens a merchant may override. Must stay in sync with the @theme block in src/index.css. */
 export const THEME_TOKENS = [
@@ -107,6 +108,8 @@ export const merchantSchema = z.object({
   sector: z.enum(['jewellery']),
   /** "public" lets anyone browse the catalogue; "login" requires an account. Ordering always needs an account. */
   catalogueAccess: z.enum(['public', 'login']).default('login'),
+  /** The storefront layout the owner chose. Non-standard layouts are Pro; tenancy embeds the effective one (Gilded after a downgrade). */
+  layout: z.enum(LAYOUT_IDS).default(DEFAULT_LAYOUT),
   orderFlow: z.enum(['direct']).default('direct'),
 
   brand: z.object({
