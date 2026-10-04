@@ -158,12 +158,6 @@ describe('remove buyer', () => {
     expect((await del('9820000001')).status).toBe(404);
   });
 
-  it('staff cannot (403) and the buyer stays', async () => {
-    const { del, store } = await withBuyer('staff');
-    expect((await del('9820000001')).status).toBe(403);
-    expect(await store.get('buyers', '9820000001')).not.toBeNull();
-  });
-
   it('needs a session (401) and the v1 path works', async () => {
     const { app, auth } = await withBuyer('owner');
     expect((await request(app).delete('/api/admin/buyers/9820000001')).status).toBe(401);

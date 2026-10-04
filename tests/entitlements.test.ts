@@ -92,13 +92,11 @@ describe('Pro feature gating', () => {
       expect((await get(path)).status, path).toBe(402);
     }
     const staff = { email: 's@example.com', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: KEY };
-    expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(402);
     // Free features still work, and so does tracking.
     expect((await get('/api/admin/buyers')).status).toBe(200);
     // A running trial is Pro.
     await root.update('stores', 'bhakti', { trialEndsAt: trialEnd() });
     expect((await get('/api/admin/orders')).status).toBe(200);
     expect((await get('/api/analytics')).status).toBe(200);
-    expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(201);
   });
 });

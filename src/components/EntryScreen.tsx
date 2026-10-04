@@ -122,13 +122,6 @@ export const EntryScreen: React.FC = () => {
               {who === 'buyer' ? 'Open the showroom' : 'Go to my store'}
             </button>
           </form>
-          {who === 'admin' && (
-            <div className="note">
-              <b>Staff accounts</b> <span className="pro" style={{ marginLeft: 4 }}>Pro</span>
-              <br />
-              Owners can add staff who help run the catalogue. On Basic, only the owner signs in.
-            </div>
-          )}
         </main>
       </Shell>
     );

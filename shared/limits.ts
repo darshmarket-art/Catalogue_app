@@ -11,5 +11,5 @@ export const TRIAL_DAYS = 14;
 /** Feature flags per plan: Basic has no ordering, insights or PDF; banners and purities are on both. Shared so the Plans screen reads the table the server enforces. */
 export const flagsFor = (p: 'basic' | 'pro') => ({
   orders: p === 'pro', insights: p === 'pro', liveVisitors: p === 'pro', buyerEngagement: p === 'pro',
-  auditLog: p === 'pro', alerts: p === 'pro', pdfCatalogue: p === 'pro', staffRoles: p === 'pro', banners: true, purities: true
+  auditLog: p === 'pro', alerts: p === 'pro', pdfCatalogue: p === 'pro', banners: true, purities: true
 });

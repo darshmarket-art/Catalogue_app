@@ -158,16 +158,17 @@ describe('admin provisioning', () => {
     expect(res.status).toBe(403);
   });
 
-  it('derives the role from the account, ignoring what the client claims at login', async () => {
+  it('allows one administrator per store, and it is the owner', async () => {
     const app = await build();
-    const res = await request(app)
+    const first = await request(app)
+      .post('/api/auth/admin/register')
+      .send({ email: 'boss@bhaktijewels.in', password: 'AdminPass@2026', masterProvisioningKey: MASTER_KEY });
+    expect(first.status).toBe(201);
+    expect(first.body.admin.role).toBe('owner');
+    const second = await request(app)
       .post('/api/auth/admin/register')
       .send({ email: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: MASTER_KEY });
-    expect(res.status).toBe(201);
-    const login = await request(app)
-      .post('/api/auth/admin/login')
-      .send({ adminId: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'owner' });
-    expect(login.body.admin.role).toBe('staff');
+    expect(second.status).toBe(409);
   });
 
   it('stores only bcrypt hashes', async () => {
@@ -844,7 +845,7 @@ describe('jewellery products (nothing invented)', () => {
 });
 
 describe('roles and legacy data', () => {
-  it('only accepts owner or staff, defaulting to staff', async () => {
+  it('rejects unknown roles, and the first admin is always the owner', async () => {
     const app = await build();
     const register = (extra: object) =>
       request(app)
@@ -852,8 +853,6 @@ describe('roles and legacy data', () => {
         .send({ email: `r${Math.random().toString(36).slice(2, 7)}@example.com`, password: 'AdminPass@2026', masterProvisioningKey: MASTER_KEY, ...extra });
     expect((await register({ role: 'Managing Director' })).status).toBe(400);
     expect((await register({ role: 'god-mode' })).status).toBe(400);
-    expect((await register({ role: 'owner' })).body.admin.role).toBe('owner');
-    expect((await register({})).body.admin.role).toBe('staff');
   });
 
   it('no longer stores or returns access levels', async () => {

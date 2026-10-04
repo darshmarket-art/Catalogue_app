@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -21,6 +22,8 @@ const phone = z
   .transform((v) => v.replace(/[^0-9]/g, ''))
   .refine((v) => v.length >= 10 && v.length <= 15, 'Please provide a valid mobile number.');
 const requestSchema = z.object({ phone });
+const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
+const resetSchema = forgotSchema.extend({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.'), newPassword: trimmed(128, 10) });
 const verifySchema = z.object({
   phone,
   code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.'),
@@ -135,6 +138,57 @@ export function otpRoutes(config: Config, store: Store, sender: OtpSender, ent: 
           mustChangePassword: false
         }
       });
+    })
+  );
+
+  // Admin forgot password: a code goes to the store's registered WhatsApp number (the owner's phone from signup).
+  // The reply is the same whether or not the email is an admin, so it cannot be used to find accounts.
+  router.post(
+    '/admin/forgot/request-otp',
+    ipLimiter,
+    handler(async (req, res) => {
+      const { email } = parse(forgotSchema, req.body);
+      const ph = config.merchant.contact.whatsapp.replace(/[^0-9]/g, '');
+      const reply = () => res.json({ status: 'success', message: `If that is the store admin, a 6-digit code was sent to the store's WhatsApp number ending ${ph.slice(-4)}.`, expiresInSeconds: OTP_TTL_MS / 1000 });
+      if (!(await store.get('admins', email))) return void reply();
+      const key = `admin-reset:${email}`;
+      const t = now();
+      const prev = await store.get<OtpDoc>('otps', key);
+      if (prev && t - prev.sentAt < OTP_RESEND_MS) throw new HttpError(429, `Please wait ${Math.ceil((OTP_RESEND_MS - (t - prev.sentAt)) / 1000)} seconds before asking for another code.`);
+      const sameHour = Boolean(prev && t - prev.hourStart < 3600_000);
+      if (prev && sameHour && prev.hourCount >= OTP_PHONE_PER_HOUR) throw new HttpError(429, 'Too many codes requested. Please try again later.');
+      const code = config.staticOtp ?? String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+      try {
+        if (!config.staticOtp) await sender.sendOtp(ph, code);
+      } catch (err) {
+        logger.error('Admin reset OTP send failed', { error: String(err) });
+        throw new HttpError(503, 'Could not send the code on WhatsApp. Please try again shortly.');
+      }
+      await store.set('otps', key, { hash: hash(key, code), expiresAt: t + OTP_TTL_MS, attempts: 0, sentAt: t, hourStart: sameHour ? prev!.hourStart : t, hourCount: sameHour ? prev!.hourCount + 1 : 1 } satisfies OtpDoc);
+      await audit(store, req, 'ADMIN_RESET_CODE_SENT', `Password reset code requested for ${email}.`);
+      reply();
+    })
+  );
+
+  router.post(
+    '/admin/forgot/reset',
+    ipLimiter,
+    handler(async (req, res) => {
+      const body = parse(resetSchema, req.body);
+      const key = `admin-reset:${body.email}`;
+      const rec = await store.get<OtpDoc>('otps', key);
+      if (!rec || rec.expiresAt < now()) throw new HttpError(401, 'That code has expired. Please request a new one.');
+      if (rec.attempts >= OTP_MAX_ATTEMPTS) throw new HttpError(429, 'Too many wrong codes. Please request a new one.');
+      if (!safeEqual(rec.hash, hash(key, body.code))) {
+        await store.update('otps', key, { attempts: rec.attempts + 1 });
+        await audit(store, req, 'ADMIN_RESET_FAILED', `Wrong reset code for ${body.email}.`);
+        throw new HttpError(401, 'That code is not valid. Please check it or request a new one.');
+      }
+      await store.delete('otps', key); // single use
+      if (!(await store.get('admins', body.email))) throw new HttpError(401, 'That code is not valid. Please check it or request a new one.');
+      await store.update('admins', body.email, { password: await bcrypt.hash(body.newPassword, 12) });
+      await audit(store, req, 'ADMIN_PASSWORD_RESET', `Admin password reset by WhatsApp code for ${body.email}.`);
+      res.json({ status: 'success', message: 'Password updated. Sign in with the new password.' });
     })
   );
 

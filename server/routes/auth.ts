@@ -153,12 +153,17 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
         throw new HttpError(403, 'Access Denied: Invalid provisioning key. Unauthorized admin account creation is prohibited and logged.');
       }
 
+      // One administrator per store, on every plan. Extra accounts are refused.
+      if ((await store.list('admins')).length > 0) {
+        throw new HttpError(409, 'This store already has its administrator account.');
+      }
+
       const admin = {
         id: newId('adm'),
-        name: body.name || 'Staff Administrator',
+        name: body.name || 'Administrator',
         email: body.email,
         password: await bcrypt.hash(body.password, BCRYPT_ROUNDS),
-        role: body.role,
+        role: 'owner' as const,
         createdAt: new Date().toISOString()
       };
 

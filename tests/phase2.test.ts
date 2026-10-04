@@ -623,11 +623,9 @@ describe('buyer accounts for the owner', () => {
     expect(events).toContain('RETAILER_PASSWORD_CHANGED');
   });
 
-  it('staff cannot reset passwords, and an unknown buyer is a 404', async () => {
+  it('an unknown buyer is a 404, and a buyer cannot reset passwords', async () => {
     const app = await build();
     const shop = await buyer(app, 1);
-    const staff = await admin(app, 'staff');
-    expect((await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(staff)).status).toBe(403);
     expect((await request(app).post('/api/admin/buyers/0000000000/reset-password').set(await admin(app, 'owner'))).status).toBe(404);
     expect((await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(shop)).status).toBe(403);
   });

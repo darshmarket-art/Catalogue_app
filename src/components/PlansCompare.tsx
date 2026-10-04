@@ -16,7 +16,6 @@ const FLAG_LABEL: Record<FlagName, string> = {
   alerts: 'Order alerts',
   auditLog: 'Audit log',
   pdfCatalogue: 'PDF catalogue',
-  staffRoles: 'Staff roles',
   banners: 'Home banners',
   purities: 'Purity options'
 };

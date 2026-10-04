@@ -25,3 +25,10 @@ Status: OPEN, PLANNED, DONE. Each item is verified against the code (2026-10-04)
 
 ## Order of work
 B4 (small) -> B3 (security-sensitive, test well) -> B2 (largest) -> B1 (data change last). Each: code, tests, QA in browser, commit on saas/layouts, user reviews, then push.
+
+## Status (2026-10-04, later)
+- B2 DONE in code: one admin per store, all plans (register returns 409 for a second); staff UI/copy removed; admin forgot password by WhatsApp code to the store's registered number (`/api/auth/admin/forgot/request-otp` and `/reset`, uses OTP_STATIC_CODE until Meta is set up; `src/components/AdminForgotPassword.tsx`).
+- B3 DONE: buyer token 7 days, kept in localStorage.
+- B4 DONE: Welcome = "Enter the portal" for every store; new signups login-only.
+- B1 PLANNED: data change only. Run `scripts/bhakti-to-pro.ps1` (sets stores/bhakti.plan = pro). Code defaults left as is, `founder` still supported for old records.
+- Not merged or pushed; 235 tests pass.

@@ -191,7 +191,6 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/admin/visitors', ent.requireFlag('liveVisitors', 'Live visitors'));
   app.get(['/api/analytics', '/api/analytics/export'], ent.requireFlag('insights', 'Insights'));
   app.get('/api/admin/audit-logs', ent.requireFlag('auditLog', 'The audit log'));
-  app.post('/api/auth/admin/register', ent.requireFlag('staffRoles', 'Staff roles', (req) => req.body?.role !== 'owner'));
 
   const notify = createNotify(config, store, ent, notifiers);
   app.use('/api/admin/push', ent.requireFlag('alerts', 'Order notifications'), pushRoutes(store, notifiers, auth.requireAdmin));

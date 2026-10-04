@@ -6,7 +6,6 @@ import { Icon, type KitProps } from './ui';
 
 /** The store's first screen (atlas Welcome): the brand on a deep panel, then the way in as role-style cards, what the store offers, and the legal footer. */
 export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
-  const isPublic = merchant.catalogueAccess === 'public';
   return (
     <div className="em-welcome">
       <section className="em-hero lg">
@@ -25,28 +24,16 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
       <div className="em-pad" style={{ paddingTop: 28 }}>
         <div className="em-rule" style={{ width: 56 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 18 }}>
-          <button type="button" className="em-role pri" onClick={() => onNavigate(isPublic ? 'catalogue' : 'retailer-auth')}>
+          <button type="button" className="em-role pri" onClick={() => onNavigate('retailer-auth')}>
             <span className="ico">
               <Icon n="bag" size={22} />
             </span>
             <span className="em-grow">
-              <span className="em-ser">{isPublic ? 'Browse the catalogue' : 'Enter the portal'}</span>
-              <small>{isPublic ? 'Open to everyone, no sign-in needed.' : 'For registered buyers. Sign in with your WhatsApp number.'}</small>
+              <span className="em-ser">Enter the portal</span>
+              <small>For registered buyers. Sign in with your WhatsApp number.</small>
             </span>
             <Icon n="right" size={20} />
           </button>
-          {isPublic && (
-            <button type="button" className="em-role" onClick={() => onNavigate('retailer-auth')}>
-              <span className="ico">
-                <Icon n="wa" size={22} />
-              </span>
-              <span className="em-grow">
-                <span className="em-ser">Sign in with WhatsApp</span>
-                <small>For buyers with an account.</small>
-              </span>
-              <Icon n="right" size={20} />
-            </button>
-          )}
         </div>
 
         {merchant.welcome.features.length > 0 && (

@@ -45,7 +45,7 @@ function defaultMerchant(id: string, brandName: string, ownerPhone: string, bran
     {
       id,
       sector: 'jewellery',
-      catalogueAccess: 'public',
+      catalogueAccess: 'login',
       brand: {
         name: brandName,
         tagline: 'Trade Catalogue',

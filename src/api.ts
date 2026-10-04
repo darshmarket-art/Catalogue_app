@@ -28,8 +28,8 @@ const STORE: string = (() => {
   const built = import.meta.env.VITE_STORE ?? '';
   try {
     const q = new URLSearchParams(location.search).get('store');
-    if (q) sessionStorage.setItem('store', q);
-    return sessionStorage.getItem('store') || built;
+    if (q) localStorage.setItem('store', q);
+    return localStorage.getItem('store') || built;
   } catch {
     return built;
   }
@@ -69,13 +69,13 @@ export const setUnauthorizedHandler = (fn: (() => void) | null) => {
   onUnauthorized = fn;
 };
 
-// Kept in sessionStorage: it survives reloads and back/forward navigation, and disappears when the tab or
-// browser is closed. (Not localStorage, so it never outlives the visit; tokens also expire on the server.)
+// Kept in localStorage so a buyer stays signed in after closing the browser; the server token lasts 7 days
+// (buyers) or 8 hours (admins), then the next sign-in asks for a new code or password.
 const SESSION_KEY = 'catalogue_session';
 
 const readStoredToken = (): string | null => {
   try {
-    return sessionStorage.getItem(SESSION_KEY);
+    return localStorage.getItem(SESSION_KEY);
   } catch {
     return null;
   }
@@ -90,8 +90,8 @@ export const setAuthToken = (token: string | null) => {
     return;
   }
   try {
-    if (token) sessionStorage.setItem(SESSION_KEY, token);
-    else sessionStorage.removeItem(SESSION_KEY);
+    if (token) localStorage.setItem(SESSION_KEY, token);
+    else localStorage.removeItem(SESSION_KEY);
   } catch {
     // storage unavailable (private mode): the session then lasts until the page is reloaded
   }
@@ -133,10 +133,10 @@ let memorySessionId: string | null = null;
 /** Anonymous per-tab visitor id used for presence and unique-view counting. */
 export function getSessionId(): string {
   try {
-    let sid = sessionStorage.getItem('catalogue_session_id');
+    let sid = localStorage.getItem('catalogue_session_id');
     if (!sid) {
       sid = `sess-${crypto.randomUUID()}`;
-      sessionStorage.setItem('catalogue_session_id', sid);
+      localStorage.setItem('catalogue_session_id', sid);
     }
     return sid;
   } catch {
@@ -458,6 +458,13 @@ export const api = {
     const json = await post('/api/v1/auth/retailer/login', payload);
     setAuthToken(json.token);
     return json;
+  },
+
+  async adminForgotRequest(email: string): Promise<string> {
+    return (await post('/api/v1/auth/admin/forgot/request-otp', { email })).message;
+  },
+  async adminForgotReset(payload: { email: string; code: string; newPassword: string }): Promise<void> {
+    await post('/api/v1/auth/admin/forgot/reset', payload);
   },
 
   async loginAdmin(payload: { adminId: string; password: string }) {

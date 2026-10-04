@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import type { Config } from './config';
 import type { Store } from './store';
 
-export const RETAILER_TOKEN_TTL = '24h';
+export const RETAILER_TOKEN_TTL = '7d';
 export const ADMIN_TOKEN_TTL = '8h';
 /** The phone app keeps people signed in until they log out; every app start renews it via /api/auth/me. */
 export const NATIVE_TOKEN_TTL = '90d';
