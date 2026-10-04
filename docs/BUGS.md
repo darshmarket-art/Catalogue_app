@@ -42,3 +42,20 @@ B4 (small) -> B3 (security-sensitive, test well) -> B2 (largest) -> B1 (data cha
   4. Browsers cannot always close a tab with script. After the second press we step back past the sentinel; if the tab has no earlier history it leaves to the browser's start page. State clearly: "close the browser" is only exact in the installed PWA / native app.
   5. Tests: a small pure `backTarget(screen, isHome)` function in `src/nav.ts` with a unit test table; browser QA of the signup -> store -> Back path.
 - **Decide:** after the second Back on the web, is "leave the site" acceptable instead of closing the tab? (Browsers do not allow closing a tab the script did not open.)
+
+## B6. Photo shape rules: catalogue, banner, collection (PLANNED)
+- **Verified:** nothing guides or checks photo shape. `PhotoPicker.tsx` accepts any JPEG/PNG/WebP (server limit 25 MB, `server/routes/photos.ts`) with no size, ratio or crop check. Display crops with `object-fit: cover`, so the result depends on the owner's photo and the phone width: banner slide is `width: 100%; height: 210px` (`emergent.css:165`, ratio changes with screen width), collection card is `aspect-ratio: 1` (`.em-sq`), catalogue list thumb is a fixed 88x88, product gallery is a fixed 360px tall (`.em-gal`). A wrong-shaped banner is cut at the sides or top, and different phones crop it differently.
+- **Rules (one source of truth, `shared/photoSpecs.ts`):**
+  | Photo | Ratio | Upload size | Min |
+  |---|---|---|---|
+  | Banner | 2:1 | 1600 x 800 | 1200 x 600 |
+  | Collection | 1:1 | 1200 x 1200 | 800 x 800 |
+  | Catalogue design | 4:5 portrait | 1200 x 1500 | 800 x 1000 |
+- **Plan:**
+  1. Display: make the slide `aspect-ratio: 2 / 1` (not a fixed height), the gallery `aspect-ratio: 4 / 5`, collection stays 1:1, catalogue thumbs 4:5, so what the owner sees in the picker is exactly what buyers see on every phone.
+  2. Picker: show the rule above each picker ("Banner: 2:1, 1600 x 800 px. Keep the subject in the centre"), and render the preview tile at the same ratio.
+  3. Strict check on pick (client, before upload): read the image size; below the minimum = refused with the reason; ratio off by more than 5% = a crop step (fixed-ratio crop box, drag to position, output canvas JPEG at the upload size) so the saved file always has the right shape. No free-form upload for banners and collections.
+  4. Catalogue designs: same crop step but "Skip, I know it fits" allowed (strict = banner and collection only, as asked); the suggestion text shows for designs.
+  5. Server backstop (optional, later): reject banner/collection files whose decoded ratio is off, needs an image library; skip unless clients bypass the app.
+  6. Tests: unit tests for `fitCheck(width, height, spec)` (pass, too small, off-ratio) and the crop math; browser QA with a portrait, a landscape and a tiny image.
+- **Decide:** catalogue designs 4:5 or square? (4:5 shows more of a necklace or set; square matches collections.)
