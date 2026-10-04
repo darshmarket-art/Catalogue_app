@@ -716,25 +716,30 @@ describe('jewellery products (nothing invented)', () => {
     images: ['https://example.com/haar.jpg']
   };
 
-  it('stores only what the merchant entered: no random HUID, and never a price', async () => {
+  it('stores only what the merchant entered: no random HUID; the price mode defaults to by-weight with no price', async () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const res = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send(full);
     expect(res.status).toBe(201);
     expect(res.body.data.netWt).toBe(45);
-    for (const invented of ['huid', 'priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
+    for (const invented of ['huid', 'price', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[invented]).toBeUndefined();
+    expect(res.body.data.priceMode).toBe('by-weight');
     expect(res.body.data.sku).toMatch(/^SKU-/);
   });
 
-  it('keeps a HUID when the merchant provides it, and ignores any price fields sent', async () => {
+  it('keeps a HUID when the merchant provides it, and a fixed price only when the mode is fixed', async () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const res = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
-      .send({ ...full, huid: 'HM/C-123456', priceMode: 'fixed', fixedPrice: '250000', makingChargePerGram: '300', sku: 'MY-SKU-1' });
-    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', sku: 'MY-SKU-1' });
-    for (const price of ['priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[price]).toBeUndefined();
+      .send({ ...full, huid: 'HM/C-123456', priceMode: 'fixed', price: 250000, makingChargePerGram: '300', sku: 'MY-SKU-1' });
+    expect(res.body.data).toMatchObject({ huid: 'HM/C-123456', sku: 'MY-SKU-1', priceMode: 'fixed', price: 250000 });
+    for (const dropped of ['fixedPrice', 'makingChargePerGram']) expect(res.body.data[dropped]).toBeUndefined();
+    const byWeight = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send({ ...full, price: 99, sku: 'MY-SKU-2' });
+    expect(byWeight.body.data.priceMode).toBe('by-weight');
+    expect(byWeight.body.data.price).toBeUndefined(); // a price is kept only for a fixed-price design
+    expect((await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send({ ...full, priceMode: 'fixed', sku: 'MY-SKU-3' })).status).toBe(400); // fixed needs a price
   });
 
   it('requires the details a jeweller must state, and rejects impossible weights', async () => {

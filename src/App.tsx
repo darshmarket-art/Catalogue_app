@@ -23,7 +23,6 @@ import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
 import { PdfCatalogueScreen } from './components/PdfCatalogueScreen';
-import { AdminAdminsScreen } from './components/AdminAdminsScreen';
 import { AdminAlertsScreen } from './components/AdminAlertsScreen';
 import { AdminMessagesScreen } from './components/AdminMessagesScreen';
 import { AdminInsightsScreen } from './components/AdminInsightsScreen';
@@ -503,7 +502,7 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-admins', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
   const buyerOnlyScreens: ActiveScreen[] = ['shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
@@ -702,7 +701,6 @@ export default function App() {
 
         {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} onNavigate={handleNavigate} />}
 
-        {activeScreen === 'admin-admins' && <AdminAdminsScreen meEmail={adminEmail} />}
 
         {activeScreen === 'admin-alerts' && <AdminAlertsScreen />}
 

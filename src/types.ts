@@ -184,7 +184,6 @@ export type ActiveScreen =
   | 'retailer-auth'
   | 'admin-plan'
   | 'admin-pdf'
-  | 'admin-admins'
   | 'admin-alerts'
   | 'admin-messages'
   | 'admin-insights'

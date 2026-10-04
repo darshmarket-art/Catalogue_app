@@ -518,7 +518,7 @@ export const api = {
 
   async verifyOtp(payload: { phone: string; code: string; firmName?: string; ownerName?: string }) {
     const json = await post('/api/v1/auth/retailer/verify-otp', payload);
-    setAuthToken(json.token);
+    if (json.token) setAuthToken(json.token);
     return json;
   },
 
@@ -539,18 +539,6 @@ export const api = {
     await post('/api/v1/auth/admin/change-password', payload);
   },
 
-  async getAdmins(): Promise<AdminRow[]> {
-    return (await request('/api/v1/admin/admins')).data;
-  },
-
-  async addAdmin(payload: { name: string; email: string; password: string }): Promise<AdminRow> {
-    return (await post('/api/v1/admin/admins', payload)).data;
-  },
-
-  async removeAdmin(email: string): Promise<void> {
-    await request(`/api/v1/admin/admins/${encodeURIComponent(email)}`, { method: 'DELETE' });
-  },
-
   async getAlerts(): Promise<AlertSettings> {
     return (await request('/api/v1/admin/alerts')).data;
   },
@@ -569,10 +557,6 @@ export const api = {
   },
   async getInsights(): Promise<Insights> {
     return (await request('/api/v1/analytics/insights')).data;
-  },
-
-  async resetAdminPassword(email: string, password: string): Promise<string> {
-    return (await post(`/api/v1/admin/admins/${encodeURIComponent(email)}/reset-password`, { password })).message;
   },
 
   async registerAdmin(payload: {

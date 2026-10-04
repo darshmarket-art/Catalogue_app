@@ -155,7 +155,8 @@ describe('owner alert settings', () => {
     await request(on.app).put('/api/admin/alerts').set(on.auth).send({ numbers: ['919800000001', '919800000002'] });
     const t = await request(on.app).post('/api/admin/alerts/test').set(on.auth);
     expect(t.status).toBe(200);
-    expect(t.body.data.results).toEqual([{ to: '********0001', ok: true }, { to: '********0002', ok: true }]);
+    expect(t.body.data.results).toMatchObject([{ to: '********0001', ok: true }, { to: '********0002', ok: true }]);
+    expect(t.body.data.results.every((r: any) => typeof r.messageId === 'string')).toBe(true);
     expect(on.wa.map((w) => w.event)).toEqual(['test', 'test']);
 
     const failing = await build('pro', { whatsapp: true, failWa: true });

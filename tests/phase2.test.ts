@@ -164,16 +164,18 @@ describe('products: photos, prices, extra fields, edit and delete', () => {
     expect((await store.list('products')).find((p) => p.sku === 'LINK-1')!.images).toEqual([ref]);
   });
 
-  it('products carry no price: price fields in a request are ignored, never stored or returned', async () => {
+  it('price modes: by-weight is the default, a fixed price is stored only in fixed mode, making charges are dropped', async () => {
     const app = await build();
     const auth = await admin(app);
     const post = (body: object) => request(app).post('/api/products').set(auth).send(product(['https://example.com/x.jpg'], body));
 
-    const res = await post({ priceMode: 'fixed', fixedPrice: '9000', makingChargePerGram: '300', sku: 'F1' });
+    const res = await post({ priceMode: 'fixed', price: 9000, makingChargePerGram: '300', sku: 'F1' });
     expect(res.status).toBe(201);
-    for (const price of ['priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[price]).toBeUndefined();
+    expect(res.body.data).toMatchObject({ priceMode: 'fixed', price: 9000 });
+    expect(res.body.data.makingChargePerGram).toBeUndefined();
     const listed = await request(app).get('/api/products').set(auth);
-    expect(JSON.stringify(listed.body)).not.toMatch(/priceMode|fixedPrice|makingChargePerGram/);
+    expect(JSON.stringify(listed.body)).not.toMatch(/fixedPrice|makingChargePerGram/);
+    expect((await post({ sku: 'F2' })).body.data.priceMode).toBe('by-weight');
   });
 
   it('checks merchant-defined extra fields against the merchant config', async () => {

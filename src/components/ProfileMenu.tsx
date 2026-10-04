@@ -123,9 +123,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
               )}
               {onNavigate && (
                 <>
-                  <button role="menuitem" className={itemClass} data-testid="menu-admins" onClick={choose(() => onNavigate('admin-admins'))} type="button">
-                    Admin accounts
-                  </button>
                   <button role="menuitem" className={itemClass} data-testid="menu-change-password" onClick={choose(() => onNavigate('admin-password'))} type="button">
                     Change password
                   </button>

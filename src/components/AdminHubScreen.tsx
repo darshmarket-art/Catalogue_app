@@ -55,7 +55,6 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categ
     { icon: 'info', label: 'About us', note: 'Buyer-facing details', go: () => onNavigate('admin-about') },
     { icon: 'down', label: 'PDF catalogue', note: flags.pdfCatalogue ? 'Pick · share on WhatsApp' : 'Pro feature', go: () => onNavigate('admin-pdf'), locked: !flags.pdfCatalogue, testId: 'tile-pdf' },
     { icon: 'file', label: 'Audit log', note: flags.auditLog ? (downloading ? 'Downloading…' : 'Export CSV') : 'Pro feature', go: handleExportCSV, locked: !flags.auditLog },
-    { icon: 'shield', label: 'Admin accounts', note: 'Add or remove admins', go: () => onNavigate('admin-admins'), testId: 'tile-admins' },
     ...(!isPro || days === null ? [{ icon: 'award', label: 'Plan and usage', note: isPro ? 'Your plan' : 'See what Pro adds', go: () => onNavigate('admin-plan'), testId: 'tile-plan' }] : [])
   ];
 

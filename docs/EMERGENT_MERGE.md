@@ -27,13 +27,21 @@ That repo was seeded from this one (it contains our latest commits) and then ext
 - PWA install prompts removed on purpose (`src/install.ts` is no longer imported; the service worker stays for push and offline).
 - Tests: `tests/phase1.test.ts`, `tests/phase4.test.ts`, `tests/whatsappOtp.test.ts`, updated `tests/phase2.test.ts`.
 
-## Where this disagrees with decisions made on the Catalogue side (needs a call)
-1. **One admin per store.** The decision here was one admin account on every plan. The Emergent work lets a store add and remove admins (`/api/admin/admins`). `POST /api/auth/admin/register` still refuses a second admin; the new routes do not.
-2. **Buyer sessions.** The decision here was 7 days. Emergent set 30 days (`RETAILER_TOKEN_TTL`).
-3. **Buyer name at sign-in.** Emergent rewrote `RetailerAuthScreen.tsx`; check that the "Your name" field added on this side is still there and still records the buyer's name.
-4. **Install app.** The "Install app" item in the profile menu no longer exists (Emergent's rule: PWA install prompts are forbidden).
-5. **Failing tests.** `failedtest.md` lists 4 tests Emergent left failing on purpose (stale assertions); decide whether to update them.
+## Decisions applied on top (2026-10-05)
+1. **One admin per store, every plan.** Emergent's add / remove / reset-another-admin routes, screen, hub tile and menu entry were removed (`/api/admin/admins` is 404). An admin can still change their own password, sign in with "keep me signed in", and reset a forgotten password with a WhatsApp code.
+2. **Buyer sessions are 7 days, fixed.** Not renewed on use, so the code is asked again after a week (admins with "keep me signed in" keep their sliding month; the phone app keeps 90 days).
+3. **Buyer sign-in: code first, name only for a new number.** `verify-otp` answers `needs-name` for an unknown number without creating anything (the code stays valid); the screen then asks "What should we call you?" and submits the same code with the name. A returning buyer goes straight in. The name becomes the buyer's name for the admin.
+4. **No install prompts or manifest** (Emergent's rule, kept): the profile menu has no "Install app"; home-screen apps come from the native builds.
+5. **The four tests Emergent left failing were checked against the code and updated to the new behaviour** (`failedtest.md` removed):
+   - `no random HUID...` and `keeps a HUID...`: a design now has a price mode (`by-weight` default, `fixed` with a `price`, or `on-request`); `price` is kept only in fixed mode, a fixed design without a price is a 400, making charges are dropped.
+   - `products carry no price` (phase2): same rule.
+   - `7 days on the web`: passes again because buyer sessions are back to 7 days.
+   - A fifth failing test (`test alert...`) was stale: the alert result now also carries the WhatsApp `messageId` used for delivery receipts.
 
-## Not done / still to verify
-- Build, type check and tests were not run on the merged tree when this note was written.
-- Nothing here has been deployed. Pushing `main` deploys to production.
+## Also new from Emergent that was not on the first list
+- **Price modes and server-side catalogue search**: a design can be "by weight", "fixed price" or "price on request"; the Catalogue screen has search, filters (purity, weight, price mode, availability) and sorting, done on the server (`GET /api/products?search=&purity=&minWt=...`).
+- **Photo thumbnails**: the server can serve resized WebP thumbnails (`sharp`, `/media/:file?w=`). The planned "make cover" and move-left/right buttons on photo tiles are not built yet (see `docs/EMERGENT_TODO.md`).
+
+## Checked
+- `npx tsc --noEmit` clean; `npx vitest run`: 28 files, 271 tests pass; `npm run build` (client and server) succeeds.
+- Not yet checked in a browser, and not deployed. Pushing `main` deploys to production.

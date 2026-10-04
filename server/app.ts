@@ -19,7 +19,6 @@ import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
 import { adminBuyerRoutes } from './routes/adminBuyers';
-import { adminAdminRoutes } from './routes/adminAdmins';
 import { mediaRoute, photoUploadRoutes } from './routes/photos';
 import { createBlobs, type Blobs } from './blobs';
 import { createMedia } from './media';
@@ -169,9 +168,9 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
     handler(async (req, res) => {
       const me = user(res);
       const claims = claimsOf(res);
-      // Sliding sessions: the phone app gets a fresh 90-day token on every start; on the web, buyers and "keep me signed in"
-      // admins get a fresh month on every visit. A plain 8-hour admin session is not renewed.
-      const slide = isNativeClient(req) ? NATIVE_TOKEN_TTL : me.type === 'retailer' ? RETAILER_TOKEN_TTL : claims.remember ? ADMIN_REMEMBER_TTL : null;
+      // Sliding sessions: the phone app gets a fresh 90-day token on every start; "keep me signed in" admins get a fresh month on every visit.
+      // Buyers on the web have a fixed 7-day session (asked for a new code after a week); a plain 8-hour admin session is not renewed.
+      const slide = isNativeClient(req) ? NATIVE_TOKEN_TTL : claims.remember ? ADMIN_REMEMBER_TTL : null;
       const token = slide ? signToken(config, { type: me.type, sub: me.id, ...(claims.remember ? { remember: true } : {}) }, slide) : undefined;
       if (me.type === 'admin') {
         res.json({ status: 'success', token, type: 'admin', admin: { name: me.name, email: me.id, role: me.role }, mustChangePassword: Boolean(me.mustChangePassword) });
@@ -210,7 +209,6 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/admin/messages', adminMessageRoutes(config, store, log, auth.requireAdmin));
   app.use('/api/auth', otpRoutes(config, store, ent, { delivery: createOtpDelivery(config, sender, log, config.merchant.id), log, onStoreFull: createStoreFullNotify(config, store, notifiers, log) }));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer, auth.requireAdmin));
-  app.use('/api/admin/admins', adminAdminRoutes(store, auth.requireAdmin));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));

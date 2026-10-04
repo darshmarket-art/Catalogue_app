@@ -50,9 +50,10 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
   );
 };
 
-/** Buyer showroom sign-in (atlas): the number first, then the 6-digit code sent on WhatsApp. New numbers get an account; no shop name is asked. */
+/** Buyer showroom sign-in (atlas): the number first, then the 6-digit code sent on WhatsApp. A new number is asked for a name after the code; returning buyers go straight in. */
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNavigate, onLoginSuccess }) => {
   const [name, setName] = useState('');
+  const [needsName, setNeedsName] = useState(false); // a new number: asked for a name after the code checks out
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
@@ -101,8 +102,9 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     setLoading(true);
     setErrorMessage(null);
     try {
-      const res = await api.verifyOtp({ phone: fullPhone(), code: code.trim(), firmName: name.trim(), ownerName: name.trim() });
-      onLoginSuccess(profileOf(res.user));
+      const res = await api.verifyOtp({ phone: fullPhone(), code: code.trim(), ...(needsName ? { firmName: name.trim(), ownerName: name.trim() } : {}) });
+      if (res.status === 'needs-name') setNeedsName(true);
+      else onLoginSuccess(profileOf(res.user));
     } catch (err: any) {
       setErrorMessage(err.message || 'That code did not work.');
     } finally {
@@ -139,7 +141,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
                 {delivery.status && <> <DeliveryPill status={delivery.status} testId="otp-delivery-status" /></>}
               </>
             ) : (
-              'Sign in with your name and WhatsApp number to browse the catalogue, shortlist and place orders.'
+              'Sign in with your WhatsApp number to browse the catalogue, shortlist and place orders.'
             )}
           </p>
         </div>
@@ -154,12 +156,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
         {!codeSent ? (
           <form onSubmit={sendCode} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label className="lab" htmlFor="login-name">
-                Your name
-              </label>
-              <input id="login-name" data-testid="buyer-name-input" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramesh Shah" autoComplete="name" required minLength={2} maxLength={100} autoFocus />
-            </div>
-            <div>
               <label className="lab" htmlFor="login-phone">
                 WhatsApp number
               </label>
@@ -170,7 +166,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
                 <input id="login-phone" data-testid="buyer-phone-input" className="inp" style={{ flex: 1, minWidth: 0 }} value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, '').slice(0, 11))} placeholder="98765 43210" type="tel" inputMode="numeric" autoComplete="tel-national" required />
               </div>
             </div>
-            <button type="submit" className="btn wa" data-testid="buyer-send-code" disabled={loading || name.trim().length < 2 || phone.replace(/\D/g, '').length < 10}>
+            <button type="submit" className="btn wa" data-testid="buyer-send-code" disabled={loading || phone.replace(/\D/g, '').length < 10}>
               <Icon n="wa" />
               {loading ? 'Sending…' : 'Send code on WhatsApp'}
             </button>
@@ -178,7 +174,16 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
         ) : (
           <form onSubmit={verify} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <DevOtpHint code={devCode} channel={channel} />
-            <CodeBoxes value={code} onChange={setCode} />
+            {needsName ? (
+              <div>
+                <label className="lab" htmlFor="login-name">
+                  Welcome! What should we call you?
+                </label>
+                <input id="login-name" data-testid="buyer-name-input" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramesh Shah" autoComplete="name" required minLength={2} maxLength={100} autoFocus />
+              </div>
+            ) : (
+              <CodeBoxes value={code} onChange={setCode} />
+            )}
             <div className="em-row em-sb">
               <button
                 type="button"
@@ -187,6 +192,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
                 onClick={() => {
                   setCodeSent(false);
                   setCode('');
+                  setNeedsName(false);
                 }}
               >
                 Change number
@@ -195,8 +201,8 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
                 {wait > 0 ? `Resend in ${wait}s` : 'Resend code'}
               </button>
             </div>
-            <button type="submit" className="btn" data-testid="buyer-verify" disabled={loading || code.length !== 6}>
-              {loading ? 'Checking…' : 'Verify and enter'}
+            <button type="submit" className="btn" data-testid="buyer-verify" disabled={loading || code.length !== 6 || (needsName && name.trim().length < 2)}>
+              {loading ? 'Checking…' : needsName ? 'Continue' : 'Verify and enter'}
               <Icon n="right" size={18} />
             </button>
             <p className="em-hint" style={{ textAlign: 'center' }}>

@@ -81,36 +81,18 @@ describe('catalogue search, filters, sort and paging', () => {
   });
 });
 
-describe('admin accounts', () => {
-  it('lists, adds with a forced password change, resets, and never removes the last or yourself', async () => {
+describe('the admin account', () => {
+  it('is one per store (no add / remove routes); the admin can change their own password', async () => {
     const owner = await newStore();
     const h = { ...S, ...bearer(owner) };
-    expect((await request(app).get('/api/admin/admins').set(h)).body.data).toHaveLength(1);
-    expect((await request(app).delete('/api/admin/admins/owner@aurum.test').set(h)).status).toBe(400);
-
-    const add = await request(app).post('/api/admin/admins').set(h).send({ name: 'Meera', email: 'meera@aurum.test', password: 'TempPass@2026' });
-    expect(add.status).toBe(201);
-    expect((await request(app).post('/api/admin/admins').set(h).send({ email: 'meera@aurum.test', password: 'TempPass@2026' })).status).toBe(409);
-
-    const login = await request(app).post('/api/auth/admin/login').set(S).send({ adminId: 'meera@aurum.test', password: 'TempPass@2026' });
-    expect(login.body.admin.mustChangePassword).toBe(true);
-    const me = await request(app).get('/api/auth/me').set(S).set(bearer(login.body.sessionToken));
-    expect(me.body.mustChangePassword).toBe(true);
-    expect((await request(app).post('/api/auth/admin/change-password').set(S).set(bearer(login.body.sessionToken)).send({ currentPassword: 'wrong', newPassword: 'MyOwnPass@2026' })).status).toBe(401);
-    expect((await request(app).post('/api/auth/admin/change-password').set(S).set(bearer(login.body.sessionToken)).send({ currentPassword: 'TempPass@2026', newPassword: 'MyOwnPass@2026' })).status).toBe(200);
-    expect((await request(app).get('/api/auth/me').set(S).set(bearer(login.body.sessionToken))).body.mustChangePassword).toBe(false);
-
-    expect((await request(app).post('/api/admin/admins/meera@aurum.test/reset-password').set(h).send({ password: 'Reset@20260101' })).status).toBe(200);
-    expect((await request(app).post('/api/auth/admin/login').set(S).send({ adminId: 'meera@aurum.test', password: 'Reset@20260101' })).body.admin.mustChangePassword).toBe(true);
-
-    expect((await request(app).delete('/api/admin/admins/meera@aurum.test').set(h)).status).toBe(200);
-    expect((await request(app).get('/api/auth/me').set(S).set(bearer(login.body.sessionToken))).status).toBe(401);
-    expect((await request(app).delete('/api/admin/admins/owner@aurum.test').set(S).set(bearer(owner))).status).toBe(400);
+    expect((await request(app).get('/api/admin/admins').set(h)).status).toBe(404);
+    expect((await request(app).post('/api/admin/admins').set(h).send({ email: 'x@aurum.test', password: 'TempPass@2026' })).status).toBe(404);
+    expect((await request(app).post('/api/auth/admin/change-password').set(h).send({ currentPassword: 'wrong-password-1', newPassword: 'MyOwnPass@2026' })).status).toBe(401);
   });
 });
 
 describe('sessions', () => {
-  it('admin: 8 hours by default, a sliding month with "keep me signed in"; buyers: a sliding month', async () => {
+  it('admin: 8 hours by default, a sliding month with "keep me signed in"; buyers: a fixed 7 days', async () => {
     await newStore();
     const plain = await request(app).post('/api/auth/admin/login').set(S).send({ adminId: 'owner@aurum.test', password: 'OwnerPass@2026' });
     expect(exp(plain.body.sessionToken)).toBe(8 * 3600);
@@ -120,8 +102,9 @@ describe('sessions', () => {
     const me = await request(app).get('/api/auth/me').set(S).set(bearer(kept.body.sessionToken));
     expect(exp(me.body.token)).toBe(30 * 86400);
     const b = await otpBuyer(app, { phone: '9820000001', firmName: 'Test Jewellers' }, S);
-    expect(exp(b.body.token)).toBe(30 * 86400);
-    expect(exp((await request(app).get('/api/auth/me').set(S).set(bearer(b.body.token))).body.token)).toBe(30 * 86400);
+    expect(exp(b.body.token)).toBe(7 * 86400);
+    // not renewed on use: after 7 days the code is asked for again
+    expect((await request(app).get('/api/auth/me').set(S).set(bearer(b.body.token))).body.token).toBeUndefined();
   });
 });
 

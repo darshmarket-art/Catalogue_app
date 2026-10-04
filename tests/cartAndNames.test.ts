@@ -68,3 +68,27 @@ describe('buyer name at sign-in', () => {
     expect(after.body.data.find((x: any) => x.phone === '9820000014').firmName).toBe('Ramesh Shah & Sons');
   });
 });
+
+describe('sign-in: code first, name only for a new buyer', () => {
+  it('asks a new number for a name after the code (the code stays valid), and lets a returning buyer straight in', async () => {
+    const { app, root } = await build();
+    const phone = '9820000020';
+    const verify = (extra: object = {}) => request(app).post('/api/auth/retailer/verify-otp').send({ phone, code: STATIC_CODE, ...extra });
+    await request(app).post('/api/auth/retailer/request-otp').send({ phone });
+    const first = await verify();
+    expect(first.status).toBe(200);
+    expect(first.body.status).toBe('needs-name');
+    expect(first.body.token).toBeUndefined();
+    expect(await scopeStore(root, 'bhakti').get('buyers', phone)).toBeNull(); // no account yet
+    const named = await verify({ firmName: 'Suresh Mehta', ownerName: 'Suresh Mehta' });
+    expect(named.body.user.storeName).toBe('Suresh Mehta');
+    expect(named.body.token).toBeTruthy();
+    expect((await verify()).status).toBe(401); // single use once the account exists
+    // a returning buyer: code only, no name asked
+    await scopeStore(root, 'bhakti').delete('otps', phone);
+    await request(app).post('/api/auth/retailer/request-otp').send({ phone });
+    const again = await verify();
+    expect(again.body.token).toBeTruthy();
+    expect(again.body.user.storeName).toBe('Suresh Mehta');
+  });
+});

@@ -148,9 +148,10 @@ export function otpRoutes(config: Config, store: Store, ent: Entitlements, deps:
         await audit(store, req, 'RETAILER_OTP_FAILED', `Wrong OTP for phone ${body.phone}.`);
         throw new HttpError(401, 'That code is not valid. Please check it or request a new one.');
       }
-      await store.delete('otps', body.phone); // single use
-
       let buyer = await store.get('buyers', body.phone);
+      // A new number is asked for a name before the account exists; the code stays valid for that second step.
+      if (!buyer && !body.firmName) return void res.json({ status: 'needs-name' });
+      await store.delete('otps', body.phone); // single use
       if (!buyer) {
         await ent.assertCanAddBuyer(body.phone); // re-check at creation
         buyer = {
