@@ -128,6 +128,7 @@ export function otpRoutes(config: Config, store: Store, ent: Entitlements, deps:
   // The buyer's code screen polls this while waiting: did WhatsApp deliver the code? No PII comes back.
   router.get(
     '/otp-status/:id',
+    ipLimiter,
     handler(async (req, res) => {
       const m = log ? await log.get(String(req.params.id)) : null;
       if (!m || m.storeId !== config.merchant.id) throw new HttpError(404, 'Unknown message.');

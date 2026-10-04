@@ -18,10 +18,9 @@ interface Filters {
   purity: string[];
   minWt: string;
   maxWt: string;
-  priceMode: string[];
   availability: string[];
 }
-const NO_FILTERS: Filters = { purity: [], minWt: '', maxWt: '', priceMode: [], availability: [] };
+const NO_FILTERS: Filters = { purity: [], minWt: '', maxWt: '', availability: [] };
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
 // The bar at the foot of the grid (atlas "cart bar") shows the order's size (orderCount) and opens it (onNavigate); App.tsx passes both.
@@ -86,7 +85,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       purity: filters.purity.join(','),
       minWt: filters.minWt,
       maxWt: filters.maxWt,
-      priceMode: filters.priceMode.join(','),
       availability: filters.availability.join(','),
       sort
     }),
@@ -236,14 +234,12 @@ export const Catalogue: React.FC<CatalogueProps> = ({
 
   // The chips under the search that name every active filter, each removable on its own.
   const purityTitle = (key: string) => purities.find((p) => p.key === key)?.title ?? key;
-  const priceLabel = (key: string) => sector.priceModes.find((m) => m.key === key)?.label ?? key;
   const active: Array<{ key: string; label: string; clear: () => void }> = [
     ...filters.purity.map((v) => ({ key: `purity:${v}`, label: purityTitle(v), clear: () => setFilters((f) => ({ ...f, purity: f.purity.filter((x) => x !== v) })) })),
     ...(filters.minWt || filters.maxWt
       ? [{ key: 'weight', label: `${filters.minWt || '0'} – ${filters.maxWt || '∞'} g`, clear: () => setFilters((f) => ({ ...f, minWt: '', maxWt: '' })) }]
       : []),
-    ...filters.availability.map((v) => ({ key: `avail:${v}`, label: v, clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) })),
-    ...filters.priceMode.map((v) => ({ key: `price:${v}`, label: priceLabel(v), clear: () => setFilters((f) => ({ ...f, priceMode: f.priceMode.filter((x) => x !== v) })) }))
+    ...filters.availability.map((v) => ({ key: `avail:${v}`, label: v, clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) }))
   ];
   const anyNarrowing = Boolean(debounced || categoryFilter || active.length);
   const clearAll = () => {
@@ -259,7 +255,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     setFilters(draft);
     setSheet(false);
   };
-  const draftCount = draft.purity.length + draft.availability.length + draft.priceMode.length + (draft.minWt || draft.maxWt ? 1 : 0);
+  const draftCount = draft.purity.length + draft.availability.length + (draft.minWt || draft.maxWt ? 1 : 0);
 
   return (
     <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
@@ -465,17 +461,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             {sector.stockStatuses.map((s) => (
               <button key={s.key} type="button" className={`em-chip${draft.availability.includes(s.key) ? ' on' : ''}`} aria-pressed={draft.availability.includes(s.key)} onClick={() => setDraft({ ...draft, availability: toggle(draft.availability, s.key) })}>
                 {s.key}
-              </button>
-            ))}
-          </div>
-
-          <div className="em-ey" style={{ marginTop: 6 }}>
-            {sector.filters.price}
-          </div>
-          <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {sector.priceModes.map((m) => (
-              <button key={m.key} type="button" className={`em-chip${draft.priceMode.includes(m.key) ? ' on' : ''}`} aria-pressed={draft.priceMode.includes(m.key)} onClick={() => setDraft({ ...draft, priceMode: toggle(draft.priceMode, m.key) })}>
-                {m.label}
               </button>
             ))}
           </div>

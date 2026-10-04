@@ -71,13 +71,11 @@ async function main() {
       const gross = Number((c.min + ((c.max - c.min) * ((pi * 37) % 100)) / 100).toFixed(3));
       const stone = pi % 3 === 0 ? Number((gross * 0.08).toFixed(3)) : 0;
       const purity = c.karats[pi % c.karats.length];
-      const priceMode = pi % 5 === 4 ? 'on-request' : pi % 5 === 2 ? 'fixed' : 'by-weight';
       const photos = [PHOTOS[(ci * 8 + pi) % PHOTOS.length], PHOTOS[(ci * 8 + pi + 5) % PHOTOS.length]];
       const id = `item-demo-${n}`;
       await store.set('products', id, {
         id, sku: `AD-${c.name.slice(0, 3).toUpperCase()}-${String(1000 + n)}`, title, category: c.name, purity, grossWt: gross, stoneWt: stone, netWt: Number((gross - stone).toFixed(3)),
-        images: photos, image: photos[0], stockStatus: pi % 4 === 3 ? 'Made-to-Order' : 'Ready in Vault', priceMode,
-        ...(priceMode === 'fixed' ? { price: Math.round(gross * 7200) } : {}),
+        images: photos, image: photos[0], stockStatus: pi % 4 === 3 ? 'Made-to-Order' : 'Ready in Vault',
         ...(pi % 2 === 0 ? { huid: `HM/D-${100000 + n * 7}` } : {}),
         description: `${title} in ${purity}: ${WORDS[pi % WORDS.length]}, ${WORDS[(pi + 3) % WORDS.length]}.`,
         createdAt: new Date(now - n * 60000).toISOString()

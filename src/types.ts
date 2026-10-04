@@ -18,9 +18,6 @@ export interface Product {
   huid?: string;
   description?: string;
   /** How the design is priced; absent on older records means "by-weight". */
-  priceMode?: 'by-weight' | 'fixed' | 'on-request';
-  /** Fixed price in rupees, only when priceMode is "fixed". */
-  price?: number;
 }
 
 /** One admin account of the store, as the Admins screen lists them. */

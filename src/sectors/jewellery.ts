@@ -1,4 +1,4 @@
-import { DEFAULT_PURITIES, PRICE_MODES, PRICE_MODE_LABELS, purityTitle } from '../../shared/jewellery';
+import { DEFAULT_PURITIES, purityTitle } from '../../shared/jewellery';
 import type { OrderItem } from '../types';
 
 /**
@@ -14,15 +14,11 @@ export const jewelleryPack = {
     { key: 'Ready in Vault', icon: 'verified' },
     { key: 'Made-to-Order', icon: 'hourglass_empty' }
   ],
-  /** Pricing choices on the design form and the price filter. */
-  priceModes: PRICE_MODES.map((key) => ({ key, label: PRICE_MODE_LABELS[key] })),
-
   /** Wording of the catalogue filters: a second sector names its own facets (e.g. size and fabric instead of purity and weight). */
   filters: {
     purity: 'Purity',
     weight: 'Net weight (g)',
     availability: 'Availability',
-    price: 'Pricing',
     searchPlaceholder: 'Search name, SKU, collection or purity'
   },
 

@@ -32,16 +32,18 @@ That repo was seeded from this one (it contains our latest commits) and then ext
 2. **Buyer sessions are 7 days, fixed.** Not renewed on use, so the code is asked again after a week (admins with "keep me signed in" keep their sliding month; the phone app keeps 90 days).
 3. **Buyer sign-in: code first, name only for a new number.** `verify-otp` answers `needs-name` for an unknown number without creating anything (the code stays valid); the screen then asks "What should we call you?" and submits the same code with the name. A returning buyer goes straight in. The name becomes the buyer's name for the admin.
 4. **No install prompts or manifest** (Emergent's rule, kept): the profile menu has no "Install app"; home-screen apps come from the native builds.
-5. **The four tests Emergent left failing were checked against the code and updated to the new behaviour** (`failedtest.md` removed):
-   - `no random HUID...` and `keeps a HUID...`: a design now has a price mode (`by-weight` default, `fixed` with a `price`, or `on-request`); `price` is kept only in fixed mode, a fixed design without a price is a 400, making charges are dropped.
-   - `products carry no price` (phase2): same rule.
-   - `7 days on the web`: passes again because buyer sessions are back to 7 days.
-   - A fifth failing test (`test alert...`) was stale: the alert result now also carries the WhatsApp `messageId` used for delivery receipts.
+5. **Prices removed.** Emergent's price modes ("by weight" / "fixed price" / "price on request") were taken out again: no field on the design form, no filter, no price on the design sheet, and the server ignores any price fields in a request (as before). The three "never a price" tests are back to their original meaning.
+6. **The other stale tests** were checked against the code: "7 days on the web" passes again because buyer sessions are 7 days; the test-alert test was updated because the result now also carries the WhatsApp `messageId` used for delivery receipts. `failedtest.md` was removed.
 
 ## Also new from Emergent that was not on the first list
-- **Price modes and server-side catalogue search**: a design can be "by weight", "fixed price" or "price on request"; the Catalogue screen has search, filters (purity, weight, price mode, availability) and sorting, done on the server (`GET /api/products?search=&purity=&minWt=...`).
+- **Server-side catalogue search**: search (name, SKU, collection, purity, hallmark, description), filters (purity, weight range, availability) and sorting, done on the server (`GET /api/products?search=&purity=&minWt=...`). A description field on the design form feeds the search.
 - **Photo thumbnails**: the server can serve resized WebP thumbnails (`sharp`, `/media/:file?w=`). The planned "make cover" and move-left/right buttons on photo tiles are not built yet (see `docs/EMERGENT_TODO.md`).
 
 ## Checked
 - `npx tsc --noEmit` clean; `npx vitest run`: 28 files, 271 tests pass; `npm run build` (client and server) succeeds.
 - Not yet checked in a browser, and not deployed. Pushing `main` deploys to production.
+
+## Review of the Emergent code (backend, frontend, preview shim)
+- `backend/` and `frontend/` in the Emergent workspace are only a preview shim (a FastAPI proxy and a `yarn start` wrapper that starts the Node server); they are not part of the product and were not brought over.
+- **Fixed here:** `sharp` (used for thumbnails) was a dev dependency, and the production image installs without dev dependencies, so thumbnails would silently fall back to the original photos. It is now a runtime dependency (lock file updated). `GET /api/auth/otp-status/:id` had no rate limit; it now uses the same limiter as the other code routes.
+- **Worth doing next (not done):** a Meta-side check of the webhook once `WHATSAPP_APP_SECRET` and `WHATSAPP_WEBHOOK_VERIFY_TOKEN` are set (`scripts/whatsapp-check.ts`); the message log is a root collection read per store, fine now, to be indexed by store before many stores send many messages; "make cover" and move buttons on photo tiles (planned by Emergent, not built); insights read the whole visitor and product lists, fine for hundreds of designs, to be aggregated if a store grows large.

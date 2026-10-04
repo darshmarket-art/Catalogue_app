@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PRICE_MODES, SORT_KEYS, STOCK_STATUSES, lineWeight, netWeight } from '../../shared/jewellery';
+import { SORT_KEYS, STOCK_STATUSES, lineWeight, netWeight } from '../../shared/jewellery';
 import type { Doc } from '../store';
 import { photoRef } from '../media';
 import { trimmed } from '../schemas';
@@ -7,7 +7,7 @@ import { trimmed } from '../schemas';
 /**
  * The jewellery sector: which fields a product has, how weights are derived, how the catalogue is searched, and how an order is worded.
  * Nothing here is invented for the merchant: hallmark IDs are only stored when someone enters them.
- * Trade is on gram weight by default; a design may instead carry a fixed price or be "price on request".
+ * Products carry no price: trade is on gram weight, so a request that still sends price fields has them ignored.
  */
 const productSchema = z
   .object({
@@ -21,14 +21,10 @@ const productSchema = z
     huid: trimmed(40).optional(),
     description: trimmed(600).optional(),
     stockStatus: z.enum(STOCK_STATUSES).default('Ready in Vault'),
-    priceMode: z.enum(PRICE_MODES).default('by-weight'),
-    /** Fixed price in rupees; only kept when priceMode is "fixed". */
-    price: z.coerce.number().positive().max(1e9).optional(),
     /** One to three photos: uploaded ("media:...") or, for imports, an http(s) link. */
     images: z.array(photoRef).min(1, 'Add at least one photo.').max(3, 'A product can have at most 3 photos.')
   })
-  .refine((p) => p.stoneWt < p.grossWt, { path: ['stoneWt'], message: 'Stone weight must be less than gross weight.' })
-  .refine((p) => p.priceMode !== 'fixed' || p.price !== undefined, { path: ['price'], message: 'Enter the fixed price.' });
+  .refine((p) => p.stoneWt < p.grossWt, { path: ['stoneWt'], message: 'Stone weight must be less than gross weight.' });
 
 export type JewelleryProductInput = z.infer<typeof productSchema>;
 
@@ -39,7 +35,6 @@ const querySchema = z.object({
   purity: z.string().trim().max(200).optional(),
   minWt: z.coerce.number().min(0).max(100000).optional(),
   maxWt: z.coerce.number().min(0).max(100000).optional(),
-  priceMode: z.string().trim().max(60).optional(),
   availability: z.string().trim().max(120).optional(),
   sort: z.enum(SORT_KEYS).default('newest'),
   limit: z.coerce.number().int().min(1).max(500).default(200),
@@ -72,8 +67,6 @@ export const jewelleryPack = {
       images: input.images,
       image: input.images[0],
       stockStatus: input.stockStatus,
-      priceMode: input.priceMode,
-      ...(input.priceMode === 'fixed' && input.price !== undefined ? { price: input.price } : {}),
       createdAt: meta.now
     };
   },
@@ -89,7 +82,6 @@ export const jewelleryPack = {
     const words = (q.search ?? '').toLowerCase().split(/\s+/).filter(Boolean);
     const categories = list(q.category);
     const purities = list(q.purity);
-    const modes = list(q.priceMode);
     const stock = list(q.availability);
     const out = products.filter((p) => {
       if (words.length) {
@@ -98,7 +90,6 @@ export const jewelleryPack = {
       }
       if (categories.length && !categories.includes(String(p.category).toLowerCase())) return false;
       if (purities.length && !purities.includes(String(p.purity).toLowerCase())) return false;
-      if (modes.length && !modes.includes(String(p.priceMode ?? 'by-weight').toLowerCase())) return false;
       if (stock.length && !stock.includes(String(p.stockStatus).toLowerCase())) return false;
       if (q.minWt !== undefined && Number(p.netWt) < q.minWt) return false;
       if (q.maxWt !== undefined && Number(p.netWt) > q.maxWt) return false;

@@ -37,8 +37,8 @@ describe('catalogue search, filters, sort and paging', () => {
     const h = { ...S, ...bearer(admin) };
     for (const name of ['Rings', 'Chains']) await request(app).post('/api/categories').set(h).send({ name, image: 'https://example.com/c.jpg' });
     await request(app).post('/api/products').set(h).send(product({ title: 'Temple Ring', sku: 'R-1', grossWt: 5, description: 'antique matte finish' }));
-    await request(app).post('/api/products').set(h).send(product({ title: 'Rope Chain', sku: 'C-1', category: 'Chains', grossWt: 20, purity: '18K 750', stockStatus: 'Made-to-Order', priceMode: 'fixed', price: 150000 }));
-    await request(app).post('/api/products').set(h).send(product({ title: 'Peacock Ring', sku: 'R-2', grossWt: 8, stoneWt: 1, priceMode: 'on-request' }));
+    await request(app).post('/api/products').set(h).send(product({ title: 'Rope Chain', sku: 'C-1', category: 'Chains', grossWt: 20, purity: '18K 750', stockStatus: 'Made-to-Order' }));
+    await request(app).post('/api/products').set(h).send(product({ title: 'Peacock Ring', sku: 'R-2', grossWt: 8, stoneWt: 1 }));
   });
   const q = (query: string) => request(app).get(`/api/products?${query}`).set(S).set(bearer(admin));
 
@@ -50,11 +50,10 @@ describe('catalogue search, filters, sort and paging', () => {
     expect((await q('search=nothing-here')).body.total).toBe(0);
   });
 
-  it('combines collection, purity, weight range, price mode and availability', async () => {
+  it('combines collection, purity, weight range and availability', async () => {
     expect((await q('category=Rings&purity=22K%20916')).body.total).toBe(2);
     expect((await q('minWt=6&maxWt=10')).body.data.map((p: any) => p.sku)).toEqual(['R-2']);
-    expect((await q('priceMode=fixed,on-request')).body.total).toBe(2);
-    expect((await q('availability=Made-to-Order')).body.data[0].price).toBe(150000);
+    expect((await q('availability=Made-to-Order')).body.data.map((p: any) => p.sku)).toEqual(['C-1']);
     expect((await q('category=Rings&availability=Made-to-Order')).body.total).toBe(0);
   });
 
@@ -72,11 +71,11 @@ describe('catalogue search, filters, sort and paging', () => {
     expect((await q('sort=bogus')).status).toBe(400);
   });
 
-  it('keeps price only for fixed-price designs and needs it there', async () => {
+  it('has no prices: price fields are ignored', async () => {
     const h = { ...S, ...bearer(admin) };
-    expect((await request(app).post('/api/products').set(h).send(product({ title: 'No price', priceMode: 'fixed' }))).status).toBe(400);
-    const r = await request(app).post('/api/products').set(h).send(product({ title: 'Weight', price: 999 }));
-    expect(r.body.data.priceMode).toBe('by-weight');
+    const r = await request(app).post('/api/products').set(h).send(product({ title: 'Weight', priceMode: 'fixed', price: 999 }));
+    expect(r.status).toBe(201);
+    expect(r.body.data.priceMode).toBeUndefined();
     expect(r.body.data.price).toBeUndefined();
   });
 });

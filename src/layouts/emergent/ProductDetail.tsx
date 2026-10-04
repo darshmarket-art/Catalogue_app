@@ -129,8 +129,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 <Pill tone="plum">{product.purity.replace(' ', ' · ')}</Pill>
               )}
               <StockPill status={product.stockStatus} />
-              {product.priceMode === 'fixed' && product.price !== undefined && <Pill tone="gold">₹ {product.price.toLocaleString('en-IN')}</Pill>}
-              {product.priceMode === 'on-request' && <Pill>Price on request</Pill>}
               {product.huid && <Pill tone="gold">HUID {product.huid}</Pill>}
             </div>
 

@@ -115,7 +115,6 @@ export interface ProductQuery {
   purity?: string;
   minWt?: string | number;
   maxWt?: string | number;
-  priceMode?: string;
   availability?: string;
   sort?: string;
   limit?: number;
