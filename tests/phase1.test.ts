@@ -91,7 +91,7 @@ describe('the admin account', () => {
 });
 
 describe('sessions', () => {
-  it('admin: 8 hours by default, a sliding month with "keep me signed in"; buyers: a fixed 7 days', async () => {
+  it('admin: 8 hours by default, a sliding month with "keep me signed in"; buyers: a sliding month', async () => {
     await newStore();
     const plain = await request(app).post('/api/auth/admin/login').set(S).send({ adminId: 'owner@aurum.test', password: 'OwnerPass@2026' });
     expect(exp(plain.body.sessionToken)).toBe(8 * 3600);
@@ -101,9 +101,9 @@ describe('sessions', () => {
     const me = await request(app).get('/api/auth/me').set(S).set(bearer(kept.body.sessionToken));
     expect(exp(me.body.token)).toBe(30 * 86400);
     const b = await otpBuyer(app, { phone: '9820000001', firmName: 'Test Jewellers' }, S);
-    expect(exp(b.body.token)).toBe(7 * 86400);
-    // not renewed on use: after 7 days the code is asked for again
-    expect((await request(app).get('/api/auth/me').set(S).set(bearer(b.body.token))).body.token).toBeUndefined();
+    expect(exp(b.body.token)).toBe(30 * 86400);
+    // renewed on every visit, so a regular buyer is never asked for a code again
+    expect(exp((await request(app).get('/api/auth/me').set(S).set(bearer(b.body.token))).body.token)).toBe(30 * 86400);
   });
 });
 

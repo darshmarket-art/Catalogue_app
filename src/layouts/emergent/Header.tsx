@@ -29,7 +29,7 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
  * Emergent's top bar. The four tab screens carry their own title blocks, so there it is only the brand and the profile button.
  * Everywhere else (admin, About, password, sign-in) it is the atlas's back button, a centred title and the page's aside.
  */
-export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing, eyebrow, aside }) => {
+export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, parentScreen, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing, eyebrow, aside }) => {
   // The owner's Orders tab is the Orders desk: a titled sub-page with a back button, as in the atlas.
   const adminOrders = currentScreen === 'orders' && isAdminLoggedIn;
   const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen) || adminOrders;
@@ -45,7 +45,9 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const width = currentScreen === 'catalogue' ? 1100 : isHome ? 760 : 640;
 
   const handleBack = () => {
-    if (isEditing && (currentScreen === 'new-product' || currentScreen === 'add-category')) {
+    if (parentScreen) {
+      onNavigate(parentScreen);
+    } else if (isEditing && (currentScreen === 'new-product' || currentScreen === 'add-category')) {
       onNavigate(currentScreen === 'new-product' ? 'catalogue' : 'categories');
     } else if (isAdminSub) {
       onNavigate('admin-hub');

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { Config } from '../config';
 import type { Doc, Store } from '../store';
 import type { OtpDelivery } from '../whatsapp';
-import { ADMIN_TOKEN_TTL, safeEqual, signToken } from '../auth';
+import { ADMIN_REMEMBER_TTL, safeEqual, signToken } from '../auth';
 import { HttpError, errorHandler, handler, newId, parse } from '../http';
 import { parseMerchant } from '../merchant';
 import { devCode } from './otp';
@@ -205,7 +205,7 @@ export function signupRoutes(config: Config, root: Store, delivery: OtpDelivery,
         storeId: b.storeName,
         storeUrl,
         trialEndsAt: (rec as StoreRecord).trialEndsAt,
-        sessionToken: signToken(storeConfig, { type: 'admin', sub: admin.email }, ADMIN_TOKEN_TTL),
+        sessionToken: signToken(storeConfig, { type: 'admin', sub: admin.email, remember: true }, ADMIN_REMEMBER_TTL),
         admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
       });
     })

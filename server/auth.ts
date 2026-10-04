@@ -6,7 +6,7 @@ import type { Config } from './config';
 import type { Store } from './store';
 
 /** Buyers stay signed in for a month; every visit renews it via /api/auth/me (sliding), so a regular buyer is never asked again. */
-export const RETAILER_TOKEN_TTL = '7d';
+export const RETAILER_TOKEN_TTL = '30d';
 export const ADMIN_TOKEN_TTL = '8h';
 /** "Keep me signed in" at the admin login: a month, renewed on every visit like the buyer session. */
 export const ADMIN_REMEMBER_TTL = '30d';

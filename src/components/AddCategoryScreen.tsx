@@ -67,7 +67,8 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
   const handleDelete = async () => {
     if (!editing) return;
-    if (!window.confirm(`Delete the collection "${editing.name}"? This cannot be undone.`)) return;
+    const n = editing.designCount;
+    if (!window.confirm(`Delete the collection "${editing.name}"${n > 0 ? ` and its ${n} ${n === 1 ? 'design' : 'designs'}` : ''}? This cannot be undone.`)) return;
     setSubmitting(true);
     if (await onDelete(editing)) onNavigate('categories');
     else setSubmitting(false);

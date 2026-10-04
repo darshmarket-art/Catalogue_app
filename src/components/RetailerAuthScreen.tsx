@@ -6,6 +6,7 @@ import { Icon } from '../layouts/emergent/ui';
 import { Notice } from './ui';
 import { DevOtpHint } from './DevOtpHint';
 import { CatalogueFullScreen } from './CatalogueFullScreen';
+import { WelcomeGreeting } from './WelcomeGreeting';
 import { DeliveryPill, FAILURE_TEXT, useOtpDelivery } from './DeliveryStatus';
 import type { ProfileUser } from './ProfileMenu';
 
@@ -72,11 +73,6 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
 
   // After a good code, hold a 2 s greeting before entering the showroom.
   const [welcome, setWelcome] = useState<{ user: ProfileUser; isNew: boolean } | null>(null);
-  useEffect(() => {
-    if (!welcome) return;
-    const t = setTimeout(() => onLoginSuccess(welcome.user), 2000);
-    return () => clearTimeout(t);
-  }, [welcome]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -122,21 +118,11 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
 
   if (welcome) {
     return (
-      <div className="em-page notabs" style={{ maxWidth: 480 }} data-testid="buyer-welcome">
-        <div className="em-pad" style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center' }}>
-          <div className="welcome-ring" style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--em-primary)' }} />
-          <div className="welcome-rise">
-            <div className="em-ey">{merchant.brand.name}</div>
-            <h1 className="em-ser" style={{ fontSize: 32, lineHeight: 1.2, marginTop: 8 }}>
-              {welcome.isNew ? 'Welcome' : 'Welcome back'}, {welcome.user.ownerName || welcome.user.storeName}
-            </h1>
-            <p className="em-mut" style={{ marginTop: 8, fontSize: 14 }}>Opening your showroom…</p>
-          </div>
-          <div style={{ width: 140, height: 3, borderRadius: 2, background: 'var(--em-tint)', overflow: 'hidden' }}>
-            <div className="welcome-bar" style={{ height: '100%', background: 'var(--em-primary)' }} />
-          </div>
-        </div>
-      </div>
+      <WelcomeGreeting
+        title={`${welcome.isNew ? 'Welcome' : 'Welcome back'}, ${welcome.user.ownerName || welcome.user.storeName}`}
+        subtitle="Opening your showroom…"
+        onDone={() => onLoginSuccess(welcome.user)}
+      />
     );
   }
 

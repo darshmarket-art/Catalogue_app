@@ -169,8 +169,8 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
       const me = user(res);
       const claims = claimsOf(res);
       // Sliding sessions: the phone app gets a fresh 90-day token on every start; "keep me signed in" admins get a fresh month on every visit.
-      // Buyers on the web have a fixed 7-day session (asked for a new code after a week); a plain 8-hour admin session is not renewed.
-      const slide = isNativeClient(req) ? NATIVE_TOKEN_TTL : claims.remember ? ADMIN_REMEMBER_TTL : null;
+      // Buyers on the web get a fresh month on every visit; a plain 8-hour admin session (box unticked) is not renewed.
+      const slide = isNativeClient(req) ? NATIVE_TOKEN_TTL : me.type === 'retailer' ? RETAILER_TOKEN_TTL : claims.remember ? ADMIN_REMEMBER_TTL : null;
       const token = slide ? signToken(config, { type: me.type, sub: me.id, ...(claims.remember ? { remember: true } : {}) }, slide) : undefined;
       if (me.type === 'admin') {
         res.json({ status: 'success', token, type: 'admin', admin: { name: me.name, email: me.id, role: me.role }, mustChangePassword: Boolean(me.mustChangePassword) });

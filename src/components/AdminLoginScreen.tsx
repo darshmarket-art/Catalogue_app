@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
-import { ADMIN_ROLES, roleLabel } from '../../shared/roles';
+import { ADMIN_ROLES } from '../../shared/roles';
 import { usePlan } from '../plan';
 import { Field, I, Notice } from './ui';
 import { AdminForgotPassword } from './AdminForgotPassword';
+import { WelcomeGreeting } from './WelcomeGreeting';
 
 interface AdminLoginScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -16,6 +17,8 @@ interface AdminLoginScreenProps {
 /** Administrator sign-in (artboard 1.7). Creating an admin with the provisioning key stays one quiet link away. */
 export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, onAdminLoginSuccess }) => {
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
+  // After a good sign-in, a 2 s greeting runs before the admin hub opens.
+  const [welcome, setWelcome] = useState<{ name: string; mustChange: boolean; email: string } | null>(null);
 
   // Sign in
   const [adminId, setAdminId] = useState('');
@@ -43,8 +46,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
     try {
       const res = await api.loginAdmin({ adminId: adminId.trim(), password: password.trim(), remember });
       if (res.status === 'success') {
-        setSuccessMsg(`Signed in as ${res.admin.name} (${roleLabel(res.admin.role)}).`);
-        onAdminLoginSuccess(Boolean(res.admin.mustChangePassword), res.admin.email);
+        setWelcome({ name: res.admin.name, mustChange: Boolean(res.admin.mustChangePassword), email: res.admin.email });
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Sign-in failed.');
@@ -84,6 +86,10 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
       <I n={shown ? 'eyeoff' : 'eye'} size="s" />
     </button>
   );
+
+  if (welcome) {
+    return <WelcomeGreeting title={`Welcome, ${welcome.name}`} subtitle="Opening your store…" onDone={() => onAdminLoginSuccess(welcome.mustChange, welcome.email)} />;
+  }
 
   return (
     <div className="scroll no-tabs" style={{ gap: 16, maxWidth: 480 }}>

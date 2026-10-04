@@ -6,6 +6,8 @@ import type { ProfileUser } from '../components/ProfileMenu';
 export interface HeaderProps {
   currentScreen: ActiveScreen;
   onNavigate: (screen: ActiveScreen) => void;
+  /** Where Back goes when it is not the usual place (the New design form behind New collection). */
+  parentScreen?: ActiveScreen | null;
   isAdminLoggedIn: boolean;
   currentMerchant: ProfileUser | null;
   onLogout: () => void;

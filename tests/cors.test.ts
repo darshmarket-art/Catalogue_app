@@ -39,14 +39,14 @@ describe('phone app sessions', () => {
     const { exp, iat } = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
     return Math.round((exp - iat) / 86400);
   };
-  it('lasts 90 days for the app, 7 days on the web, and renews on /me', async () => {
+  it('lasts 90 days for the app, a month on the web, and renews on /me', async () => {
     const web = await otpBuyer(app, { firmName: 'Test Shop', phone });
     expect(web.status).toBe(200);
-    expect(expiryDays(web.body.token)).toBe(7);
+    expect(expiryDays(web.body.token)).toBe(30);
     const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${web.body.token}`).set('X-App-Client', 'native');
     expect(me.status).toBe(200);
     expect(expiryDays(me.body.token)).toBe(90);
     const plain = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${web.body.token}`);
-    expect(plain.body.token).toBeUndefined();
+    expect(expiryDays(plain.body.token)).toBe(30); // a buyer on the web is renewed for a month on every visit
   });
 });

@@ -72,8 +72,8 @@ export const setUnauthorizedHandler = (fn: (() => void) | null) => {
   onUnauthorized = fn;
 };
 
-// Kept in localStorage so a buyer stays signed in after closing the browser; the server token lasts 7 days
-// (buyers) or 8 hours (admins), then the next sign-in asks for a new code or password.
+// Kept in localStorage so people stay signed in after closing the browser. The server token lasts a month for buyers and for admins
+// who ticked "Keep me signed in" (renewed on every visit), or 8 hours for admins who did not.
 const SESSION_KEY = 'catalogue_session';
 
 const readStoredToken = (): string | null => {

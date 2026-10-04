@@ -313,6 +313,21 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-ico { width: 40px; height: 40px; border-radius: 50%; background: var(--em-tint); color: var(--em-primary); display: flex; align-items: center; justify-content: center; flex: none; }
 [data-layout="emergent"] .em-ico .material-symbols-outlined { font-size: 20px; }
 
+/* Opening Home > Catalogue > a design: cards rise in one after another, and the design opens as a sheet sliding up. */
+@keyframes em-card-rise { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes em-pd-open { from { opacity: 0; transform: translateY(40px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes em-hero-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
+[data-layout="emergent"] .em-grid > .em-sq { animation: em-card-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(2) { animation-delay: 0.06s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(3) { animation-delay: 0.12s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(4) { animation-delay: 0.18s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(5) { animation-delay: 0.24s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(6) { animation-delay: 0.3s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(n+7) { animation-delay: 0.36s; }
+[data-layout="emergent"] .em-pd { animation: em-pd-open 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-pd-sheet { animation: em-card-rise 0.55s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-slide { animation: em-hero-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   [data-layout="emergent"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }

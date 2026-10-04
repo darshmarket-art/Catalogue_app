@@ -110,12 +110,11 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const existing = await store.get('categories', req.params.id);
       if (!existing) throw new HttpError(404, 'Category not found.');
-      const products = await store.list('products', { where: [{ field: 'category', op: '==', value: existing.name }], limit: 1 });
-      if (products.length > 0) {
-        throw new HttpError(409, 'This category still has designs. Move or delete them first.');
-      }
+      // Deleting a collection takes its designs with it (photos stay in storage: past orders still show them).
+      const products = await store.list('products', { where: [{ field: 'category', op: '==', value: existing.name }] });
+      await Promise.all(products.map((p) => store.delete('products', p.id)));
       await store.delete('categories', existing.id);
-      await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted.`);
+      await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted with ${products.length} design${products.length === 1 ? '' : 's'}.`);
       res.json({ status: 'success', message: 'Category deleted' });
     })
   );

@@ -35,6 +35,9 @@ import { ScreenTop } from './components/ScreenTop';
 // The bottom-bar screens (buyer tabs and the admin ones): switching between them fades; going deeper slides forward, coming back slides back.
 const TABS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'];
 
+// Home to Catalogue is a step deeper (slides forward) and back again slides back, instead of the tab fade.
+const DRILL: ActiveScreen[] = ['categories', 'catalogue'];
+
 export default function App() {
   const plan = usePlan();
   const { flags } = plan;
@@ -77,6 +80,8 @@ export default function App() {
   const [analyticsUpdatedAt, setAnalyticsUpdatedAt] = useState<Date | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  // The New collection form opened from the New design form goes back there, not to the admin hub.
+  const [categoryFromProduct, setCategoryFromProduct] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(
     // A shared link like /?category=Rings opens that category once the buyer is signed in.
     () => new URLSearchParams(window.location.search).get('category')
@@ -98,7 +103,7 @@ export default function App() {
   // Set once the guard entry exists (see the Back handling below); remembered in the history state so a reload keeps it.
   const guardArmed = useRef(Boolean(window.history.state?.g));
   const handleNavigate = (screen: ActiveScreen, _replace = false) => {
-    setNavDir(TABS.includes(screen) && !TABS.includes(screenRef.current) ? 'back' : 'forward');
+    setNavDir((TABS.includes(screen) && !TABS.includes(screenRef.current)) || (screen === 'categories' && screenRef.current === 'catalogue') ? 'back' : 'forward');
     setCurrentScreen(screen);
     // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
     window.history.replaceState({ screen, g: guardArmed.current ? 1 : undefined }, '');
@@ -398,6 +403,9 @@ export default function App() {
     try {
       await api.deleteCategory(category.id);
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      // The server deletes the collection's designs with it.
+      setProducts((prev) => prev.filter((p) => p.category !== category.name));
+      if (categoryFilter === category.name) setCategoryFilter(null);
       return true;
     } catch (err) {
       if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the category.');
@@ -477,6 +485,7 @@ export default function App() {
   };
 
   const openCategoryForm = (category: Category | null) => {
+    setCategoryFromProduct(false);
     setEditingCategory(category);
     handleNavigate('add-category');
   };
@@ -539,10 +548,18 @@ export default function App() {
   const top = ownTop[activeScreen];
 
   const homeScreen: ActiveScreen = isAdminLoggedIn ? 'admin-hub' : currentMerchant ? 'categories' : 'welcome';
+  // One step up the hierarchy where there is a parent other than home (New collection <- New design).
+  const parentScreen: ActiveScreen | null = activeScreen === 'add-category' && !editingCategory && categoryFromProduct ? 'new-product' : null;
   screenRef.current = activeScreen;
   backRef.current = (leave) => {
     if (booting) return;
     if (!window.dispatchEvent(new Event('app-back', { cancelable: true }))) return; // an open design handled it
+    if (parentScreen) {
+      setCategoryFromProduct(false);
+      handleNavigate(parentScreen, true);
+      setNavDir('back');
+      return;
+    }
     const act = backAction(activeScreen, homeScreen, lastAskAt.current, Date.now());
     if (act === 'home') {
       handleNavigate(homeScreen, true);
@@ -577,6 +594,7 @@ export default function App() {
         <K.Header
           currentScreen={activeScreen}
           onNavigate={handleNavigate}
+          parentScreen={parentScreen}
           isAdminLoggedIn={isAdminLoggedIn}
           currentMerchant={currentMerchant}
           onLogout={handleLogout}
@@ -609,7 +627,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full ${TABS.includes(lastScreen.current) && TABS.includes(activeScreen) ? 'animate-page-in' : navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
+      <main key={activeScreen} className={`flex-1 w-full ${TABS.includes(lastScreen.current) && TABS.includes(activeScreen) && !(DRILL.includes(lastScreen.current) && DRILL.includes(activeScreen)) ? 'animate-page-in' : navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
 
         {activeScreen === 'welcome' && (
           <K.Welcome onNavigate={handleNavigate} />
@@ -751,6 +769,10 @@ export default function App() {
             editing={editingProduct}
             onNavigate={(next) => {
               if (next !== 'add-category') setEditingProduct(null);
+              else {
+                setEditingCategory(null);
+                setCategoryFromProduct(true);
+              }
               handleNavigate(next);
             }}
             onSave={handleProductSaved}
@@ -765,7 +787,9 @@ export default function App() {
             editing={editingCategory}
             onNavigate={(next) => {
               setEditingCategory(null);
-              handleNavigate(next);
+              // A collection made from the New design form goes back to it (the new collection is then selectable).
+              handleNavigate(categoryFromProduct && next === 'categories' ? 'new-product' : next);
+              setCategoryFromProduct(false);
             }}
             onSave={handleCategorySaved}
             onDelete={handleCategoryDeleted}

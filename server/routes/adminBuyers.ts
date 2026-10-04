@@ -7,7 +7,7 @@ import { HttpError, audit, handler } from '../http';
 // No look-alike characters (0/O, 1/l/I), so a password read out over the phone is not misheard.
 
 
-/** The merchant's list of buyer accounts, and the owner-only help for a buyer who forgot their password. */
+/** The merchant's list of buyer accounts, and the help for a buyer who forgot their password. */
 export function adminBuyerRoutes(store: Store, requireAdmin: RequestHandler) {
   const router = Router();
   router.use(requireAdmin);
@@ -37,7 +37,6 @@ export function adminBuyerRoutes(store: Store, requireAdmin: RequestHandler) {
     '/:phone',
     handler(async (req, res) => {
       const admin = user(res);
-      if (admin.role !== 'owner') throw new HttpError(403, 'Only the owner can remove a buyer.');
       const buyer = await store.get('buyers', req.params.phone);
       if (!buyer) throw new HttpError(404, 'Buyer not found.');
       await store.delete('buyers', buyer.phone);

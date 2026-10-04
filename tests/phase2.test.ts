@@ -282,13 +282,11 @@ describe('categories: one photo, rename, delete', () => {
     expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: ref })).status).toBe(409);
   });
 
-  it('a rename carries its products along; a category with products cannot be deleted', async () => {
+  it('a rename carries its products along; deleting a category takes its products with it', async () => {
     const app = await build();
     const auth = await admin(app);
     const cat = (await request(app).post('/api/categories').set(auth).send({ name: 'Chains', image: 'https://example.com/c.jpg' })).body.data;
     await request(app).post('/api/products').set(auth).send(product(['https://example.com/x.jpg'], { category: 'Chains', sku: 'CH-1' }));
-
-    expect((await request(app).delete(`/api/categories/${cat.id}`).set(auth)).status).toBe(409);
 
     const renamed = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ name: 'Gold Chains', image: 'https://example.com/c.jpg' });
     expect(renamed.status).toBe(200);
@@ -298,9 +296,9 @@ describe('categories: one photo, rename, delete', () => {
     const clash = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ name: 'Bridal Chokers & Haar', image: 'https://example.com/c.jpg' });
     expect(clash.status).toBe(409);
 
-    const productId = (await store.list('products')).find((p) => p.sku === 'CH-1')!.id;
-    await request(app).delete(`/api/products/${productId}`).set(auth);
+    // deleting the collection deletes its designs too
     expect((await request(app).delete(`/api/categories/${cat.id}`).set(auth)).status).toBe(200);
+    expect((await store.list('products')).some((p) => p.sku === 'CH-1')).toBe(false);
     expect((await request(app).put('/api/categories/none').set(auth).send({ name: 'X', image: 'https://example.com/c.jpg' })).status).toBe(404);
   });
 });
