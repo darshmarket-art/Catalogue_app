@@ -108,7 +108,7 @@ export const AdminBuyersScreen: React.FC = () => {
               </div>
             </div>
             <div className="em-row" style={{ gap: 6, flexDirection: 'column', alignItems: 'stretch' }}>
-              <a className="em-rm n" href={`tel:+${b.phone.replace(/[^0-9]/g, '')}`} style={{ textAlign: 'center', textDecoration: 'none' }}>
+              <a className="em-rm n" href={`tel:+${b.phone.replace(/[^0-9]/g, '').replace(/^([0-9]{10})$/, '91$1')}`} style={{ textAlign: 'center', textDecoration: 'none' }}>
                 Call
               </a>
               <a className="em-rm n" href={`https://wa.me/${b.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`} target="_blank" rel="noopener noreferrer" style={{ textAlign: 'center', textDecoration: 'none' }}>
