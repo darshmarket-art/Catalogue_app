@@ -120,6 +120,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
     const saveLayout = async (layout: LayoutId) => {
       const rec = await root.get<StoreRecord>('stores', id);
       if (rec) await root.update('stores', id, { merchant: { ...rec.merchant, layout } });
+      resolver.invalidate(id);
     };
     return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, saveLayout);
   });

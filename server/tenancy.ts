@@ -33,11 +33,15 @@ export const newStoreRecord = (merchant: MerchantConfig, patch: Partial<StoreRec
 
 export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice });
 
-/** The layout a store actually gets: its choice when its plan allows it, otherwise the standard one (so a lapsed trial falls back to Gilded and comes back on upgrade). */
 /** Local preview only: DEV_FORCE_LAYOUT=emergent shows that layout for every store outside production, whatever the plan. */
 const devLayout = (config: Config) => (!config.isProduction && (LAYOUT_IDS as readonly string[]).includes(process.env.DEV_FORCE_LAYOUT ?? '') ? (process.env.DEV_FORCE_LAYOUT as LayoutId) : undefined);
 
-export const effectiveLayout = (r: StoreRecord) => (layoutPlan(r.merchant.layout) === 'pro' && effectivePlan(planOf(r)) !== 'pro' ? DEFAULT_LAYOUT : r.merchant.layout);
+/** The layout a store actually gets: its choice when its plan allows it, otherwise the standard one (so a lapsed trial falls back to Gilded and comes back on upgrade). */
+export const effectiveLayout = (r: StoreRecord): LayoutId => {
+  // A record saved before layouts existed has none: it is Gilded.
+  const saved = r.merchant.layout ?? DEFAULT_LAYOUT;
+  return layoutPlan(saved) === 'pro' && effectivePlan(planOf(r)) !== 'pro' ? DEFAULT_LAYOUT : saved;
+};
 
 const COLLECTION = /^[A-Za-z0-9_]+$/;
 const nsOf = (storeId: string) => {
@@ -199,5 +203,6 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
       next(e);
     }
   };
-  return { middleware, resolve };
+  // Drops a cached store record, so a change made through this process (the owner's layout choice) shows on the next load.
+  return { middleware, resolve, invalidate: (id: string) => cache.delete(id) };
 }

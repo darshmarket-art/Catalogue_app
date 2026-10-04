@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { usePlan } from '../../plan';
-import type { ActiveScreen, Product } from '../../types';
+import type { Product } from '../../types';
 import { merchant } from '../../merchant';
 import { trackProductView, trackSearch, trackSelect } from '../../api';
 import { clearOnScreen, setOnScreen } from '../../attention';
@@ -17,11 +17,8 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'name', label: 'A to Z' }
 ];
 
-/**
- * The bar at the foot of the grid (atlas "cart bar") needs the order's size and a way to open it, which Catalogue is not given today.
- * App.tsx can pass orderCount and onNavigate; until then the bar counts what was added on this visit and has no Review button.
- */
-type CatalogueProps = KitProps<'Catalogue'> & { orderCount?: number; onNavigate?: (screen: ActiveScreen) => void };
+// The bar at the foot of the grid (atlas "cart bar") shows the order's size (orderCount) and opens it (onNavigate); App.tsx passes both.
+type CatalogueProps = KitProps<'Catalogue'>;
 
 /** Catalogue (atlas Catalogue): sticky title, search and collection chips over a two-column grid of photo cards. The owner's "Select" mode builds a PDF. */
 export const Catalogue: React.FC<CatalogueProps> = ({
@@ -234,7 +231,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     <span className="em-ser">{prod.title}</span>
                     <span className="em-ov-r">
                       <span>
-                        {prod.sku} · <b className="g">{prod.purity.split(' ')[0]}</b>
+                        <i>{prod.sku}</i>
+                        &nbsp;·&nbsp;
+                        <b className="g">{prod.purity.split(' ')[0]}</b>
                       </span>
                       <b>{fmtG(prod.netWt)}</b>
                     </span>

@@ -540,6 +540,8 @@ export default function App() {
             purities={purities}
             shortlist={shortlist}
             onToggleShortlist={toggleShortlist}
+            orderCount={orders.length}
+            onNavigate={handleNavigate}
           />
         )}
 

@@ -57,7 +57,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro' }> = ({ current 
           <span className="tag mut">Basic</span>
           {current === 'basic' && <span className="tag ok">Your plan</span>}
         </span>
-        <span className="stat" style={{ fontSize: 30 }}>
+        <span className="stat" style={{ fontSize: 24 }}>
           Free
         </span>
         <p className="sub">To get started</p>
@@ -67,7 +67,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro' }> = ({ current 
           <span className="pro dark">Pro</span>
           {current === 'pro' && <span className="tag ok">Your plan</span>}
         </span>
-        <span className="stat" style={{ fontSize: 30 }}>
+        <span className="stat" style={{ fontSize: 24, whiteSpace: 'nowrap' }}>
           Contact us
         </span>
         <p className="sub">To grow</p>

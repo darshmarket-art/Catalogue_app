@@ -168,12 +168,12 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                 )}
               </div>
               <div className="row" style={{ gap: 10 }}>
-                <button type="button" data-testid="pdf-export" className="btn" style={{ flex: 1 }} disabled={busy || picked.size === 0} onClick={() => run('save')}>
+                <button type="button" data-testid="pdf-export" className="btn" style={{ flex: 1, whiteSpace: 'nowrap', padding: '0 12px' }} disabled={busy || picked.size === 0} onClick={() => run('save')}>
                   <I n="download" />
                   Download PDF{picked.size > 0 ? ` · ${picked.size}` : ''}
                 </button>
                 {canShare && (
-                  <button type="button" data-testid="pdf-share" className="btn wa" style={{ flex: 'none', width: 'auto', padding: '0 18px' }} disabled={busy || picked.size === 0} onClick={() => run('share')}>
+                  <button type="button" data-testid="pdf-share" className="btn wa" style={{ flex: 'none', width: 'auto', padding: '0 14px' }} disabled={busy || picked.size === 0} onClick={() => run('share')}>
                     <I n="whats" />
                     Share
                   </button>

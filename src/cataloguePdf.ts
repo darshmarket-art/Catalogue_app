@@ -56,7 +56,10 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   const cols = 3;
   const gap = 7;
   const cell = (W - 2 * margin - gap * (cols - 1)) / cols;
-  const textH = 15;
+  // The store's own product fields (merchant.productFields) get a line under the weights, when it records any.
+  const detail = (p: Product) => merchant.productFields.filter((f) => p.extra?.[f.key] !== undefined).map((f) => `${f.label} ${p.extra![f.key]}${f.unit ? ` ${f.unit}` : ''}`).join(' · ');
+  const withDetail = items.some((p) => detail(p) !== '');
+  const textH = withDetail ? 19 : 15;
   const top = 30;
   const rows = Math.floor((H - top - margin) / (cell + textH + 4));
   const perPage = cols * rows;
@@ -103,6 +106,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
       doc.setTextColor(95, 80, 90);
       doc.text(`${p.sku} · ${p.purity}`, x, y + cell + 9.5);
       doc.text(`Net ${p.netWt.toFixed(2)} g · Gross ${p.grossWt.toFixed(2)} g`, x, y + cell + 13.5);
+      if (withDetail) doc.text(doc.splitTextToSize(detail(p), cell).slice(0, 1), x, y + cell + 17.5);
     });
 
     // The watermark goes on last, translucent, across the middle of the page.
