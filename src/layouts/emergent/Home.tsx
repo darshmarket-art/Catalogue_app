@@ -3,6 +3,7 @@ import { Facebook, Instagram, MapPin, MessageCircle, Youtube } from 'lucide-reac
 import type { Category } from '../../types';
 import { downloadCataloguePdf } from '../../cataloguePdf';
 import { merchant } from '../../merchant';
+import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 
 /**
@@ -212,6 +213,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             <Icon n="right" size={14} />
           </button>
         </div>
+      </div>
+
+      <div style={{ marginTop: 26, display: 'flex', justifyContent: 'center' }}>
+        <PoweredByAntarixs />
       </div>
 
       {/* Admin menu for one collection */}
