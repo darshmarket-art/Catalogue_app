@@ -24,7 +24,7 @@ Branch `saas/layouts` (worktree `catalogue-app/wt-layouts`, cut from `saas/integ
 | B | `src/layouts/emergent/**` | DONE |
 | C | `src/App.tsx`, `types.ts`, `api.ts`, `plan.tsx`, new standard screens, `LayoutPickerScreen` (`admin-layout`), `docs/screen-parity.md` | DONE |
 | D | `server/routes/console.ts`, `server/consoleStats.ts`, `src/console/**`, `console.html`, `tests/console*.test.ts` | DONE |
-| QA | `tests/**`, browser check vs the atlas | not started |
+| QA | `tests/**`, browser check vs the atlas | DONE |
 
 ## Next steps
 1. Read each agent's report and `git status`. Delete stray `dist-b/` / `dist-d/` build dirs.
@@ -68,3 +68,9 @@ Branch `saas/layouts` (worktree `catalogue-app/wt-layouts`, cut from `saas/integ
 
 ## Commit
 Checkpoint commit of B + C + D work on saas/layouts (209 tests passing). Next: QA agent (tests + browser check vs atlas), then fix the open items above.
+
+## QA agent: DONE (237 tests pass, tsc clean; browser-checked vs atlas at 390/1280 px, no console errors)
+- Added `tests/layout.test.ts` (28). Source fixes: legacy store records without `layout` fall back to Gilded (live Bhakti case); resolver `invalidate(id)` on layout save; LayoutKit.Catalogue takes `orderCount`/`onNavigate` (cart bar Review works); Gilded OrdersScreen got the order note; PDF prints a line of `merchant.productFields`; Emergent card SKU truncation; 390px wraps in PDF/Plans/console KPI.
+- Open/design calls for the user: (1) Emergent uses the store's fonts (Bodoni Moda + Manrope), not the atlas's Fraunces + Inter; (2) admin hub, Orders desk, Buyers, Plan, New design keep the old structure, not the atlas dashboard (online chip, trial card, KPI deltas, alerts toggle); (3) staff accounts can change the layout (requireAdmin): owner-only? (4) Capacitor/native builds render merchant.json at build time with no layout, so a Pro own-app store ships Gilded; (5) Gilded cards/Shortlist and the Emergent spec table still print Gross/Net directly, only extras are dynamic; (6) other instances take up to 15 s to show a saved layout.
+- Another process (PID 36168, wt-integ server.ts) was already using port 3100; use another port.
+- Next: user review; then push/deploy by the user. Foundation commit hash is now 0ff2ca9 (was amended).
