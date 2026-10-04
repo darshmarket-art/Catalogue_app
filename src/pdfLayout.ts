@@ -1,27 +1,34 @@
-// A4 in mm. The layout follows the Emergent atlas PDF: a cover block, a "N selected designs" line, a 2-column grid of cards, a footer with "Powered by Antarixs".
+// A4 in mm. The layout follows the Emergent atlas "PDF layout": page 1 has the store header and gold-bordered design cards in two
+// columns; the last page is a dark "Thank you" page with a QR and the store's phone number.
 export const W = 210;
 export const H = 297;
 export const MARGIN = 14;
-export const GAP = 6;
+export const GAP = 5;
 export const COLS = 2;
 export const CELL = (W - 2 * MARGIN - GAP * (COLS - 1)) / COLS;
-export const BODY_H = 19;
-export const CARD_H = CELL + BODY_H;
-export const FOOTER_H = 18;
-export const FIRST_TOP = 104; // below the cover block and the "N selected designs" line
-export const NEXT_TOP = 20;
+export const CARD_PAD = 2.5;
+/** Photo shape inside a card (atlas: 1 : 0.78). */
+export const PHOTO_W = CELL - 2 * CARD_PAD;
+export const PHOTO_H = PHOTO_W * 0.78;
+export const FOOTER_H = 14;
+/** Page 1 starts its cards below the store header. */
+export const FIRST_TOP = 40;
+export const NEXT_TOP = 14;
 
-export const rowsFrom = (top: number) => Math.max(1, Math.floor((H - FOOTER_H - top + GAP) / (CARD_H + GAP)));
+/** Card height: photo, name, SKU / net weight line, and one more line when the store records its own product fields. */
+export const cardHeight = (withDetail: boolean) => CARD_PAD + PHOTO_H + 15 + (withDetail ? 3.5 : 0);
 
-/** How many designs go on each page: the first page shares space with the cover. */
-export function pdfPages(count: number): number[] {
+export const rowsFrom = (top: number, withDetail = false) => Math.max(1, Math.floor((H - FOOTER_H - top + GAP) / (cardHeight(withDetail) + GAP)));
+
+/** How many designs go on each design page (the closing page is extra). */
+export function pdfPages(count: number, withDetail = false): number[] {
   const pages: number[] = [];
   let left = count;
-  let cap = COLS * rowsFrom(FIRST_TOP);
+  let cap = COLS * rowsFrom(FIRST_TOP, withDetail);
   while (left > 0) {
     pages.push(Math.min(cap, left));
     left -= cap;
-    cap = COLS * rowsFrom(NEXT_TOP);
+    cap = COLS * rowsFrom(NEXT_TOP, withDetail);
   }
   return pages;
 }
