@@ -27,7 +27,8 @@ import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
 
 
-const TABS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders'];
+// The bottom-bar screens (buyer tabs and the admin ones): switching between them fades; going deeper slides forward, coming back slides back.
+const TABS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'];
 
 export default function App() {
   const plan = usePlan();
@@ -88,7 +89,7 @@ export default function App() {
   // Set once the guard entry exists (see the Back handling below); remembered in the history state so a reload keeps it.
   const guardArmed = useRef(Boolean(window.history.state?.g));
   const handleNavigate = (screen: ActiveScreen, _replace = false) => {
-    setNavDir('forward');
+    setNavDir(TABS.includes(screen) && !TABS.includes(screenRef.current) ? 'back' : 'forward');
     setCurrentScreen(screen);
     // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
     window.history.replaceState({ screen, g: guardArmed.current ? 1 : undefined }, '');
