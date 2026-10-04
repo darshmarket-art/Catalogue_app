@@ -117,7 +117,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
       <div>
         <span className="lab">Cover photo</span>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
+        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="square" kind="collection" />
       </div>
 
       <Field label="Collection name" htmlFor="ac-name">

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../api';
+import { fitCheck, PHOTO_SPECS, type PhotoKind } from '../../shared/photoSpecs';
 import { I, Photo } from './ui';
+import { PhotoCropper } from './PhotoCropper';
 
 /** A photo on a form: `ref` is what gets saved, `url` is what is shown. */
 export interface PhotoItem {
@@ -16,6 +18,8 @@ interface PhotoPickerProps {
   onBusyChange?: (busy: boolean) => void;
   /** Shape of the preview tiles. */
   tile?: 'square' | 'banner';
+  /** What the photo is for: shows the shape rule, and fits (banner, collection) or advises (design) before upload. */
+  kind?: PhotoKind;
   /** Extra slots shown locked (Basic: photos 2 and 3), tapping one calls onLocked. */
   locked?: number;
   onLocked?: () => void;
@@ -25,7 +29,9 @@ const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 25 * 1024 * 1024;
 
 /** Photos on a form, as the canvas draws them: a row of tiles with dashed "Add" slots (artboards 3.3, 4.2, 3.7). */
-export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', locked = 0, onLocked }) => {
+export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', kind, locked = 0, onLocked }) => {
+  const [crop, setCrop] = useState<File[]>([]);
+  const spec = kind ? PHOTO_SPECS[kind] : null;
   const [uploading, setUploading] = useState<Array<{ id: number; name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const photosRef = useRef(photos);
@@ -57,6 +63,20 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
     }
   };
 
+  /** Checks the photo against the rule; right-shaped ones upload as they are, wrong-shaped ones go to the crop step. */
+  const prepare = async (file: File) => {
+    if (!spec) return upload(file);
+    const size = await createImageBitmap(file).then((b) => ({ w: b.width, h: b.height })).catch(() => null);
+    const fit = size ? fitCheck(size.w, size.h, spec) : 'ok';
+    if (fit === 'ok') return upload(file);
+    if (fit === 'small' && spec.strict) {
+      setError(`"${file.name}" is too small (${size!.w} x ${size!.h} px). ${spec.label} photos need at least ${spec.minW} x ${spec.minH} px.`);
+      return;
+    }
+    if (fit === 'small') return upload(file); // designs: advice only
+    setCrop((q) => [...q, file]);
+  };
+
   const handleFiles = (list: FileList | null) => {
     setError(null);
     if (!list || list.length === 0) return;
@@ -75,18 +95,36 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
     if (accepted.length < files.length) {
       setError(max === 1 ? 'Only one photo is allowed here. Remove the current one to replace it.' : `You can add up to ${max} photos. Extra photos were skipped.`);
     }
-    accepted.forEach(upload);
+    accepted.forEach((f) => void prepare(f));
   };
 
   const remove = (index: number) => onChange(photos.filter((_, i) => i !== index));
   const banner = tile === 'banner';
   const h = banner ? 110 : 92;
+  const tileStyle: React.CSSProperties = banner ? { aspectRatio: '2 / 1' } : { height: h };
 
   return (
     <div className="col" style={{ gap: 8 }}>
+      {spec && <p className="hint" style={{ margin: 0 }}>{spec.tip}</p>}
+      {crop[0] && spec && (
+        <PhotoCropper
+          file={crop[0]}
+          spec={spec}
+          onDone={(f) => {
+            setCrop((q) => q.slice(1));
+            void upload(f);
+          }}
+          onCancel={() => setCrop((q) => q.slice(1))}
+          onSkip={spec.strict ? undefined : () => {
+            const f = crop[0];
+            setCrop((q) => q.slice(1));
+            void upload(f);
+          }}
+        />
+      )}
       <div className="grid2" style={banner ? { gridTemplateColumns: '1fr', gap: 10 } : { gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
         {photos.map((photo, i) => (
-          <Photo key={photo.ref} src={photo.url} style={{ height: h }}>
+          <Photo key={photo.ref} src={photo.url} style={tileStyle}>
             {max > 1 && i === 0 && (
               <span className="tag over" style={{ left: 6, bottom: 6, background: 'var(--card)' }}>
                 Cover
@@ -98,19 +136,19 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
           </Photo>
         ))}
         {uploading.map((u) => (
-          <div key={u.id} data-testid="photo-uploading" className="dashtile on animate-pulse" style={{ height: h }}>
+          <div key={u.id} data-testid="photo-uploading" className="dashtile on animate-pulse" style={tileStyle}>
             <I n="upload" />
             Uploading…
           </div>
         ))}
         {Array.from({ length: Math.max(room, 0) }, (_, i) => (
-          <button key={`add-${i}`} type="button" className={`dashtile${i === 0 ? ' on' : ''}`} style={{ height: h }} onClick={() => input.current?.click()}>
+          <button key={`add-${i}`} type="button" className={`dashtile${i === 0 ? ' on' : ''}`} style={tileStyle} onClick={() => input.current?.click()}>
             <I n="camera" />
             {banner ? 'Add a banner photo' : 'Add'}
           </button>
         ))}
         {Array.from({ length: locked }, (_, i) => (
-          <button key={`lock-${i}`} type="button" className="dashtile" style={{ height: h }} onClick={onLocked}>
+          <button key={`lock-${i}`} type="button" className="dashtile" style={tileStyle} onClick={onLocked}>
             <I n="lock" />
             <span className="pro">Pro</span>
           </button>
