@@ -25,8 +25,8 @@ export function nativeBuildValues(storeId: string, merchant: any, apiBase: strin
     appId: appIdFor(storeId),
     appName: String(merchant.brand.name),
     env: { MERCHANT: storeId, VITE_STORE: storeId, VITE_API_BASE: apiBase.replace(/\/+$/, '') },
-    themeColor: colors.surface ?? '#fbf4f1',
-    splashColor: colors.surface ?? '#fbf4f1',
+    themeColor: colors.surface ?? '#f7f1e8',
+    splashColor: colors.surface ?? '#f7f1e8',
     logoUrl: merchant.brand.logoUrl as string | undefined
   };
 }

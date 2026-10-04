@@ -6,25 +6,25 @@ import React from 'react';
  */
 
 export const inputClass =
-  'w-full h-[52px] rounded-2xl border-[1.5px] border-outline-variant bg-white px-4 font-sans text-base text-on-surface placeholder:text-outline/70 focus:outline-none focus:border-primary';
+  'w-full h-[52px] rounded-[14px] border border-outline-variant bg-white px-4 font-sans text-base text-on-surface shadow-[inset_0_1px_2px_rgb(43_14_31/0.04)] placeholder:text-outline/70 focus:outline-none focus:border-primary focus:ring-4 focus:ring-tertiary/20';
 
-const btn = 'w-full h-14 rounded-2xl font-sans text-base font-extrabold flex items-center justify-center gap-2 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed';
-export const btnPrimary = `${btn} bg-secondary hover:bg-secondary-dark text-on-secondary`;
-export const btnOutline = `${btn} bg-white border-2 border-primary text-primary`;
-export const btnDanger = `${btn} bg-white border-[1.5px] border-error/40 text-error`;
-export const btnWhatsApp = `${btn} bg-whatsapp text-on-whatsapp`;
-export const btnLink = 'min-h-11 px-3 font-sans text-sm font-bold text-primary hover:underline';
+const btn = 'w-full h-14 rounded-2xl font-sans text-base font-bold tracking-[0.01em] flex items-center justify-center gap-2 hover:-translate-y-px active:translate-y-px active:scale-[0.99] transition-all duration-250 ease-[cubic-bezier(.2,.8,.2,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0';
+export const btnPrimary = `${btn} bg-secondary btn-fill text-on-secondary`;
+export const btnOutline = `${btn} bg-transparent border-[1.5px] border-primary/55 text-primary hover:bg-primary/5`;
+export const btnDanger = `${btn} bg-transparent border-[1.5px] border-error/40 text-error`;
+export const btnWhatsApp = `${btn} bg-whatsapp btn-fill-wa text-on-whatsapp`;
+export const btnLink = 'min-h-11 px-3 font-sans text-sm font-bold text-primary underline decoration-tertiary/60 decoration-[1.5px] underline-offset-4';
 
 export const PageTitle: React.FC<{ title: string; sub?: React.ReactNode }> = ({ title, sub }) => (
   <div className="px-5 pt-2 pb-4">
-    <h1 className="font-serif text-[30px] leading-[1.12] text-primary">{title}</h1>
+    <h1 className="font-serif font-semibold text-[29px] leading-[1.05] text-on-surface">{title}</h1>
     {sub && <p className="font-sans text-[15px] leading-relaxed text-on-surface-variant mt-1.5">{sub}</p>}
   </div>
 );
 
 export const Field: React.FC<{ label: string; htmlFor: string; hint?: string; children: React.ReactNode }> = ({ label, htmlFor, hint, children }) => (
   <div className="flex flex-col gap-1.5">
-    <label htmlFor={htmlFor} className="font-sans text-sm font-extrabold text-on-surface">
+    <label htmlFor={htmlFor} className="font-sans text-[13px] font-bold tracking-[0.04em] text-on-surface-variant">
       {label}
     </label>
     {children}
@@ -33,9 +33,9 @@ export const Field: React.FC<{ label: string; htmlFor: string; hint?: string; ch
 );
 
 const tones = {
-  error: 'bg-error-container text-error',
-  ok: 'bg-success-container text-success',
-  info: 'bg-secondary-container text-on-secondary-container'
+  error: 'bg-error-container text-error border border-error/15',
+  ok: 'bg-success-container text-success border border-success/15',
+  info: 'bg-tertiary-fixed text-tertiary-dark border border-tertiary/20'
 } as const;
 
 export const Notice: React.FC<{ tone: keyof typeof tones; children: React.ReactNode }> = ({ tone, children }) => (
@@ -66,8 +66,8 @@ export const Chip: React.FC<{ active?: boolean; onClick?: () => void; children: 
     type="button"
     onClick={onClick}
     aria-pressed={active}
-    className={`flex-none min-h-11 px-4 rounded-full border-[1.5px] font-sans text-sm font-extrabold whitespace-nowrap transition-colors ${
-      active ? 'bg-primary border-primary text-on-primary' : 'bg-white border-outline-variant text-on-surface-variant'
+    className={`flex-none min-h-11 px-4 rounded-full border font-sans text-sm font-semibold whitespace-nowrap transition-colors ${
+      active ? 'bg-primary border-primary text-on-primary shadow-[0_8px_16px_-10px_rgb(74_24_53/0.7)]' : 'bg-white border-outline-variant text-on-surface'
     }`}
   >
     {children}
@@ -84,14 +84,14 @@ export const statusClass = (status: string) =>
   })[status] ?? 'bg-surface-container text-on-surface-variant';
 
 export const StatusTag: React.FC<{ status: string }> = ({ status }) => (
-  <span className={`inline-block rounded-full px-3 py-1 font-sans text-[13px] font-extrabold capitalize ${statusClass(status)}`}>{status}</span>
+  <span className={`inline-block rounded-[7px] px-2 py-1 font-sans text-xs font-bold tracking-[0.02em] capitalize ${statusClass(status)}`}>{status}</span>
 );
 
 /** The sheet that slides up from the bottom (menus, confirmations). */
 export const Sheet: React.FC<{ label: string; onClose: () => void; children: React.ReactNode }> = ({ label, onClose, children }) => (
   <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true" aria-label={label}>
-    <button type="button" aria-label="Close" className="absolute inset-0 bg-scrim/50" onClick={onClose} />
-    <div className="relative w-full max-w-md bg-surface rounded-t-[28px] pt-2.5 pb-6 animate-fade-in max-h-[90vh] overflow-y-auto">
+    <button type="button" aria-label="Close" className="absolute inset-0 bg-scrim/50 backdrop-blur-[2px]" onClick={onClose} />
+    <div className="relative w-full max-w-md bg-surface rounded-t-[28px] pt-2.5 pb-6 shadow-[0_-20px_50px_-20px_rgb(43_14_31/0.5)] animate-fade-in max-h-[90vh] overflow-y-auto">
       <div className="w-10 h-1 rounded-full bg-outline-variant mx-auto mb-3" />
       {children}
     </div>

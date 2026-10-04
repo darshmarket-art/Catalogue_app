@@ -16,7 +16,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ className, textClassName }
     return (
       <span
         aria-hidden="true"
-        className={`${className} ${textClassName} flex items-center justify-center font-serif font-bold leading-none text-primary-fixed-dim`}
+        className={`${className} ${textClassName} flex items-center justify-center font-serif font-bold leading-none text-tertiary-fixed-dim`}
       >
         {merchant.brand.name.charAt(0).toUpperCase()}
       </span>

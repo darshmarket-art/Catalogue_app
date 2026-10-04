@@ -359,7 +359,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
       />
 
       {isAdmin && selecting && picked.size > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+var(--sab))] z-40 px-3 pb-2">
+        <div className="fixed inset-x-0 bottom-[calc(5.25rem+var(--sab))] z-40 px-3 pb-2">
           <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-outline-variant shadow-[0_-6px_24px_rgba(0,0,0,0.1)] p-4 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <p className="font-serif text-[22px] text-primary leading-tight">

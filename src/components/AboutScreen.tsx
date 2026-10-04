@@ -30,7 +30,7 @@ export const AboutScreen: React.FC<{ about: About }> = ({ about }) => {
   return (
     <div className="flex flex-col w-full max-w-xl mx-auto pb-32">
       <div className="flex flex-col items-center text-center px-6 pt-4 pb-6">
-        <div className="w-24 h-24 rounded-3xl bg-on-surface border-2 border-primary-fixed-dim/60 flex items-center justify-center">
+        <div className="w-24 h-24 rounded-3xl bg-secondary-deep border border-tertiary-fixed-dim/45 shadow-md flex items-center justify-center">
           <BrandMark className="w-16 h-16" textClassName="text-[48px]" />
         </div>
         <h1 className="font-serif text-[30px] leading-tight text-primary mt-4">{merchant.brand.name}</h1>

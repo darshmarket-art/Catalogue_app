@@ -19,7 +19,7 @@ export function pwaRoutes(merchant: MerchantConfig, root: string = process.cwd()
   const router = Router();
   const iconDir = path.resolve(root, 'merchants', merchant.id, 'icons');
   const has = (file: string) => fs.existsSync(path.join(iconDir, file));
-  const surface = merchant.theme.colors.surface ?? '#fbf4f1';
+  const surface = merchant.theme.colors.surface ?? '#f7f1e8';
 
   router.get('/manifest.webmanifest', (_req, res) => {
     res.type('application/manifest+json').json({

@@ -74,7 +74,7 @@ export const SignupScreen: React.FC = () => {
             <input id="sn" className={inputClass} required value={f.storeName} onChange={(e) => setF({ ...f, storeName: slug(e.target.value) })} />
           </Field>
           <Field label="Brand colour (optional)" htmlFor="bc" hint="Tints your store; you can change it later.">
-            <input id="bc" type="color" className="h-12 w-full rounded-xl border border-outline-variant bg-white p-1" value={f.brandColor || '#5b0043'} onChange={set('brandColor')} />
+            <input id="bc" type="color" className="h-12 w-full rounded-xl border border-outline-variant bg-white p-1" value={f.brandColor || '#4a1835'} onChange={set('brandColor')} />
           </Field>
           {err && <Notice tone="error">{err}</Notice>}
           {suggestions.length > 0 && (

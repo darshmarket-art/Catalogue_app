@@ -31,26 +31,27 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate,
   ];
 
   return (
-    <nav aria-label="Main" className="fixed bottom-0 w-full z-50 pb-safe bg-white border-t border-outline-variant">
-      <div className="h-16 max-w-lg md:max-w-xl mx-auto px-1 flex items-center justify-around">
+    <nav aria-label="Main" className="fixed bottom-0 inset-x-0 z-50 px-3.5 pb-[calc(0.875rem+var(--sab))] pointer-events-none">
+      <div className="pointer-events-auto h-[66px] max-w-lg md:max-w-xl mx-auto px-1.5 flex items-center justify-around rounded-3xl border border-outline-variant/60 glass">
         {tabs.map((tab) => (
           <button
             key={tab.screen}
             onClick={() => onNavigate(tab.screen)}
             aria-current={tab.active ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center min-w-[68px] h-14 rounded-2xl transition-colors ${
-              tab.active ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
+            className={`relative flex flex-col items-center justify-center min-w-[66px] h-[54px] rounded-[18px] transition-colors ${
+              tab.active ? 'text-primary bg-primary-fixed' : 'text-on-surface-variant hover:text-on-surface'
             }`}
           >
             <div className="relative">
-              <span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: `'FILL' ${tab.active ? 1 : 0}` }}>{tab.icon}</span>
+              <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: `'FILL' ${tab.active ? 1 : 0}, 'wght' 300` }}>{tab.icon}</span>
               {tab.badge ? (
-                <span className="absolute -top-1.5 -right-3 bg-primary-fixed-dim text-on-primary font-sans text-xs leading-tight px-1.5 py-0.5 rounded-full font-extrabold">
+                <span className="absolute -top-1.5 -right-3 bg-gold border-2 border-white font-sans text-[11px] leading-tight px-1.5 py-0.5 rounded-full font-extrabold">
                   {tab.badge}
                 </span>
               ) : null}
             </div>
-            <span className={`text-xs font-sans mt-0.5 ${tab.active ? 'font-extrabold' : 'font-bold'}`}>{tab.label}</span>
+            <span className={`text-[11.5px] font-sans mt-0.5 ${tab.active ? 'font-extrabold' : 'font-semibold'}`}>{tab.label}</span>
+            {tab.active && <span aria-hidden="true" className="absolute bottom-1 w-1 h-1 rounded-full bg-tertiary" />}
           </button>
         ))}
       </div>

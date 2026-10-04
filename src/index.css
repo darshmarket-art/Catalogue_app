@@ -1,69 +1,82 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #5b2142;
-  --color-primary-container: #7a3558;
-  --color-on-primary: #ffffff;
-  --color-on-primary-container: #fff1f6;
-  --color-primary-fixed: #f6e3dc;
-  --color-primary-fixed-dim: #d98c7a;
-  
-  --color-secondary: #5b2142;
-  --color-secondary-container: #f1dfd8;
-  --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #43162f;
-  --color-secondary-fixed: #f6e3dc;
-  --color-secondary-fixed-dim: #e3b3a6;
+  /* "Gilded": ivory ground, aubergine ink, antique-gold accent. Same values as the Antarixs Store Screens canvas. */
+  --color-primary: #4a1835;
+  --color-primary-container: #5c2244;
+  --color-on-primary: #fbf3e6;
+  --color-on-primary-container: #fff7ea;
+  --color-primary-fixed: #f1e6e6;
+  /* Antique gold for eyebrows and taglines. Darker than the canvas #a8813f so small text passes 4.5:1 on ivory. */
+  --color-primary-fixed-dim: #86642a;
 
-  --color-tertiary: #8a4a3a;
-  --color-tertiary-container: #a85f4d;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-fixed: #f6e3dc;
-  --color-tertiary-fixed-dim: #e3b3a6;
-  
-  --color-surface: #fbf4f1;
-  --color-surface-dim: #e6d9d3;
-  --color-surface-bright: #fbf4f1;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f6ebe6;
-  --color-surface-container: #f1e3dd;
-  --color-surface-container-high: #ebdcd5;
-  --color-surface-container-highest: #e5d4cc;
-  --color-surface-variant: #e5d4cc;
-  
-  --color-on-surface: #2a1722;
-  --color-on-surface-variant: #5d4552;
-  --color-inverse-surface: #33202b;
-  --color-inverse-on-surface: #f6ebe6;
-  
-  --color-on-secondary-fixed: #2a0f1f;
-  --color-on-secondary-fixed-variant: #43162f;
-  --color-secondary-dark: #43162f;
-  --color-secondary-hover: #4a1a37;
-  --color-secondary-deep: #2a0f1f;
-  --color-tertiary-dark: #6b3326;
-  --color-on-tertiary-fixed: #2a1722;
-  --color-brown-dark: #4a1a37;
-  --color-brown-darker: #3a1329;
-  --color-brown-darkest: #2a0f1f;
+  --color-secondary: #4a1835;
+  --color-secondary-container: #f1e6e6;
+  --color-on-secondary: #fbf3e6;
+  --color-on-secondary-container: #2b0e1f;
+  --color-secondary-fixed: #f4ead6;
+  --color-secondary-fixed-dim: #e2c389;
+
+  --color-tertiary: #a8813f;
+  --color-tertiary-container: #c19a55;
+  --color-on-tertiary: #2a1a05;
+  --color-tertiary-fixed: #f4ead6;
+  --color-tertiary-fixed-dim: #e2c389;
+
+  --color-surface: #f7f1e8;
+  --color-surface-dim: #e9e1d8;
+  --color-surface-bright: #f7f1e8;
+  --color-surface-container-lowest: #fffcf7;
+  --color-surface-container-low: #f3ece2;
+  --color-surface-container: #eee7df;
+  --color-surface-container-high: #e9e1d8;
+  --color-surface-container-highest: #e4d9d4;
+  --color-surface-variant: #e4d9d4;
+
+  --color-on-surface: #1f1418;
+  --color-on-surface-variant: #6a5960;
+  --color-inverse-surface: #2b1e24;
+  --color-inverse-on-surface: #f3ece2;
+
+  --color-on-secondary-fixed: #2b0e1f;
+  --color-on-secondary-fixed-variant: #3d1430;
+  --color-secondary-dark: #3d1430;
+  --color-secondary-hover: #3d1430;
+  --color-secondary-deep: #2b0e1f;
+  --color-tertiary-dark: #5e4214;
+  --color-on-tertiary-fixed: #1f1418;
+  --color-brown-dark: #4a1835;
+  --color-brown-darker: #2b0e1f;
+  --color-brown-darkest: #1f0a16;
 
   /* Meaning, not decoration: WhatsApp actions, success, info and the dark overlay behind sheets. */
-  --color-whatsapp: #25d366;
-  --color-on-whatsapp: #06361a;
-  --color-success: #1d6b3a;
-  --color-success-container: #e3f3e8;
+  --color-whatsapp: #1d6a42;
+  --color-on-whatsapp: #ffffff;
+  --color-success: #2c6449;
+  --color-success-container: #e4efe7;
   --color-info: #2b5aa0;
   --color-info-container: #e3ecfa;
-  --color-scrim: #1e0a18;
+  --color-scrim: #1f1418;
 
-  --color-outline: #6f5a66;
-  --color-outline-variant: #e3cfc6;
-  --color-error: #ba1a1a;
-  --color-error-container: #ffdad6;
+  --color-outline: #6f5f65;
+  --color-outline-variant: #e4d9d4;
+  --color-error: #9a3328;
+  --color-error-container: #f6e1dc;
 
-  --font-serif: "DM Serif Display", Georgia, serif;
-  --font-sans: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Cards are warm white, not paper white. */
+  --color-white: #fffcf7;
+
+  --font-serif: "Bodoni Moda", Didot, Georgia, serif;
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Shadows carry the aubergine hue instead of grey. */
+  --shadow-sm: 0 1px 1px rgb(43 14 31 / 0.04), 0 6px 18px -10px rgb(43 14 31 / 0.2);
+  --shadow: 0 1px 1px rgb(43 14 31 / 0.04), 0 6px 18px -10px rgb(43 14 31 / 0.2);
+  --shadow-md: 0 2px 4px rgb(43 14 31 / 0.05), 0 18px 40px -18px rgb(43 14 31 / 0.32);
+  --shadow-lg: 0 2px 4px rgb(43 14 31 / 0.05), 0 18px 40px -18px rgb(43 14 31 / 0.32);
+  --shadow-xl: 0 24px 48px -24px rgb(43 14 31 / 0.55);
+  --shadow-2xl: 0 24px 48px -24px rgb(43 14 31 / 0.55);
 
   /* Toasts, banners and modals fading in; screen changes use the slightly larger page-in. */
   --animate-fade-in: fade-in 0.25s ease-out;
@@ -148,11 +161,61 @@ html.native {
     width: 100%;
     margin: 0;
     padding: 0;
-    background-color: var(--color-surface);
     color: var(--color-on-surface);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Ivory ground: warm light from the top right, a faint shade bottom left, fine grain. */
+  body {
+    background-color: var(--color-surface);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .25 0 0 0 0 .15 0 0 0 0 .1 0 0 0 .1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      radial-gradient(120% 60% at 100% 0%, rgb(226 195 137 / 0.28) 0%, transparent 55%),
+      radial-gradient(90% 50% at 0% 100%, rgb(74 24 53 / 0.06) 0%, transparent 60%);
+    background-attachment: scroll, fixed, fixed;
+  }
+
+  h1, h2, h3, .font-serif {
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--color-tertiary);
+    outline-offset: 3px;
+  }
+}
+
+/* Filled buttons: a slight top-lit sheen built from the theme colour, so a merchant's own colour gets it too. */
+@utility btn-fill {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-secondary) 82%, white) 0%, var(--color-secondary) 55%, color-mix(in srgb, var(--color-secondary) 82%, black) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 235 210 / 0.22), 0 10px 22px -10px color-mix(in srgb, var(--color-secondary) 65%, transparent);
+}
+
+@utility btn-fill-wa {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-whatsapp) 88%, white) 0%, var(--color-whatsapp) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 10px 22px -10px color-mix(in srgb, var(--color-whatsapp) 60%, transparent);
+}
+
+/* Gold leaf: Pro labels and counters. */
+@utility bg-gold {
+  background-image: linear-gradient(135deg, #e2c389 0%, #c19a55 48%, #9c7433 100%);
+  box-shadow: inset 0 1px 0 rgb(255 250 235 / 0.55);
+  color: #2a1a05;
+}
+
+/* Deep theme panels (welcome, promotions): warm gold light from the top right. */
+@utility hero-glow {
+  background-image: radial-gradient(90% 80% at 100% 0%, rgb(226 195 137 / 0.38) 0%, transparent 60%), linear-gradient(160deg, color-mix(in srgb, var(--color-primary) 90%, white) 0%, var(--color-primary) 45%, var(--color-secondary-deep) 100%);
+}
+
+/* Floating frosted tab bar. */
+@utility glass {
+  background-color: rgb(255 252 247 / 0.86);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 18px 40px -18px rgb(43 14 31 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.8);
 }
 
 .material-symbols-outlined {

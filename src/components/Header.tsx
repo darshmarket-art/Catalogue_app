@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
             <button
               aria-label={`${merchant.brand.name} home`}
               onClick={() => onNavigate('welcome')}
-              className="w-11 h-11 rounded-xl bg-on-surface border border-primary-fixed-dim/60 flex items-center justify-center overflow-hidden"
+              className="w-11 h-11 rounded-[14px] bg-secondary-deep border border-tertiary-fixed-dim/45 shadow-md flex items-center justify-center overflow-hidden"
             >
               <BrandMark className="w-8 h-8" textClassName="text-[24px]" />
             </button>

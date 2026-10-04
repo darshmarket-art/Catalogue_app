@@ -20,7 +20,7 @@ const PROMO_LOOKS = {
     tag: 'bg-primary text-white',
     title: 'text-primary-fixed',
     subtitle: 'text-surface-container-highest',
-    action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed hover:bg-primary-fixed/30 transition-colors'
+    action: 'bg-primary-fixed/20 border border-tertiary-fixed-dim/60 text-primary-fixed hover:bg-primary-fixed/30 transition-colors'
   },
   green: {
     background: 'from-secondary-deep via-secondary to-secondary-deep',
@@ -34,7 +34,7 @@ const PROMO_LOOKS = {
     tag: 'bg-primary-fixed text-on-tertiary-fixed',
     title: 'text-primary-fixed',
     subtitle: 'text-surface-container-highest',
-    action: 'bg-primary-fixed/20 border border-primary-fixed-dim/60 text-primary-fixed'
+    action: 'bg-primary-fixed/20 border border-tertiary-fixed-dim/60 text-primary-fixed'
   }
 } as const;
 
