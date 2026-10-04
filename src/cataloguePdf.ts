@@ -186,15 +186,30 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
       doc.setFont('times', 'normal');
       doc.setFontSize(20);
       doc.text(doc.splitTextToSize(p.title, CELL - 10).slice(0, 1), tx, ty + 11);
+      // SKU, purity (bold) and net weight share one line; the type shrinks until they fit with a gap, so they never run together.
+      const room = CELL - 2 * CARD_PAD - 3;
+      const lineY = ty + 19.5;
+      const weight = `${p.netWt.toFixed(3)} g`;
+      let size = 15;
+      let skuW = 0;
+      let purW = 0;
+      let wtW = 0;
+      for (; size >= 8; size -= 0.5) {
+        doc.setFontSize(size);
+        doc.setFont('helvetica', 'normal');
+        skuW = doc.getTextWidth(`${p.sku} · `);
+        doc.setFont('helvetica', 'bold');
+        purW = doc.getTextWidth(p.purity);
+        wtW = doc.getTextWidth(weight);
+        if (skuW + purW + wtW + 4 <= room) break;
+      }
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(15);
       doc.setTextColor(112, 104, 99);
-      doc.text(`${p.sku} · `, tx, ty + 19.5);
-      const skuW = doc.getTextWidth(`${p.sku} · `);
+      doc.text(`${p.sku} · `, tx, lineY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(r, g, b);
-      doc.text(p.purity, tx + skuW, ty + 19.5);
-      doc.text(`${p.netWt.toFixed(3)} g`, x + CELL - CARD_PAD - 1.5, ty + 19.5, { align: 'right' });
+      doc.text(p.purity, tx + skuW, lineY);
+      doc.text(weight, x + CELL - CARD_PAD - 1.5, lineY, { align: 'right' });
       const extra = detail(p);
       if (extra) {
         doc.setFont('helvetica', 'normal');
