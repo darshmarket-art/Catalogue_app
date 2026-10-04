@@ -21,7 +21,6 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-about': 'About us',
   'admin-plan': 'Plan and usage',
   about: 'About us',
-  'change-password': 'Password'
 };
 
 /**
@@ -34,7 +33,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen) || adminOrders;
   const isTab = TAB_SCREENS.includes(currentScreen) && !adminOrders;
   const isHome = currentScreen === 'categories';
-  const isSub = isAdminSub || ['admin-login', 'retailer-auth', 'change-password', 'about'].includes(currentScreen);
+  const isSub = isAdminSub || ['admin-login', 'retailer-auth', 'about'].includes(currentScreen);
   const overHero = currentScreen === 'about'; // the About hero runs under the bar
   const title =
     adminOrders ? 'Orders desk' : currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : TITLES[currentScreen];
@@ -48,7 +47,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
       onNavigate(currentScreen === 'new-product' ? 'catalogue' : 'categories');
     } else if (isAdminSub) {
       onNavigate('admin-hub');
-    } else if (currentScreen === 'change-password' || currentScreen === 'about') {
+    } else if (currentScreen === 'about') {
       onNavigate('categories');
     } else {
       onNavigate('welcome');
@@ -61,7 +60,6 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
       isAdmin={isAdminLoggedIn}
       onOpenOrders={onOpenOrders}
       onOpenAdminConsole={() => onNavigate('admin-hub')}
-      onChangePassword={() => onNavigate('change-password')}
       onOpenAbout={() => onNavigate(isAdminLoggedIn ? 'admin-about' : 'about')}
       onLogout={onLogout}
     />

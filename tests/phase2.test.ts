@@ -593,42 +593,6 @@ describe('buyer accounts for the owner', () => {
     expect((await request(app).get('/api/admin/buyers')).status).toBe(401);
   });
 
-  it('owner resets a forgotten password; the buyer must set a new one before carrying on', async () => {
-    const app = await build();
-    const owner = await admin(app, 'owner');
-    const shop = await buyer(app, 1);
-
-    const reset = await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(owner);
-    expect(reset.status).toBe(200);
-    const temp = reset.body.data.temporaryPassword;
-    expect(temp).toHaveLength(10);
-
-    expect((await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: 'StrongPass@1' })).status).toBe(401);
-    const login = await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: temp });
-    expect(login.status).toBe(200);
-    expect(login.body.user.mustChangePassword).toBe(true);
-    const tempAuth = { Authorization: `Bearer ${login.body.token}` };
-    expect((await request(app).get('/api/auth/me').set(tempAuth)).body.mustChangePassword).toBe(true);
-
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: 'wrong-one', newPassword: 'Brand-New-Pass1' })).status).toBe(401);
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: temp, newPassword: temp })).status).toBe(400);
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: temp, newPassword: 'short' })).status).toBe(400);
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: temp, newPassword: 'Brand-New-Pass1' })).status).toBe(200);
-
-    expect((await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: temp })).status).toBe(401);
-    const again = await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: 'Brand-New-Pass1' });
-    expect(again.body.user.mustChangePassword).toBe(false);
-    const events = (await store.list('auditLogs')).map((l) => l.event);
-    expect(events).toContain('BUYER_PASSWORD_RESET');
-    expect(events).toContain('RETAILER_PASSWORD_CHANGED');
-  });
-
-  it('an unknown buyer is a 404, and a buyer cannot reset passwords', async () => {
-    const app = await build();
-    const shop = await buyer(app, 1);
-    expect((await request(app).post('/api/admin/buyers/0000000000/reset-password').set(await admin(app, 'owner'))).status).toBe(404);
-    expect((await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(shop)).status).toBe(403);
-  });
 });
 
 describe('visitor engagement', () => {

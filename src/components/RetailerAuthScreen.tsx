@@ -8,7 +8,7 @@ import type { ProfileUser } from './ProfileMenu';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onLoginSuccess: (user: ProfileUser, mustChangePassword: boolean) => void;
+  onLoginSuccess: (user: ProfileUser) => void;
 }
 
 /** The buyer details the profile menu shows. */
@@ -84,7 +84,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     setErrorMessage(null);
     try {
       const res = await api.verifyOtp({ phone: phone.trim(), code: code.trim() });
-      onLoginSuccess(profileOf(res.user), false);
+      onLoginSuccess(profileOf(res.user));
     } catch (err: any) {
       setErrorMessage(err.message || 'That code did not work.');
     } finally {

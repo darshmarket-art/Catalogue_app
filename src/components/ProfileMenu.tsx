@@ -16,7 +16,6 @@ interface ProfileMenuProps {
   isAdmin: boolean;
   onOpenOrders: (tab: 'current' | 'past') => void;
   onOpenAdminConsole: () => void;
-  onChangePassword: () => void;
   onOpenAbout: () => void;
   onLogout: () => void;
 }
@@ -25,7 +24,7 @@ const itemClass =
   'w-full flex items-center gap-3 px-5 min-h-[50px] text-left text-[15px] font-semibold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-[rgb(74_24_53/0.07)]';
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
-export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onOpenAbout, onLogout }) => {
+export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout }) => {
   const orders = usePlan().flags.orders;
   const [open, setOpen] = useState(false);
   const [installable, setInstallable] = useState(canInstall());

@@ -67,3 +67,6 @@ B4 (small) -> B3 (security-sensitive, test well) -> B2 (largest) -> B1 (data cha
 - **Plan (download):** one `saveFile(blob, name)` helper: (1) phones with file sharing -> share sheet (Save to Files / WhatsApp), (2) otherwise an `<a download>` on a blob typed `application/octet-stream` so browsers save it instead of previewing, (3) last resort open in a tab with a "long-press to save" note. Used by every PDF button (owner screen, buyer Catalogue, Home collections). The QR image share (`storeQrCard.ts`) uses the same helper.
 - **Tests:** unit test of the layout math (rows per page, cover page capacity) and `saveFile` branch choice with stubs; browser check on desktop Chrome (file lands in Downloads) and a phone-width emulation.
 - **Decide:** keep the diagonal watermark (current) or drop it (atlas)?
+
+## B8. No passwords for buyers (DONE in code, 2026-10-04)
+Removed: buyer "Change password" (menu, screen, forced-change flow), owner "Reset buyer password" (button, `reset-password` and `retailer/change-password` endpoints, tests). Kept: admin password reset by WhatsApp code (B2). Open: the old password endpoints `retailer/signup` and `retailer/login` still exist on the server (no screen uses them); remove later with their tests if you want buyers strictly OTP-only. Admin menu has no "Change password" item (decide).

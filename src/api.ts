@@ -361,16 +361,8 @@ export const api = {
     return (await request('/api/v1/admin/buyers')).data;
   },
 
-  async resetBuyerPassword(phone: string): Promise<{ firmName: string; temporaryPassword: string }> {
-    return (await post(`/api/v1/admin/buyers/${encodeURIComponent(phone)}/reset-password`)).data;
-  },
-
   async removeBuyer(phone: string): Promise<void> {
     await request(`/api/v1/admin/buyers/${encodeURIComponent(phone)}`, { method: 'DELETE' });
-  },
-
-  async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
-    await post('/api/v1/auth/retailer/change-password', payload);
   },
 
   async getOrders(): Promise<{ items: OrderItem[]; totalWeight: number; totalPieces: number }> {

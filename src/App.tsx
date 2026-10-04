@@ -19,7 +19,6 @@ import { AdminBannersScreen } from './components/AdminBannersScreen';
 import { AdminPuritiesScreen } from './components/AdminPuritiesScreen';
 import { AdminAboutScreen } from './components/AdminAboutScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
-import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
 import { PdfCatalogueScreen } from './components/PdfCatalogueScreen';
@@ -69,9 +68,6 @@ export default function App() {
   );
   // Which Orders tab to open first (the profile menu links straight to past orders).
   const [ordersTab, setOrdersTab] = useState<'current' | 'past'>('current');
-  // Set when the owner has reset this buyer's password: they must choose a new one before using the catalogue.
-  const [mustChangePassword, setMustChangePassword] = useState(false);
-
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [currentMerchant, setCurrentMerchant] = useState<ProfileUser | null>(null);
   const isSignedIn = Boolean(currentMerchant) || isAdminLoggedIn;
@@ -112,7 +108,6 @@ export default function App() {
       .then((session) => {
         if (session?.type === 'retailer') {
           setCurrentMerchant(session.user);
-          setMustChangePassword(session.mustChangePassword);
           api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
         } else if (session?.type === 'admin') {
           setIsAdminLoggedIn(true);
@@ -433,7 +428,6 @@ export default function App() {
     setOrders([]);
     setCurrentMerchant(null);
     setIsAdminLoggedIn(false);
-    setMustChangePassword(false);
     setEditingProduct(null);
     setEditingCategory(null);
     setCategoryFilter(null);
@@ -444,7 +438,7 @@ export default function App() {
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
   const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf'];
-  const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
+  const buyerOnlyScreens: ActiveScreen[] = ['shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
   if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
@@ -453,9 +447,7 @@ export default function App() {
   if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
   const activeScreen: ActiveScreen =
-    currentMerchant && mustChangePassword
-      ? 'change-password'
-      : adminScreens.includes(screen) && !isAdminLoggedIn
+    adminScreens.includes(screen) && !isAdminLoggedIn
         ? 'admin-login'
         : (memberScreens.includes(screen) || buyerOnlyScreens.includes(screen)) && !isSignedIn
           ? 'retailer-auth'
@@ -464,7 +456,7 @@ export default function App() {
             : screen;
 
   const shouldShowBottomNav =
-    ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
+    ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'].includes(activeScreen);
 
   const ownTop: Partial<Record<ActiveScreen, { title: string; back: ActiveScreen }>> = {
     'admin-pdf': { title: 'PDF catalogue', back: 'admin-hub' },
@@ -593,9 +585,8 @@ export default function App() {
         {activeScreen === 'retailer-auth' && (
           <RetailerAuthScreen
             onNavigate={(next) => handleNavigate(next, true)}
-            onLoginSuccess={(user, mustChange) => {
+            onLoginSuccess={(user) => {
               setCurrentMerchant(user);
-              setMustChangePassword(mustChange);
               handleNavigate(categoryFilter ? 'catalogue' : 'categories', true);
               if (flags.orders) api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
             }}
@@ -632,18 +623,6 @@ export default function App() {
         {activeScreen === 'admin-about' && <AdminAboutScreen about={about} onSave={handleAboutSaved} />}
 
         {activeScreen === 'admin-purities' && <AdminPuritiesScreen purities={purities} onSave={handlePuritiesSaved} />}
-
-        {activeScreen === 'change-password' && (
-          <ChangePasswordScreen
-            required={mustChangePassword}
-            onDone={() => {
-              setMustChangePassword(false);
-              alert('Your password has been changed.');
-              handleNavigate('categories', true);
-            }}
-            onCancel={() => handleNavigate('categories')}
-          />
-        )}
 
         {activeScreen === 'admin-hub' && (
           <AdminHubScreen

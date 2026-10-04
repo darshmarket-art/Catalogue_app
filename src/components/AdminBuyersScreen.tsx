@@ -11,7 +11,6 @@ export const AdminBuyersScreen: React.FC = () => {
   const [buyers, setBuyers] = useState<BuyerRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [reset, setReset] = useState<{ firmName: string; phone: string; temporaryPassword: string } | null>(null);
   const [busyPhone, setBusyPhone] = useState<string | null>(null);
   // Removing takes two taps, so a stray tap cannot remove a buyer.
   const [removing, setRemoving] = useState<string | null>(null);
@@ -25,20 +24,6 @@ export const AdminBuyersScreen: React.FC = () => {
   useEffect(() => {
     load();
   }, []);
-
-  const handleReset = async (buyer: BuyerRow) => {
-    if (!window.confirm(`Reset the password for ${buyer.firmName}? Their current password will stop working.`)) return;
-    setBusyPhone(buyer.phone);
-    try {
-      const result = await api.resetBuyerPassword(buyer.phone);
-      setReset({ firmName: result.firmName, phone: buyer.phone, temporaryPassword: result.temporaryPassword });
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not reset the password.');
-    } finally {
-      setBusyPhone(null);
-    }
-  };
 
   const handleRemove = async (buyer: BuyerRow) => {
     if (removing !== buyer.phone) {
@@ -99,21 +84,6 @@ export const AdminBuyersScreen: React.FC = () => {
         <input className="inp" style={{ height: 46 }} type="search" aria-label="Search shop or phone" placeholder="Search shop or phone" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
-      {reset && (
-        <div role="status" className="note">
-          <p>
-            Temporary password for <b>{reset.firmName}</b>
-          </p>
-          <p data-testid="temp-password" className="serif select-all" style={{ fontSize: 24, margin: '4px 0' }}>
-            {reset.temporaryPassword}
-          </p>
-          <p style={{ fontSize: 13.5 }}>Shown once. Give it to the buyer (phone {reset.phone}); it stops working as soon as they choose their own.</p>
-          <button type="button" className="lnk" onClick={() => setReset(null)}>
-            Done
-          </button>
-        </div>
-      )}
-
       {error && <Notice tone="error">{error}</Notice>}
       {buyers === null && !error && <p className="hint" style={{ textAlign: 'center' }}>Loading…</p>}
       {buyers?.length === 0 && <p className="sub" style={{ textAlign: 'center', padding: '24px 0' }}>No buyers have signed up yet.</p>}
@@ -132,13 +102,9 @@ export const AdminBuyersScreen: React.FC = () => {
               <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
                 {b.phone} · joined {joined(b.createdAt)}
                 {seen(b.lastSeen)}
-                {b.mustChangePassword ? ' · setting a new password' : ''}
               </div>
             </div>
             <div className="em-row" style={{ gap: 6, flexDirection: 'column', alignItems: 'stretch' }}>
-              <button type="button" className="em-rm n" disabled={busyPhone === b.phone} onClick={() => handleReset(b)}>
-                Reset
-              </button>
               <button type="button" data-testid={`remove-buyer-${b.phone}`} className="em-rm" disabled={busyPhone === b.phone} onClick={() => handleRemove(b)}>
                 {removing === b.phone ? 'Tap again' : 'Remove'}
               </button>

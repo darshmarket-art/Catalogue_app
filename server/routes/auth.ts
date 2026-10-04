@@ -9,7 +9,6 @@ import { HttpError, audit, handler, newId, parse } from '../http';
 import {
   adminLoginSchema,
   adminRegisterSchema,
-  changePasswordSchema,
   retailerLoginSchema,
   retailerSignupSchema
 } from '../schemas';
@@ -118,24 +117,6 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
         token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
         user: buyerView(buyer)
       });
-    })
-  );
-
-  router.post(
-    '/retailer/change-password',
-    loginLimiter,
-    requireRetailer,
-    handler(async (req, res) => {
-      const body = parse(changePasswordSchema, req.body);
-      const buyer = await store.get('buyers', user(res).id);
-      if (!buyer || !(await verifyPassword(body.currentPassword, buyer.password))) {
-        throw new HttpError(401, 'Your current password is not correct.');
-      }
-      if (body.newPassword === body.currentPassword) throw new HttpError(400, 'Choose a password different from the current one.');
-
-      await store.update('buyers', buyer.phone, { password: await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS), mustChangePassword: false });
-      await audit(store, req, 'RETAILER_PASSWORD_CHANGED', `Password changed by ${buyer.firmName} (${buyer.phone}).`);
-      res.json({ status: 'success', message: 'Password updated.' });
     })
   );
 
