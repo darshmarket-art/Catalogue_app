@@ -8,7 +8,7 @@ describe('PDF page layout (atlas: header, 2-column gold cards, thank-you page)',
     expect(rest).toEqual([]);
     const pages = pdfPages(11);
     expect(pages[0]).toBe(4); // two rows of two under the store header (atlas page 1: four designs)
-    expect(pages[1]).toBe(6); // three rows of two
+    expect(pages[1]).toBe(4); // two rows of two (cards are atlas-sized)
     expect(pages.reduce((a, b) => a + b, 0)).toBe(11);
   });
 

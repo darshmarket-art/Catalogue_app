@@ -120,40 +120,40 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   const cardH = cardHeight(withDetail);
 
   const header = () => {
-    hexMark(doc, MARGIN + 6, 22, 6, [247, 240, 228]);
+    hexMark(doc, MARGIN + 10.7, 23, 10.7, [247, 240, 228], 5);
     doc.setTextColor(26, 26, 26);
     doc.setFont('times', 'normal');
-    doc.setFontSize(17);
-    doc.text(doc.splitTextToSize(brand, 100).slice(0, 1), MARGIN + 16, 21);
+    doc.setFontSize(30);
+    doc.text(doc.splitTextToSize(brand, 100).slice(0, 1), MARGIN + 25, 22);
     if (merchant.brand.tagline) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(5.5);
+      doc.setFontSize(11);
       doc.setTextColor(112, 104, 99);
-      doc.text(doc.splitTextToSize(merchant.brand.tagline.toUpperCase(), 100).slice(0, 1), MARGIN + 16, 25.5, { charSpace: 0.35 });
+      doc.text(doc.splitTextToSize(merchant.brand.tagline.toUpperCase(), 100).slice(0, 1), MARGIN + 25, 30.5, { charSpace: 0.5 });
     }
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(14);
     doc.setTextColor(r, g, b);
-    doc.text(phone, W - MARGIN, 20, { align: 'right' });
+    doc.text(phone, W - MARGIN, 19, { align: 'right' });
     const place = (merchant.contact.address || '').split(',').map((s) => s.trim()).filter(Boolean).slice(-2).join(', ');
     if (place) {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(12.5);
       doc.setTextColor(112, 104, 99);
-      doc.text(doc.splitTextToSize(place, 60).slice(0, 1), W - MARGIN, 24, { align: 'right' });
+      doc.text(doc.splitTextToSize(place, 70).slice(0, 1), W - MARGIN, 26, { align: 'right' });
     }
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(0.3);
-    doc.line(MARGIN, 32, W - MARGIN, 32);
+    doc.line(MARGIN, 40, W - MARGIN, 40);
   };
 
   const footer = (page: number) => {
     const y = H - 9;
     doc.setDrawColor(230, 221, 208);
     doc.setLineWidth(0.25);
-    doc.line(MARGIN, y - 4.5, W - MARGIN, y - 4.5);
+    doc.line(MARGIN, y - 6, W - MARGIN, y - 6);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(13);
     doc.setTextColor(112, 104, 99);
     doc.text('Net weight per piece', MARGIN, y);
     doc.text(`Page ${page + 1} of ${totalPages}`, W - MARGIN, y, { align: 'right' });
@@ -172,34 +172,35 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
       const y = top + Math.floor(n / COLS) * (cardH + GAP);
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(...GOLD);
-      doc.setLineWidth(0.45);
-      doc.roundedRect(x, y, CELL, cardH, 3, 3, 'FD');
+      doc.setLineWidth(0.5);
+      doc.roundedRect(x, y, CELL, cardH, 5, 5, 'FD');
       const photo = photos[index];
       if (photo) doc.addImage(photo, 'JPEG', x + CARD_PAD, y + CARD_PAD, PHOTO_W, PHOTO_H);
       else {
         doc.setFillColor(240, 230, 216);
-        doc.roundedRect(x + CARD_PAD, y + CARD_PAD, PHOTO_W, PHOTO_H, 2, 2, 'F');
+        doc.roundedRect(x + CARD_PAD, y + CARD_PAD, PHOTO_W, PHOTO_H, 3, 3, 'F');
       }
       const ty = y + CARD_PAD + PHOTO_H;
+      const tx = x + CARD_PAD + 1.5;
       doc.setTextColor(26, 26, 26);
       doc.setFont('times', 'normal');
-      doc.setFontSize(11);
-      doc.text(doc.splitTextToSize(p.title, CELL - 8).slice(0, 1), x + 3.5, ty + 6);
+      doc.setFontSize(20);
+      doc.text(doc.splitTextToSize(p.title, CELL - 10).slice(0, 1), tx, ty + 11);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(15);
       doc.setTextColor(112, 104, 99);
-      doc.text(`${p.sku} · `, x + 3.5, ty + 11);
+      doc.text(`${p.sku} · `, tx, ty + 19.5);
       const skuW = doc.getTextWidth(`${p.sku} · `);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(r, g, b);
-      doc.text(p.purity, x + 3.5 + skuW, ty + 11);
-      doc.text(`${p.netWt.toFixed(3)} g`, x + CELL - 3.5, ty + 11, { align: 'right' });
+      doc.text(p.purity, tx + skuW, ty + 19.5);
+      doc.text(`${p.netWt.toFixed(3)} g`, x + CELL - CARD_PAD - 1.5, ty + 19.5, { align: 'right' });
       const extra = detail(p);
       if (extra) {
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
+        doc.setFontSize(11);
         doc.setTextColor(112, 104, 99);
-        doc.text(doc.splitTextToSize(extra, CELL - 7).slice(0, 1), x + 3.5, ty + 14.5);
+        doc.text(doc.splitTextToSize(extra, CELL - 10).slice(0, 1), tx, ty + 25.5);
       }
     }
     footer(page);
@@ -229,7 +230,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   doc.setLineWidth(0.3);
   doc.line(W / 2 - 22 * mm, afterName, W / 2 + 22 * mm, afterName);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10 * pt);
+  doc.setFontSize(11.2 * pt);
   doc.setTextColor(...mix(cream, deep, 0.75));
   doc.text(doc.splitTextToSize('Scan to open our store, shortlist designs and send your order on WhatsApp.', 262 * mm), W / 2, afterName + 26 * mm, { align: 'center', lineHeightFactor: 1.55 });
   const qrTop = afterName + 66 * mm;
