@@ -69,12 +69,12 @@ function cardJpeg(img: HTMLImageElement, watermark: string): string | null {
 }
 
 /** The atlas's store mark: a gold-ringed circle with a hexagon in it. */
-function hexMark(doc: any, cx: number, cy: number, r: number, fill: [number, number, number]) {
+function hexMark(doc: any, cx: number, cy: number, r: number, fill: [number, number, number], hexR = r * 0.46) {
   doc.setFillColor(...fill);
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(0.25);
   doc.circle(cx, cy, r, 'FD');
-  const hr = r * 0.46;
+  const hr = hexR;
   const pts = Array.from({ length: 6 }, (_, i) => [cx + hr * Math.cos(Math.PI / 6 + (i * Math.PI) / 3), cy + hr * Math.sin(Math.PI / 6 + (i * Math.PI) / 3)]);
   const d = pts.map((p, i) => [pts[(i + 1) % 6][0] - p[0], pts[(i + 1) % 6][1] - p[1]]);
   doc.lines(d.slice(0, 5), pts[0][0], pts[0][1], [1, 1], 'S', true);
@@ -206,59 +206,50 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
     footer(page);
   });
 
-  // Last page (atlas): dark, centred. Thank you, the store name, a QR to open the store, the phone number, Powered by Antarixs.
+  // Last page, drawn to the atlas "Page 2 / Last page" at its proportions: the atlas page is 334 px wide, so 1 px = 0.6287 mm and 1 px of type = 1.78 pt.
+  // Top to bottom: mark circle, THANK YOU, store name, gold rule, one line of copy, QR, phone, "Powered by Antarixs" at the foot.
+  const mm = 0.6287;
+  const pt = 1.782;
+  const mix = (c: number[], d: number[], k: number): [number, number, number] => [0, 1, 2].map((i) => Math.round(d[i] + (c[i] - d[i]) * k)) as [number, number, number];
+  const cream = [250, 246, 241];
   doc.addPage();
   doc.setFillColor(...deep);
   doc.rect(0, 0, W, H, 'F');
-  hexMark(doc, W / 2, 62, 11, [84, 45, 62]);
+  hexMark(doc, W / 2, 85 * mm, 23 * mm, mix(GOLD, deep, 0.16), 21 * 0.46 * mm);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
+  doc.setFontSize(7.5 * pt);
   doc.setTextColor(...GOLD);
-  doc.text('THANK YOU', W / 2, 90, { align: 'center', charSpace: 1.2 });
+  doc.text('THANK YOU', W / 2, 136.5 * mm, { align: 'center', charSpace: 0.2 * 7.5 * mm });
   doc.setFont('times', 'normal');
-  doc.setFontSize(26);
-  doc.setTextColor(250, 246, 241);
-  doc.text(doc.splitTextToSize(brand, W - 50).slice(0, 2), W / 2, 102, { align: 'center' });
+  doc.setFontSize(25 * pt);
+  doc.setTextColor(...(cream as [number, number, number]));
+  const nameLines = doc.splitTextToSize(brand, 286 * mm).slice(0, 2);
+  doc.text(nameLines, W / 2, 168 * mm, { align: 'center', lineHeightFactor: 1.2 });
+  const afterName = (168 + (nameLines.length - 1) * 30) * mm + 23 * mm;
   doc.setDrawColor(...GOLD);
   doc.setLineWidth(0.3);
-  doc.line(W / 2 - 11, 118, W / 2 + 11, 118);
+  doc.line(W / 2 - 22 * mm, afterName, W / 2 + 22 * mm, afterName);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(214, 204, 210);
-  doc.text(doc.splitTextToSize('Scan to open our store, shortlist designs and send your order on WhatsApp.', 110), W / 2, 130, { align: 'center' });
+  doc.setFontSize(10 * pt);
+  doc.setTextColor(...mix(cream, deep, 0.75));
+  doc.text(doc.splitTextToSize('Scan to open our store, shortlist designs and send your order on WhatsApp.', 262 * mm), W / 2, afterName + 26 * mm, { align: 'center', lineHeightFactor: 1.55 });
+  const qrTop = afterName + 66 * mm;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(W / 2 - 48 * mm, qrTop, 96 * mm, 96 * mm, 6 * mm, 6 * mm, 'F');
   try {
-    const qr = await QRCode.toDataURL(window.location.origin, { margin: 1, width: 480, color: { dark: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`, light: '#ffffff' } });
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(W / 2 - 25, 146, 50, 50, 3, 3, 'F');
-    doc.addImage(qr, 'PNG', W / 2 - 22, 149, 44, 44);
+    const qr = await QRCode.toDataURL(window.location.origin, { margin: 0, width: 480, color: { dark: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`, light: '#ffffff' } });
+    doc.addImage(qr, 'PNG', W / 2 - 40 * mm, qrTop + 8 * mm, 80 * mm, 80 * mm);
   } catch {
     // the QR is a nicety; the phone number below still reaches the store
   }
   doc.setFont('times', 'normal');
-  doc.setFontSize(15);
+  doc.setFontSize(15 * pt);
   doc.setTextColor(...GOLD);
-  doc.text(phone, W / 2, 210, { align: 'center' });
+  doc.text(phone, W / 2, qrTop + 96 * mm + 30 * mm, { align: 'center' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(170, 150, 160);
-  doc.text(`Page ${totalPages} of ${totalPages}`, W / 2, H - 9, { align: 'center' });
-  // Powered by [mark] Antarixs
-  doc.setFont('times', 'normal');
-  doc.setFontSize(10);
-  const word = 'Antarixs';
-  const ww = doc.getTextWidth(word);
-  doc.setFontSize(7);
-  const pb = 'Powered by';
-  const pw = doc.getTextWidth(pb);
-  const total = pw + 2 + 5 + 1.5 + ww * 1;
-  const px = (W - total) / 2;
-  doc.setTextColor(200, 188, 196);
-  doc.text(pb, px, H - 17);
-  if (mark) doc.addImage(mark, 'PNG', px + pw + 2, H - 20.7, 5, 5);
-  doc.setFont('times', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(250, 246, 241);
-  doc.text(word, px + pw + 2 + 5 + 1.5, H - 17);
+  doc.setFontSize(7.5 * pt);
+  doc.setTextColor(...mix(cream, deep, 0.55));
+  doc.text('Powered by Antarixs', W / 2, H - 13.5, { align: 'center', charSpace: 0.08 * 7.5 * mm });
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
