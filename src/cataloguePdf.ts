@@ -115,7 +115,6 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
     onProgress?.(Math.min(i + 4, items.length), items.length);
   }
 
-  const mark = antarixsMarkPng();
   const pages = pdfPages(items.length, withDetail);
   const totalPages = pages.length + 1;
   const cardH = cardHeight(withDetail);
@@ -239,6 +238,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   try {
     const qr = await QRCode.toDataURL(window.location.origin, { margin: 0, width: 480, color: { dark: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`, light: '#ffffff' } });
     doc.addImage(qr, 'PNG', W / 2 - 40 * mm, qrTop + 8 * mm, 80 * mm, 80 * mm);
+    doc.link(W / 2 - 48 * mm, qrTop, 96 * mm, 96 * mm, { url: window.location.origin }); // tapping the QR opens the owner's store
   } catch {
     // the QR is a nicety; the phone number below still reaches the store
   }
@@ -246,10 +246,37 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   doc.setFontSize(15 * pt);
   doc.setTextColor(...GOLD);
   doc.text(phone, W / 2, qrTop + 96 * mm + 30 * mm, { align: 'center' });
+  const phoneW = doc.getTextWidth(phone);
+  doc.link(W / 2 - phoneW / 2, qrTop + 96 * mm + 21 * mm, phoneW, 12, { url: `https://wa.me/${merchant.contact.whatsapp.replace(/[^0-9]/g, '')}` });
+  // "Powered by [logo] Antarixs": the same pill as the store pages (rounded, hairline border, soft fill), linking to antarixs.com.
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5 * pt);
-  doc.setTextColor(...mix(cream, deep, 0.55));
-  doc.text('Powered by Antarixs', W / 2, H - 13.5, { align: 'center', charSpace: 0.08 * 7.5 * mm });
+  doc.setFontSize(8);
+  const pbText = 'Powered by';
+  const pbW = doc.getTextWidth(pbText);
+  doc.setFont('times', 'normal');
+  doc.setFontSize(12);
+  const axW = doc.getTextWidth('Antarixs');
+  const markSize = 5.5;
+  const pillW = 5 + pbW + 2.2 + markSize + 2.2 + axW + 5;
+  const pillH = 9.5;
+  const pillX = (W - pillW) / 2;
+  const pillY = H - 12 - pillH;
+  doc.setFillColor(...mix(cream, deep, 0.08));
+  doc.setDrawColor(...mix(cream, deep, 0.28));
+  doc.setLineWidth(0.25);
+  doc.roundedRect(pillX, pillY, pillW, pillH, pillH / 2, pillH / 2, 'FD');
+  const baseY = pillY + pillH / 2 + 1.3;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...mix(cream, deep, 0.7));
+  doc.text(pbText, pillX + 5, baseY - 0.2);
+  const markDark = antarixsMarkPng(160, true);
+  if (markDark) doc.addImage(markDark, 'PNG', pillX + 5 + pbW + 2.2, pillY + (pillH - markSize) / 2, markSize, markSize);
+  doc.setFont('times', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(...(cream as [number, number, number]));
+  doc.text('Antarixs', pillX + 5 + pbW + 2.2 + markSize + 2.2, baseY);
+  doc.link(pillX, pillY, pillW, pillH, { url: 'https://antarixs.com' });
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
