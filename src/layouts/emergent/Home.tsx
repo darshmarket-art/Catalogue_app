@@ -229,7 +229,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             {[
               { label: 'Edit collection', note: 'Name, photo, weight range', icon: 'edit', run: () => onEditCategory(menuFor) },
               { label: 'Share link', note: 'Buyer signs in and lands on this collection', icon: 'link', run: () => shareLink(`${window.location.origin}/?category=${encodeURIComponent(menuFor.name)}`) },
-              { label: 'Share as PDF', note: `All photos with the ${merchant.brand.name} watermark`, icon: 'file', run: () => handlePdf(menuFor) }
+              { label: 'Share as PDF', note: `A PDF of all photos, ready to send`, icon: 'file', run: () => handlePdf(menuFor) }
             ].map((o) => (
               <button
                 key={o.label}
