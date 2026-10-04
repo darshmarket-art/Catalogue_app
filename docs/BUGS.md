@@ -70,3 +70,20 @@ B4 (small) -> B3 (security-sensitive, test well) -> B2 (largest) -> B1 (data cha
 
 ## B8. No passwords for buyers (DONE in code, 2026-10-04)
 Removed: buyer password sign-up and sign-in endpoints too (`retailer/signup`, `retailer/login`; buyers are code-only, tests use `tests/buyerAuth.ts`). Earlier: buyer "Change password" (menu, screen, forced-change flow), owner "Reset buyer password" (button, `reset-password` and `retailer/change-password` endpoints, tests). Kept: admin password reset by WhatsApp code (B2). Open: the old password endpoints `retailer/signup` and `retailer/login` still exist on the server (no screen uses them); remove later with their tests if you want buyers strictly OTP-only. Admin menu has no "Change password" item (decide).
+
+## B9. Screen animations like the Emergent app (PLANNED)
+- **Found in `emergent/frontend` (react-native-reanimated + expo-router):**
+  1. Between screens: Stack `animation: "fade"` (plain cross-fade); bottom tabs have no slide.
+  2. Product detail (`app/product/[id].tsx`): "grow from card" shared-element: the tapped card's photo (measured with `measureInWindow`, `catalogue.tsx:37`) flies to the full-width hero (open 440 ms ease-out cubic, close 340 ms ease-in cubic); the backdrop fades in, the details panel fades in after 45% and rises 28 px; Back reverses it.
+  3. Onboarding steps: `FadeInRight` 320 ms in, `FadeOutLeft` 200 ms out; the OTP block `FadeInRight` 280 ms.
+  4. Cart (`app/cart.tsx`): lines `FadeIn` 220 ms and list `Layout` 220 ms (rows slide up when one is removed); order-placed panel `FadeInDown` 400 ms.
+  5. Live ticker (`live-ticker.tsx`): rows `FadeInUp` 420 / `FadeOutUp` 260, plus a pulsing green ring (1100 ms). Image pinch-zoom (`zoomable-image.tsx`) is gesture-driven.
+- **Ours today (`App.tsx:522`, `index.css:109-150`):** every screen change, including tab switches, slides 28 px sideways (forward/back, 0.32 s); toasts fade 0.25 s; reduced-motion is respected. No product grow-from-card, no onboarding step transition, no cart row animation, no live pulse.
+- **Plan (CSS only, no new library):**
+  1. Tab switches (Home/Catalogue/Shortlist/Orders) = 0.22 s fade (`page-in`), like Emergent; slide only for drill-in and Back.
+  2. Product detail grow-from-card: use the browser View Transitions API (`document.startViewTransition`, `view-transition-name` on the card photo and the gallery hero), 440 ms open and 340 ms close with the Emergent easings; falls back to the fade where unsupported (Safari < 18, older Android WebView).
+  3. Onboarding/OTP steps: slide in from the right 0.32 s, out to the left 0.2 s (keyframes `step-in`, `step-out`).
+  4. Orders/Shortlist rows: fade in 0.22 s; removal collapses height (CSS grid-rows trick).
+  5. Live visitors pulse ring and ticker fade for the engagement screen.
+  6. All inside `prefers-reduced-motion`; QA at phone width on real devices (animation cost on low-end Android).
+- **Decide:** include the grow-from-card transition (the signature one, biggest effort, needs the View Transitions API) or only fades and slides?
