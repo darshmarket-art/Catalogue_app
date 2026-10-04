@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
 import { ActiveScreen, AnalyticsData } from '../types';
 import { api } from '../api';
+import { trialDaysLeft } from '../../shared/trial';
 import { OrderNotificationsToggle } from './OrderNotificationsToggle';
-import { PageTitle, Notice } from './ui';
-import { usePlan, ProBadge, upgradeNotice } from '../plan';
+import { I, Notice } from './ui';
+import { usePlan, upgradeNotice } from '../plan';
 
 interface AdminHubScreenProps {
   analytics: AnalyticsData;
+  /** Collections in the store, for the Basic usage meter. */
+  categories: number;
   updatedAt: Date | null;
   onNavigate: (screen: ActiveScreen) => void;
   onOpenVisitors: () => void;
 }
 
-/** The owner's home: how the week is going, what needs attention, and a shortcut to everything they manage. */
-export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updatedAt, onNavigate, onOpenVisitors }) => {
-  const { flags } = usePlan();
+const of = (used: number, limit: number | null) => (limit === null ? `${used} · unlimited` : `${used} of ${limit}`);
+const pct = (used: number, limit: number | null) => (limit ? Math.min(100, Math.round((used / limit) * 100)) : 0);
+
+/** The owner's home (artboard 3.1 on Pro, 4.1 on Basic): the week, what needs attention, and every tool. */
+export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categories, onNavigate, onOpenVisitors }) => {
+  const ent = usePlan();
+  const { flags, limits } = ent;
+  const isPro = ent.effectivePlan === 'pro';
+  const days = trialDaysLeft(ent);
+  const trialEnded = days === null && ent.plan === 'basic' && !!ent.trialEndsAt;
   const [downloading, setDownloading] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const usedCategories = ent.usage?.categories ?? categories;
+  const usedPhotos = ent.usage?.photos ?? 0;
 
   const handleExportCSV = () => {
     setDownloading(true);
@@ -27,85 +39,141 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, updat
       .finally(() => setDownloading(false));
   };
 
-  const shortcuts = [
-    { label: 'Orders', note: analytics.newOrders > 0 ? `${analytics.newOrders} new` : 'All buyers', go: () => onNavigate('orders'), locked: !flags.orders },
-    { label: 'Buyers', note: 'Accounts and passwords', go: () => onNavigate('admin-buyers') },
-    { label: 'Buyer engagement', note: `${analytics.todayVisitors} today · ${analytics.liveVisitors} online`, go: onOpenVisitors, testId: 'block-all', locked: !flags.liveVisitors },
+  const tiles: Array<{ label: string; note: string; go: () => void; locked?: boolean; testId?: string }> = [
+    { label: 'Orders', note: flags.orders ? (analytics.newOrders > 0 ? `${analytics.newOrders} new` : 'All buyers') : 'Enquire on WhatsApp instead', go: () => onNavigate('orders'), locked: !flags.orders },
+    { label: 'Buyers', note: limits.users === null ? 'Signed-in buyers' : `Up to ${limits.users}`, go: () => onNavigate('admin-buyers') },
+    { label: 'Buyer engagement', note: flags.liveVisitors ? `${analytics.todayVisitors} today · ${analytics.liveVisitors} online` : 'Pro feature', go: onOpenVisitors, testId: 'block-all', locked: !flags.liveVisitors },
     { label: 'Home banners', note: 'Photos on the home', go: () => onNavigate('admin-banners') },
     { label: 'Purity options', note: 'Karat list for designs', go: () => onNavigate('admin-purities') },
     { label: 'About us', note: 'Your details for buyers', go: () => onNavigate('admin-about') },
-    { label: 'Audit log', note: downloading ? 'Downloading…' : 'Export CSV', go: handleExportCSV, locked: !flags.auditLog }
-  ].map((s) => (s.locked ? { ...s, note: 'Pro feature', go: () => upgradeNotice(s.label) } : s));
+    ...(isPro ? [{ label: 'PDF catalogue', note: 'Pick designs, download', go: () => onNavigate('catalogue'), locked: !flags.pdfCatalogue }] : []),
+    { label: 'Audit log', note: flags.auditLog ? (downloading ? 'Downloading…' : 'Export CSV') : 'Pro feature', go: handleExportCSV, locked: !flags.auditLog },
+    ...(!isPro || days === null ? [{ label: 'Plan and usage', note: isPro ? 'Your plan' : 'See what Pro adds', go: () => onNavigate('admin-plan') }] : [])
+  ];
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-2xl mx-auto">
-      <PageTitle title="Admin" sub={`${analytics.periodLabel}${updatedAt ? ` · updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}`} />
+    <div className="scroll" style={{ gap: 12 }}>
+      {flags.insights ? (
+        <section className="hero" style={{ padding: '18px 18px 16px' }}>
+          <div className="row" style={{ alignItems: 'baseline', gap: 8 }}>
+            <span className="stat" style={{ fontSize: 44, color: '#fff7ea' }}>
+              {analytics.bookedWeightKg.toFixed(3)}
+            </span>
+            <b style={{ color: '#e2c389' }}>kg booked</b>
+          </div>
+          <p className="sub" style={{ fontSize: 13, margin: '4px 0 14px' }}>
+            {analytics.bookedOrders} {analytics.bookedOrders === 1 ? 'order' : 'orders'} · views {analytics.viewsTrend}
+          </p>
+          <div className="row" style={{ gap: 0, borderTop: '1px solid rgb(226 195 137 / 0.3)', paddingTop: 12 }}>
+            <div className="grow">
+              <span className="stat" style={{ fontSize: 22, color: '#fff7ea' }}>
+                {analytics.views.toLocaleString('en-IN')}
+              </span>
+              <span className="sub" style={{ display: 'block', fontSize: 12.5 }}>
+                Catalogue views
+              </span>
+            </div>
+            <div className="grow" style={{ borderLeft: '1px solid rgb(226 195 137 / 0.3)', paddingLeft: 14 }}>
+              <span className="stat" style={{ fontSize: 22, color: '#fff7ea' }}>
+                {analytics.inquiries}
+              </span>
+              <span className="sub" style={{ display: 'block', fontSize: 12.5 }}>
+                Enquiries and orders
+              </span>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
+          <div className="card" style={{ padding: '12px 16px' }}>
+            <div className="kv">
+              <span>Collections</span>
+              <b>{of(usedCategories, limits.categories)}</b>
+            </div>
+            {limits.categories !== null && (
+              <div className={`meter${usedCategories >= limits.categories ? ' over' : ''}`} style={{ margin: '6px 0 10px' }}>
+                <i style={{ width: `${pct(usedCategories, limits.categories)}%` }} />
+              </div>
+            )}
+            <div className="kv">
+              <span>Photos</span>
+              <b>{of(usedPhotos, limits.photos)}</b>
+            </div>
+            {limits.photos !== null && (
+              <div className={`meter${usedPhotos >= limits.photos ? ' over' : ''}`} style={{ marginTop: 6 }}>
+                <i style={{ width: `${pct(usedPhotos, limits.photos)}%` }} />
+              </div>
+            )}
+          </div>
+          <button type="button" className="lockbox" onClick={() => upgradeNotice('Kg booked, views and enquiries')}>
+            <I n="lock" />
+            <span className="grow">
+              <b style={{ color: 'var(--ink)' }}>Kg booked, views and enquiries</b>
+            </span>
+            <span className="pro">Pro</span>
+          </button>
+        </>
+      )}
 
-      {!flags.insights && (
-        <button type="button" onClick={() => upgradeNotice('Kg booked, views and enquiries')} className="mx-5 mb-5 text-left rounded-2xl border border-dashed border-outline-variant px-4 py-3.5 font-sans text-[15px] text-on-surface-variant">
-          <span className="material-symbols-outlined text-[18px] align-middle mr-1">monitoring</span>
-          Kg booked, views and enquiries
-          <ProBadge />
+      {days !== null && (
+        <button type="button" className="note row" style={{ padding: '11px 14px' }} onClick={() => onNavigate('admin-plan')}>
+          <I n="clock" size="s" />
+          <span className="grow">
+            <b>
+              {days} {days === 1 ? 'day' : 'days'} of Pro left.
+            </b>{' '}
+            Then you move to Basic.
+          </span>
+          <I n="chev" size="s" />
         </button>
       )}
-      {flags.insights && <section className="px-5 mb-5">
-        <div className="flex items-baseline gap-2">
-          <span className="font-serif text-[44px] leading-none text-primary">{analytics.bookedWeightKg.toFixed(3)}</span>
-          <span className="font-sans text-base font-bold text-on-surface-variant">kg booked</span>
-        </div>
-        <p className="font-sans text-[15px] text-on-surface-variant mt-1">
-          {analytics.bookedOrders} {analytics.bookedOrders === 1 ? 'order' : 'orders'} · views {analytics.viewsTrend}
-        </p>
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div>
-            <span className="font-serif text-[28px] leading-none text-primary">{analytics.views.toLocaleString()}</span>
-            <span className="block font-sans text-sm text-on-surface-variant mt-1">Catalogue views</span>
-          </div>
-          <div>
-            <span className="font-serif text-[28px] leading-none text-primary">{analytics.inquiries}</span>
-            <span className="block font-sans text-sm text-on-surface-variant mt-1">Inquiries (WhatsApp and orders)</span>
-          </div>
-        </div>
-      </section>}
+      {trialEnded && (
+        <button type="button" className="note warn row" style={{ padding: '11px 14px' }} onClick={() => onNavigate('admin-plan')}>
+          <I n="sparkle" size="s" />
+          <span className="grow">
+            <b>Your Pro trial has ended.</b> Nothing was deleted.
+          </span>
+          <I n="chev" size="s" />
+        </button>
+      )}
 
-      <div className="px-5 flex flex-col gap-3">
-        {analytics.newOrders > 0 && (
-          <button type="button" onClick={() => onNavigate('orders')} className="text-left rounded-2xl bg-secondary-container px-4 py-3.5 text-on-secondary-container font-sans text-[15px]">
-            <strong>
-              {analytics.newOrders} new {analytics.newOrders === 1 ? 'order is' : 'orders are'}
-            </strong>{' '}
-            waiting for you to confirm.
-          </button>
-        )}
-        <OrderNotificationsToggle />
-        {exportError && <Notice tone="error">{exportError}</Notice>}
+      {analytics.newOrders > 0 && flags.orders && (
+        <button type="button" className="card row" style={{ padding: '11px 14px' }} onClick={() => onNavigate('orders')}>
+          <span className="badge" style={{ position: 'static', minWidth: 24, height: 24, fontSize: 12 }}>
+            {analytics.newOrders}
+          </span>
+          <span className="grow">
+            <b>New {analytics.newOrders === 1 ? 'order' : 'orders'}</b> waiting to be confirmed
+          </span>
+          <I n="chev" size="s" style={{ color: 'var(--mut)' }} />
+        </button>
+      )}
 
-        <button
-          onClick={() => onNavigate('new-product')}
-          type="button"
-          className="w-full h-14 px-5 rounded-2xl bg-secondary hover:bg-secondary-dark text-on-secondary font-sans text-base font-extrabold flex items-center gap-3 active:scale-[0.99] transition-all"
-        >
-          <span className="material-symbols-outlined text-[24px]">add</span>
+      {exportError && <Notice tone="error">{exportError}</Notice>}
+
+      <div className="row" style={{ gap: 10 }}>
+        <button type="button" className="btn" style={{ flex: 1 }} onClick={() => onNavigate('new-product')}>
+          <I n="plus" />
           New design
         </button>
+        <OrderNotificationsToggle />
+      </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {shortcuts.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              data-testid={item.testId}
-              onClick={item.go}
-              className="text-left rounded-2xl bg-white border border-outline-variant px-4 py-3.5 min-h-[76px] active:scale-[0.98] transition-all"
-            >
-              <span className="block font-sans text-[15.5px] font-extrabold text-on-surface">
-                {item.label}
-                {item.locked && <ProBadge />}
-              </span>
-              <span className="block font-sans text-sm text-on-surface-variant mt-0.5">{item.note}</span>
-            </button>
-          ))}
-        </div>
+      <div className="grid2" style={{ gap: 10 }}>
+        {tiles.map((t) => (
+          <button key={t.label} type="button" data-testid={t.testId} className={`tile${t.locked ? ' lk' : ''}`} onClick={t.locked ? () => upgradeNotice(t.label) : t.go}>
+            <b>
+              {t.label}
+              {t.locked && (
+                <>
+                  {' '}
+                  <span className="pro">Pro</span>
+                </>
+              )}
+            </b>
+            <span>{t.note}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

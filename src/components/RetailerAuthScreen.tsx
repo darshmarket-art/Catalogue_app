@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ActiveScreen } from '../types';
 import { api } from '../api';
-import { PageTitle, Field, Notice, inputClass, btnPrimary, btnLink } from './ui';
+import { merchant } from '../merchant';
+import { BrandMark } from './BrandMark';
+import { I, Notice } from './ui';
 import type { ProfileUser } from './ProfileMenu';
 
 interface RetailerAuthScreenProps {
@@ -18,7 +20,7 @@ const profileOf = (u: any): ProfileUser => ({
   marketHub: u.marketHub
 });
 
-/** Buyer sign-in by a code sent on WhatsApp: number first, then the code. New numbers get an account. */
+/** Buyer sign-in (artboard 2.1): number first, then the code sent on WhatsApp. New numbers get an account. */
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNavigate, onLoginSuccess }) => {
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -58,48 +60,77 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
   };
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto pb-28">
-      <PageTitle title="Sign in" sub="We will send a code to your WhatsApp to see the catalogue." />
-      <div className="px-5 flex flex-col gap-4">
-        {errorMessage && <Notice tone="error">{errorMessage}</Notice>}
-        {successMessage && codeSent && <Notice tone="ok">{successMessage}</Notice>}
-
-        {!codeSent ? (
-          <form onSubmit={sendCode} className="flex flex-col gap-4">
-            <Field label="Mobile number (WhatsApp)" htmlFor="login-phone">
-              <input id="login-phone" className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile number" type="tel" autoComplete="tel" required />
-            </Field>
-            <button type="submit" disabled={loading} className={btnPrimary}>
-              {loading ? 'Sending…' : 'Send code on WhatsApp'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={verify} className="flex flex-col gap-4">
-            <Field label="6-digit code" htmlFor="login-code">
-              <input id="login-code" className={inputClass} value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />
-            </Field>
-            <Field label="Shop name" htmlFor="login-firm" hint="Only if you are new here">
-              <input id="login-firm" className={inputClass} value={firmName} onChange={(e) => setFirmName(e.target.value)} placeholder="e.g. Mahalakshmi Jewellers" />
-            </Field>
-            <button type="submit" disabled={loading} className={btnPrimary}>
-              {loading ? 'Checking…' : 'Sign in'}
-            </button>
-            <button type="button" onClick={() => sendCode()} disabled={loading} className={btnLink}>
-              Send a new code
-            </button>
-            <button type="button" onClick={() => { setCodeSent(false); setCode(''); setSuccessMessage(null); }} className={btnLink}>
-              Change number
-            </button>
-          </form>
-        )}
-
-        {/* Staff entry: deliberately quiet, so buyers are not shown admin tools */}
-        <div className="text-center pt-2">
-          <button onClick={() => onNavigate('admin-login')} className={btnLink} type="button">
-            Staff sign-in
-          </button>
+    <div className="scroll no-tabs" style={{ gap: 16, maxWidth: 480 }}>
+      <div className="col" style={{ alignItems: 'center', gap: 10, textAlign: 'center' }}>
+        <div className="mark lg">
+          <BrandMark className="w-12 h-12" textClassName="text-[36px]" />
         </div>
+        <h1 style={{ fontSize: 28 }}>{merchant.brand.name}</h1>
+        <p className="sub">{merchant.brand.tagline}</p>
       </div>
+
+      {errorMessage && <Notice tone="error">{errorMessage}</Notice>}
+
+      <form onSubmit={sendCode} className="card col" style={{ gap: 14, padding: 18 }}>
+        <h2 style={{ fontSize: 22 }}>Sign in</h2>
+        <p className="sub">We will send a code to your WhatsApp to see the catalogue.</p>
+        <div>
+          <label className="lab" htmlFor="login-firm">
+            Shop name
+          </label>
+          <input id="login-firm" className="inp" value={firmName} onChange={(e) => setFirmName(e.target.value)} placeholder="e.g. Shree Jewellers" disabled={codeSent} />
+          <p className="hint">Only if you are new here.</p>
+        </div>
+        <div>
+          <label className="lab" htmlFor="login-phone">
+            Mobile number (WhatsApp)
+          </label>
+          <input id="login-phone" className="inp" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile number" type="tel" autoComplete="tel" required disabled={codeSent} />
+        </div>
+        {codeSent ? (
+          <button
+            type="button"
+            className="lnk"
+            style={{ alignSelf: 'flex-start' }}
+            onClick={() => {
+              setCodeSent(false);
+              setCode('');
+              setSuccessMessage(null);
+            }}
+          >
+            Change number
+          </button>
+        ) : (
+          <button type="submit" className="btn" disabled={loading}>
+            <I n="whats" />
+            {loading ? 'Sending…' : 'Send code'}
+          </button>
+        )}
+      </form>
+
+      {codeSent && (
+        <form onSubmit={verify} className="card col" style={{ gap: 10, padding: 18 }}>
+          {successMessage && <p className="note ok">{successMessage}</p>}
+          <label className="lab" htmlFor="login-code" style={{ margin: 0 }}>
+            6-digit code
+          </label>
+          <input id="login-code" className="inp" style={{ letterSpacing: '0.3em' }} value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus />
+          <button type="submit" className="btn alt" disabled={loading}>
+            {loading ? 'Checking…' : 'Sign in'}
+          </button>
+          <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={() => sendCode()} disabled={loading}>
+            Send a new code
+          </button>
+          <p className="hint" style={{ margin: 0 }}>
+            New number? You are added automatically while the store has room.
+          </p>
+        </form>
+      )}
+
+      {/* Staff entry: deliberately quiet, so buyers are not shown admin tools */}
+      <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={() => onNavigate('admin-login')}>
+        Staff sign-in
+      </button>
     </div>
   );
 };

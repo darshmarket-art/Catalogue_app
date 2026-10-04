@@ -1,4 +1,4 @@
-import { usePlan, TrialBanner } from './plan';
+import { usePlan } from './plan';
 import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
@@ -27,9 +27,11 @@ import { ShortlistScreen } from './components/ShortlistScreen';
 import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import type { ProfileUser } from './components/ProfileMenu';
+import { AdminPlanScreen } from './components/AdminPlanScreen';
 
 export default function App() {
-  const { flags } = usePlan();
+  const plan = usePlan();
+  const { flags } = plan;
   // The current screen lives in the browser history too, so Back/Forward (and a reload) stay inside the app.
   const [currentScreen, setCurrentScreen] = useState<ActiveScreen>(
     () => (window.history.state?.screen as ActiveScreen | undefined) ?? 'welcome'
@@ -434,7 +436,7 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan'];
   const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Home is the 'categories' screen; the Catalogue tab is the 'catalogue' screen.
@@ -455,7 +457,7 @@ export default function App() {
   if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
 
   const shouldShowBottomNav =
-    ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
+    ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
 
   const homeScreen: ActiveScreen = isAdminLoggedIn ? 'admin-hub' : currentMerchant ? 'categories' : 'welcome';
   backRef.current = () => {
@@ -488,13 +490,30 @@ export default function App() {
           onLogout={handleLogout}
           onOpenOrders={openOrders}
           isEditing={(activeScreen === 'new-product' && editingProduct !== null) || (activeScreen === 'add-category' && editingCategory !== null)}
+          eyebrow={
+            activeScreen === 'admin-hub'
+              ? `${analytics.periodLabel}${analyticsUpdatedAt ? ` · updated ${analyticsUpdatedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}` : ''}`
+              : undefined
+          }
+          aside={
+            activeScreen === 'catalogue' ? (
+              <span className="tag">{products.length} designs</span>
+            ) : activeScreen === 'shortlist' && shortlist.length > 0 ? (
+              <span className="tag">
+                {shortlist.length} {shortlist.length === 1 ? 'design' : 'designs'}
+              </span>
+            ) : activeScreen === 'orders' || activeScreen === 'admin-orders' || activeScreen === 'admin-visitors' ? (
+              <span className="pro">Pro</span>
+            ) : activeScreen === 'admin-hub' ? (
+              plan.effectivePlan === 'pro' ? <span className="pro dark">Pro</span> : <span className="tag mut">Basic</span>
+            ) : undefined
+          }
         />
       )}
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
       <main key={activeScreen} className={`flex-1 w-full ${navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
-        {isAdminLoggedIn && activeScreen !== 'welcome' && <TrialBanner />}
 
         {activeScreen === 'welcome' && (
           <WelcomeScreen onNavigate={handleNavigate} />
@@ -505,6 +524,8 @@ export default function App() {
             products={products}
             isAdmin={isAdminLoggedIn}
             categoryFilter={categoryFilter}
+            categories={categories}
+            onCategoryChange={setCategoryFilter}
             onClearCategoryFilter={() => setCategoryFilter(null)}
             onEditProduct={openProductForm}
             onAddToOrder={handleAddToOrder}
@@ -576,7 +597,9 @@ export default function App() {
 
         {activeScreen === 'admin-orders' && <AdminOrdersScreen />}
 
-        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen />}
+        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen analytics={analytics} />}
+
+        {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} />}
 
         {activeScreen === 'admin-buyers' && <AdminBuyersScreen />}
 
@@ -603,6 +626,7 @@ export default function App() {
         {activeScreen === 'admin-hub' && (
           <AdminHubScreen
             analytics={analytics}
+            categories={categories.length}
             updatedAt={analyticsUpdatedAt}
             onNavigate={handleNavigate}
             onOpenVisitors={() => handleNavigate('admin-visitors')}

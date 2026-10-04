@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../api';
+import { I, Photo } from './ui';
 
 /** A photo on a form: `ref` is what gets saved, `url` is what is shown. */
 export interface PhotoItem {
@@ -15,19 +16,23 @@ interface PhotoPickerProps {
   onBusyChange?: (busy: boolean) => void;
   /** Shape of the preview tiles. */
   tile?: 'square' | 'banner';
+  /** Extra slots shown locked (Basic: photos 2 and 3), tapping one calls onLocked. */
+  locked?: number;
+  onLocked?: () => void;
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 25 * 1024 * 1024;
 
-export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square' }) => {
+/** Photos on a form, as the canvas draws them: a row of tiles with dashed "Add" slots (artboards 3.3, 4.2, 3.7). */
+export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', locked = 0, onLocked }) => {
   const [uploading, setUploading] = useState<Array<{ id: number; name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const photosRef = useRef(photos);
   photosRef.current = photos;
   const nextId = useRef(0);
-  const cameraInput = useRef<HTMLInputElement>(null);
-  const galleryInput = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     onBusyChange?.(uploading.length > 0);
@@ -74,89 +79,78 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   };
 
   const remove = (index: number) => onChange(photos.filter((_, i) => i !== index));
-  const tileClass = tile === 'banner' ? 'w-full h-36' : 'w-24 h-24';
+  const banner = tile === 'banner';
+  const h = banner ? 110 : 92;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className={tile === 'banner' ? 'flex flex-col gap-2' : 'flex flex-wrap gap-2'}>
+    <div className="col" style={{ gap: 8 }}>
+      <div className="grid2" style={banner ? { gridTemplateColumns: '1fr', gap: 10 } : { gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
         {photos.map((photo, i) => (
-          <div key={photo.ref} className={`relative ${tileClass} rounded-3xl overflow-hidden bg-surface-container`}>
-            <img src={photo.url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+          <Photo key={photo.ref} src={photo.url} style={{ height: h }}>
             {max > 1 && i === 0 && (
-              <span className="absolute bottom-1.5 left-1.5 bg-white/95 text-primary font-sans text-xs font-extrabold px-2 py-0.5 rounded-lg">Cover</span>
+              <span className="tag over" style={{ left: 6, bottom: 6, background: 'var(--card)' }}>
+                Cover
+              </span>
             )}
-            <button
-              type="button"
-              aria-label={`Remove photo ${i + 1}`}
-              onClick={() => remove(i)}
-              className="absolute top-1 right-1 w-9 h-9 rounded-full bg-white/95 text-primary flex items-center justify-center"
-            >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+            <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => remove(i)} className="ib over" style={{ top: 6, right: 6, width: 30, height: 30, borderRadius: 10 }}>
+              <I n="x" size="s" />
             </button>
-          </div>
+          </Photo>
         ))}
         {uploading.map((u) => (
-          <div key={u.id} data-testid="photo-uploading" className={`${tileClass} rounded-3xl bg-surface-container border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-1`}>
-            <span className="material-symbols-outlined text-[24px] text-primary animate-pulse">cloud_upload</span>
-            <span className="text-sm font-sans text-outline">Uploading…</span>
+          <div key={u.id} data-testid="photo-uploading" className="dashtile on animate-pulse" style={{ height: h }}>
+            <I n="upload" />
+            Uploading…
           </div>
         ))}
-        {photos.length === 0 && uploading.length === 0 && (
-          <div className={`${tileClass} rounded-3xl bg-white border-2 border-dashed border-outline-variant flex items-center justify-center`}>
-            <span className="material-symbols-outlined text-[28px] text-outline">add_a_photo</span>
-          </div>
-        )}
+        {Array.from({ length: Math.max(room, 0) }, (_, i) => (
+          <button key={`add-${i}`} type="button" className={`dashtile${i === 0 ? ' on' : ''}`} style={{ height: h }} onClick={() => input.current?.click()}>
+            <I n="camera" />
+            {banner ? 'Add a banner photo' : 'Add'}
+          </button>
+        ))}
+        {Array.from({ length: locked }, (_, i) => (
+          <button key={`lock-${i}`} type="button" className="dashtile" style={{ height: h }} onClick={onLocked}>
+            <I n="lock" />
+            <span className="pro">Pro</span>
+          </button>
+        ))}
       </div>
-
       {room > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => cameraInput.current?.click()}
-            className="h-12 rounded-2xl bg-secondary text-on-secondary font-sans text-sm font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-            <span>Take photo</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => galleryInput.current?.click()}
-            className="h-12 rounded-2xl bg-white border-[1.5px] border-primary text-primary font-sans text-sm font-extrabold flex items-center justify-center gap-2 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-[20px]">collections</span>
-            <span>From gallery</span>
-          </button>
-          <input
-            ref={cameraInput}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            data-testid="photo-camera-input"
-            onChange={(e) => {
-              handleFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
-          <input
-            ref={galleryInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple={max > 1}
-            className="hidden"
-            data-testid="photo-gallery-input"
-            onChange={(e) => {
-              handleFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
-        </div>
+        <button type="button" className="lnk" style={{ minHeight: 32, alignSelf: 'flex-start' }} onClick={() => camera.current?.click()}>
+          <I n="camera" size="s" />
+          Take a photo
+        </button>
       )}
-
-      <p className="text-sm font-sans text-outline leading-snug">
-        {max === 1 ? 'One photo.' : `1 to ${max} photos.`} Photos are saved at full quality the moment you pick them.
-      </p>
-      {error && <p role="alert" className="text-sm font-sans text-error font-bold">{error}</p>}
+      <input
+        ref={camera}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        data-testid="photo-camera-input"
+        onChange={(e) => {
+          handleFiles(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple={max > 1}
+        className="hidden"
+        data-testid="photo-gallery-input"
+        onChange={(e) => {
+          handleFiles(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      {error && (
+        <p role="alert" className="err">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

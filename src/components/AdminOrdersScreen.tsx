@@ -1,18 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { AdminOrder, OrderStatus } from '../types';
-import { PageTitle, Chip, StatusTag, Notice } from './ui';
+import { I, Notice, StatusTag } from './ui';
 
 const STATUSES: OrderStatus[] = ['new', 'confirmed', 'dispatched', 'cancelled'];
-
 const label = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
+const ago = (iso: string) => {
+  const d = new Date(iso);
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  return days < 1 ? 'today' : days === 1 ? 'yesterday' : days < 7 ? `${days} days ago` : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
 
+/** Orders desk (artboard 3.2): every buyer's orders, moved along with one tap. */
 export const AdminOrdersScreen: React.FC = () => {
   const [orders, setOrders] = useState<AdminOrder[] | null>(null);
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all');
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  // Cancelling takes two taps, so a stray tap cannot cancel an order.
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (document.hidden) return;
@@ -21,7 +26,6 @@ export const AdminOrdersScreen: React.FC = () => {
       .then((data) => {
         setOrders(data);
         setError(null);
-        setUpdatedAt(new Date());
       })
       .catch((err) => {
         if (!err.handled) setError(err.message || 'Could not load orders.');
@@ -41,120 +45,111 @@ export const AdminOrdersScreen: React.FC = () => {
 
   const changeStatus = async (order: AdminOrder, status: OrderStatus) => {
     const previous = order.status;
+    setConfirming(null);
     setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status } : o)) ?? null);
     try {
       await api.setOrderStatus(order.poId, status);
     } catch (err: any) {
       setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status: previous } : o)) ?? null);
-      if (!err.handled) alert(err.message || 'Could not update the order.');
+      if (!err.handled) setError(err.message || 'Could not update the order.');
     }
+  };
+
+  const askCancel = (order: AdminOrder) => {
+    if (confirming === order.poId) return void changeStatus(order, 'cancelled');
+    setConfirming(order.poId);
+    setTimeout(() => setConfirming((c) => (c === order.poId ? null : c)), 4000);
   };
 
   const visible = (orders ?? []).filter((o) => filter === 'all' || o.status === filter);
   const count = (s: OrderStatus) => (orders ?? []).filter((o) => o.status === s).length;
 
   return (
-    <div className="flex flex-col w-full pb-32 max-w-2xl mx-auto">
-      <PageTitle title="Orders" sub={`Every order from every buyer${updatedAt ? ` · updated ${updatedAt.toLocaleTimeString('en-IN', { hour12: false })}` : ''}`} />
-
-      <div className="flex gap-2 overflow-x-auto px-5 pb-4">
+    <div className="scroll" style={{ gap: 12 }}>
+      <div className="chips">
         {(['all', ...STATUSES] as const).map((st) => (
-          <Chip key={st} active={filter === st} onClick={() => setFilter(st)}>
+          <button key={st} type="button" className={`chip${filter === st ? ' on' : ''}`} aria-pressed={filter === st} onClick={() => setFilter(st)}>
             {st === 'all' ? `All ${orders?.length ?? 0}` : `${label(st)} ${count(st)}`}
-          </Chip>
+          </button>
         ))}
       </div>
 
-      <div className="px-5 flex flex-col gap-3">
-        {error && <Notice tone="error">{error}</Notice>}
-        {orders === null && !error && <p className="font-sans text-sm text-outline">Loading orders…</p>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {orders === null && !error && <p className="hint">Loading orders…</p>}
 
-        {orders !== null && visible.length === 0 && (
-          <div className="flex flex-col items-center text-center gap-2 pt-12">
-            <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">inbox</span>
-            <h3 className="font-serif text-[24px] text-primary">No orders here yet</h3>
-            <p className="font-sans text-[15px] text-on-surface-variant">{filter === 'all' ? 'Orders placed by your buyers will appear here.' : `There are no ${filter} orders.`}</p>
-          </div>
-        )}
+      {orders !== null && visible.length === 0 && (
+        <div className="col" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 32, gap: 8 }}>
+          <span className="tag gold" style={{ width: 56, height: 56, borderRadius: 18, justifyContent: 'center', padding: 0 }}>
+            <I n="receipt" />
+          </span>
+          <h2 style={{ fontSize: 24 }}>No orders here yet</h2>
+          <p className="sub">{filter === 'all' ? 'Orders placed by your buyers will appear here.' : `There are no ${filter} orders.`}</p>
+        </div>
+      )}
 
-        {visible.map((order) => {
-          const buyer = order.buyer;
-          const isOpen = expanded === order.poId;
-          return (
-            <article key={order.poId} className="rounded-3xl bg-white border border-outline-variant p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-sans text-sm font-extrabold text-on-surface-variant truncate">{order.poId}</span>
-                <StatusTag status={order.status} />
+      {visible.map((order) => {
+        const buyer = order.buyer;
+        const wa = buyer?.phone ? `https://wa.me/${buyer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${order.firmName}, about your order ${order.poId}.`)}` : null;
+        return (
+          <article key={order.poId} className="card col" style={{ gap: 8, opacity: order.status === 'cancelled' ? 0.7 : 1 }}>
+            <div className="row">
+              <div className="grow">
+                <b>{order.firmName}</b>
+                <p className="sub" style={{ fontSize: 13 }}>
+                  {buyer?.phone ? `${buyer.phone} · ` : ''}
+                  {order.poId} · {ago(order.timestamp)}
+                </p>
               </div>
-              <h2 className="font-serif text-[22px] text-primary leading-tight mt-2 truncate">{order.firmName}</h2>
-              <p className="font-sans text-sm text-on-surface-variant">
-                {buyer?.marketHub ? `${buyer.marketHub} · ` : ''}
-                {new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-              </p>
-
-              <div className="flex items-end justify-between mt-3 gap-3">
-                <div>
-                  <span className="font-serif text-[28px] text-primary leading-none">{order.totalNetGrams.toFixed(3)} g</span>
-                  <span className="font-sans text-sm text-on-surface-variant ml-2">
-                    {order.itemCount} {order.itemCount === 1 ? 'item' : 'items'}
-                  </span>
+              <StatusTag status={order.status} />
+            </div>
+            {order.items.map((item) => (
+              <div key={item.id} className="kv">
+                <span>
+                  {item.title} × {item.batchQty}
+                </span>
+                <b>{item.totalNetGold.toFixed(3)} g</b>
+              </div>
+            ))}
+            {order.items.length > 1 && (
+              <>
+                <hr className="sep" />
+                <div className="kv">
+                  <span>Total net weight</span>
+                  <b>{order.totalNetGrams.toFixed(3)} g</b>
                 </div>
-                <label className="flex items-center gap-2 font-sans text-sm text-on-surface-variant">
-                  <span className="sr-only">Status</span>
-                  <select
-                    value={order.status}
-                    onChange={(e) => changeStatus(order, e.target.value as OrderStatus)}
-                    className="h-11 bg-white border-[1.5px] border-outline-variant rounded-xl px-3 font-sans text-sm font-extrabold text-on-surface focus:outline-none focus:border-primary"
-                  >
-                    {STATUSES.map((st) => (
-                      <option key={st} value={st}>
-                        {label(st)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-outline-variant">
-                <button
-                  type="button"
-                  onClick={() => setExpanded(isOpen ? null : order.poId)}
-                  aria-expanded={isOpen}
-                  className="min-h-11 px-3 -ml-3 font-sans text-sm font-extrabold text-primary"
-                >
-                  {isOpen ? 'Hide items' : 'View items'}
+              </>
+            )}
+            {order.status === 'new' && (
+              <div className="row">
+                <button type="button" className="btn sm" style={{ flex: 1 }} onClick={() => changeStatus(order, 'confirmed')}>
+                  Confirm order
                 </button>
-                {buyer && (
-                  <a href={`tel:${buyer.phone}`} className="min-h-11 px-3 -mr-3 flex items-center font-sans text-sm font-extrabold text-primary">
-                    Call {buyer.ownerName || 'buyer'} · {buyer.phone}
+                {wa && (
+                  <a className="btn sm alt" href={wa} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp the buyer">
+                    <I n="whats" />
                   </a>
                 )}
               </div>
-
-              {isOpen && (
-                <ul className="mt-1 flex flex-col gap-3 pt-3 border-t border-outline-variant">
-                  {order.items.map((item) => (
-                    <li key={item.id} className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-sans text-[15px] font-bold text-on-surface truncate">{item.title}</p>
-                        <p className="font-sans text-sm text-on-surface-variant">
-                          {item.sku} · {item.purity}
-                        </p>
-                      </div>
-                      <div className="text-right whitespace-nowrap">
-                        <p className="font-sans text-[15px] font-extrabold text-primary">{item.totalNetGold.toFixed(3)} g</p>
-                        <p className="font-sans text-sm text-on-surface-variant">
-                          {item.batchQty} {item.qtyUnit}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          );
-        })}
-      </div>
+            )}
+            {order.status === 'confirmed' && (
+              <div className="row">
+                <button type="button" className="btn sm soft" style={{ flex: 1 }} onClick={() => changeStatus(order, 'dispatched')}>
+                  Mark dispatched
+                </button>
+                <button type="button" className="btn sm alt danger" onClick={() => askCancel(order)}>
+                  {confirming === order.poId ? 'Tap again' : 'Cancel'}
+                </button>
+              </div>
+            )}
+            {(order.status === 'dispatched' || order.status === 'cancelled') && buyer?.phone && (
+              <a className="lnk" style={{ minHeight: 32 }} href={`tel:${buyer.phone}`}>
+                <I n="phone" size="s" />
+                Call {buyer.ownerName || 'buyer'}
+              </a>
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 };

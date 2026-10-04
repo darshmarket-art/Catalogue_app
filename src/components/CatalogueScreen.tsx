@@ -1,17 +1,19 @@
 import { usePlan } from '../plan';
-import { merchant } from '../merchant';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Product, Purity } from '../types';
+import { Category, Product, Purity } from '../types';
 import { trackProductView, trackSearch, trackSelect } from '../api';
 import { setOnScreen, clearOnScreen } from '../attention';
 import { ProductDetailSheet } from './ProductDetailSheet';
 import { downloadDesignsPdf } from '../cataloguePdf';
+import { I, Photo, StockTag, Toast } from './ui';
 
 interface CatalogueScreenProps {
   products: Product[];
   isAdmin: boolean;
-  /** Only show designs from this collection (set from the Catalogue screen). */
+  /** Only show designs from this collection. */
   categoryFilter: string | null;
+  categories: Category[];
+  onCategoryChange: (name: string | null) => void;
   onClearCategoryFilter: () => void;
   onEditProduct: (product: Product) => void;
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
@@ -26,15 +28,18 @@ type SortKey = 'default' | 'net-asc' | 'net-desc' | 'name';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'default', label: 'Newest' },
-  { key: 'net-asc', label: 'Net weight: low to high' },
-  { key: 'net-desc', label: 'Net weight: high to low' },
-  { key: 'name', label: 'Name: A to Z' }
+  { key: 'net-asc', label: 'Lightest first' },
+  { key: 'net-desc', label: 'Heaviest first' },
+  { key: 'name', label: 'A to Z' }
 ];
 
+/** Catalogue (artboard 2.3); the owner's "Select" mode is artboard 3.10, picking designs for a PDF. */
 export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   products,
   isAdmin,
   categoryFilter,
+  categories,
+  onCategoryChange,
   onClearCategoryFilter,
   onEditProduct,
   onAddToOrder,
@@ -44,7 +49,6 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { flags } = usePlan();
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>('default');
   const [openProductId, setOpenProductId] = useState<string | null>(null);
@@ -52,7 +56,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
-  const gridRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const openProduct = products.find((p) => p.id === openProductId) ?? null;
   const hearted = useMemo(() => new Set(shortlist), [shortlist]);
 
@@ -67,8 +71,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
   const filteredProducts = useMemo(() => {
     const q = searchQuery.toLowerCase();
     const list = products.filter((p) => {
-      const matchesSearch =
-        !q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.purity.toLowerCase().includes(q);
+      const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.purity.toLowerCase().includes(q);
       return matchesSearch && (!categoryFilter || p.category === categoryFilter);
     });
     if (sort === 'net-asc') list.sort((a, b) => a.netWt - b.netWt);
@@ -111,11 +114,7 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
 
   useEffect(() => clearOnScreen, []);
 
-  const updateQuantity = (id: string, delta: number) => {
-    setQuantities((prev) => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + delta) }));
-  };
-
-  const handleAdd = (prod: Product, purity?: string, qty = quantities[prod.id] || 1) => {
+  const handleAdd = (prod: Product, purity: string | undefined, qty: number) => {
     onAddToOrder(prod, qty, purity);
     setAddedNotice(prod.title);
     setTimeout(() => setAddedNotice(null), 1800);
@@ -155,194 +154,128 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
     onToggleShortlist(prod);
   };
 
+  // Collections that have designs, in the owner's order, plus any the filter names
+  const collectionChips = categories.map((c) => c.name).filter((n) => products.some((p) => p.category === n) || n === categoryFilter);
+
   return (
-    <div className="flex flex-col w-full pb-28 max-w-6xl mx-auto">
-      {pdfStatus && (
-        <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg text-sm font-sans animate-fade-in">
-          {pdfStatus}
-        </div>
+    <div className="scroll wide" style={{ gap: 12 }}>
+      {(pdfStatus || addedNotice) && (
+        <Toast>
+          <I n="check" size="s" />
+          {pdfStatus ?? `Added ${addedNotice} to your order`}
+        </Toast>
       )}
 
-      {addedNotice && (
-        <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-sans animate-fade-in">
-          <span className="material-symbols-outlined text-success-container text-[18px]">check_circle</span>
-          <span>Added {addedNotice} to your order</span>
+      {selecting ? (
+        <div className="row">
+          <h2 className="grow" style={{ fontSize: 24 }}>
+            Select designs
+          </h2>
+          <span className="pro">Pro</span>
+          <button type="button" className="lnk" style={{ minHeight: 36 }} onClick={stopSelecting}>
+            Cancel
+          </button>
         </div>
-      )}
-
-      {/* Search, count and sort stay in view while scrolling */}
-      <section className="sticky top-[calc(var(--header-h)+var(--sat))] z-30 bg-surface/95 backdrop-blur-md px-4 pt-2 pb-2 flex flex-col gap-2.5">
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-outline">search</span>
-          <input
-            aria-label="Search designs"
-            className="w-full bg-white text-on-surface font-sans text-sm pl-11 pr-3 py-3 rounded-2xl border border-outline-variant focus:outline-none focus:border-primary"
-            placeholder="Search name, SKU or collection"
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-sans text-sm text-on-surface-variant whitespace-nowrap">
-              <strong className="text-on-surface">{filteredProducts.length}</strong> {filteredProducts.length === 1 ? 'design' : 'designs'}
-            </span>
-            {categoryFilter && (
-              <button
-                type="button"
-                onClick={onClearCategoryFilter}
-                className="flex items-center gap-1 min-w-0 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold"
-                aria-label={`Showing ${categoryFilter}. Clear`}
-              >
-                <span className="truncate">{categoryFilter}</span>
-                <span className="material-symbols-outlined text-[15px]">close</span>
-              </button>
-            )}
+      ) : (
+        <div className="row" style={{ gap: 10 }}>
+          <div className="inp-icon grow">
+            <I n="search" />
+            <input aria-label="Search designs" className="inp" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
           {isAdmin && flags.pdfCatalogue && (
-            <button
-              type="button"
-              onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
-              aria-pressed={selecting}
-              className={`min-h-11 px-4 rounded-xl border-[1.5px] font-sans text-sm font-extrabold ${selecting ? 'bg-primary border-primary text-on-primary' : 'bg-white border-outline-variant text-primary'}`}
-            >
-              {selecting ? 'Done' : 'Select'}
+            <button type="button" className="btn sm alt" style={{ height: 52 }} onClick={() => setSelecting(true)}>
+              <I n="file" size="s" />
+              Select
             </button>
           )}
-          <label className="flex items-center gap-2 text-sm font-sans text-on-surface-variant">
-            <span className="sr-only sm:not-sr-only">Sort</span>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="bg-white border border-outline-variant rounded-xl px-2.5 py-2 text-sm font-sans font-semibold text-on-surface focus:outline-none focus:border-primary max-w-[11rem] sm:max-w-none"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
-      </section>
+      )}
 
-      <section ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5 md:gap-x-4 px-4 pt-3">
-        {filteredProducts.map((prod) => {
-          const qty = quantities[prod.id] || 1;
+      <div className="chips">
+        <button type="button" className={`chip${categoryFilter ? '' : ' on'}`} onClick={onClearCategoryFilter}>
+          All
+        </button>
+        {collectionChips.map((name) => (
+          <button key={name} type="button" className={`chip${categoryFilter === name ? ' on' : ''}`} onClick={() => onCategoryChange(categoryFilter === name ? null : name)}>
+            {name}
+          </button>
+        ))}
+        <select aria-label="Sort designs" className="chip" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.key} value={o.key}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div ref={gridRef} className="grid2 md:!grid-cols-3 lg:!grid-cols-4">
+        {filteredProducts.map((prod, i) => {
           const isHearted = hearted.has(prod.sku);
+          const isPicked = picked.has(prod.id);
           return (
-            <article key={prod.id} data-sku={prod.sku} className="group flex flex-col">
-              <div className={`relative w-full aspect-square rounded-3xl bg-surface-container overflow-hidden ${selecting && picked.has(prod.id) ? 'ring-4 ring-primary' : ''}`}>
-                <button type="button" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} onClick={() => openOrPick(prod)} className="block w-full h-full">
-                  <img
-                    alt=""
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    src={prod.image}
-                    referrerPolicy="no-referrer"
-                  />
-                </button>
-                <span className="absolute top-2.5 left-2.5 bg-white/95 px-2 py-0.5 rounded-lg text-xs font-extrabold text-primary pointer-events-none">
-                  {prod.purity.split(' ')[0]}
+            <article key={prod.id} data-sku={prod.sku} className="card col" style={{ gap: 6, padding: 10, position: 'relative', outline: selecting && isPicked ? '2.5px solid var(--plum)' : undefined }}>
+              <button type="button" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} onClick={() => openOrPick(prod)} className="col" style={{ gap: 6, border: 0, padding: 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
+                <Photo src={prod.image} tone={i} style={{ height: selecting ? 112 : 128, width: '100%' }}>
+                  {selecting && (
+                    <span
+                      aria-hidden="true"
+                      className={isPicked ? 'mark' : ''}
+                      style={{ position: 'absolute', right: 8, top: 8, width: 26, height: 26, borderRadius: '50%', zIndex: 2, ...(isPicked ? {} : { background: 'var(--card)', border: '2px solid var(--dash)' }) }}
+                    >
+                      {isPicked && <I n="check" size="s" />}
+                    </span>
+                  )}
+                </Photo>
+                <b style={{ fontSize: 14.5, lineHeight: 1.3 }} className="line-clamp-2">
+                  {prod.title}
+                </b>
+                <span className="sub" style={{ fontSize: 13 }}>
+                  {prod.sku}
+                  {selecting ? '' : ` · ${prod.netWt.toFixed(3)} g net`}
                 </span>
-                {selecting && (
-                  <span
-                    aria-hidden="true"
-                    className={`absolute top-2 right-2 w-9 h-9 rounded-full flex items-center justify-center pointer-events-none shadow-sm ${picked.has(prod.id) ? 'bg-primary text-on-primary' : 'bg-white/95 text-outline'}`}
-                  >
-                    <span className="material-symbols-outlined text-[22px]">{picked.has(prod.id) ? 'check' : 'add'}</span>
+                {!selecting && (
+                  <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                    <span className="tag">{prod.purity.split(' ')[0]}</span>
+                    <StockTag status={prod.stockStatus} />
                   </span>
                 )}
-                {!isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => toggleHeart(prod)}
-                    aria-pressed={isHearted}
-                    aria-label={isHearted ? `Remove ${prod.title} from shortlist` : `Add ${prod.title} to shortlist`}
-                    className={`absolute top-1 right-1 w-11 h-11 flex items-center justify-center`}
-                  >
-                    <span className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${isHearted ? 'bg-primary text-white' : 'bg-white/95 text-primary'}`}>
-                      <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: `'FILL' ${isHearted ? 1 : 0}` }}>
-                        favorite
-                      </span>
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              <div className="pt-2 flex flex-col gap-2 flex-1">
-                <div>
-                  <h2 className="font-sans text-[15px] leading-snug font-bold text-on-surface line-clamp-2">
-                    <button type="button" onClick={() => openOrPick(prod)} className="text-left">
-                      {prod.title}
-                    </button>
-                  </h2>
-                  <p className="font-sans text-[15px] font-extrabold text-on-surface mt-0.5">Net {prod.netWt.toFixed(2)} g</p>
-                  <p className="font-sans text-sm text-on-surface-variant">Gross {prod.grossWt.toFixed(2)} g</p>
-                  <span className="font-sans text-xs text-outline">{prod.sku}</span>
-                </div>
-
-                {isAdmin ? (
-                  selecting ? null : <button
-                    type="button"
-                    onClick={() => onEditProduct(prod)}
-                    className="mt-auto w-full h-11 rounded-xl border border-outline-variant text-primary font-sans text-sm font-bold flex items-center justify-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">edit</span>
-                    Edit
-                  </button>
-                ) : (
-                  !flags.orders ? (
-                    <a
-                      href={`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(`Hello ${merchant.brand.name}, I'm interested in ${prod.title} (${prod.sku}), ${prod.purity}, net ${prod.netWt.toFixed(2)} g.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-auto w-full h-11 rounded-xl bg-[#25D366] text-[#06361a] font-sans text-sm font-extrabold flex items-center justify-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">chat</span>
-                      Enquire on WhatsApp
-                    </a>
-                  ) : <div className="flex items-center gap-2 mt-auto">
-                    {/* On phones the quantity is chosen in the design's detail sheet; here Add puts one piece in the order. */}
-                    <div className="hidden md:flex items-center rounded-xl bg-white border border-outline-variant">
-                      <button
-                        onClick={() => updateQuantity(prod.id, -1)}
-                        aria-label={`Decrease quantity of ${prod.title}`}
-                        className="w-10 h-11 flex items-center justify-center text-primary"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">remove</span>
-                      </button>
-                      <span className="min-w-5 text-center text-sm font-extrabold" aria-live="polite">
-                        {qty}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(prod.id, 1)}
-                        aria-label={`Increase quantity of ${prod.title}`}
-                        className="w-10 h-11 flex items-center justify-center text-primary"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">add</span>
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => handleAdd(prod)}
-                      aria-label={`Add ${prod.title} to order`}
-                      className="flex-1 h-11 rounded-xl bg-secondary hover:bg-secondary-dark text-white font-sans text-sm font-bold flex items-center justify-center gap-1 whitespace-nowrap active:scale-95 transition-all"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
+              </button>
+              {!isAdmin && !selecting && (
+                <button
+                  type="button"
+                  onClick={() => toggleHeart(prod)}
+                  aria-pressed={isHearted}
+                  aria-label={isHearted ? `Remove ${prod.title} from shortlist` : `Add ${prod.title} to shortlist`}
+                  className="ib"
+                  style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, zIndex: 3, color: isHearted ? 'var(--bad)' : 'var(--ink)' }}
+                >
+                  <I n="heart" size="s" style={isHearted ? { background: 'var(--bad)' } : undefined} />
+                </button>
+              )}
             </article>
           );
         })}
-      </section>
+      </div>
+
+      {filteredProducts.length === 0 && (
+        <div className="col" style={{ alignItems: 'center', textAlign: 'center', padding: '40px 0', gap: 10 }}>
+          <I n="search" size="l" style={{ color: 'var(--mut)' }} />
+          <p className="sub">{products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search.'}</p>
+          {(searchQuery || categoryFilter) && (
+            <button
+              type="button"
+              className="lnk"
+              onClick={() => {
+                setSearchQuery('');
+                onClearCategoryFilter();
+              }}
+            >
+              Clear search
+            </button>
+          )}
+        </div>
+      )}
 
       <ProductDetailSheet
         product={openProduct}
@@ -358,45 +291,20 @@ export const CatalogueScreen: React.FC<CatalogueScreenProps> = ({
         onAddToOrder={(p, qty, purity) => handleAdd(p, purity, qty)}
       />
 
-      {isAdmin && selecting && picked.size > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(5.25rem+var(--sab))] z-40 px-3 pb-2">
-          <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-outline-variant shadow-[0_-6px_24px_rgba(0,0,0,0.1)] p-4 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="font-serif text-[22px] text-primary leading-tight">
-                {picked.size} {picked.size === 1 ? 'design' : 'designs'} selected
-              </p>
-              <button type="button" onClick={() => setPicked(new Set(filteredProducts.map((p) => p.id)))} className="min-h-11 font-sans text-sm font-bold text-primary hover:underline text-left">
-                Select all {filteredProducts.length}
+      {isAdmin && selecting && (
+        <div className="dock">
+          <div className="card row" style={{ gap: 12, padding: '12px 16px', boxShadow: 'var(--sh-2)' }}>
+            <div className="grow">
+              <b>{picked.size} selected</b>
+              <button type="button" className="lnk" style={{ display: 'flex', minHeight: 30, fontSize: 13.5 }} onClick={() => setPicked(picked.size === filteredProducts.length ? new Set() : new Set(filteredProducts.map((p) => p.id)))}>
+                {picked.size === filteredProducts.length ? 'Clear' : `Select all ${filteredProducts.length}`}
               </button>
             </div>
-            <button type="button" onClick={() => setPicked(new Set())} className="min-h-12 px-4 rounded-2xl border-[1.5px] border-outline-variant font-sans text-sm font-extrabold text-on-surface-variant">
-              Clear
-            </button>
-            <button type="button" onClick={makePdf} className="min-h-12 px-5 rounded-2xl bg-secondary text-on-secondary font-sans text-sm font-extrabold">
-              Create PDF
+            <button type="button" className="btn sm" style={{ padding: '0 20px' }} disabled={picked.size === 0} onClick={makePdf}>
+              <I n="download" size="s" />
+              Download PDF
             </button>
           </div>
-        </div>
-      )}
-
-      {filteredProducts.length === 0 && (
-        <div className="px-4 py-16 text-center flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-[40px] text-outline">search_off</span>
-          <p className="font-sans text-sm text-on-surface-variant">
-            {products.length === 0 ? 'No designs have been added yet.' : 'No designs match your search.'}
-          </p>
-          {(searchQuery || categoryFilter) && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                onClearCategoryFilter();
-              }}
-              className="font-sans text-sm text-primary font-bold hover:underline"
-              type="button"
-            >
-              Clear search
-            </button>
-          )}
         </div>
       )}
     </div>

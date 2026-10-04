@@ -2,57 +2,66 @@ import React from 'react';
 import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { BrandMark } from './BrandMark';
+import { I } from './ui';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
 }
 
-/** The first screen: the brand on a deep theme colour, what the merchant offers in a line each, and two clear choices. */
+/** The store's first screen: the brand in a deep panel, what the merchant offers, and the way in. Same parts as the canvas's landing (1.1). */
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNavigate }) => {
   const isPublic = merchant.catalogueAccess === 'public';
   return (
-    <div className="min-h-screen flex flex-col items-center justify-end text-center px-6 pt-16 pb-8 text-on-primary hero-glow">
-      <div className="w-full max-w-sm flex flex-col items-center">
-        <div className="w-24 h-24 rounded-3xl bg-secondary-deep border border-tertiary-fixed-dim/45 shadow-xl flex items-center justify-center mb-6">
-          <BrandMark className="w-16 h-16" textClassName="text-[48px]" />
+    <div className="scroll no-tabs" style={{ gap: 16, paddingTop: 'calc(20px + var(--sat))', maxWidth: 480 }}>
+      <section className="hero col" style={{ gap: 12, padding: '26px 20px 50px' }}>
+        <div className="mark lg">
+          <BrandMark className="w-12 h-12" textClassName="text-[36px]" />
         </div>
-        <h1 className="font-serif font-semibold text-[34px] leading-[1.05] tracking-[0.06em]">{merchant.brand.name.toUpperCase()}</h1>
-        <span className="font-sans text-sm font-extrabold tracking-[0.2em] uppercase text-tertiary-fixed-dim mt-2">{merchant.brand.tagline}</span>
-        <p className="font-sans text-base leading-relaxed text-white/80 mt-4 max-w-[28ch]">{merchant.brand.description}</p>
+        <span className="eyebrow" style={{ marginTop: 6 }}>
+          {merchant.brand.tagline}
+        </span>
+        <h1 style={{ fontSize: 38, lineHeight: 1.02 }}>{merchant.brand.name}</h1>
+        <p className="sub" style={{ fontSize: 15.5, maxWidth: 280 }}>
+          {merchant.brand.description}
+        </p>
+      </section>
 
-        <ul className="mt-6 flex flex-col gap-2 text-left w-full">
-          {merchant.welcome.features.map((f) => (
-            <li key={f.title} className="flex items-start gap-3 font-sans text-[15px] text-white/90">
-              <span className="material-symbols-outlined text-[20px] text-tertiary-fixed-dim mt-0.5">{f.icon}</span>
-              <span>
-                <strong className="font-extrabold">{f.title}</strong>
-                <span className="block text-white/70 text-sm leading-snug">{f.description}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="w-full flex flex-col gap-3 mt-8">
-          <button
-            onClick={() => onNavigate(isPublic ? 'catalogue' : 'retailer-auth')}
-            className="w-full h-14 rounded-2xl bg-gold font-sans text-base font-bold hover:-translate-y-px active:scale-[0.99] transition-all"
-          >
-            {isPublic ? 'Browse the catalogue' : 'Enter the portal'}
-          </button>
-          {isPublic && (
-          <button
-            onClick={() => onNavigate('retailer-auth')}
-            className="w-full h-14 rounded-2xl border-[1.5px] border-tertiary-fixed-dim/60 text-on-primary font-sans text-base font-bold active:scale-[0.99] transition-all"
-          >
+      <div className="card col" style={{ gap: 10, padding: 16, margin: '-46px 14px 0', position: 'relative', zIndex: 2, boxShadow: 'var(--sh-2)' }}>
+        <button type="button" className="btn" onClick={() => onNavigate(isPublic ? 'catalogue' : 'retailer-auth')}>
+          {isPublic ? 'Browse the catalogue' : 'Enter the portal'}
+          <I n="chev" />
+        </button>
+        {isPublic && (
+          <button type="button" className="btn alt" onClick={() => onNavigate('retailer-auth')}>
+            <I n="whats" />
             Sign in with WhatsApp
           </button>
-          )}
-        </div>
+        )}
+      </div>
 
-        <div className="mt-6 flex flex-col items-center gap-1 text-white/70 font-sans text-sm">
-          {merchant.welcome.footerLine && <span>{merchant.welcome.footerLine}</span>}
-          {merchant.legal.registrationLine && <span>{merchant.legal.registrationLine}</span>}
+      {merchant.welcome.features.length > 0 && (
+        <div className="card" style={{ padding: '2px 16px' }}>
+          {merchant.welcome.features.map((f, i) => (
+            <div key={f.title} className="row" style={{ padding: '12px 0', borderBottom: i < merchant.welcome.features.length - 1 ? '1px solid var(--line-s)' : 0 }}>
+              <span className="tag gold" style={{ width: 36, height: 36, justifyContent: 'center', padding: 0, borderRadius: 11, flex: 'none' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                  {f.icon}
+                </span>
+              </span>
+              <div className="grow">
+                <b>{f.title}</b>
+                <p className="sub" style={{ fontSize: 13.5 }}>
+                  {f.description}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
+      )}
+
+      <div className="col" style={{ alignItems: 'center', gap: 2, textAlign: 'center' }}>
+        {merchant.welcome.footerLine && <span className="hint" style={{ margin: 0 }}>{merchant.welcome.footerLine}</span>}
+        {merchant.legal.registrationLine && <span className="hint" style={{ margin: 0 }}>{merchant.legal.registrationLine}</span>}
       </div>
     </div>
   );

@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { BuyerRow } from '../types';
 import { api } from '../api';
-import { PageTitle, Notice } from './ui';
+import { usePlan, upgradeNotice } from '../plan';
+import { I, Notice } from './ui';
 
+/** Buyers (artboard 3.5 on Pro; 4.3 on Basic, with the 50-buyer meter). */
 export const AdminBuyersScreen: React.FC = () => {
+  const { limits } = usePlan();
   const [buyers, setBuyers] = useState<BuyerRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   const [reset, setReset] = useState<{ firmName: string; phone: string; temporaryPassword: string } | null>(null);
   const [busyPhone, setBusyPhone] = useState<string | null>(null);
 
@@ -27,62 +31,96 @@ export const AdminBuyersScreen: React.FC = () => {
       setReset({ firmName: result.firmName, phone: buyer.phone, temporaryPassword: result.temporaryPassword });
       load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not reset the password.');
+      setError(e instanceof Error ? e.message : 'Could not reset the password.');
     } finally {
       setBusyPhone(null);
     }
   };
 
+  const q = query.trim().toLowerCase();
+  const shown = (buyers ?? []).filter((b) => !q || b.firmName.toLowerCase().includes(q) || b.phone.includes(q));
+  const count = buyers?.length ?? 0;
+  const cap = limits.users;
+  const left = cap === null ? null : cap - count;
+  const joined = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
   return (
-    <div className="flex flex-col w-full pb-32 max-w-xl mx-auto">
-      <PageTitle title="Buyers" sub="If a buyer forgets their password, give them a temporary one. They choose a new password when they sign in." />
-
-      <div className="px-5 flex flex-col gap-3">
-        {reset && (
-          <div role="status" className="rounded-2xl bg-secondary-container text-on-secondary-container p-4">
-            <p className="font-sans text-[15px]">
-              Temporary password for <strong>{reset.firmName}</strong>
-            </p>
-            <p data-testid="temp-password" className="font-sans text-[22px] font-extrabold tracking-wider my-1 select-all">
-              {reset.temporaryPassword}
-            </p>
-            <p className="font-sans text-sm">Shown once. Give it to the buyer (phone {reset.phone}); it stops working as soon as they choose their own.</p>
-            <button onClick={() => setReset(null)} className="mt-2 min-h-11 font-sans text-sm font-extrabold underline">
-              Done
-            </button>
+    <div className="scroll" style={{ gap: 10 }}>
+      {cap !== null ? (
+        <>
+          <div className="card" style={{ padding: '12px 16px' }}>
+            <div className="kv">
+              <span>Buyers</span>
+              <b>
+                {count} of {cap}
+              </b>
+            </div>
+            <div className={`meter${count >= cap ? ' over' : ''}`} style={{ marginTop: 8 }}>
+              <i style={{ width: `${Math.min(100, Math.round((count / cap) * 100))}%` }} />
+            </div>
           </div>
-        )}
+          {left !== null && left <= 10 && (
+            <div className="note warn">
+              <b>{left > 0 ? `${left} ${left === 1 ? 'place' : 'places'} left.` : 'The catalogue is full.'}</b> At {cap}, a new number sees "catalogue full" and no code is sent. Buyers already signed up always get in. Upgrade to Pro for unlimited buyers.
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="sub">Buyers sign in with a WhatsApp code. If a buyer used a password before and forgot it, give them a temporary one.</p>
+      )}
 
-        {error && <Notice tone="error">{error}</Notice>}
-        {buyers === null && !error && <p className="font-sans text-sm text-outline text-center py-8">Loading…</p>}
-        {buyers?.length === 0 && <p className="font-sans text-[15px] text-on-surface-variant text-center py-8">No buyers have signed up yet.</p>}
+      <div className="inp-icon">
+        <I n="search" />
+        <input className="inp" style={{ height: 46 }} type="search" aria-label="Search shop or phone" placeholder="Search shop or phone" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
-      <ul className="flex flex-col mt-1" data-testid="buyer-list">
-        {buyers?.map((b) => (
-          <li key={b.phone} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 px-5 py-3 border-b border-surface-container">
-            <span className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-sans text-lg font-extrabold">
-              {b.firmName.charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="font-sans text-[15.5px] font-bold text-on-surface truncate">{b.firmName}</p>
-              <p className="font-sans text-sm text-on-surface-variant">{b.phone}</p>
-              <p className="font-sans text-sm text-outline">
-                Joined {new Date(b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                {b.mustChangePassword ? ' · waiting to set a new password' : ''}
+      {reset && (
+        <div role="status" className="note">
+          <p>
+            Temporary password for <b>{reset.firmName}</b>
+          </p>
+          <p data-testid="temp-password" className="serif select-all" style={{ fontSize: 24, margin: '4px 0' }}>
+            {reset.temporaryPassword}
+          </p>
+          <p style={{ fontSize: 13.5 }}>Shown once. Give it to the buyer (phone {reset.phone}); it stops working as soon as they choose their own.</p>
+          <button type="button" className="lnk" onClick={() => setReset(null)}>
+            Done
+          </button>
+        </div>
+      )}
+
+      {error && <Notice tone="error">{error}</Notice>}
+      {buyers === null && !error && <p className="hint" style={{ textAlign: 'center' }}>Loading…</p>}
+      {buyers?.length === 0 && <p className="sub" style={{ textAlign: 'center', padding: '24px 0' }}>No buyers have signed up yet.</p>}
+
+      <div className="col" style={{ gap: 10 }} data-testid="buyer-list">
+        {shown.map((b) => (
+          <div key={b.phone} className="card row" style={{ padding: '12px 14px' }}>
+            <div className="grow">
+              <b>{b.firmName}</b>
+              <p className="sub" style={{ fontSize: 13 }}>
+                {b.phone} · joined {joined(b.createdAt)}
+                {b.mustChangePassword ? ' · setting a new password' : ''}
               </p>
             </div>
-            <button
-              type="button"
-              disabled={busyPhone === b.phone}
-              onClick={() => handleReset(b)}
-              className="min-h-11 px-3 rounded-xl border-[1.5px] border-outline-variant font-sans text-sm font-extrabold text-primary whitespace-nowrap disabled:opacity-40"
-            >
+            <button type="button" className="btn sm alt" style={{ height: 40 }} disabled={busyPhone === b.phone} onClick={() => handleReset(b)}>
               Reset
             </button>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
+
+      {cap === null ? (
+        <div className="note ok row">
+          <I n="check" size="s" />
+          <span>Pro: unlimited buyers.</span>
+        </div>
+      ) : (
+        <button type="button" className="btn alt" onClick={() => upgradeNotice('Unlimited buyers')}>
+          <I n="sparkle" />
+          Unlimited buyers with Pro
+        </button>
+      )}
     </div>
   );
 };

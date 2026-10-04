@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { ActiveScreen, Category, Product, Purity } from '../types';
 import { sector } from '../sector';
 import { merchant } from '../merchant';
-import { usePlan, ProBadge, upgradeNotice } from '../plan';
+import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
-import { PageTitle, Field, Notice, Chip, inputClass, btnPrimary, btnDanger, btnLink } from './ui';
+import { Field, Notice } from './ui';
 
 interface NewProductScreenProps {
   categories: Category[];
@@ -17,8 +17,10 @@ interface NewProductScreenProps {
   onDelete: (product: Product) => Promise<boolean>;
 }
 
+/** New design (artboard 3.3 on Pro, 4.2 on Basic: one photo, the other two slots locked). */
 export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, purities, editing, onNavigate, onSave, onDelete }) => {
-  const { limits } = usePlan();
+  const ent = usePlan();
+  const { limits } = ent;
   const [title, setTitle] = useState(editing?.title ?? '');
   const [sku, setSku] = useState(editing?.sku ?? '');
   const [category, setCategory] = useState(editing?.category ?? '');
@@ -28,9 +30,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [huid, setHuid] = useState(editing?.huid ?? '');
   const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
-  const [extra, setExtra] = useState<Record<string, string>>(
-    Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)]))
-  );
+  const [extra, setExtra] = useState<Record<string, string>>(Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)])));
   const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -39,15 +39,16 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const stone = parseFloat(stoneWt) || 0;
   const net = Number.isFinite(gross) ? Math.max(0, gross - stone) : null;
   const missingExtra = merchant.productFields.find((f) => f.required && !(extra[f.key] ?? '').trim());
+  const maxPhotos = Math.max(limits.photosPerDesign, editing?.images.length ?? 0);
 
   const problem = uploading
     ? 'Photo is uploading…'
     : photos.length === 0
       ? 'Add at least one photo'
       : !title.trim()
-        ? 'Enter a product title'
+        ? 'Enter a design name'
         : !category
-          ? 'Choose a category'
+          ? 'Choose a collection'
           : !purity
             ? 'Choose the purity'
             : !(gross > 0)
@@ -94,52 +95,35 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   };
 
   return (
-    <div className="flex flex-col w-full pb-40 max-w-lg mx-auto">
-      <PageTitle title={editing ? 'Edit design' : 'New design'} />
+    <div className="scroll no-tabs" style={{ gap: 11 }}>
+      {saved && <Notice tone="ok">{editing ? 'Changes saved.' : 'Published to the live catalogue.'}</Notice>}
 
-      <div className="px-5 flex flex-col gap-5">
-        {saved && <Notice tone="ok">{editing ? 'Changes saved.' : 'Published to the live catalogue.'}</Notice>}
+      <div>
+        <span className="lab">
+          Photos {limits.photosPerDesign > 1 && <span className="pro" style={{ marginLeft: 4 }}>Up to {limits.photosPerDesign}</span>}
+        </span>
+        <PhotoPicker photos={photos} onChange={setPhotos} max={maxPhotos} onBusyChange={setUploading} locked={Math.max(0, 3 - maxPhotos)} onLocked={() => upgradeNotice('Extra photos per design')} />
+        {limits.photosPerDesign < 3 && <p className="hint">Basic allows {limits.photosPerDesign} photo per design. Pro allows 3.</p>}
+      </div>
 
-        <section className="flex flex-col gap-2">
-          <h2 className="font-serif text-[22px] text-primary">Photos</h2>
-          <PhotoPicker photos={photos} onChange={setPhotos} max={Math.max(limits.photosPerDesign, editing?.images.length ?? 0)} onBusyChange={setUploading} />
-          {limits.photosPerDesign < 3 && (
-            <button type="button" onClick={() => upgradeNotice('Extra photos per design')} className="flex gap-2 items-center">
-              {[2, 3].map((n) => (
-                <span key={n} className="flex-1 h-16 rounded-2xl border-[1.5px] border-dashed border-outline-variant flex items-center justify-center text-outline font-sans text-sm font-bold">
-                  Photo {n}
-                  <ProBadge />
-                </span>
-              ))}
-            </button>
-          )}
-        </section>
+      <Field label="Design name" htmlFor="np-title">
+        <input id="np-title" className="inp" style={{ height: 48 }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
+      </Field>
 
-        <Field label="Design name" htmlFor="np-title">
-          <input id="np-title" className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
-        </Field>
-
-        <Field label={`SKU ${editing ? '' : '(optional)'}`} htmlFor="np-sku">
-          <input id="np-sku" className={inputClass} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Leave blank to generate one" />
-        </Field>
-
+      <div className="grid2">
         <Field label="Collection" htmlFor="np-category">
-          <select id="np-category" value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
-            <option value="">Select a collection</option>
+          <select id="np-category" value={category} onChange={(e) => setCategory(e.target.value)} className="inp" style={{ height: 48 }}>
+            <option value="">Choose</option>
             {categories.map((c) => (
               <option key={c.id} value={c.name}>
                 {c.name}
               </option>
             ))}
           </select>
-          <button type="button" onClick={() => onNavigate('add-category')} className={`${btnLink} self-start -ml-3`}>
-            + Add a new collection
-          </button>
         </Field>
-
-        <Field label="Purity" htmlFor="np-purity" hint="The list comes from Admin, Purity options.">
-          <select id="np-purity" className={inputClass} value={purity} onChange={(e) => setPurity(e.target.value)}>
-            <option value="">Choose the purity</option>
+        <Field label="Purity" htmlFor="np-purity">
+          <select id="np-purity" className="inp" style={{ height: 48 }} value={purity} onChange={(e) => setPurity(e.target.value)}>
+            <option value="">Choose</option>
             {purities
               .filter((pu) => pu.enabled || pu.key === editing?.purity)
               .map((pu) => (
@@ -149,74 +133,82 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
               ))}
           </select>
         </Field>
+      </div>
+      <button type="button" className="lnk" style={{ minHeight: 28, marginTop: -4, alignSelf: 'flex-start', fontSize: 13.5 }} onClick={() => onNavigate('add-category')}>
+        + Add a new collection
+      </button>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Gross weight (g)" htmlFor="np-gross">
-            <input id="np-gross" className={inputClass} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
-          </Field>
-          <Field label="Stone or tare (g)" htmlFor="np-stone">
-            <input id="np-stone" className={inputClass} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
-          </Field>
-        </div>
-        <div className="flex items-baseline justify-between rounded-2xl bg-primary-fixed px-4 py-3">
-          <span className="font-sans text-[15px] font-extrabold text-primary">Net weight</span>
-          <span className="font-serif text-[26px] text-primary">{net === null ? '—' : `${net.toFixed(3)} g`}</span>
-        </div>
-
-        <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
-          <input id="np-huid" className={inputClass} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
+      <div className="grid2">
+        <Field label="Gross weight (g)" htmlFor="np-gross">
+          <input id="np-gross" className="inp" style={{ height: 48 }} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
         </Field>
-
-        {merchant.productFields.map((field) => (
-          <Field key={field.key} label={`${field.label}${field.unit ? ` (${field.unit})` : ''}${field.required ? ' *' : ''}`} htmlFor={`np-${field.key}`}>
-            {field.type === 'select' ? (
-              <select id={`np-${field.key}`} className={inputClass} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
-                <option value="">Select</option>
-                {field.options?.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id={`np-${field.key}`}
-                className={inputClass}
-                value={extra[field.key] ?? ''}
-                inputMode={field.type === 'number' ? 'decimal' : 'text'}
-                onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}
-              />
-            )}
-          </Field>
-        ))}
-
-        <section className="flex flex-col gap-2">
-          <h2 className="font-serif text-[22px] text-primary">Availability</h2>
-          <div className="flex flex-wrap gap-2">
-            {sector.stockStatuses.map((st) => (
-              <Chip key={st.key} active={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
-                {st.key}
-              </Chip>
-            ))}
-          </div>
-        </section>
-
-        {editing && (
-          <button type="button" onClick={handleDelete} disabled={isSaving} className={btnDanger}>
-            Delete this design
-          </button>
-        )}
+        <Field label="Stone or tare (g)" htmlFor="np-stone">
+          <input id="np-stone" className="inp" style={{ height: 48 }} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
+        </Field>
+      </div>
+      <div className="card row" style={{ padding: '10px 16px' }}>
+        <span className="grow sub">Net weight</span>
+        <b style={{ fontSize: 20 }} className="serif">
+          {net === null ? '—' : `${net.toFixed(3)} g`}
+        </b>
       </div>
 
-      {/* Publish bar */}
-      <aside className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-outline-variant pb-safe">
-        <div className="max-w-lg mx-auto px-5 py-3 flex flex-col gap-2">
-          <span className={`font-sans text-sm font-bold ${problem ? 'text-outline' : 'text-success'}`}>{problem ?? (editing ? 'Ready to save' : 'Ready to publish')}</span>
-          <button onClick={handleSave} disabled={isSaving || problem !== null} className={btnPrimary} type="button">
-            {isSaving ? 'Saving…' : editing ? 'Save changes' : 'List in catalogue'}
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        <span className="lab" style={{ margin: 0 }}>
+          Availability
+        </span>
+        {sector.stockStatuses.map((st) => (
+          <button key={st.key} type="button" className={`chip${stockStatus === st.key ? ' on' : ''}`} aria-pressed={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
+            {st.key}
           </button>
+        ))}
+      </div>
+
+      <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
+        <input id="np-huid" className="inp" style={{ height: 48 }} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
+      </Field>
+
+      <Field label={editing ? 'SKU' : 'SKU (optional)'} htmlFor="np-sku">
+        <input id="np-sku" className="inp" style={{ height: 48 }} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Leave blank to generate one" />
+      </Field>
+
+      {merchant.productFields.map((field) => (
+        <Field key={field.key} label={`${field.label}${field.unit ? ` (${field.unit})` : ''}${field.required ? ' *' : ''}`} htmlFor={`np-${field.key}`}>
+          {field.type === 'select' ? (
+            <select id={`np-${field.key}`} className="inp" style={{ height: 48 }} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
+              <option value="">Select</option>
+              {field.options?.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input id={`np-${field.key}`} className="inp" style={{ height: 48 }} value={extra[field.key] ?? ''} inputMode={field.type === 'number' ? 'decimal' : 'text'} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })} />
+          )}
+        </Field>
+      ))}
+
+      {limits.photos !== null && ent.effectivePlan === 'basic' && ent.usage && (
+        <div className="note warn row">
+          <i aria-hidden="true" className="i s i-sparkle" />
+          <span>
+            Photos used: {ent.usage.photos} of {limits.photos} on Basic.
+          </span>
         </div>
-      </aside>
+      )}
+
+      <p className="hint" style={{ margin: '4px 0 0', color: problem ? 'var(--mut)' : 'var(--ok)', fontWeight: 700 }}>
+        {problem ?? (editing ? 'Ready to save' : 'Ready to publish')}
+      </p>
+      <button type="button" className="btn" onClick={handleSave} disabled={isSaving || problem !== null}>
+        {isSaving ? 'Saving…' : editing ? 'Save changes' : 'Save design'}
+      </button>
+      {editing && (
+        <button type="button" onClick={handleDelete} disabled={isSaving} className="btn alt danger">
+          Delete this design
+        </button>
+      )}
     </div>
   );
 };

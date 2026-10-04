@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Banner, Category } from '../types';
-import { Field, inputClass } from './ui';
+import { I, Photo } from './ui';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
   onReorder: (ids: string[]) => Promise<void>;
 }
 
+/** Home banners (artboard 3.7): one card per banner, in the order buyers swipe through them. */
 export const AdminBannersScreen: React.FC<Props> = ({ banners, categories, onLink, onAdd, onDelete, onReorder }) => {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -50,80 +51,58 @@ export const AdminBannersScreen: React.FC<Props> = ({ banners, categories, onLin
     setTimeout(() => setConfirming((c) => (c === banner.id ? null : c)), 3000);
   };
 
-  return (
-    <div className="flex flex-col w-full pb-32 max-w-xl md:max-w-3xl mx-auto px-4 pt-3 space-y-4">
-      <div>
-        <h2 className="font-serif text-[26px] text-primary leading-tight">Home banners</h2>
-        <p className="font-sans text-sm text-on-surface-variant leading-relaxed mt-1">
-          Buyers swipe through these on the Catalogue home, in the order shown here. A banner can open one of your collections when a buyer taps it. Use a wide photo (about 3:1); it is cropped to fit phones and desktops. With no banners, the default messages show.
-        </p>
-      </div>
-
-      <section className="bg-white rounded-2xl p-4 border border-outline-variant flex flex-col gap-3">
-        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
-        <Field label="Opens collection (optional)" htmlFor="banner-new-link">
-          <select id="banner-new-link" className={inputClass} value={newLink} onChange={(e) => setNewLink(e.target.value)}>
-            <option value="">Nothing, just a picture</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <button
-          type="button"
-          disabled={photos.length === 0 || uploading || saving}
-          onClick={add}
-          className="w-full h-12 bg-secondary hover:bg-secondary-dark disabled:opacity-40 text-white rounded-2xl text-sm font-sans font-extrabold"
-        >
-          {uploading ? 'Photo is uploading…' : saving ? 'Adding…' : 'Add banner'}
-        </button>
-      </section>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        {banners.map((b, i) => (
-          <div key={b.id} className="flex flex-col gap-2">
-          <div className="relative rounded-2xl overflow-hidden border border-outline-variant aspect-[3/1] bg-surface-container">
-            <img src={b.image} alt={`Banner ${i + 1}`} className="w-full h-full object-cover" />
-            <button
-              type="button"
-              aria-label={confirming === b.id ? 'Tap again to delete this banner' : 'Delete banner'}
-              onClick={() => askDelete(b)}
-              className="absolute top-2 right-2 h-9 px-3 rounded-full bg-white/95 text-error text-xs font-extrabold flex items-center gap-1 shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[16px]">delete</span>
-              {confirming === b.id ? 'Tap again to delete' : 'Delete'}
-            </button>
-            <div className="absolute bottom-2 left-2 flex gap-1.5">
-              <button type="button" aria-label="Move earlier" disabled={i === 0} onClick={() => move(i, -1)} className="w-10 h-10 rounded-xl bg-white/95 text-primary flex items-center justify-center disabled:opacity-40">
-                <span className="material-symbols-outlined text-[20px]">arrow_upward</span>
-              </button>
-              <button type="button" aria-label="Move later" disabled={i === banners.length - 1} onClick={() => move(i, 1)} className="w-10 h-10 rounded-xl bg-white/95 text-primary flex items-center justify-center disabled:opacity-40">
-                <span className="material-symbols-outlined text-[20px]">arrow_downward</span>
-              </button>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 font-sans text-sm font-bold text-on-surface-variant">
-            <span className="whitespace-nowrap">Opens</span>
-            <select
-              aria-label={`Collection that banner ${i + 1} opens`}
-              className="flex-1 min-w-0 h-11 bg-white border-[1.5px] border-outline-variant rounded-xl px-3 font-sans text-sm font-bold text-on-surface focus:outline-none focus:border-primary"
-              value={b.category ?? ''}
-              onChange={(e) => onLink(b, e.target.value || null)}
-            >
-              <option value="">Nothing</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-              {b.category && !categories.some((c) => c.name === b.category) && <option value={b.category}>{b.category}</option>}
-            </select>
-          </label>
-          </div>
+  const collectionSelect = (id: string, value: string, onChange: (v: string) => void, extra?: string | null) => (
+    <div>
+      <label className="lab" htmlFor={id}>
+        Opens collection (optional)
+      </label>
+      <select id={id} className="inp" style={{ height: 46 }} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Nothing, just a picture</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.name}>
+            {c.name}
+          </option>
         ))}
+        {extra && !categories.some((c) => c.name === extra) && <option value={extra}>{extra}</option>}
+      </select>
+    </div>
+  );
+
+  return (
+    <div className="scroll" style={{ gap: 12 }}>
+      <p className="sub">Photos shown at the top of your buyers' home, in this order. Use a wide photo. Banner photos count toward your photo limit.</p>
+
+      {banners.map((b, i) => (
+        <div key={b.id} className="card col" style={{ gap: 10 }}>
+          <Photo src={b.image} tone={i} style={{ height: 110 }} />
+          {collectionSelect(`banner-${b.id}`, b.category ?? '', (v) => onLink(b, v || null), b.category)}
+          <div className="row">
+            <button type="button" className="ib" aria-label="Move earlier" disabled={i === 0} onClick={() => move(i, -1)}>
+              <I n="back" style={{ transform: 'rotate(90deg)' }} />
+            </button>
+            <button type="button" className="ib" aria-label="Move later" disabled={i === banners.length - 1} onClick={() => move(i, 1)}>
+              <I n="back" style={{ transform: 'rotate(-90deg)' }} />
+            </button>
+            <span className="grow" />
+            <button type="button" className="btn sm alt danger" onClick={() => askDelete(b)} aria-label={confirming === b.id ? 'Tap again to remove this banner' : 'Remove banner'}>
+              {confirming === b.id ? 'Tap again' : 'Remove'}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <div className="card col" style={{ gap: 10 }}>
+        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
+        {photos.length > 0 && (
+          <>
+            {collectionSelect('banner-new-link', newLink, setNewLink)}
+            <button type="button" className="btn" disabled={uploading || saving} onClick={add}>
+              {uploading ? 'Photo is uploading…' : saving ? 'Adding…' : 'Add banner'}
+            </button>
+          </>
+        )}
       </div>
+      {banners.length === 0 && <p className="hint">With no banners, buyers see the default messages.</p>}
     </div>
   );
 };

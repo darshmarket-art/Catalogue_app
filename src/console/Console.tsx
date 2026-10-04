@@ -15,8 +15,18 @@ const call = async (path: string, body?: object) => {
   if (!res.ok) throw new Error(j.message ?? `Request failed (${res.status})`);
   return j.data;
 };
-const day = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '-');
+const day = (s: string | null) => (s ? new Date(s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+const daysLeft = (s: string | null) => {
+  if (!s) return '—';
+  const d = Math.ceil((Date.parse(s) - Date.now()) / 86400000);
+  return d > 0 ? `${d} ${d === 1 ? 'day' : 'days'}` : 'Ended';
+};
 
+const PlanTag = ({ s }: { s: Row }) =>
+  s.plan === 'basic' ? <span className="tag mut">Basic</span> : <span className={s.plan === 'pro' && !s.trialEndsAt ? 'pro dark' : 'pro'}>{s.plan === 'founder' ? 'Founder' : s.trialEndsAt && s.effectivePlan === 'pro' && s.plan !== 'pro' ? 'Pro trial' : s.plan}</span>;
+const StatusTag = ({ s }: { s: Row }) => <span className={s.status === 'active' ? 'tag ok' : 'tag bad'}>{s.status === 'active' ? 'Active' : 'Suspended'}</span>;
+
+/** Antarixs console (artboard 5.2 the store list, 5.3 one store). */
 export default function Console() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState('');
@@ -61,71 +71,120 @@ export default function Console() {
     { label: s.ownApp ? 'Unmark own app' : 'Mark own app', path: '/own-app', body: { ownApp: !s.ownApp }, warn: 'Own-app stores get Pro features.' }
   ];
 
-  const field = 'rounded-lg border border-surface-dim bg-surface-container-lowest px-3 py-2 text-sm';
-  return (
-    <main className="mx-auto max-w-6xl p-4">
-      <h1 className="font-serif text-3xl text-primary">Antarixs console</h1>
-      <div className="my-4 flex flex-wrap gap-2">
-        <input className={field} placeholder="Search name or subdomain" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
-        <select className={field} value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan">
-          <option value="">All plans</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="founder">Founder</option>
-        </select>
-        <select className={field} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
-          <option value="">Any status</option><option value="active">Active</option><option value="suspended">Suspended</option>
-        </select>
-      </div>
-      {error && <p role="alert" className="mb-3 rounded-lg bg-primary-fixed p-3 text-sm text-primary">{error}</p>}
-      <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-surface-container-low text-xs uppercase text-primary">
-            <tr>{['Store', 'Plan', 'Trial ends', 'Status', 'Buyers', 'Photos', 'Created'].map((h) => <th key={h} className="p-3">{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {rows.map((s) => (
-              <tr key={s.id} onClick={() => void show(s.id)} className="cursor-pointer border-t border-surface-dim hover:bg-surface-container-low">
-                <td className="p-3"><b>{s.name}</b><div className="text-xs opacity-70">{s.subdomain}</div></td>
-                <td className="p-3">{s.plan}{s.effectivePlan !== s.plan && <span className="opacity-70"> (acts as {s.effectivePlan})</span>}</td>
-                <td className="p-3">{day(s.trialEndsAt)}</td>
-                <td className="p-3">{s.status}</td>
-                <td className="p-3">{s.buyers}</td>
-                <td className="p-3">{s.photos}</td>
-                <td className="p-3">{day(s.createdAt)}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center opacity-70">No stores match.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+  const stats: Array<[string, number]> = [
+    ['Stores', rows.length],
+    ['On a Pro trial', rows.filter((r) => r.trialEndsAt && r.plan !== 'pro' && Date.parse(r.trialEndsAt) > Date.now()).length],
+    ['Paid Pro', rows.filter((r) => r.plan === 'pro').length],
+    ['Suspended', rows.filter((r) => r.status !== 'active').length]
+  ];
 
-      {open && (
-        <aside className="fixed inset-y-0 right-0 z-10 w-full max-w-md overflow-y-auto bg-surface-container-lowest p-5 shadow-2xl" aria-label="Store detail">
-          <button className="float-right text-sm text-primary" onClick={() => { setOpen(null); setPending(null); }}>Close</button>
-          <h2 className="font-serif text-2xl text-primary">{open.name}</h2>
-          <p className="text-sm opacity-70">{open.subdomain} - {open.status}</p>
-          <dl className="my-4 grid grid-cols-2 gap-2 text-sm">
-            <dt>Plan</dt><dd>{open.plan} (acts as {open.effectivePlan})</dd>
-            <dt>Trial ends</dt><dd>{day(open.trialEndsAt)}</dd>
-            <dt>Own app</dt><dd>{open.ownApp ? 'Yes' : 'No'}</dd>
-            <dt>Buyers / photos / categories</dt><dd>{open.buyers} / {open.photos} / {open.categories}</dd>
-            <dt>Owner</dt><dd>{open.owner?.email ?? open.owner?.phone ?? '-'}</dd>
-          </dl>
-          <div className="flex flex-wrap gap-2">
-            {actions(open).map((a) => <button key={a.label} className="rounded-lg bg-secondary-container px-3 py-2 text-sm text-on-secondary-container" onClick={() => setPending(a)}>{a.label}</button>)}
-          </div>
-          {pending && (
-            <div role="alertdialog" className="mt-4 rounded-lg border border-primary p-3 text-sm">
-              <p><b>{pending.label}</b> for {open.name}? {pending.warn}</p>
-              <button className="mr-2 mt-2 rounded-lg bg-primary px-3 py-2 text-on-primary" onClick={() => void run()}>Confirm</button>
-              <button className="mt-2 rounded-lg px-3 py-2" onClick={() => setPending(null)}>Cancel</button>
+  return (
+    <div className="console" style={{ minHeight: '100vh' }}>
+      <header className="console-bar">
+        <i aria-hidden="true" className="i l i-gem" />
+        <span className="serif" style={{ fontSize: 22 }}>Antarixs console</span>
+      </header>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {error && <p role="alert" className="note bad">{error}</p>}
+
+        {open ? (
+          <>
+            <button type="button" className="lnk" style={{ alignSelf: 'flex-start', textDecoration: 'none' }} onClick={() => { setOpen(null); setPending(null); }}>
+              <i aria-hidden="true" className="i s i-back" /> All stores
+            </button>
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <section aria-label="Store detail" className="card col" style={{ flex: '1 1 420px', gap: 12, padding: 20 }}>
+                <div className="row"><h1 style={{ fontSize: 28 }} className="grow">{open.name}</h1><StatusTag s={open} /></div>
+                <p className="sub">{open.subdomain}</p>
+                <hr className="sep" />
+                <div className="kv"><span>Owner</span><b>{open.owner?.email ?? open.owner?.phone ?? '—'}</b></div>
+                <div className="kv"><span>Plan</span><b>{open.plan}{open.effectivePlan !== open.plan ? ` (acts as ${open.effectivePlan})` : ''}</b></div>
+                <div className="kv"><span>Trial ends</span><b>{open.trialEndsAt ? `${day(open.trialEndsAt)} · ${daysLeft(open.trialEndsAt)}` : '—'}</b></div>
+                <div className="kv"><span>Buyers</span><b>{open.buyers}</b></div>
+                <div className="kv"><span>Photos</span><b>{open.photos}</b></div>
+                <div className="kv"><span>Collections</span><b>{open.categories ?? '—'}</b></div>
+                <div className="kv"><span>Own Android app</span><b>{open.ownApp ? 'Yes' : 'No'}</b></div>
+                <div className="kv"><span>Created</span><b>{day(open.createdAt)}</b></div>
+              </section>
+              <section aria-label="Actions" className="card col" style={{ flex: '1 1 320px', gap: 12, padding: 20 }}>
+                <h2 style={{ fontSize: 20 }}>Change store</h2>
+                <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  {actions(open).map((a) => (
+                    <button key={a.label} type="button" className={`btn sm ${pending?.label === a.label ? '' : 'soft'}`} onClick={() => setPending(a)}>{a.label}</button>
+                  ))}
+                </div>
+                {pending ? (
+                  <div role="alertdialog" className="note col" style={{ gap: 10 }}>
+                    <p><b>{pending.label}</b> for {open.name}? {pending.warn}</p>
+                    <div className="row">
+                      <button type="button" className="btn sm" onClick={() => void run()}>Confirm</button>
+                      <button type="button" className="btn sm alt" onClick={() => setPending(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="hint" style={{ margin: 0 }}>Every change is recorded below.</p>
+                )}
+              </section>
             </div>
-          )}
-          <h3 className="mb-1 mt-6 font-bold">Recent changes</h3>
-          <ul className="space-y-1 text-xs">
-            {open.audit?.map((a) => <li key={a.id}>{new Date(a.at).toLocaleString()} - {a.who}: {a.what}</li>)}
-            {!open.audit?.length && <li className="opacity-70">None yet.</li>}
-          </ul>
-        </aside>
-      )}
-    </main>
+            <section className="card col" style={{ gap: 8, padding: 20 }}>
+              <h2 style={{ fontSize: 20 }}>Recent changes</h2>
+              {open.audit?.map((a) => (
+                <div key={a.id} className="kv"><span>{a.what} · by {a.who}</span><b>{new Date(a.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</b></div>
+              ))}
+              {!open.audit?.length && <div className="sub" style={{ fontSize: 13 }}>None yet.</div>}
+            </section>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              {stats.map(([label, value]) => (
+                <div key={label} className="card" style={{ flex: '1 1 160px' }}>
+                  <span className="stat" style={{ fontSize: 30 }}>{value}</span>
+                  <span className="sub" style={{ display: 'block', fontSize: 13 }}>{label}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div className="inp-icon" style={{ flex: '1 1 280px' }}>
+                <i aria-hidden="true" className="i i-search" />
+                <input className="inp" placeholder="Search name or subdomain" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
+              </div>
+              <select className="inp" style={{ flex: '0 0 170px' }} value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan">
+                <option value="">All plans</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="founder">Founder</option>
+              </select>
+              <select className="inp" style={{ flex: '0 0 170px' }} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
+                <option value="">Any status</option><option value="active">Active</option><option value="suspended">Suspended</option>
+              </select>
+            </div>
+            <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+              <table className="t" style={{ minWidth: 860 }}>
+                <thead>
+                  <tr>{['Store', 'Plan', 'Status', 'Trial ends', 'Buyers', 'Photos', 'App'].map((h) => <th key={h}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {rows.map((s) => (
+                    <tr key={s.id} onClick={() => void show(s.id)} style={{ cursor: 'pointer' }}>
+                      <td>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); void show(s.id); }} style={{ border: 0, background: 'none', padding: 0, textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
+                          <b>{s.name}</b><br /><span className="sub" style={{ fontSize: 13 }}>{s.subdomain}</span>
+                        </button>
+                      </td>
+                      <td><PlanTag s={s} /></td>
+                      <td><StatusTag s={s} /></td>
+                      <td>{daysLeft(s.trialEndsAt)}</td>
+                      <td>{s.buyers}</td>
+                      <td>{s.photos.toLocaleString('en-IN')}</td>
+                      <td>{s.ownApp ? <span className="tag">Own app</span> : '—'}</td>
+                    </tr>
+                  ))}
+                  {rows.length === 0 && <tr><td colSpan={7} className="sub" style={{ textAlign: 'center', padding: 24 }}>No stores match.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <p className="hint" style={{ margin: 0 }}>Sign-in is through Google (IAP) and limited to the admin list.</p>
+          </>
+        )}
+      </main>
+    </div>
   );
 }

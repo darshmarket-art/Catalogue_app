@@ -3,6 +3,7 @@ import { Category, ActiveScreen, Banner, Product } from '../types';
 import { downloadCataloguePdf } from '../cataloguePdf';
 import { merchant } from '../merchant';
 import { Facebook, Instagram, MapPin, MessageCircle, Youtube } from 'lucide-react';
+import { I, Photo, Sheet, Toast } from './ui';
 
 interface CategoriesScreenProps {
   categories: Category[];
@@ -14,39 +15,8 @@ interface CategoriesScreenProps {
   onFilterCategoryInCatalogue: (categoryName: string) => void;
 }
 
-const PROMO_LOOKS = {
-  gold: {
-    background: 'from-on-surface via-on-tertiary-fixed to-on-surface',
-    tag: 'bg-primary text-white',
-    title: 'text-primary-fixed',
-    subtitle: 'text-surface-container-highest',
-    action: 'bg-primary-fixed/20 border border-tertiary-fixed-dim/60 text-primary-fixed hover:bg-primary-fixed/30 transition-colors'
-  },
-  green: {
-    background: 'from-secondary-deep via-secondary to-secondary-deep',
-    tag: 'bg-secondary-fixed text-on-secondary-fixed',
-    title: 'text-white',
-    subtitle: 'text-secondary-fixed-dim',
-    action: 'bg-secondary-fixed text-on-secondary-fixed shadow-sm'
-  },
-  brown: {
-    background: 'from-brown-darker via-brown-dark to-brown-darkest',
-    tag: 'bg-primary-fixed text-on-tertiary-fixed',
-    title: 'text-primary-fixed',
-    subtitle: 'text-surface-container-highest',
-    action: 'bg-primary-fixed/20 border border-tertiary-fixed-dim/60 text-primary-fixed'
-  }
-} as const;
-
-export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
-  categories,
-  products,
-  banners,
-  isAdmin,
-  onEditCategory,
-  onNavigate,
-  onFilterCategoryInCatalogue
-}) => {
+/** Home (artboard 2.2): search, the banner, then the collections two by two. */
+export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({ categories, products, banners, isAdmin, onEditCategory, onNavigate, onFilterCategoryInCatalogue }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
@@ -74,8 +44,6 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const openLink = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
-
   const shareLink = async (url: string) => {
     try {
       if (navigator.share) {
@@ -100,101 +68,92 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
   };
 
   const { contact } = merchant;
-  const contactLinks: Array<{ label: string; href: string; className: string; icon: React.ReactNode }> = [
-    { label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, className: 'bg-whatsapp text-on-whatsapp', icon: <MessageCircle size={22} /> },
-    ...(contact.instagramUrl
-      ? [{ label: 'Instagram', href: contact.instagramUrl, className: 'text-white bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]', icon: <Instagram size={22} /> }]
-      : []),
-    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, className: 'text-white bg-[#1877F2]', icon: <Facebook size={22} /> }] : []),
-    ...(contact.youtubeUrl ? [{ label: 'YouTube', href: contact.youtubeUrl, className: 'text-white bg-[#FF0000]', icon: <Youtube size={22} /> }] : []),
+  const contactLinks: Array<{ label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
+    { label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--wa)', color: '#fff' }, icon: <MessageCircle size={22} /> },
+    ...(contact.instagramUrl ? [{ label: 'Instagram', href: contact.instagramUrl, style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={22} /> }] : []),
+    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={22} /> }] : []),
+    ...(contact.youtubeUrl ? [{ label: 'YouTube', href: contact.youtubeUrl, style: { background: '#FF0000', color: '#fff' }, icon: <Youtube size={22} /> }] : []),
     ...(contact.address
       ? [
           {
             label: contact.showroomLabel ?? 'Showroom',
             href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
-            className: 'text-on-primary bg-primary',
+            style: { background: 'var(--plum)', color: 'var(--on-plum)' },
             icon: <MapPin size={22} />
           }
         ]
       : [])
   ];
 
-  const filteredCategories = categories.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const q = searchQuery.toLowerCase();
+  const filteredCategories = categories.filter((c) => c.name.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q));
+  const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => k.split(' ')[0]).join(', ') : `avg ${cat.avgNetWt}`);
 
   return (
-    <div className="flex flex-col w-full pb-36 max-w-3xl mx-auto px-4">
-      {/* Toast Notification */}
+    <div className="scroll wide" style={{ gap: 16, maxWidth: 760 }}>
       {toastMessage && (
-        <div role="status" className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2 text-sm font-sans animate-fade-in">
-          <span className="material-symbols-outlined text-success-container text-[18px]">check_circle</span>
-          <span>{toastMessage}</span>
-        </div>
+        <Toast>
+          <I n="check" size="s" />
+          {toastMessage}
+        </Toast>
       )}
 
-      {/* Search & Sort Bar */}
-      <div className="py-2 flex items-center gap-2 sticky top-[calc(var(--header-h)+var(--sat))] z-20 bg-surface/95 backdrop-blur-md">
-        <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">
-            search
-          </span>
-          <input
-            aria-label="Search the catalogue" className="w-full h-[52px] pl-11 pr-3 bg-white rounded-2xl text-on-surface text-base font-sans border-[1.5px] border-outline-variant focus:outline-none focus:border-primary"
-            placeholder="Search name, SKU or collection"
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="inp-icon">
+        <I n="search" />
+        <input aria-label="Search the catalogue" className="inp" style={{ borderRadius: 16 }} placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
       </div>
 
       {/* Banners: the owner's photos, or the default messages from merchant.json. Swipe, or use the arrows on desktop. */}
       {slideCount > 0 && (
-        <div className="relative w-full my-2" onMouseEnter={() => (paused.current = true)} onMouseLeave={() => (paused.current = false)}>
+        <div className="relative" onMouseEnter={() => (paused.current = true)} onMouseLeave={() => (paused.current = false)}>
           <div
             ref={scroller}
             onScroll={(e) => setActiveSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             onTouchStart={() => (paused.current = true)}
             onTouchEnd={() => (paused.current = false)}
-            className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-xl border border-outline-variant/60 shadow-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden aspect-[16/9] sm:aspect-[2/1] md:aspect-[3/1]"
+            className="flex overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ borderRadius: 24, boxShadow: 'var(--sh-2)' }}
           >
             {banners.length > 0
-              ? banners.map((b) => (
-                  b.category ? (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => onFilterCategoryInCatalogue(b.category!)}
-                      aria-label={`Open ${b.category}`}
-                      className="min-w-full h-full snap-center p-0 block"
-                    >
-                      <img src={b.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </button>
-                  ) : (
-                    <img key={b.id} src={b.image} alt="" className="min-w-full h-full object-cover snap-center" referrerPolicy="no-referrer" />
-                  )
+              ? banners.map((b, i) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    disabled={!b.category}
+                    onClick={() => b.category && onFilterCategoryInCatalogue(b.category)}
+                    aria-label={b.category ? `Open ${b.category}` : `Banner ${i + 1}`}
+                    className="min-w-full snap-center p-0 border-0 bg-transparent text-left"
+                  >
+                    <Photo src={b.image} style={{ height: 196, borderRadius: 0 }}>
+                      {b.category && (
+                        <>
+                          <div className="shade" />
+                          <div className="over col" style={{ left: 18, right: 18, bottom: 16, gap: 6, color: '#fff7ea' }}>
+                            <span className="pro" style={{ alignSelf: 'flex-start' }}>
+                              Collection
+                            </span>
+                            <h2 style={{ fontSize: 27, lineHeight: 1.05, color: '#fff7ea' }}>{b.category}</h2>
+                          </div>
+                        </>
+                      )}
+                    </Photo>
+                  </button>
                 ))
-              : merchant.promotions.map((promo) => {
-                  const look = PROMO_LOOKS[promo.theme];
-                  return (
-                    <div
-                      key={promo.title}
-                      className={`min-w-full h-full snap-center flex flex-col justify-end gap-2 bg-gradient-to-r ${look.background} px-5 pt-4 pb-9 md:px-8 text-white`}
-                    >
-                      <span className={`self-start ${look.tag} font-sans text-xs px-2.5 py-1 rounded-full font-extrabold tracking-wide uppercase`}>{promo.tag}</span>
-                      <h3 className={`font-serif text-[24px] md:text-[30px] ${look.title} leading-tight`}>{promo.title}</h3>
-                      <p className={`font-sans text-sm md:text-base ${look.subtitle} line-clamp-2`}>{promo.subtitle}</p>
-                      <button
-                        onClick={() => onFilterCategoryInCatalogue(promo.title)}
-                        className={`self-start min-h-11 px-4 rounded-xl ${look.action} text-sm font-extrabold`}
-                      >
-                        {promo.actionLabel}
-                      </button>
-                    </div>
-                  );
-                })}
+              : merchant.promotions.map((promo) => (
+                  <div key={promo.title} className="hero min-w-full snap-center col" style={{ minHeight: 196, borderRadius: 0, gap: 8, justifyContent: 'flex-end', padding: '20px 20px 30px' }}>
+                    <span className="pro" style={{ alignSelf: 'flex-start' }}>
+                      {promo.tag}
+                    </span>
+                    <h2 style={{ fontSize: 26, lineHeight: 1.05 }}>{promo.title}</h2>
+                    <p className="sub" style={{ fontSize: 13.5 }}>
+                      {promo.subtitle}
+                    </p>
+                    <button type="button" className="lnk" style={{ color: '#e2c389', alignSelf: 'flex-start', minHeight: 32 }} onClick={() => onFilterCategoryInCatalogue(promo.title)}>
+                      {promo.actionLabel}
+                      <I n="chev" size="s" />
+                    </button>
+                  </div>
+                ))}
           </div>
 
           {slideCount > 1 && (
@@ -205,19 +164,20 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
                   type="button"
                   aria-label={dir === 'prev' ? 'Previous banner' : 'Next banner'}
                   onClick={() => goToSlide(activeSlide + (dir === 'prev' ? -1 : 1))}
-                  className={`hidden md:flex absolute top-1/2 -translate-y-1/2 ${dir === 'prev' ? 'left-2' : 'right-2'} w-9 h-9 rounded-full bg-white/85 text-primary items-center justify-center shadow`}
+                  className={`ib hidden md:inline-flex absolute top-1/2 -translate-y-1/2 ${dir === 'prev' ? 'left-2' : 'right-2'}`}
+                  style={{ width: 36, height: 36, zIndex: 3 }}
                 >
-                  <span className="material-symbols-outlined text-[22px]">{dir === 'prev' ? 'chevron_left' : 'chevron_right'}</span>
+                  <I n={dir === 'prev' ? 'back' : 'chev'} size="s" />
                 </button>
               ))}
-              <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5">
+              <div className="absolute inset-x-0 flex justify-center gap-1.5" style={{ bottom: 10, zIndex: 3 }}>
                 {Array.from({ length: slideCount }, (_, i) => (
                   <button
                     key={i}
                     type="button"
                     aria-label={`Banner ${i + 1}`}
                     onClick={() => goToSlide(i)}
-                    className={`h-1.5 rounded-full transition-all shadow ${activeSlide === i ? 'w-6 bg-primary' : 'w-2 bg-white/80'}`}
+                    style={{ height: 5, width: activeSlide === i ? 20 : 6, borderRadius: 9, border: 0, padding: 0, background: activeSlide === i ? '#e2c389' : 'rgb(255 255 255 / 0.7)', transition: 'width .25s' }}
                   />
                 ))}
               </div>
@@ -228,51 +188,45 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
 
       {/* Owner only: change the banners, or send the whole catalogue link to a buyer */}
       {isAdmin && (
-        <div className="flex flex-wrap gap-2 mb-1">
-          <button type="button" onClick={() => onNavigate('admin-banners')} className="min-h-11 px-4 rounded-full border border-outline-variant bg-white text-sm font-sans font-extrabold text-primary">
+        <div className="chips">
+          <button type="button" className="chip" onClick={() => onNavigate('admin-banners')}>
+            <I n="image" size="s" />
             Change banners
           </button>
-          <button type="button" onClick={() => shareLink(window.location.origin)} className="min-h-11 px-4 rounded-full border border-outline-variant bg-white text-sm font-sans font-extrabold text-primary">
+          <button type="button" className="chip" onClick={() => shareLink(window.location.origin)}>
+            <I n="link" size="s" />
             Share catalogue link
           </button>
         </div>
       )}
 
-      {filteredCategories.length === 0 && (
-        <p className="py-10 text-center font-sans text-xs text-outline">
-          {categories.length === 0 ? 'No categories have been added yet.' : 'No categories match your search.'}
-        </p>
-      )}
+      <div className="row" style={{ alignItems: 'flex-end', marginTop: 4 }}>
+        <div className="grow">
+          <span className="eyebrow">Browse</span>
+          <h2 style={{ fontSize: 24, marginTop: 2 }}>Collections</h2>
+        </div>
+        <button type="button" className="lnk" style={{ minHeight: 36 }} onClick={() => onNavigate('catalogue')}>
+          All designs
+        </button>
+      </div>
 
-      {/* Collections: one square each. One column on phones, two squares per row on larger screens. */}
-      <h2 className="font-serif text-[22px] text-primary mt-3 mb-2">Collections</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-        {filteredCategories.map((cat) => (
-          <div key={cat.id} className="relative aspect-square rounded-3xl overflow-hidden bg-surface-container shadow-sm group">
-            <img
-              src={cat.image}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
-            <button type="button" aria-label={`Open ${cat.name}`} onClick={() => onFilterCategoryInCatalogue(cat.name)} className="absolute inset-0 text-left">
-              <span className="absolute bottom-4 left-5 right-5 text-white">
-                <span className="block font-serif text-[26px] leading-tight drop-shadow line-clamp-2">{cat.name}</span>
-                <span className="block font-sans text-sm font-semibold text-white/90 mt-1 drop-shadow">
-                  {cat.designCount} {cat.designCount === 1 ? 'design' : 'designs'} · avg {cat.avgNetWt}
-                </span>
-              </span>
+      {filteredCategories.length === 0 && <p className="hint" style={{ textAlign: 'center', padding: '24px 0' }}>{categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.'}</p>}
+
+      <div className="grid2 md:!grid-cols-3">
+        {filteredCategories.map((cat, i) => (
+          <div key={cat.id} className="card col" style={{ gap: 8, padding: '8px 8px 12px', position: 'relative' }}>
+            <button type="button" aria-label={`Open ${cat.name}`} onClick={() => onFilterCategoryInCatalogue(cat.name)} className="col" style={{ gap: 8, border: 0, padding: 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit' }}>
+              <Photo src={cat.image} tone={i} style={{ height: 104, borderRadius: 14, width: '100%' }} />
+              <div style={{ padding: '0 6px' }}>
+                <b>{cat.name}</b>
+                <p className="sub" style={{ fontSize: 12.5 }}>
+                  {cat.designCount} {cat.designCount === 1 ? 'design' : 'designs'} · {purityOf(cat)}
+                </p>
+              </div>
             </button>
-
             {isAdmin && (
-              <button
-                type="button"
-                aria-label={`Options for ${cat.name}`}
-                onClick={() => setMenuFor(cat)}
-                className="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-sm active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[24px]">more_horiz</span>
+              <button type="button" className="ib" aria-label={`Options for ${cat.name}`} onClick={() => setMenuFor(cat)} style={{ position: 'absolute', top: 14, right: 14, width: 36, height: 36, zIndex: 3 }}>
+                <I n="more" size="s" />
               </button>
             )}
           </div>
@@ -281,21 +235,14 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
 
       {/* Admin menu for one collection */}
       {menuFor && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true" aria-label={`Options for ${menuFor.name}`}>
-          <button type="button" aria-label="Close" className="absolute inset-0 bg-scrim/50" onClick={() => setMenuFor(null)} />
-          <div className="relative w-full max-w-md bg-surface rounded-t-3xl p-4 pb-6 animate-fade-in">
-            <div className="w-10 h-1 rounded-full bg-outline-variant mx-auto mb-3" />
-            <h3 className="font-serif text-[22px] text-primary mb-1">{menuFor.name}</h3>
+        <Sheet label={`Options for ${menuFor.name}`} onClose={() => setMenuFor(null)}>
+          <h2 style={{ fontSize: 24 }}>{menuFor.name}</h2>
+          <div className="card" style={{ padding: '2px 16px' }}>
             {[
               { label: 'Edit collection', note: 'Name, photo, weight range', icon: 'edit', run: () => onEditCategory(menuFor) },
-              {
-                label: 'Share link',
-                note: 'Buyer signs in and lands on this collection',
-                icon: 'link',
-                run: () => shareLink(`${window.location.origin}/?category=${encodeURIComponent(menuFor.name)}`)
-              },
-              { label: 'Share as PDF', note: `All photos with the ${merchant.brand.name} watermark`, icon: 'picture_as_pdf', run: () => handlePdf(menuFor) }
-            ].map((o) => (
+              { label: 'Share link', note: 'Buyer signs in and lands on this collection', icon: 'link', run: () => shareLink(`${window.location.origin}/?category=${encodeURIComponent(menuFor.name)}`) },
+              { label: 'Share as PDF', note: `All photos with the ${merchant.brand.name} watermark`, icon: 'file', run: () => handlePdf(menuFor) }
+            ].map((o, i) => (
               <button
                 key={o.label}
                 type="button"
@@ -303,50 +250,42 @@ export const CategoriesScreen: React.FC<CategoriesScreenProps> = ({
                   setMenuFor(null);
                   o.run();
                 }}
-                className="w-full flex items-center gap-3 py-3 border-t border-outline-variant text-left min-h-14"
+                className="row"
+                style={{ width: '100%', padding: '12px 0', border: 0, borderTop: i ? '1px solid var(--line-s)' : 0, background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }}
               >
-                <span className="w-10 h-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">{o.icon}</span>
+                <span className="tag gold" style={{ width: 36, height: 36, justifyContent: 'center', padding: 0, borderRadius: 11 }}>
+                  <I n={o.icon} size="s" />
                 </span>
-                <span>
-                  <span className="block font-sans text-[15px] font-extrabold text-on-surface">{o.label}</span>
-                  <span className="block font-sans text-sm text-on-surface-variant">{o.note}</span>
+                <span className="grow">
+                  <b>{o.label}</b>
+                  <span className="sub" style={{ display: 'block', fontSize: 13.5 }}>
+                    {o.note}
+                  </span>
                 </span>
               </button>
             ))}
           </div>
-        </div>
+        </Sheet>
       )}
 
       {/* Floating contact menu: the owner's own WhatsApp, showroom and social pages (a link only appears once it is set in merchant.json) */}
-      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-3">
+      <div className="fixed right-4 z-40 flex flex-col items-end gap-3" style={{ bottom: 'calc(96px + var(--sab))' }}>
         {speedDialOpen && (
-          <div className="flex flex-col items-end gap-2 transition-all duration-300 animate-fade-in">
+          <div className="flex flex-col items-end gap-2 animate-fade-in">
             {contactLinks.map((link) => (
               <div key={link.label} className="flex items-center gap-2">
-                <span className="bg-on-surface text-inverse-on-surface text-sm font-bold px-3 py-1.5 rounded-xl shadow-md">{link.label}</span>
-                <a
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={link.label}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform ${link.className}`}
-                >
+                <span className="tag" style={{ background: 'var(--plum-d)', color: 'var(--on-plum)', fontSize: 13, padding: '6px 10px' }}>
+                  {link.label}
+                </span>
+                <a href={link.href} target="_blank" rel="noopener noreferrer" aria-label={link.label} className="flex items-center justify-center" style={{ ...link.style, width: 48, height: 48, borderRadius: 16, boxShadow: 'var(--sh-2)' }}>
                   {link.icon}
                 </a>
               </div>
             ))}
           </div>
         )}
-
-        <button
-          onClick={() => setSpeedDialOpen(!speedDialOpen)}
-          aria-expanded={speedDialOpen}
-          aria-label={speedDialOpen ? 'Close contact menu' : 'Contact us'}
-          className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-xl active:scale-95 transition-all"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-[24px]">{speedDialOpen ? 'close' : 'support_agent'}</span>
+        <button type="button" onClick={() => setSpeedDialOpen(!speedDialOpen)} aria-expanded={speedDialOpen} aria-label={speedDialOpen ? 'Close contact menu' : 'Contact us'} className="mark" style={{ width: 56, height: 56, borderRadius: 18, border: 0 }}>
+          <I n={speedDialOpen ? 'x' : 'support'} />
         </button>
       </div>
     </div>

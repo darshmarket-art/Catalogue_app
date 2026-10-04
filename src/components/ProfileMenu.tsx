@@ -22,7 +22,7 @@ interface ProfileMenuProps {
 }
 
 const itemClass =
-  'w-full flex items-center gap-3 px-5 min-h-[52px] text-left font-sans text-[15.5px] font-bold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-outline-variant';
+  'w-full flex items-center gap-3 px-5 min-h-[50px] text-left text-[15px] font-semibold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-[rgb(74_24_53/0.07)]';
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onOpenAbout, onLogout }) => {
@@ -34,7 +34,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const name = buyer?.storeName ?? 'Staff account';
-  const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   useEffect(() => {
     if (!open) return;
@@ -77,23 +76,23 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Profile menu"
-        className="w-11 h-11 rounded-full bg-primary text-on-primary font-sans text-lg font-extrabold flex items-center justify-center active:scale-95 transition-transform"
+        className="ib"
       >
-        {initial}
+        <i aria-hidden="true" className="i i-user" />
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label="Profile"
-          className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-[0_14px_40px_rgba(30,10,24,0.28)] border border-outline-variant overflow-hidden z-50 animate-fade-in"
+          className="card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50 animate-fade-in" style={{ boxShadow: "var(--sh-2)" }}
         >
           <div className="px-5 pt-4 pb-3">
-            <p className="font-serif text-[21px] text-primary leading-tight truncate">{name}</p>
+            <p className="serif text-[21px] leading-tight truncate">{name}</p>
             {isAdmin ? (
-              <p className="font-sans text-sm text-on-surface-variant mt-0.5">Staff</p>
+              <p className="sub mt-0.5">Staff</p>
             ) : (
-              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-sans text-sm">
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                 {details.map(([label, value]) =>
                   value ? (
                     <React.Fragment key={label}>
@@ -145,7 +144,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
             About us
           </button>
 
-          <button role="menuitem" className={`${itemClass} text-error`} onClick={choose(onLogout)} type="button">
+          <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">
             Log out
           </button>
         </div>

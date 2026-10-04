@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Product, Purity } from '../types';
 import { merchant } from '../merchant';
 import { PhotoViewer } from './PhotoViewer';
+import { I, Photo, StockTag } from './ui';
 
 interface ProductDetailSheetProps {
   product: Product | null;
@@ -16,18 +17,8 @@ interface ProductDetailSheetProps {
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
 }
 
-const row = 'flex items-center justify-between py-2 border-b border-surface-container text-sm font-sans';
-
-export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
-  product,
-  isAdmin,
-  purities,
-  hearted,
-  onToggleShortlist,
-  onClose,
-  onEdit,
-  onAddToOrder
-}) => {
+/** A design's details (artboard 2.4, Pro; 2.5, Basic: enquire on WhatsApp instead of ordering). */
+export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({ product, isAdmin, purities, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder }) => {
   const canOrder = usePlan().flags.orders;
   const [slide, setSlide] = useState(0);
   const [qty, setQty] = useState(1);
@@ -50,168 +41,159 @@ export const ProductDetailSheet: React.FC<ProductDetailSheetProps> = ({
   // The offered purities, plus the design's own if the owner has since switched it off.
   const options = purities.filter((p) => p.enabled || p.key === product.purity);
   const askText = `Hello ${merchant.brand.name}, I'm interested in ${product.title} (${product.sku}), ${purity || product.purity}, net ${product.netWt.toFixed(2)} g.`;
+  const waHref = `https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(askText)}`;
+  const goTo = (i: number) => scroller.current?.scrollTo({ left: i * scroller.current.clientWidth, behavior: 'smooth' });
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={product.title}>
+    <div className="sheet-wrap" role="dialog" aria-modal="true" aria-label={product.title}>
       {zoomFrom !== null && <PhotoViewer images={product.images} start={zoomFrom} title={product.title} onClose={() => setZoomFrom(null)} />}
-      <button aria-label="Close" className="absolute inset-0 bg-scrim/50" onClick={onClose} />
-      <div className="relative bg-surface w-full max-w-md max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl shadow-2xl animate-fade-in overflow-hidden">
-        <div className="overflow-y-auto">
-          <div className="relative bg-surface-container">
-            <div
-              ref={scroller}
-              data-testid="product-gallery"
-              className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none"
-              onScroll={(e) => {
-                const el = e.currentTarget;
-                setSlide(Math.round(el.scrollLeft / el.clientWidth));
-              }}
-            >
-              {product.images.map((src, i) => (
-                <button key={src} type="button" onClick={() => setZoomFrom(i)} aria-label={`Zoom photo ${i + 1} of ${product.title}`} className="w-full flex-shrink-0 snap-center aspect-square cursor-zoom-in p-0">
-                  <img src={src} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                </button>
-              ))}
-            </div>
-            {product.images.length > 1 && (
-              <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
-                {product.images.map((_, i) => (
-                  <span key={i} className={`h-1.5 rounded-full transition-all ${slide === i ? 'w-5 bg-white' : 'w-1.5 bg-white/60'}`} />
-                ))}
-              </div>
-            )}
-            <button
-              onClick={onClose}
-              aria-label="Close details"
-              className="absolute top-2 left-2 w-11 h-11 rounded-full bg-white/95 text-on-surface flex items-center justify-center shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
-            </button>
-            {!isAdmin && (
-              <button
-                onClick={() => onToggleShortlist(product)}
-                aria-pressed={hearted}
-                aria-label={hearted ? 'Remove from shortlist' : 'Add to shortlist'}
-                className={`absolute top-2 right-2 w-11 h-11 rounded-full flex items-center justify-center shadow-sm ${hearted ? 'bg-primary text-white' : 'bg-white/95 text-primary'}`}
-              >
-                <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: `'FILL' ${hearted ? 1 : 0}` }}>
-                  favorite
-                </span>
+      <button type="button" aria-label="Close" className="scrim" onClick={onClose} />
+      <div className="sheet">
+        <div className="grab" />
+
+        <div className="relative">
+          <div
+            ref={scroller}
+            data-testid="product-gallery"
+            className="flex overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ borderRadius: 20 }}
+            onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+          >
+            {product.images.map((src, i) => (
+              <button key={src} type="button" onClick={() => setZoomFrom(i)} aria-label={`Zoom photo ${i + 1} of ${product.title}`} className="min-w-full snap-center p-0 border-0 bg-transparent" style={{ cursor: 'zoom-in' }}>
+                <Photo src={src} style={{ height: 230, borderRadius: 0 }} />
               </button>
-            )}
+            ))}
           </div>
-
-          <div className="p-4 flex flex-col gap-3 -mt-5 relative bg-surface rounded-t-3xl">
-            <div>
-              <h2 className="font-serif text-[24px] text-primary leading-tight">{product.title}</h2>
-              <span className="font-sans text-sm text-outline">
-                {product.sku} · {product.category}
-              </span>
-            </div>
-
-            <div className="flex flex-col">
-              <div className={row}>
-                <label htmlFor="purity-select" className="text-outline">
-                  Purity
-                </label>
-                {isAdmin ? (
-                  <span className="font-bold">{product.purity}</span>
-                ) : (
-                  <select
-                    id="purity-select"
-                    value={purity}
-                    onChange={(e) => setPurity(e.target.value)}
-                    className="bg-white border border-outline-variant rounded-xl px-3 py-2 font-bold text-on-surface focus:outline-none focus:border-primary"
-                  >
-                    {options.map((p) => (
-                      <option key={p.key} value={p.key}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className={row}>
-                <span className="text-outline">Net weight</span>
-                <span className="font-extrabold text-primary">{product.netWt.toFixed(3)} g</span>
-              </div>
-              <div className={row}>
-                <span className="text-outline">Gross weight</span>
-                <span className="font-bold">{product.grossWt.toFixed(3)} g</span>
-              </div>
-              {product.stoneWt ? (
-                <div className={row}>
-                  <span className="text-outline">Stone / tare</span>
-                  <span className="font-bold">{product.stoneWt.toFixed(3)} g</span>
-                </div>
-              ) : null}
-              {product.huid && (
-                <div className={row}>
-                  <span className="text-outline">HUID</span>
-                  <span className="font-bold">{product.huid}</span>
-                </div>
-              )}
-              <div className={row}>
-                <span className="text-outline">Availability</span>
-                <span className="font-bold">{product.stockStatus}</span>
-              </div>
-              {details.map((f) => (
-                <div key={f.key} className={row}>
-                  <span className="text-outline">{f.label}</span>
-                  <span className="font-bold">
-                    {product.extra?.[f.key]}
-                    {f.unit ? ` ${f.unit}` : ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {product.images.length > 1 && (
+            <span className="tag" style={{ position: 'absolute', right: 12, top: 12, background: 'var(--card)', zIndex: 2 }}>
+              {slide + 1} of {product.images.length}
+            </span>
+          )}
+          {!isAdmin && (
+            <button
+              type="button"
+              onClick={() => onToggleShortlist(product)}
+              aria-pressed={hearted}
+              aria-label={hearted ? 'Remove from shortlist' : 'Add to shortlist'}
+              className="ib"
+              style={{ position: 'absolute', left: 12, top: 12, width: 40, height: 40, zIndex: 2 }}
+            >
+              <I n="heart" size="s" style={hearted ? { background: 'var(--bad)' } : undefined} />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 p-3 bg-white border-t border-outline-variant">
-          {isAdmin ? (
-            <button
-              onClick={() => onEdit(product)}
-              className="flex-1 h-12 rounded-2xl bg-primary text-white font-sans text-sm font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
-              Edit or delete
-            </button>
+        {product.images.length > 1 && (
+          <div className="row" style={{ gap: 8 }}>
+            {product.images.map((src, i) => (
+              <button key={src} type="button" aria-label={`Photo ${i + 1}`} onClick={() => goTo(i)} className="p-0 border-0 bg-transparent">
+                <Photo src={src} style={{ width: 56, height: 56, borderRadius: 12, outline: slide === i ? '2px solid var(--plum)' : undefined }} />
+              </button>
+            ))}
+            <span className="grow" />
+            <span className="pro">{product.images.length} photos · Pro</span>
+          </div>
+        )}
+
+        <div>
+          <h2 style={{ fontSize: 24 }}>{product.title}</h2>
+          <p className="sub">
+            {product.sku} · {product.category}
+          </p>
+        </div>
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          {!isAdmin && options.length > 1 ? (
+            options.map((p) => (
+              <button key={p.key} type="button" className={`chip${purity === p.key ? ' on' : ''}`} style={{ height: 34 }} onClick={() => setPurity(p.key)} aria-pressed={purity === p.key}>
+                {p.title}
+              </button>
+            ))
           ) : (
-            <>
-              {canOrder && <div className="flex items-center rounded-2xl border border-outline-variant">
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity" className="w-10 h-12 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-[20px]">remove</span>
-                </button>
-                <span className="min-w-6 text-center font-extrabold" aria-live="polite">
-                  {qty}
-                </span>
-                <button onClick={() => setQty((q) => q + 1)} aria-label="Increase quantity" className="w-10 h-12 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-[20px]">add</span>
-                </button>
-              </div>}
-              {canOrder && <button
+            <span className="tag">{product.purity.replace(' ', ' · ')}</span>
+          )}
+          <StockTag status={product.stockStatus} />
+          {product.huid && <span className="tag mut">HUID {product.huid}</span>}
+        </div>
+
+        <div className="card kvs" style={{ padding: '4px 14px' }}>
+          <div className="kv" style={{ padding: '9px 0' }}>
+            <span>Gross weight</span>
+            <b>{product.grossWt.toFixed(3)} g</b>
+          </div>
+          {product.stoneWt ? (
+            <div className="kv" style={{ padding: '9px 0' }}>
+              <span>Stone / tare</span>
+              <b>{product.stoneWt.toFixed(3)} g</b>
+            </div>
+          ) : null}
+          <div className="kv" style={{ padding: '9px 0' }}>
+            <span>Net weight</span>
+            <b>{product.netWt.toFixed(3)} g</b>
+          </div>
+          {details.map((f) => (
+            <div key={f.key} className="kv" style={{ padding: '9px 0' }}>
+              <span>{f.label}</span>
+              <b>
+                {product.extra?.[f.key]}
+                {f.unit ? ` ${f.unit}` : ''}
+              </b>
+            </div>
+          ))}
+        </div>
+
+        {isAdmin ? (
+          <button type="button" className="btn" onClick={() => onEdit(product)}>
+            <I n="edit" />
+            Edit or delete
+          </button>
+        ) : canOrder ? (
+          <>
+            <div className="row">
+              <span className="lab grow" style={{ margin: 0 }}>
+                Quantity
+              </span>
+              <button type="button" className="ib" aria-label="Decrease quantity" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+                <I n="minus" />
+              </button>
+              <b style={{ minWidth: 28, textAlign: 'center', fontSize: 18 }} aria-live="polite">
+                {qty}
+              </b>
+              <button type="button" className="ib" aria-label="Increase quantity" onClick={() => setQty((q) => q + 1)}>
+                <I n="plus" />
+              </button>
+            </div>
+            <div className="row">
+              <button
+                type="button"
+                className="btn"
+                style={{ flex: 1.4 }}
                 onClick={() => {
                   onAddToOrder(product, qty, purity || undefined);
                   onClose();
                 }}
-                className="flex-1 h-12 rounded-2xl bg-secondary hover:bg-secondary-dark text-white font-sans text-sm font-bold active:scale-95 transition-all"
               >
+                <I n="receipt" />
                 Add to order
-              </button>}
-              <a
-                href={`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(askText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Ask about this design on WhatsApp"
-                className={`h-12 rounded-2xl bg-[#25D366] text-[#06361a] flex items-center justify-center flex-shrink-0 gap-2 font-sans text-sm font-extrabold ${canOrder ? 'w-12' : 'flex-1'}`}
-              >
-                <span className="material-symbols-outlined text-[22px]">chat</span>
-                {!canOrder && 'Enquire on WhatsApp'}
+              </button>
+              <a className="btn alt" style={{ flex: 1 }} href={waHref} target="_blank" rel="noopener noreferrer" aria-label="Ask about this design on WhatsApp">
+                <I n="whats" />
+                Ask
               </a>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <a className="btn wa" href={waHref} target="_blank" rel="noopener noreferrer">
+              <I n="whats" />
+              Enquire on WhatsApp
+            </a>
+            <p className="hint" style={{ textAlign: 'center', margin: 0 }}>
+              Ask about price and availability on WhatsApp.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

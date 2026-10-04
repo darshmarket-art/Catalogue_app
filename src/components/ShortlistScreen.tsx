@@ -2,6 +2,7 @@ import { usePlan } from '../plan';
 import React, { useMemo, useState } from 'react';
 import { Product } from '../types';
 import { merchant } from '../merchant';
+import { I, Photo } from './ui';
 
 interface ShortlistScreenProps {
   products: Product[];
@@ -14,6 +15,7 @@ interface ShortlistScreenProps {
   onBrowse: () => void;
 }
 
+/** Shortlist (artboard 2.6): hearted designs, sent on WhatsApp or added to the order in one go. */
 export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shortlist, storeName, onRemove, onAddAllToOrder, onBrowse }) => {
   const canOrder = usePlan().flags.orders;
   const [adding, setAdding] = useState(false);
@@ -41,11 +43,15 @@ export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shor
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center text-center gap-3 px-6 pt-20 max-w-sm mx-auto">
-        <span className="material-symbols-outlined text-[44px] text-primary-fixed-dim">favorite</span>
-        <h2 className="font-serif text-[24px] text-primary">Your shortlist is empty</h2>
-        <p className="font-sans text-sm text-on-surface-variant">Tap the heart on any design to keep it here. You can then send the list to us on WhatsApp or add it all to your order.</p>
-        <button onClick={onBrowse} className="mt-2 px-6 h-12 rounded-2xl bg-secondary text-white font-sans text-sm font-bold">
+      <div className="scroll" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 48, gap: 10 }}>
+        <span className="tag gold" style={{ width: 56, height: 56, borderRadius: 18, justifyContent: 'center', padding: 0 }}>
+          <I n="heart" />
+        </span>
+        <h2 style={{ fontSize: 24 }}>Your shortlist is empty</h2>
+        <p className="sub" style={{ maxWidth: 300 }}>
+          Tap the heart on any design to keep it here. Then send the list on WhatsApp or add it all to your order.
+        </p>
+        <button type="button" className="btn" style={{ maxWidth: 260, marginTop: 6 }} onClick={onBrowse}>
           Browse designs
         </button>
       </div>
@@ -53,53 +59,45 @@ export const ShortlistScreen: React.FC<ShortlistScreenProps> = ({ products, shor
   }
 
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto pb-72">
-      <div className="px-4 pt-2 pb-3">
-        <h2 className="font-serif text-[26px] text-primary leading-tight">Shortlist</h2>
-        <p className="font-sans text-sm text-on-surface-variant">
-          {items.length} {items.length === 1 ? 'design' : 'designs'} · {totalNet.toFixed(2)} g net
-        </p>
-      </div>
+    <div className="scroll" style={{ gap: 12, paddingBottom: canOrder ? 'calc(300px + var(--sab))' : 'calc(240px + var(--sab))' }}>
+      {items.map((p, i) => (
+        <div key={p.sku} className="card row" style={{ padding: 10 }}>
+          <Photo src={p.image} tone={i} style={{ width: 76, height: 76, flex: 'none' }} />
+          <div className="grow">
+            <b>{p.title}</b>
+            <p className="sub" style={{ fontSize: 13 }}>
+              {p.sku} · {p.purity.split(' ')[0]} · {p.netWt.toFixed(3)} g
+            </p>
+          </div>
+          <button type="button" className="ib" aria-label={`Remove ${p.title} from shortlist`} onClick={() => onRemove(p)}>
+            <I n="heart" style={{ background: 'var(--bad)' }} />
+          </button>
+        </div>
+      ))}
+      <p className="hint" style={{ textAlign: 'center' }}>
+        Tap a heart on any design to save it here.
+      </p>
 
-      <ul className="flex flex-col bg-white border-y border-outline-variant">
-        {items.map((p) => (
-          <li key={p.sku} className="grid grid-cols-[64px_1fr_44px] items-center gap-3 px-4 py-3 border-b border-surface-container last:border-b-0">
-            <img src={p.image} alt="" className="w-16 h-16 rounded-2xl object-cover bg-surface-container" referrerPolicy="no-referrer" />
-            <div className="min-w-0">
-              <p className="font-sans text-[15px] font-bold text-on-surface truncate">{p.title}</p>
-              <p className="font-sans text-sm text-on-surface-variant">
-                {p.purity} · Net {p.netWt.toFixed(2)} g
-              </p>
-              <p className="font-sans text-xs text-outline">{p.sku}</p>
-            </div>
-            <button onClick={() => onRemove(p)} aria-label={`Remove ${p.title} from shortlist`} className="w-11 h-11 flex items-center justify-center text-outline hover:text-error">
-              <span className="material-symbols-outlined text-[22px]">close</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {/* Send panel: sits above the bottom navigation */}
-      <div className="fixed inset-x-0 bottom-[calc(5.25rem+var(--sab))] z-40 px-3 pb-2">
-        <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-[0_-6px_24px_rgba(91,33,66,0.14)] border border-outline-variant p-4 flex flex-col gap-2.5">
-          <div className="flex items-baseline justify-between">
-            <span className="font-serif text-[22px] text-primary">{totalNet.toFixed(2)} g net</span>
-            <span className="font-sans text-sm font-bold text-on-surface-variant">
+      <div className="dock">
+        <div className="card col" style={{ gap: 10, padding: 14, boxShadow: 'var(--sh-2)' }}>
+          <div className="row" style={{ alignItems: 'baseline' }}>
+            <span className="stat grow" style={{ fontSize: 24 }}>
+              {totalNet.toFixed(3)} g net
+            </span>
+            <span className="sub" style={{ fontWeight: 700 }}>
               {items.length} {items.length === 1 ? 'design' : 'designs'}
             </span>
           </div>
-          <button onClick={sendOnWhatsApp} className="w-full h-12 rounded-2xl bg-[#25D366] text-[#06361a] font-sans text-sm font-extrabold flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-[20px]">chat</span>
+          <button type="button" className="btn wa" onClick={sendOnWhatsApp}>
+            <I n="whats" />
             {canOrder ? 'Send shortlist on WhatsApp' : 'Enquire on WhatsApp'}
           </button>
-          {canOrder && <button
-            onClick={addAll}
-            disabled={adding}
-            className="w-full h-12 rounded-2xl border-2 border-primary text-primary font-sans text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            <span className="material-symbols-outlined text-[20px]">{added ? 'check' : 'add_shopping_cart'}</span>
-            {adding ? 'Adding…' : added ? 'Added to your order' : 'Add all to order'}
-          </button>}
+          {canOrder && (
+            <button type="button" className="btn alt" onClick={addAll} disabled={adding}>
+              <I n={added ? 'check' : 'receipt'} />
+              {adding ? 'Adding…' : added ? 'Added to your order' : 'Add all to order'}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from './api';
-import { trialDaysLeft, DOWNGRADE_CHANGES } from '../shared/trial';
 import { SALES_EMAIL, UPGRADE_TO_PRO } from '../shared/sales';
-import { Sheet, btnPrimary, btnOutline } from './components/ui';
+import { I, Sheet } from './components/ui';
 
 export interface Entitlements {
   effectivePlan: 'basic' | 'pro';
@@ -39,46 +38,27 @@ let openNotice: ((feature: string) => void) | null = null;
 /** Opens the in-page upgrade notice (no browser alert). Payments come later, so it points to sales. */
 export const upgradeNotice = (feature: string) => openNotice?.(feature);
 
+/** The upgrade sheet (artboard 4.4). Payments come later, so it points to sales. */
 const UpgradeModal: React.FC<{ feature: string; onClose: () => void }> = ({ feature, onClose }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => navigator.clipboard?.writeText(SALES_EMAIL).then(() => setCopied(true)).catch(() => {});
   return (
     <Sheet label="Upgrade to Pro" onClose={onClose}>
-      <div className="px-5 flex flex-col gap-3 font-sans text-on-surface">
-        <h2 className="text-lg font-extrabold">{feature} is part of Pro</h2>
-        <p className="text-[15px]">Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues, staff roles and up to 3 photos per design. {UPGRADE_TO_PRO}</p>
-        <p className="rounded-xl bg-surface-container px-3 py-3 text-center text-base font-bold select-all" data-testid="sales-email">{SALES_EMAIL}</p>
-        <button type="button" className={btnOutline} onClick={copy}>{copied ? 'Copied' : 'Copy email'}</button>
-        <a className={btnPrimary} href={`mailto:${SALES_EMAIL}`}>Email sales</a>
-        <button type="button" className="min-h-11 font-bold text-primary" onClick={onClose}>Close</button>
+      <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--gold-l)', color: 'var(--gold-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <I n="lock" size="l" />
       </div>
+      <h2 style={{ fontSize: 26 }}>{feature} is a Pro feature</h2>
+      <p className="sub" style={{ fontSize: 15.5 }}>Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues, staff roles and up to 3 photos per design.</p>
+      <div className="card col" style={{ gap: 8, padding: '12px 16px' }}>
+        {['Buyers place orders you confirm and dispatch', 'Kg booked, views and live visitors', 'Unlimited collections and buyers'].map((t) => (
+          <div key={t} className="row"><I n="check" size="s" style={{ color: 'var(--ok)' }} /><span>{t}</span></div>
+        ))}
+      </div>
+      <p className="sub" style={{ textAlign: 'center' }}>{UPGRADE_TO_PRO} <button type="button" className="lnk" style={{ minHeight: 0 }} onClick={copy} data-testid="sales-email">{copied ? 'Copied' : SALES_EMAIL}</button></p>
+      <a className="btn" href={'mailto:' + SALES_EMAIL}><I n="chat" />Contact sales to upgrade</a>
+      <button type="button" className="btn alt" onClick={onClose}>Not now</button>
     </Sheet>
   );
 };
 
-export const ProBadge: React.FC = () => (
-  <span className="inline-flex items-center gap-0.5 ml-1.5 align-middle rounded-full bg-secondary-container text-on-secondary-container px-1.5 py-0.5 font-sans text-[11px] font-extrabold leading-none">
-    <span className="material-symbols-outlined text-[12px]">lock</span>Pro
-  </span>
-);
-
-/** Escalating countdown at 7, 3 and 1 days; after the trial, what changed on Basic. */
-export const TrialBanner: React.FC = () => {
-  const ent = usePlan();
-  const days = trialDaysLeft(ent);
-  const ended = days === null && ent.plan === 'basic' && !!ent.trialEndsAt;
-  if (days === null && !ended) return null;
-  const tone = ended || days! <= 1 ? 'bg-error-container text-on-surface' : days! <= 3 ? 'bg-tertiary-container text-on-tertiary' : 'bg-secondary-container text-on-secondary-container';
-  return (
-    <div role="status" className={`px-4 py-2 ${tone} font-sans text-sm font-bold text-center`}>
-      {ended ? 'Your trial has ended: you are on Basic' : `${days} ${days === 1 ? 'day' : 'days'} of Pro left${days! <= 7 ? ': after that you move to Basic' : ''}`}
-      {(ended || days! <= 7) && (
-        <details className="font-normal mt-1">
-          <summary className="cursor-pointer font-bold">What changes</summary>
-          <ul className="text-left list-disc pl-5 max-w-md mx-auto">{DOWNGRADE_CHANGES.map((c) => <li key={c}>{c}</li>)}</ul>
-          <p className="mt-1">{UPGRADE_TO_PRO} Everything you added comes straight back.</p>
-        </details>
-      )}
-    </div>
-  );
-};
+export const ProBadge: React.FC = () => <span className="pro" style={{ marginLeft: 6 }}>Pro</span>;

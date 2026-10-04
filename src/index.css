@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./gilded.css";
 
 @theme {
   /* "Gilded": ivory ground, aubergine ink, antique-gold accent. Same values as the Antarixs Store Screens canvas. */
@@ -176,9 +177,19 @@ html.native {
     background-attachment: scroll, fixed, fixed;
   }
 
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    margin: 0;
+  }
+
   h1, h2, h3, .font-serif {
     letter-spacing: -0.015em;
     text-wrap: balance;
+  }
+
+  b, strong {
+    font-weight: 700;
   }
 
   a:focus-visible, button:focus-visible {

@@ -3,6 +3,7 @@ import { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { BrandMark } from './BrandMark';
 import { ProfileMenu, type ProfileUser } from './ProfileMenu';
+import { I } from './ui';
 
 interface HeaderProps {
   currentScreen: ActiveScreen;
@@ -13,14 +14,38 @@ interface HeaderProps {
   onOpenOrders: (tab: 'current' | 'past') => void;
   /** True while an existing product or category is being edited. */
   isEditing: boolean;
+  /** Small line above the title (Admin: the period and refresh time). */
+  eyebrow?: string;
+  /** Tag at the right of the title, e.g. "142 designs" or the plan. */
+  aside?: React.ReactNode;
 }
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan'];
 
-export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing }) => {
+const TITLES: Partial<Record<ActiveScreen, string>> = {
+  catalogue: 'Catalogue',
+  shortlist: 'Shortlist',
+  orders: 'Orders',
+  'admin-hub': 'Admin',
+  'admin-orders': 'Orders',
+  'admin-visitors': 'Buyer engagement',
+  'admin-buyers': 'Buyers',
+  'admin-banners': 'Home banners',
+  'admin-purities': 'Purity options',
+  'admin-about': 'About us',
+  'admin-plan': 'Plan and usage',
+  about: 'About us',
+  'change-password': 'Password'
+};
+
+/** The canvas's top bar: brand on Home, the screen's title elsewhere, a back button on inner screens. */
+export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing, eyebrow, aside }) => {
   const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen);
   const isSubScreen = isAdminSub || ['admin-login', 'retailer-auth', 'change-password', 'about'].includes(currentScreen);
-  const isAdminView = currentScreen === 'admin-hub' || isAdminSub;
+  const isHome = currentScreen === 'categories';
+  const title =
+    currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : TITLES[currentScreen];
+  const showProfile = (currentMerchant || isAdminLoggedIn) && (isHome || currentScreen === 'admin-hub');
 
   const handleBack = () => {
     if (isEditing && (currentScreen === 'new-product' || currentScreen === 'add-category')) {
@@ -34,95 +59,63 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate, isAdm
     }
   };
 
-  // One brand block on every screen; only the small gold line under the name changes with the screen.
-  const subtitle =
-    currentScreen === 'new-product'
-      ? isEditing
-        ? 'Edit Product'
-        : 'New Product Listing'
-      : currentScreen === 'add-category'
-        ? isEditing
-          ? 'Edit Category'
-          : 'Add New Category'
-        : currentScreen === 'admin-orders'
-          ? 'Orders'
-          : currentScreen === 'admin-visitors'
-            ? 'Visitor Engagement'
-            : currentScreen === 'admin-buyers'
-              ? 'Buyers'
-              : currentScreen === 'admin-banners'
-                ? 'Home banners'
-                : currentScreen === 'admin-purities'
-                ? 'Purity options'
-                : currentScreen === 'admin-about' || currentScreen === 'about'
-                ? 'About us'
-              : currentScreen === 'change-password'
-                ? 'Account'
-                : currentScreen === 'admin-login'
-                  ? 'Admin Console'
-                  : currentScreen === 'retailer-auth'
-                    ? 'Sign in'
-                    : isAdminView
-                      ? 'Admin Console'
-                      : merchant.brand.tagline;
-
   return (
-    <header className="fixed top-0 w-full z-50 pt-safe bg-surface/95 backdrop-blur-xl border-b border-outline-variant/60">
-      <div className="h-[var(--header-h)] px-3 max-w-5xl mx-auto grid grid-cols-[44px_1fr_44px] items-center gap-2">
-        {/* Left: back on inner screens, otherwise the logo */}
-        <div className="flex items-center justify-start">
-          {isSubScreen ? (
-            <button
-              aria-label="Go Back"
-              onClick={handleBack}
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-primary hover:bg-surface-container-high active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
-            </button>
-          ) : (
-            <button
-              aria-label={`${merchant.brand.name} home`}
-              onClick={() => onNavigate('welcome')}
-              className="w-11 h-11 rounded-[14px] bg-secondary-deep border border-tertiary-fixed-dim/45 shadow-md flex items-center justify-center overflow-hidden"
-            >
+    <header className="topbar">
+      <div className="top">
+        {isSubScreen && (
+          <button type="button" className="ib" aria-label="Back" onClick={handleBack}>
+            <I n="back" />
+          </button>
+        )}
+
+        {isHome ? (
+          <>
+            <button type="button" className="mark" aria-label={`${merchant.brand.name} home`} onClick={() => onNavigate('welcome')} style={{ border: 0, padding: 0 }}>
               <BrandMark className="w-8 h-8" textClassName="text-[24px]" />
             </button>
-          )}
-        </div>
-
-        {/* Centre: company name with room to breathe, and a short line that changes with the screen */}
-        <div className="flex flex-col items-center text-center min-w-0">
-          <span className="font-serif text-[20px] md:text-[22px] tracking-[0.06em] text-primary leading-tight truncate max-w-full">
-            {merchant.brand.name.toUpperCase()}
-          </span>
-          <span className="text-xs font-extrabold tracking-[0.16em] uppercase text-primary-fixed-dim leading-tight mt-0.5 truncate max-w-full">
-            {subtitle}
-          </span>
-        </div>
-
-        {/* Right: one profile menu for buyers and staff; a sign-in button for visitors */}
-        <div className="flex items-center justify-end">
-          {currentMerchant || isAdminLoggedIn ? (
-            <ProfileMenu
-              buyer={currentMerchant}
-              isAdmin={isAdminLoggedIn}
-              onOpenOrders={onOpenOrders}
-              onOpenAdminConsole={() => onNavigate('admin-hub')}
-              onChangePassword={() => onNavigate('change-password')}
-              onOpenAbout={() => onNavigate(isAdminLoggedIn ? 'admin-about' : 'about')}
-              onLogout={onLogout}
-            />
+            <div className="grow">
+              <span className="eyebrow" style={{ fontSize: 10.5 }}>
+                {merchant.brand.tagline}
+              </span>
+              <p className="serif" style={{ fontSize: 21, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {merchant.brand.name}
+              </p>
+            </div>
+          </>
+        ) : title && !['admin-login', 'retailer-auth'].includes(currentScreen) ? (
+          eyebrow ? (
+            <div className="grow">
+              <span className="eyebrow">{eyebrow}</span>
+              <h1 style={{ marginTop: 2 }}>{title}</h1>
+            </div>
           ) : (
-            <button
-              onClick={() => onNavigate('retailer-auth')}
-              aria-label="Sign in"
-              className="w-11 h-11 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary hover:bg-surface-container-highest active:scale-95 transition-all"
-              title="Sign in or register"
-            >
-              <span className="material-symbols-outlined text-[24px]">account_circle</span>
+            <h1 style={title.length > 13 ? { fontSize: 24 } : undefined}>{title}</h1>
+          )
+        ) : (
+          <span className="grow" />
+        )}
+
+        {aside}
+
+        {showProfile ? (
+          <ProfileMenu
+            buyer={currentMerchant}
+            isAdmin={isAdminLoggedIn}
+            onOpenOrders={onOpenOrders}
+            onOpenAdminConsole={() => onNavigate('admin-hub')}
+            onChangePassword={() => onNavigate('change-password')}
+            onOpenAbout={() => onNavigate(isAdminLoggedIn ? 'admin-about' : 'about')}
+            onLogout={onLogout}
+          />
+        ) : (
+          isHome &&
+          !currentMerchant &&
+          !isAdminLoggedIn && (
+            <button type="button" className="ib" aria-label="Sign in" onClick={() => onNavigate('retailer-auth')}>
+              <I n="user" />
             </button>
-          )}
-        </div>
+          )
+        )}
       </div>
     </header>
   );
