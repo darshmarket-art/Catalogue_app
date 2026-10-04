@@ -6,7 +6,7 @@ import { merchant } from '../../merchant';
 import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 
 /**
- * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections two by two
+ * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections one per row as full-width square cards
  * with index badges, and "The House". The brand row and profile button are in the top bar.
  */
 export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, onEditCategory, onNavigate, onFilterCategoryInCatalogue }) => {
@@ -197,7 +197,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
         {filteredCategories.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.'}</p>}
 
-        <div className="em-grid" style={{ marginTop: 14 }}>
+        <div className="em-grid em-grid-1" style={{ marginTop: 14 }}>
           {filteredCategories.map((cat, i) => (
             <div key={cat.id} className="em-sq">
               <button type="button" className="em-hit" aria-label={`Open ${cat.name}`} onClick={() => onFilterCategoryInCatalogue(cat.name)}>

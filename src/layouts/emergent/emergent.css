@@ -155,6 +155,8 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (min-width: 560px) { [data-layout="emergent"] .em-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 900px) { [data-layout="emergent"] .em-page.wide .em-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Home collections: one square card per row, scrolled down (Catalogue keeps the multi-column grid). */
+[data-layout="emergent"] .em-grid.em-grid-1, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-1 { grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 520px; margin-inline: auto; }
 
 /* ---------- home ---------- */
 [data-layout="emergent"] .em-car { position: relative; }
