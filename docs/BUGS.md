@@ -32,3 +32,13 @@ B4 (small) -> B3 (security-sensitive, test well) -> B2 (largest) -> B1 (data cha
 - B4 DONE: Welcome = "Enter the portal" for every store; new signups login-only.
 - B1 PLANNED: data change only. Run `scripts/bhakti-to-pro.ps1` (sets stores/bhakti.plan = pro). Code defaults left as is, `founder` still supported for old records.
 - Not merged or pushed; 235 tests pass.
+
+## B5. Back button trail (PLANNED)
+- **Verified cause:** `App.tsx:84-97` pushes a history entry for every screen change and `popstate` just replays it, so Back walks the whole trail. After signup, `SignupScreen` opens the store with `window.location.href` (a normal navigation, so the signup/entry pages stay behind the store in history). The app also never handles "leave" on the web (only the native Android handler, `App.tsx:101`).
+- **Plan:**
+  1. Signup to store: use `location.replace(storeUrl)` (not `href`) on the "Open my store" link, and on `/signup` done screen, so the app/signup pages drop out of history. Same for `EntryScreen` go-to-store.
+  2. Store history = a shallow stack of three levels, not a trail. Home tabs (Home, Catalogue, Shortlist, Orders) are *roots*: switching tabs uses `replaceState`, never `pushState`. Only drill-in screens push one entry: product detail, admin sub-screens, About, Plans, PDF, New design (its "trail" collapses to Home: Back from any drill-in returns to its parent tab, then Back again = Home).
+  3. Back rules (one function used by `popstate` and the Android button): drill-in -> its parent tab; Catalogue/Shortlist/Orders -> Home; Home -> toast "Press back again to exit", and a second Back within 2 seconds leaves (web: `history.back()` past a sentinel entry so the tab closes or goes to the previous site; native: `App.exitApp()`). A sentinel entry is pushed under Home on load so the browser stays on the page for the first press.
+  4. Browsers cannot always close a tab with script. After the second press we step back past the sentinel; if the tab has no earlier history it leaves to the browser's start page. State clearly: "close the browser" is only exact in the installed PWA / native app.
+  5. Tests: a small pure `backTarget(screen, isHome)` function in `src/nav.ts` with a unit test table; browser QA of the signup -> store -> Back path.
+- **Decide:** after the second Back on the web, is "leave the site" acceptable instead of closing the tab? (Browsers do not allow closing a tab the script did not open.)
