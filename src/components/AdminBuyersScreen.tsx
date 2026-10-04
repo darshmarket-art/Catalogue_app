@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { BuyerRow } from '../types';
 import { api } from '../api';
 import { usePlan, upgradeNotice } from '../plan';
-import { I, Notice } from './ui';
+import { Notice } from './ui';
+import { Icon } from '../layouts/emergent/ui';
 
 /** Buyers (artboard 3.5 on Pro; 4.3 on Basic, with the 50-buyer meter). */
 export const AdminBuyersScreen: React.FC = () => {
@@ -63,6 +64,7 @@ export const AdminBuyersScreen: React.FC = () => {
   const count = buyers?.length ?? 0;
   const cap = limits.users;
   const left = cap === null ? null : cap - count;
+  const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
   const joined = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
@@ -90,8 +92,8 @@ export const AdminBuyersScreen: React.FC = () => {
         <p className="sub">Buyers sign in with a WhatsApp code. If a buyer used a password before and forgot it, give them a temporary one.</p>
       )}
 
-      <div className="inp-icon">
-        <I n="search" />
+      <div className="inp-icon" style={{ marginTop: 4 }}>
+        <Icon n="search" size={16} />
         <input className="inp" style={{ height: 46 }} type="search" aria-label="Search shop or phone" placeholder="Search shop or phone" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
@@ -114,34 +116,39 @@ export const AdminBuyersScreen: React.FC = () => {
       {buyers === null && !error && <p className="hint" style={{ textAlign: 'center' }}>Loading…</p>}
       {buyers?.length === 0 && <p className="sub" style={{ textAlign: 'center', padding: '24px 0' }}>No buyers have signed up yet.</p>}
 
-      <div className="col" style={{ gap: 10 }} data-testid="buyer-list">
-        {shown.map((b) => (
-          <div key={b.phone} className="card row" style={{ padding: '12px 14px' }}>
-            <div className="grow">
-              <b>{b.firmName}</b>
-              <p className="sub" style={{ fontSize: 13 }}>
+      <div data-testid="buyer-list">
+        {shown.map((b, i) => (
+          <div key={b.phone} className="em-row" style={{ gap: 14, padding: '16px 0', borderBottom: i < shown.length - 1 ? '1px solid var(--em-line)' : 0 }}>
+            <div className="em-av">{initials(b.firmName)}</div>
+            <div className="em-grow">
+              <div className="em-ser em-clip" style={{ fontSize: 16 }}>
+                {b.firmName}
+              </div>
+              <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
                 {b.phone} · joined {joined(b.createdAt)}
                 {b.mustChangePassword ? ' · setting a new password' : ''}
-              </p>
+              </div>
             </div>
-            <button type="button" className="btn sm alt" style={{ height: 40 }} disabled={busyPhone === b.phone} onClick={() => handleReset(b)}>
-              Reset
-            </button>
-            <button type="button" data-testid={`remove-buyer-${b.phone}`} className="btn sm alt danger" style={{ height: 40 }} disabled={busyPhone === b.phone} onClick={() => handleRemove(b)}>
-              {removing === b.phone ? 'Tap again' : 'Remove'}
-            </button>
+            <div className="em-row" style={{ gap: 6, flexDirection: 'column', alignItems: 'stretch' }}>
+              <button type="button" className="em-rm n" disabled={busyPhone === b.phone} onClick={() => handleReset(b)}>
+                Reset
+              </button>
+              <button type="button" data-testid={`remove-buyer-${b.phone}`} className="em-rm" disabled={busyPhone === b.phone} onClick={() => handleRemove(b)}>
+                {removing === b.phone ? 'Tap again' : 'Remove'}
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
       {cap === null ? (
         <div className="note ok row">
-          <I n="check" size="s" />
+          <Icon n="okc" size={16} />
           <span>Pro: unlimited buyers.</span>
         </div>
       ) : (
         <button type="button" className="btn alt" onClick={() => upgradeNotice('Unlimited buyers')}>
-          <I n="sparkle" />
+          <Icon n="award" size={18} />
           Unlimited buyers with Pro
         </button>
       )}

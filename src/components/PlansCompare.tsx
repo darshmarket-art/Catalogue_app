@@ -3,6 +3,7 @@ import { LIMITS, TRIAL_DAYS, flagsFor } from '../../shared/limits';
 import { SALES_EMAIL } from '../../shared/sales';
 import { usePlan } from '../plan';
 import { I } from './ui';
+import { Icon } from '../layouts/emergent/ui';
 
 type FlagName = keyof ReturnType<typeof flagsFor>;
 
@@ -16,7 +17,6 @@ const FLAG_LABEL: Record<FlagName, string> = {
   auditLog: 'Audit log',
   pdfCatalogue: 'PDF catalogue',
   staffRoles: 'Staff roles',
-  premiumLayouts: 'Boutique storefront layout',
   banners: 'Home banners',
   purities: 'Purity options'
 };
@@ -46,31 +46,60 @@ const cell = (v: string | boolean) =>
   );
 
 /** Basic against Pro: the trial note, two plan cards and the table. Limits and flags come from the same tables the server enforces. */
-export const PlansCompare: React.FC<{ current?: 'basic' | 'pro' }> = ({ current }) => (
+export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean }> = ({ current, atlas }) => (
   <>
-    <div className="note trial">
-      <b>Every new store starts with Pro for {TRIAL_DAYS} days.</b> Then it moves to Basic unless you upgrade. Nothing is deleted.
-    </div>
-    <div className="grid2">
-      <div className="card col" style={{ gap: 6 }} data-testid="plan-card-basic">
+    {atlas ? (
+      <div className="em-antarixs" data-testid="plans-banner">
+        <div className="em-row" style={{ gap: 10 }}>
+          <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgb(255 255 255 / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50 8L92 90H75L50 38L25 90H8Z" fill="#8ec9ff" />
+            </svg>
+          </span>
+          <div>
+            <div className="em-ser" style={{ fontSize: 19 }}>
+              Antarixs
+            </div>
+            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: 9 }}>
+              Plans
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.55, marginTop: 14 }}>Every new store starts with Pro for {TRIAL_DAYS} days. Then it moves to Basic unless you upgrade. Nothing is deleted.</div>
+      </div>
+    ) : (
+      <div className="note trial">
+        <b>Every new store starts with Pro for {TRIAL_DAYS} days.</b> Then it moves to Basic unless you upgrade. Nothing is deleted.
+      </div>
+    )}
+    <div className={atlas ? 'em-planpair' : 'grid2'}>
+      <div className={atlas ? 'em-plan' : 'card col'} style={atlas ? undefined : { gap: 6 }} data-testid="plan-card-basic">
         <span className="row" style={{ gap: 6 }}>
           <span className="tag mut">Basic</span>
           {current === 'basic' && <span className="tag ok">Your plan</span>}
         </span>
-        <span className="stat" style={{ fontSize: 24 }}>
-          Free
-        </span>
-        <p className="sub">To get started</p>
+        <div>
+          <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? undefined : { fontSize: 24 }}>
+            Free
+          </span>
+          <p className="sub" style={atlas ? { fontSize: 11 } : undefined}>
+            To get started
+          </p>
+        </div>
       </div>
-      <div className="card col" style={{ gap: 6, borderColor: 'var(--plum)' }} data-testid="plan-card-pro">
+      <div className={atlas ? 'em-plan hi' : 'card col'} style={atlas ? undefined : { gap: 6, borderColor: 'var(--plum)' }} data-testid="plan-card-pro">
         <span className="row" style={{ gap: 6 }}>
           <span className="pro dark">Pro</span>
           {current === 'pro' && <span className="tag ok">Your plan</span>}
         </span>
-        <span className="stat" style={{ fontSize: 24, whiteSpace: 'nowrap' }}>
-          Contact us
-        </span>
-        <p className="sub">To grow</p>
+        <div>
+          <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? { whiteSpace: 'nowrap' } : { fontSize: 24, whiteSpace: 'nowrap' }}>
+            Contact us
+          </span>
+          <p className="sub" style={atlas ? { fontSize: 11, color: 'inherit', opacity: 0.7 } : undefined}>
+            To grow
+          </p>
+        </div>
       </div>
     </div>
     <section aria-label="Basic and Pro compared" className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -104,11 +133,11 @@ export const PlansScreen: React.FC = () => {
   const ent = usePlan();
   return (
     <div className="scroll no-tabs" style={{ gap: 12 }}>
-      <PlansCompare current={ent.effectivePlan} />
+      <PlansCompare current={ent.effectivePlan} atlas />
       {ent.plan === 'basic' && (
-        <a className="btn" href={`mailto:${SALES_EMAIL}`}>
-          <I n="chat" />
-          Email sales to upgrade
+        <a className="em-btn" data-testid="plans-cta" href={`mailto:${SALES_EMAIL}`}>
+          <Icon n="award" size={18} />
+          {ent.trialEndsAt ? 'Email sales to upgrade' : 'Upgrade to Pro'}
         </a>
       )}
     </div>

@@ -1,34 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { api } from '../api';
 import { usePlan } from '../plan';
 import { trialDaysLeft, DOWNGRADE_CHANGES } from '../../shared/trial';
 import { LIMITS } from '../../shared/limits';
 import { SALES_EMAIL } from '../../shared/sales';
-import { LAYOUTS } from '../../shared/layouts';
-import { merchant } from '../merchant';
 import type { ActiveScreen } from '../types';
-import { I } from './ui';
+import { Icon } from '../layouts/emergent/ui';
 
 const n = (v: number | null) => (v === null ? 'unlimited' : v.toLocaleString('en-IN'));
 
 /** Plan and usage (artboard 3.11 during the Pro trial, 4.6 once it has ended or on Basic). */
 export const AdminPlanScreen: React.FC<{ categories: number; onNavigate: (screen: ActiveScreen) => void }> = ({ categories, onNavigate }) => {
   const ent = usePlan();
+  const [buyerCount, setBuyerCount] = useState<number | null>(null);
+  useEffect(() => {
+    api.getBuyers().then((b) => setBuyerCount(b.length)).catch(() => {});
+  }, []);
   const days = trialDaysLeft(ent);
   const isPro = ent.effectivePlan === 'pro';
   const ended = days === null && ent.plan === 'basic' && !!ent.trialEndsAt;
   const usage = { categories: ent.usage?.categories ?? categories, photos: ent.usage?.photos ?? 0 };
   const endsOn = ent.trialEndsAt ? new Date(ent.trialEndsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : null;
 
-  const meter = (label: string, used: number, limit: number | null) => {
-    const over = limit !== null && used > limit;
+  const row = (label: string, used: number | string, limit: number | null | undefined, bar: boolean) => {
+    const u = typeof used === 'number' ? used.toLocaleString('en-IN') : used;
+    const over = bar && limit != null && typeof used === 'number' && used > limit;
     return (
-      <div>
-        <div className="kv">
-          <span>{label}</span>
-          <b>{limit === null ? `${used.toLocaleString('en-IN')} · unlimited` : `${used.toLocaleString('en-IN')} of ${limit.toLocaleString('en-IN')}`}</b>
+      <div className="em-usage" key={label}>
+        <div className="em-row em-sb">
+          <b style={{ fontWeight: 500 }}>{label}</b>
+          <span className="em-ser">
+            {u} <span>{limit == null ? '· unlimited' : bar ? `/ ${limit.toLocaleString('en-IN')}` : `· up to ${limit}`}</span>
+          </span>
         </div>
-        {limit !== null && (
-          <div className={`meter${over || used >= limit ? ' over' : ''}`} style={{ marginTop: 6 }}>
+        {bar && limit != null && typeof used === 'number' && (
+          <div className={`meter${over || used >= limit ? ' over' : ''}`} style={{ marginTop: 10 }}>
             <i style={{ width: `${Math.min(100, Math.round((used / limit) * 100))}%` }} />
           </div>
         )}
@@ -43,89 +49,71 @@ export const AdminPlanScreen: React.FC<{ categories: number; onNavigate: (screen
 
   return (
     <div className="scroll no-tabs" style={{ gap: 12 }}>
+      <div className="em-rule" style={{ margin: '0 0 4px' }} />
       {days !== null ? (
-        <div className="note trial">
-          <span className="pro" style={{ background: 'var(--card)', color: 'var(--plum)' }}>
-            Pro trial
-          </span>
-          <div className="serif" style={{ fontSize: 30, marginTop: 8 }}>
-            {days} {days === 1 ? 'day' : 'days'} left
+        <div className="em-countdown" data-testid="plan-countdown">
+          <span className="pro">Pro Trial</span>
+          <div className="big">
+            {days} {days === 1 ? 'day' : 'days'}
           </div>
-          <p style={{ fontSize: 14, marginTop: 2, opacity: 0.9 }}>{endsOn ? `Ends ${endsOn}. ` : ''}After that your store moves to Basic.</p>
+          <div className="of">of Pro left</div>
+          <p>
+            {endsOn ? `Ends ${endsOn}. ` : ''}After that your store gracefully moves to Basic. Nothing is deleted.
+          </p>
         </div>
       ) : isPro ? (
-        <div className="note trial">
-          <span className="pro" style={{ background: 'var(--card)', color: 'var(--plum)' }}>
-            Pro
-          </span>
-          <div className="serif" style={{ fontSize: 30, marginTop: 8 }}>
+        <div className="em-countdown">
+          <span className="pro">Pro</span>
+          <div className="big" style={{ fontSize: 34 }}>
             Every feature is on
           </div>
         </div>
       ) : (
-        <div className="note warn">
+        <div className="em-countdown">
           <span className="tag mut">Basic</span>
-          <p style={{ marginTop: 8, fontSize: 15 }}>
-            {ended ? (
-              <>
-                <b>Your Pro trial has ended.</b> Nothing was deleted. To upgrade and get everything back, contact sales at {SALES_EMAIL}.
-              </>
-            ) : (
-              <>
-                <b>You are on Basic.</b> To upgrade, contact sales at {SALES_EMAIL}.
-              </>
-            )}
+          <div className="big" style={{ fontSize: 34 }}>
+            {ended ? 'Your Pro trial has ended' : 'You are on Basic'}
+          </div>
+          <p>
+            {ended ? 'Nothing was deleted. ' : ''}To upgrade, contact sales at {SALES_EMAIL}.
           </p>
         </div>
       )}
 
-      <div className="card col" style={{ gap: 12 }}>
-        {meter('Photos', usage.photos, ent.limits.photos)}
-        {meter('Collections', usage.categories, ent.limits.categories)}
-        <div className="kv">
-          <span>Buyers</span>
-          <b>{ent.limits.users === null ? 'unlimited' : `up to ${ent.limits.users}`}</b>
-        </div>
-        <div className="kv">
-          <span>Photos per design</span>
-          <b>up to {ent.limits.photosPerDesign}</b>
-        </div>
+      <div style={{ marginTop: 12 }} className="em-ey">
+        Current usage
+      </div>
+      <div style={{ marginTop: -6 }}>
+        {row('Photos', usage.photos, ent.limits.photos, true)}
+        {row('Collections', usage.categories, ent.limits.categories, true)}
+        {row('Buyers', buyerCount ?? '-', ent.limits.users, true)}
+        {row('Photos per design', ent.limits.photosPerDesign, ent.limits.photosPerDesign, false)}
       </div>
 
-      <button type="button" className="card row" data-testid="plan-layout-link" onClick={() => onNavigate('admin-layout')}>
-        <I n="sparkle" />
-        <span className="grow">
-          <b>Storefront layout</b>
-          <span className="sub" style={{ display: 'block', fontSize: 13.5 }}>
-            {LAYOUTS.find((l) => l.id === merchant.layout)?.name ?? merchant.layout}
-            {isPro ? '' : ' · Emergent is part of Pro'}
-          </span>
-        </span>
-        <I n="chev" size="s" style={{ color: 'var(--mut)' }} />
-      </button>
-
       {!(isPro && days === null) && (
-        <div className="card">
-          <b>{isPro ? 'If you stay on Basic' : 'What changed'}</b>
-          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 14, lineHeight: 1.5, color: 'var(--mut)', listStyle: 'disc' }}>
+        <div style={{ marginTop: 12 }}>
+          <div className="em-h3" style={{ marginBottom: 10 }}>
+            {isPro ? 'If you stay on Basic' : 'What changed'}
+          </div>
+          <ul className="em-bullets">
             {DOWNGRADE_CHANGES.map((c) => (
               <li key={c}>{c}</li>
             ))}
+            <li>
+              Basic: {n(LIMITS.basic.categories)} collections, {n(LIMITS.basic.photos)} photos, {LIMITS.basic.photosPerDesign} photo per design, {n(LIMITS.basic.users)} buyers.
+            </li>
           </ul>
-          <p className="hint">
-            Basic: {n(LIMITS.basic.categories)} collections, {n(LIMITS.basic.photos)} photos, {LIMITS.basic.photosPerDesign} photo per design, {n(LIMITS.basic.users)} buyers.
-          </p>
         </div>
       )}
 
       {!(isPro && days === null) && (
-        <a className="btn" href={`mailto:${SALES_EMAIL}`}>
-          <I n="chat" />
+        <a className="em-btn" style={{ marginTop: 12 }} href={`mailto:${SALES_EMAIL}`}>
+          <Icon n="mail" size={18} />
           Email sales to upgrade
         </a>
       )}
 
-      <button type="button" className="lnk" style={{ alignSelf: 'center' }} data-testid="plan-compare-link" onClick={() => onNavigate('plans')}>
+      <button type="button" className="em-link" style={{ alignSelf: 'center' }} data-testid="plan-compare-link" onClick={() => onNavigate('plans')}>
         Compare Basic and Pro
       </button>
     </div>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { LAYOUTS } from '../../shared/layouts';
 
 const API = '/api/v1/console';
 
@@ -30,7 +29,7 @@ export function useApi<T>(path: string, v = 0): ApiState<T> {
 export interface Row {
   id: string; name: string; subdomain: string; plan: 'basic' | 'pro' | 'founder'; effectivePlan: 'basic' | 'pro'; trialEndsAt: string | null;
   status: string; ownApp: boolean; owner: { email?: string; phone?: string } | null; createdAt: string; buyers: number; photos: number;
-  limits: { buyers: number | null; photos: number | null }; layout: string; effectiveLayout: string; lastActiveAt: string | null;
+  limits: { buyers: number | null; photos: number | null }; lastActiveAt: string | null;
   categories?: number; audit?: AuditRow[];
 }
 export interface AuditRow { id: string; at: string; who: string; storeId?: string; action?: string; what: string }
@@ -44,9 +43,22 @@ export interface Summary {
   planMix: { basic: number; proTrial: number; paidPro: number; founder: number };
   trialsEndingSoon: { windowDays: number; count: number; stores: Array<{ id: string; name: string; subdomain: string; trialEndsAt: string; daysLeft: number }> };
   series: Array<{ day: string; orders: number; visits: number }>;
-  cloud: { storageBytes: number | null; firestoreReads: number | null; certificates: string | null; costInr: number | null; subdomainsActive: number; note: string };
-  env: { revision: string | null };
+  cloud: Cloud | null;
+  env: { revision: string | null; service: string | null; region: string };
 }
+export interface Card<T> { data: T | null; note: string }
+export interface StorageUsage { bytes: number; objects: number | null; perStore: Array<{ id: string; bytes: number; objects: number }>; truncated: boolean }
+export interface SubCheck { id: string; host: string; status: number | null; ok: boolean; ms: number | null; checkedAt: string }
+export interface Cloud {
+  region: string;
+  storage: Card<StorageUsage>;
+  firestore: Card<{ reads: number; writes: number; deletes: number; readsDaily: number[] }>;
+  run: Card<{ requests: number }>;
+  certs: Card<Array<{ name: string; domains: string[]; state: string; expiresAt: string | null }>>;
+  subdomains: { checks: SubCheck[]; serving: number; total: number };
+}
+/** Cloud Run revision names end in -00030-abc: the sidebar shows just 00030. */
+export const revisionNo = (r: string | null) => (r ? /-(\d+)-[a-z0-9]+$/.exec(r)?.[1] ?? r : null);
 export interface FeedItem { id: string; at: string; kind: 'order' | 'store' | 'trial' | 'console' | 'owner'; title: string; detail: string; storeId: string | null; storeName: string | null }
 export interface Action { label: string; path: string; body: object; warn: string }
 
@@ -85,7 +97,6 @@ export const bytes = (n: number) => {
 };
 export const delta = (now: number, before: number) =>
   before === 0 ? (now > 0 ? 'New vs last week' : 'None yet') : `${now >= before ? '+' : ''}${Math.round(((now - before) / before) * 100)}% vs last week`;
-export const layoutName = (id: string) => LAYOUTS.find((l) => l.id === id)?.name ?? id;
 
 /** Plan changes that make sense for the Plans page. */
 export const planActions = (s: Row): Action[] => [
@@ -107,10 +118,4 @@ export const storeActions = (s: Row): Action[] => [
     ? { label: 'Suspend', path: '/suspend', body: {}, warn: 'The store and its app stop working for everyone.' }
     : { label: 'Unsuspend', path: '/unsuspend', body: {}, warn: 'The store comes back online.' },
   { label: s.ownApp ? 'Unmark own app' : 'Mark own app', path: '/own-app', body: { ownApp: !s.ownApp }, warn: 'Own-app stores get Pro features.' },
-  ...LAYOUTS.filter((l) => l.id !== s.layout).map((l) => ({
-    label: `Set layout: ${l.name}`, path: '/layout', body: { layout: l.id },
-    warn: l.plan === 'pro' && s.effectivePlan !== 'pro'
-      ? 'This is a Pro layout. The store keeps showing Gilded until it is on Pro (a trial or a paid plan), then switches by itself.'
-      : 'The storefront changes for every buyer straight away.'
-  }))
 ];

@@ -1,4 +1,4 @@
-import type { LayoutKit } from '../gilded';
+import type { LayoutKit } from '../props';
 import './emergent.css';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';

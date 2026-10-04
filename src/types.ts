@@ -167,6 +167,5 @@ export type ActiveScreen =
   | 'change-password'
   | 'retailer-auth'
   | 'admin-plan'
-  | 'admin-layout'
   | 'admin-pdf'
   | 'plans';

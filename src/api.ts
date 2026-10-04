@@ -267,10 +267,6 @@ export const api = {
     }
   },
 
-  /** Owner picks the storefront layout; the server answers 402 for a Pro layout on a Basic plan. */
-  async setLayout(layout: string): Promise<string> {
-    return (await request('/api/v1/admin/layout', { method: 'PUT', body: JSON.stringify({ layout }) })).data.layout;
-  },
   async saveAbout(about: About): Promise<About> {
     return (await request('/api/v1/about', { method: 'PUT', body: JSON.stringify(about) })).data;
   },

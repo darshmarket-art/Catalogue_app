@@ -2,7 +2,14 @@
 
 Branch `saas/layouts` (worktree `catalogue-app/wt-layouts`, cut from `saas/integration` 6d8a6e5). Foundation commit 777b55f. Everything after it is uncommitted work from parallel agents.
 
-## Decisions
+## UPDATE: Emergent is default, Gilded archived (agent E1)
+The user prefers Emergent. It is now the default and only live layout for every store and plan; this supersedes the Decisions, Foundation gating and picker notes below (Gilded = standard, Emergent = Pro, picker, console Set layout, DEV_FORCE_LAYOUT, premiumLayouts).
+- Gilded buyer screens and kit are archived in `app_themes/gilded/` (not built; excluded in tsconfig and .dockerignore). Restore steps and source commit (7924bc2) are in `app_themes/README.md`. `src/gilded.css` stays: it is the base stylesheet.
+- Prop interfaces and `LayoutKit` now live in `src/layouts/props.ts`; `App.tsx` uses the Emergent kit directly.
+- `shared/layouts.ts` keeps a one-entry registry (`emergent`, plan basic). The `layout` field is gone from `merchantSchema`: zod strips it, so a stored `layout: gilded` (Bhakti) or missing one renders Emergent with no migration.
+- Removed: `LayoutPickerScreen`, `admin-layout`, hub tile and plan link, `api.setLayout`, `PUT /admin/layout`, console `POST /stores/:id/layout` and its UI, `effectiveLayout`, `DEV_FORCE_LAYOUT`, flag `premiumLayouts`.
+
+## Decisions (superseded where it mentions layouts)
 - Gilded = standard layout for every plan. Emergent = Pro layout. The owner picks; the plan limits the choice.
 - A store whose trial lapsed shows Gilded; its saved choice is kept and returns on upgrade (`effectiveLayout` in `server/tenancy.ts`).
 - Emergent's missing features (cart/order review, plans compare, PDF picker, onboarding, layout picker) are standard for all layouts.

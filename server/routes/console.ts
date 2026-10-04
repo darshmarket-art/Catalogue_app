@@ -9,8 +9,7 @@ import type { Config } from '../config';
 import type { Store } from '../store';
 import { HttpError, handler, parse } from '../http';
 import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
-import { effectiveLayout, hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
-import { DEFAULT_LAYOUT, LAYOUT_IDS } from '../../shared/layouts';
+import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 import { activity, buyers, orders, owners, summary } from '../consoleStats';
 
 const IAP_KEYS_URL = 'https://www.gstatic.com/iap/verify/public_key';
@@ -74,8 +73,6 @@ const view = async (root: Store, rec: StoreRecord) => {
     id: rec.id, name: rec.merchant.brand.name, subdomain: rec.subdomain, plan: rec.plan, effectivePlan: plan,
     trialEndsAt: rec.trialEndsAt ?? null, status: rec.status, ownApp: Boolean(rec.ownApp), owner: rec.owner ?? null, createdAt: rec.createdAt,
     buyers: buyerDocs.length, photos: photos.size, limits: { buyers: LIMITS[plan].users, photos: LIMITS[plan].photos },
-    // The saved choice, and what the store really shows (a Pro layout falls back to Gilded while the store is on Basic).
-    layout: rec.merchant.layout ?? DEFAULT_LAYOUT, effectiveLayout: effectiveLayout(rec),
     // Latest time any tracked buyer or guest was seen in the store; null when nobody has visited yet.
     lastActiveAt: seen?.lastSeen ? new Date(Number(seen.lastSeen)).toISOString() : null
   };
@@ -110,7 +107,7 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
     res.json({ status: 'success', data: await audits(typeof req.query.storeId === 'string' ? req.query.storeId : undefined) });
   }));
   // Cross-store reads for the platform console (see consoleStats.ts: bounded queries, masked buyer phones, no hashes).
-  r.get('/summary', handler(async (_req, res) => void res.json({ status: 'success', data: await summary(root) })));
+  r.get('/summary', handler(async (_req, res) => void res.json({ status: 'success', data: await summary(root, config) })));
   r.get('/activity', handler(async (req, res) => void res.json({ status: 'success', data: await activity(root, Number(req.query.limit)) })));
   r.get('/owners', handler(async (_req, res) => void res.json({ status: 'success', data: await owners(root) })));
   r.get('/buyers', handler(async (_req, res) => void res.json({ status: 'success', data: await buyers(root) })));
@@ -147,10 +144,6 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   });
   write('suspend', z.object({}), () => ({ patch: { status: 'suspended' }, what: 'suspended' }));
   write('unsuspend', z.object({}), () => ({ patch: { status: 'active' }, what: 'unsuspended' }));
-  // Console staff may set any layout whatever the plan; a Pro layout on a Basic store shows only once the store is on Pro.
-  write('layout', z.object({ layout: z.enum(LAYOUT_IDS) }), (rec, b) => ({
-    patch: { merchant: { ...rec.merchant, layout: b.layout } }, what: `layout ${rec.merchant.layout ?? DEFAULT_LAYOUT} -> ${b.layout}`
-  }));
   write('own-app', z.object({ ownApp: z.boolean() }), (_rec, b) => ({ patch: { ownApp: b.ownApp }, what: `ownApp ${b.ownApp}` }));
 
   r.use((_req, _res, next) => next(new HttpError(404, 'Not found.')));

@@ -146,22 +146,23 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           <input id="np-stone" className="inp" style={{ height: 48 }} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
         </Field>
       </div>
-      <div className="card row" style={{ padding: '10px 16px' }}>
-        <span className="grow sub">Net weight</span>
-        <b style={{ fontSize: 20 }} className="serif">
-          {net === null ? '—' : `${net.toFixed(3)} g`}
-        </b>
+      <div className="em-netbanner" data-testid="np-net">
+        <div>
+          <div className="em-ey g">Net weight</div>
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Auto-calculated</div>
+        </div>
+        <div className="em-ser">{net === null ? '—' : `${net.toFixed(3)} g`}</div>
       </div>
 
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <span className="lab" style={{ margin: 0 }}>
-          Availability
-        </span>
-        {sector.stockStatuses.map((st) => (
-          <button key={st.key} type="button" className={`chip${stockStatus === st.key ? ' on' : ''}`} aria-pressed={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
-            {st.key}
-          </button>
-        ))}
+      <div>
+        <span className="lab">Availability</span>
+        <div className="em-seg">
+          {sector.stockStatuses.map((st) => (
+            <button key={st.key} type="button" className={`chip${stockStatus === st.key ? ' on' : ''}`} aria-pressed={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
+              {st.key}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
@@ -198,10 +199,11 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         </div>
       )}
 
-      <p className="hint" style={{ margin: '4px 0 0', color: problem ? 'var(--mut)' : 'var(--ok)', fontWeight: 700 }}>
+      <div className="em-savebar">
+      <p className="hint" style={{ margin: 0, textAlign: 'center', color: problem ? 'var(--mut)' : 'var(--ok)', fontWeight: 700 }}>
         {problem ?? (editing ? 'Ready to save' : 'Ready to publish')}
       </p>
-      <button type="button" className="btn" onClick={handleSave} disabled={isSaving || problem !== null}>
+      <button type="button" className="btn" data-testid="np-save" onClick={handleSave} disabled={isSaving || problem !== null}>
         {isSaving ? 'Saving…' : editing ? 'Save changes' : 'Save design'}
       </button>
       {editing && (
@@ -209,6 +211,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           Delete this design
         </button>
       )}
+      </div>
     </div>
   );
 };

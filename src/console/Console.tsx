@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { Activity, Award, FileText, HardDrive, LayoutDashboard, Package, RefreshCw, Store, UserRound, Users } from 'lucide-react';
-import { call, num, useApi, type Action, type Row, type Summary } from './api';
-import { ActivityPage, AuditPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, StoresPage, type PageProps } from './pages';
+import { Activity, Award, FileText, Globe, HardDrive, LayoutDashboard, Package, RefreshCw, Search, Store, UserRound, Users } from 'lucide-react';
+import { call, num, revisionNo, useApi, type Action, type Row, type Summary } from './api';
+import { ActivityPage, AuditPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, SubdomainsPage, StoresPage, type PageProps } from './pages';
 
 const NAV: Array<{ id: string; label: string; icon: ComponentType<{ size?: number; 'aria-hidden'?: boolean }>; page: ComponentType<PageProps> }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, page: Overview },
@@ -12,6 +12,7 @@ const NAV: Array<{ id: string; label: string; icon: ComponentType<{ size?: numbe
   { id: 'plans', label: 'Plans & trials', icon: Award, page: PlansPage },
   { id: 'activity', label: 'Activity', icon: Activity, page: ActivityPage },
   { id: 'storage', label: 'Storage', icon: HardDrive, page: StoragePage },
+  { id: 'subdomains', label: 'Subdomains', icon: Globe, page: SubdomainsPage },
   { id: 'audit', label: 'Audit log', icon: FileText, page: AuditPage }
 ];
 
@@ -67,6 +68,7 @@ export default function Console() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
   const [notice, setNotice] = useState('');
   const title = useRef<HTMLHeadingElement>(null);
   const first = useRef(true);
@@ -96,7 +98,9 @@ export default function Console() {
   };
 
   const Page = nav.page;
-  const props: PageProps = { stores, summary, v, ask };
+  const props: PageProps = { stores, summary, v, ask, query, setQuery };
+  // Typing in the top search jumps to Stores, where the list filters by store, owner email or phone.
+  const search = (q: string) => { setQuery(q); if (q && (page !== 'stores' || id)) window.location.hash = '#/stores'; };
   return (
     <div className="cn-body">
       <a className="skip" href="#main">Skip to content</a>
@@ -115,14 +119,15 @@ export default function Console() {
             </a>
           ))}
         </nav>
-        <div className="cn-env"><small>Revision</small><b>{summary.data ? summary.data.env.revision ?? 'Not connected' : '—'}</b></div>
+        <div className="cn-env"><small>Region</small><b>{summary.data?.env.region ?? 'asia-south1'}</b><small>Revision</small><b title={summary.data?.env.revision ?? undefined}>{summary.data ? revisionNo(summary.data.env.revision) ?? 'Not on Cloud Run' : '—'}</b></div>
       </aside>
       <main id="main" className="cn-main">
         <header className="cn-top">
           <div><div className="ey">Platform</div><h1 ref={title} tabIndex={-1} className="ser cn-h">{heading}</h1><div className="rule" /></div>
           <div className="cn-tools">
-            {summary.data && <small>Updated {new Date(summary.data.generatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</small>}
-            <button type="button" className="cn-btn sm soft" onClick={() => setV((n) => n + 1)}><RefreshCw size={14} aria-hidden /> Refresh</button>
+            <div className="cn-search"><Search size={16} aria-hidden="true" /><input className="cn-inp" type="search" placeholder="Search store, owner or phone" aria-label="Search store, owner or phone" value={query} onChange={(e) => search(e.target.value)} /></div>
+            <span className="cn-pill" title={summary.data ? `Updated ${new Date(summary.data.generatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : undefined}>Live</span>
+            <button type="button" className="cn-btn sm soft cn-ico" onClick={() => setV((n) => n + 1)} aria-label="Refresh"><RefreshCw size={14} aria-hidden /></button>
           </div>
         </header>
         {notice && <p role="status" className="cn-note ok">{notice}</p>}

@@ -12,7 +12,7 @@ import { loadMerchant } from '../server/merchant';
 import { newStoreRecord, scopeStore, type StoreRecord } from '../server/tenancy';
 import { maskPhone } from '../server/consoleStats';
 import { daysAgo } from '../server/stats';
-import { Overview, PlansPage, StoragePage, StoresPage, type PageProps } from '../src/console/pages';
+import { Overview, PlansPage, StoragePage, StoresPage, SubdomainsPage, type PageProps } from '../src/console/pages';
 
 const AUD = '/projects/1/global/backendServices/2';
 const key = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
@@ -74,7 +74,7 @@ const get = async (p: string) => (await request(app).get(`${api}${p}`).set(as())
 describe('console cross-store reads', () => {
   it('need the IAP header', async () => {
     for (const p of ['/summary', '/activity', '/owners', '/buyers', '/orders']) expect((await request(app).get(`${api}${p}`)).status).toBe(401);
-    expect((await request(app).post(`${api}/stores/alpha/layout`).send({ layout: 'emergent' })).status).toBe(401);
+    expect((await request(app).post(`${api}/stores/alpha/suspend`).send({})).status).toBe(401);
   });
 
   it('summary totals across three stores', async () => {
@@ -101,9 +101,13 @@ describe('console cross-store reads', () => {
     expect(later.trialsEndingSoon.count).toBe(0);
   });
 
-  it('returns null, not made-up numbers, for what the app cannot know', async () => {
-    const { cloud } = await get('/summary');
-    expect(cloud).toMatchObject({ storageBytes: null, firestoreReads: null, certificates: null, costInr: null, subdomainsActive: 3, note: 'Connect Cloud Monitoring' });
+  it('cloud cards are null with a safe note when Google cannot be read, never made-up numbers', async () => {
+    const { cloud, env } = await get('/summary');
+    expect(cloud.storage.data).toBeNull();
+    expect(cloud.storage.note).not.toBe('');
+    expect(cloud.firestore.data).toBeNull();
+    expect(cloud.subdomains.total).toBe(3);
+    expect(env.region).toBe('asia-south1');
   });
 
   it('masks buyer phones', async () => {
@@ -120,7 +124,6 @@ describe('console cross-store reads', () => {
   });
 
   it('never leaks hashes, full buyer phones or addresses from any endpoint', async () => {
-    await request(app).post(`${api}/stores/alpha/layout`).set(as()).send({ layout: 'emergent' });
     const all = JSON.stringify([
       await get('/summary'), await get('/activity?limit=100'), await get('/owners'), await get('/buyers'), await get('/orders'),
       await get('/stores'), await get('/stores/alpha'), await get('/audit')
@@ -159,35 +162,11 @@ describe('console cross-store reads', () => {
   });
 });
 
-describe('console layout write', () => {
-  const post = (id: string, b: object) => request(app).post(`${api}/stores/${id}/layout`).set(as()).send(b);
-
-  it('accepts a Pro layout on a Basic store, audits it and keeps the effective layout Gilded', async () => {
-    await root.update('stores', 'alpha', { trialEndsAt: iso(-1) }); // lapsed trial: Basic
-    const res = await post('alpha', { layout: 'emergent' });
-    expect(res.status).toBe(200);
-    expect(res.body.data).toMatchObject({ id: 'alpha', plan: 'basic', effectivePlan: 'basic', layout: 'emergent', effectiveLayout: 'gilded' });
-    expect(((await root.get<StoreRecord>('stores', 'alpha'))!).merchant.layout).toBe('emergent');
-    const log = (await get('/stores/alpha')).audit;
-    expect(log[0]).toMatchObject({ action: 'layout', who: 'boss@antarixs.com', storeId: 'alpha', what: 'layout gilded -> emergent' });
-    // Back on Pro the saved choice shows.
-    await root.update('stores', 'alpha', { plan: 'pro' });
-    expect((await get('/stores/alpha')).effectiveLayout).toBe('emergent');
-  });
-
-  it('rejects an unknown layout and an unknown store, and needs JSON', async () => {
-    expect((await post('alpha', { layout: 'neon' })).status).toBe(400);
-    expect((await post('alpha', {})).status).toBe(400);
-    expect((await post('nope', { layout: 'gilded' })).status).toBe(404);
-    expect((await request(app).post(`${api}/stores/alpha/layout`).set(as()).type('form').send('layout=gilded')).status).toBe(415);
-    expect(((await root.get<StoreRecord>('stores', 'alpha'))!).merchant.layout).toBe('gilded');
-    expect((await get('/audit'))).toHaveLength(0);
-  });
-
-  it('the store view carries owner, layout and last activity', async () => {
+describe('console store view', () => {
+  it('the store view carries owner and last activity', async () => {
     const rows = await get('/stores');
     const alpha = rows.find((s: any) => s.id === 'alpha');
-    expect(alpha).toMatchObject({ owner: { email: 'a@alpha.test' }, layout: 'gilded', effectiveLayout: 'gilded', buyers: 2, limits: { buyers: null, photos: 3000 } });
+    expect(alpha).toMatchObject({ owner: { email: 'a@alpha.test' }, buyers: 2, limits: { buyers: null, photos: 3000 } });
     expect(Date.now() - Date.parse(alpha.lastActiveAt)).toBeLessThan(5 * 60_000);
     expect(rows.find((s: any) => s.id === 'gamma').lastActiveAt).toBeNull();
   });
@@ -197,25 +176,27 @@ describe('console layout write', () => {
 describe('console pages render real data', () => {
   const state = <T,>(data: T) => ({ data, error: '', loading: false });
   const html = async (Page: (p: PageProps) => ReactElement | null) =>
-    renderToStaticMarkup(createElement(Page, { stores: state(await get('/stores')), summary: state(await get('/summary')), v: 0, ask: () => {} }));
+    renderToStaticMarkup(createElement(Page, { stores: state(await get('/stores')), summary: state(await get('/summary')), v: 0, ask: () => {}, query: '', setQuery: () => {} }));
 
-  it('overview: KPIs, chart, plan mix, trial warning, stores and Not connected cloud cards', async () => {
+  it('overview: KPIs, chart, plan mix, trial warning, stores and honest cloud cards', async () => {
     const out = await html(Overview);
     expect(out).toContain('Alpha Jewels');
     expect(out).toContain('Pro trial · 2d');
     expect(out).toContain('1 trial ends within 3 days');
     expect(out).toContain('10 orders and 42 visits'); // 14-day totals in the chart's label
     expect(out).toContain('Not connected');
-    expect(out).toContain('Connect Cloud Monitoring');
+    expect(out).toContain('3 of 3 serving');
+    expect(out).not.toContain('Visits this week');
     expect(out).not.toContain('SECRETHASH');
   });
 
   it('stores, plans and storage pages', async () => {
-    expect(await html(StoresPage)).toMatch(/Alpha Jewels[\s\S]*Gilded/);
+    expect(await html(StoresPage)).toMatch(/Alpha Jewels/);
     const plans = await html(PlansPage);
     expect(plans).toContain('Extend trial 14 days');
     expect(plans).toContain('Set Pro');
     expect(plans).toContain('Set Basic'); // gamma is paid Pro
-    expect((await html(StoragePage)).match(/Not connected/g)!.length).toBeGreaterThanOrEqual(4);
+    expect((await html(StoragePage)).match(/Not connected/g)!.length).toBeGreaterThanOrEqual(3);
+    expect(await html(SubdomainsPage)).toContain('alpha.antarixs.com');
   });
 });

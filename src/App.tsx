@@ -5,7 +5,8 @@ import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { merchant } from './merchant';
-import { kitFor } from './layouts';
+import { emergent as K } from './layouts/emergent';
+import { DEFAULT_LAYOUT } from '../shared/layouts';
 import { sector } from './sector';
 import { RetailerAuthScreen } from './components/RetailerAuthScreen';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
@@ -21,13 +22,10 @@ import { AdminBuyersScreen } from './components/AdminBuyersScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
-import { LayoutPickerScreen } from './components/LayoutPickerScreen';
 import { PdfCatalogueScreen } from './components/PdfCatalogueScreen';
 import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
 
-// The server embeds the effective layout for this store, so it is fixed for the life of the page.
-const K = kitFor(merchant.layout);
 
 export default function App() {
   const plan = usePlan();
@@ -436,7 +434,7 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-layout', 'admin-pdf'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf'];
   const buyerOnlyScreens: ActiveScreen[] = ['change-password', 'shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
@@ -460,7 +458,6 @@ export default function App() {
     ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-orders', 'admin-buyers', 'admin-visitors', 'admin-banners', 'admin-purities'].includes(activeScreen) && !(currentMerchant && mustChangePassword);
 
   const ownTop: Partial<Record<ActiveScreen, { title: string; back: ActiveScreen }>> = {
-    'admin-layout': { title: 'Storefront layout', back: 'admin-hub' },
     'admin-pdf': { title: 'PDF catalogue', back: 'admin-hub' },
     plans: { title: 'Basic and Pro', back: isAdminLoggedIn ? 'admin-plan' : 'welcome' }
   };
@@ -486,7 +483,7 @@ export default function App() {
   if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
-    <div data-layout={merchant.layout} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+    <div data-layout={DEFAULT_LAYOUT} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {/* Persistent Header */}
       {top && <ScreenTop title={top.title} onBack={() => handleNavigate(top.back)} />}
       {activeScreen !== 'welcome' && !top && (
@@ -611,7 +608,6 @@ export default function App() {
 
         {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} onNavigate={handleNavigate} />}
 
-        {activeScreen === 'admin-layout' && <LayoutPickerScreen onNavigate={handleNavigate} />}
 
         {activeScreen === 'admin-pdf' && <PdfCatalogueScreen products={products} categories={categories} />}
 

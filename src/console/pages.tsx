@@ -1,11 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Bell, Search } from 'lucide-react';
 import {
-  NOT_CONNECTED, ago, bytes, day, daysLeft, delta, isOnline, layoutName, num, planActions, short, stamp, storeActions, trialDays, useApi,
-  type Action, type ApiState, type AuditRow, type FeedItem, type Row, type Summary
+  NOT_CONNECTED, ago, bytes, day, daysLeft, delta, isOnline, num, planActions, short, stamp, storeActions, trialDays, useApi,
+  type Action, type ApiState, type AuditRow, type Cloud, type FeedItem, type Row, type Summary
 } from './api';
 
-export interface PageProps { stores: ApiState<Row[]>; summary: ApiState<Summary>; v: number; ask: (s: Row, a: Action) => void }
+export interface PageProps { stores: ApiState<Row[]>; summary: ApiState<Summary>; v: number; ask: (s: Row, a: Action) => void; query: string; setQuery: (q: string) => void }
 
 /* ---------- small shared pieces ---------- */
 const Load = ({ s }: { s: ApiState<unknown> }) =>
@@ -51,15 +51,8 @@ const Usage = ({ n, cap }: { n: number; cap: number | null }) => (
 );
 const Seen = ({ at }: { at: string | null }) => (isOnline(at) ? <><i className="dot on" aria-hidden="true" />Online</> : <>{ago(at)}</>);
 
-const NotConnected = ({ note }: { note: string }) => (
-  <>
-    <div className="ser cn-nc">{NOT_CONNECTED}</div>
-    <small>{note}</small>
-  </>
-);
-
 function StoreTable({ rows, full, empty = 'No stores match.' }: { rows: Row[]; full?: boolean; empty?: string }) {
-  const heads = ['Store', 'Owner', 'Plan', ...(full ? ['Layout', 'Status'] : []), 'Buyers', 'Photos', 'Seen'];
+  const heads = ['Store', 'Owner', 'Plan', ...(full ? ['Status'] : []), 'Buyers', 'Photos', 'Seen'];
   return (
     <div className="cn-tw">
       <table className="cn-t">
@@ -71,7 +64,6 @@ function StoreTable({ rows, full, empty = 'No stores match.' }: { rows: Row[]; f
               <td>{storeLink(s)}</td>
               <td>{ownerOf(s)}</td>
               <td><PlanTag s={s} />{s.ownApp && <> <span className="tag">Own app</span></>}</td>
-              {full && <td>{layoutName(s.layout)}{s.effectiveLayout !== s.layout && <small>showing {layoutName(s.effectiveLayout)}</small>}</td>}
               {full && <td><StatusTag s={s} /></td>}
               <td className="n"><Usage n={s.buyers} cap={s.limits.buyers} /></td>
               <td className="n"><Usage n={s.photos} cap={s.limits.photos} /></td>
@@ -159,17 +151,42 @@ function PlanMixCard({ s }: { s: Summary }) {
   );
 }
 
-function CloudCards({ s, full }: { s: Summary; full?: boolean }) {
+/** Small bars for the last 14 days of reads. */
+const Bars = ({ values }: { values: number[] }) => {
+  const max = Math.max(1, ...values);
+  return (
+    <svg viewBox="0 0 140 30" className="cn-chart" role="img" aria-label={`Firestore reads per day, last 14 days: ${values.map(num).join(', ')}`}>
+      {values.map((n, i) => <rect key={i} x={i * 10 + 1} y={30 - Math.max(1.5, (n / max) * 30)} width="8" height={Math.max(1.5, (n / max) * 30)} rx="2" fill={i === values.length - 1 ? '#5c1f3a' : '#c9a961'} />)}
+    </svg>
+  );
+};
+
+const certLine = (c: Cloud) => {
+  const cert = c.certs.data?.[0];
+  return cert ? `${cert.name}: ${cert.state.toLowerCase()}${cert.expiresAt ? `, expires ${day(cert.expiresAt)}` : ''}` : null;
+};
+
+export function CloudCards({ s, full }: { s: Summary; full?: boolean }) {
   const c = s.cloud;
+  if (!c) return <p className="mut">Cloud figures are not loaded.</p>;
+  const st = c.storage.data, fs = c.firestore.data, sub = c.subdomains;
   return (
     <div className={`cn-grid ${full ? 'g4' : 'g3'}`}>
-      <Card eyebrow="Storage" title={c.storageBytes === null ? 'Photos' : bytes(c.storageBytes)}>{c.storageBytes === null ? <NotConnected note={c.note} /> : <small>Used in the photo bucket</small>}</Card>
-      <Card eyebrow="Firestore" title="Reads">{c.firestoreReads === null ? <NotConnected note={c.note} /> : <small>{num(c.firestoreReads)} reads today</small>}</Card>
-      <Card eyebrow="Subdomains" title={`${c.subdomainsActive} active`}>
-        <div className="cn-b big" aria-hidden="true"><i style={{ width: '100%', background: 'var(--ok)' }} /></div>
-        {c.certificates === null ? <small>Certificates: {NOT_CONNECTED}. {c.note}</small> : <small>{c.certificates}</small>}
+      <Card eyebrow="Storage" title={st ? bytes(st.bytes) : NOT_CONNECTED}>
+        {st ? <small>{st.objects !== null ? `${num(st.objects)} files · ` : ''}photo bucket · {c.region}{st.truncated ? ' · per-store split is partial' : ''}</small> : <small>{c.storage.note}</small>}
       </Card>
-      {full && <Card eyebrow="Cost" title="This month">{c.costInr === null ? <NotConnected note={c.note} /> : <small>₹{num(c.costInr)}</small>}</Card>}
+      <Card eyebrow="Firestore" title={fs ? `${num(fs.reads)} reads` : NOT_CONNECTED}>
+        {fs ? <><Bars values={fs.readsDaily} /><small>Last 24 hours · {num(fs.writes)} writes · {num(fs.deletes)} deletes</small></> : <small>{c.firestore.note}</small>}
+      </Card>
+      <Card eyebrow="Subdomains" title={`${sub.serving} of ${sub.total} serving`}>
+        <div className="cn-b big" aria-hidden="true"><i style={{ width: `${sub.total ? (sub.serving / sub.total) * 100 : 0}%`, background: sub.serving === sub.total ? 'var(--ok)' : 'var(--warn)' }} /></div>
+        <small>{certLine(c) ?? `Certificate: not connected. ${c.certs.note}`}</small>
+      </Card>
+      {full && (
+        <Card eyebrow="Cloud Run" title={c.run.data ? `${num(c.run.data.requests)} requests` : NOT_CONNECTED}>
+          <small>{c.run.data ? `Last 24 hours · revision ${s.env.revision ?? '—'}` : c.run.note}</small>
+        </Card>
+      )}
     </div>
   );
 }
@@ -185,9 +202,8 @@ export function Overview({ stores, summary, v }: PageProps) {
   if (!s) return <Load s={summary} />;
   const kpis: Array<[string, string, string, boolean?]> = [
     ['Stores', num(s.stores.total), s.stores.newThisWeek ? `+${s.stores.newThisWeek} this week` : 'None new this week'],
-    ['Buyers', num(s.buyers.total), s.buyers.newThisWeek ? `+${s.buyers.newThisWeek} this week` : 'None new this week'],
-    ['Orders this week', num(s.orders.week), delta(s.orders.week, s.orders.prevWeek)],
-    ['Visits this week', num(s.visits.week), delta(s.visits.week, s.visits.prevWeek)]
+    ['Buyers signed in', num(s.buyers.total), s.buyers.newThisWeek ? `+${s.buyers.newThisWeek} this week` : 'None new this week'],
+    ['Orders this week', num(s.orders.week), delta(s.orders.week, s.orders.prevWeek)]
   ];
   return (
     <>
@@ -216,8 +232,7 @@ export function Overview({ stores, summary, v }: PageProps) {
   );
 }
 
-export function StoresPage({ stores }: PageProps) {
-  const [q, setQ] = useState('');
+export function StoresPage({ stores, query: q, setQuery: setQ }: PageProps) {
   const [plan, setPlan] = useState('');
   const [status, setStatus] = useState('');
   const needle = q.trim().toLowerCase();
@@ -227,7 +242,6 @@ export function StoresPage({ stores }: PageProps) {
   return (
     <>
       <div className="cn-bar">
-        <SearchBox value={q} onChange={setQ} label="Search store, subdomain or owner" />
         <select className="cn-inp" value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan">
           <option value="">All plans</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="founder">Founder</option>
         </select>
@@ -260,7 +274,6 @@ export function StoreDetail({ id, v, ask }: PageProps & { id: string }) {
             <div className="cn-kv"><span>Owner</span><b>{s.owner?.email ?? '—'}{s.owner?.phone ? ` · ${s.owner.phone}` : ''}</b></div>
             <div className="cn-kv"><span>Plan</span><b>{s.plan}{s.effectivePlan !== s.plan ? ` (acts as ${s.effectivePlan})` : ''}</b></div>
             <div className="cn-kv"><span>Trial ends</span><b>{s.trialEndsAt ? `${day(s.trialEndsAt)} · ${daysLeft(s.trialEndsAt)}` : '—'}</b></div>
-            <div className="cn-kv"><span>Layout</span><b>{layoutName(s.layout)}{s.effectiveLayout !== s.layout ? ` (showing ${layoutName(s.effectiveLayout)})` : ''}</b></div>
             <div className="cn-kv"><span>Buyers</span><b>{num(s.buyers)}{s.limits.buyers !== null ? ` of ${num(s.limits.buyers)}` : ''}</b></div>
             <div className="cn-kv"><span>Photos</span><b>{num(s.photos)}{s.limits.photos !== null ? ` of ${num(s.limits.photos)}` : ''}</b></div>
             <div className="cn-kv"><span>Collections</span><b>{s.categories ?? '—'}</b></div>
@@ -272,7 +285,7 @@ export function StoreDetail({ id, v, ask }: PageProps & { id: string }) {
         <section aria-label="Actions" className="cn-card cn-stack">
           <h2 className="ser" style={{ fontSize: 20 }}>Change store</h2>
           <div className="cn-row">{actions.map((a) => <button key={a.label} type="button" className="cn-btn sm soft" onClick={() => ask(s, a)}>{a.label}</button>)}</div>
-          <small>You confirm each change first, and every change is recorded below. Staff can set any layout whatever the plan.</small>
+          <small>You confirm each change first, and every change is recorded below.</small>
         </section>
       </div>
       <section aria-label="Recent changes" className="cn-card">
@@ -458,25 +471,79 @@ export function ActivityPage({ v }: PageProps) {
 }
 
 export function StoragePage({ stores, summary }: PageProps) {
+  const c = summary.data?.cloud;
+  const names = new Map((stores.data ?? []).map((r) => [r.id, r.name]));
+  const st = c?.storage.data;
   const rows = [...(stores.data ?? [])].sort((a, b) => b.photos - a.photos);
+  const bytesOf = new Map((st?.perStore ?? []).map((p) => [p.id, p]));
+  const extra = (st?.perStore ?? []).filter((p) => !names.has(p.id));
   return (
     <>
       <Load s={summary} />
       {summary.data && <CloudCards s={summary.data} full />}
       <Load s={stores} />
-      <Card eyebrow="From the catalogue data" title="Photos in use by store">
+      <Card eyebrow="Photo bucket" title="Storage by store">
         <div className="cn-tw">
           <table className="cn-t">
-            <caption className="sr-only">Photos in use by store against each plan's cap</caption>
-            <thead><tr><th scope="col">Store</th><th scope="col">Plan</th><th scope="col" className="n">Photos</th></tr></thead>
+            <caption className="sr-only">Photo bytes and photos in use by store</caption>
+            <thead><tr><th scope="col">Store</th><th scope="col">Plan</th><th scope="col" className="n">Files</th><th scope="col" className="n">Size</th><th scope="col" className="n">Photos in use</th></tr></thead>
             <tbody>
-              {rows.map((r) => <tr key={r.id}><td>{storeLink(r)}</td><td><PlanTag s={r} /></td><td className="n"><Usage n={r.photos} cap={r.limits.photos} /></td></tr>)}
-              {stores.data && rows.length === 0 && <tr><td colSpan={3} className="empty">No stores yet.</td></tr>}
+              {rows.map((r) => {
+                const p = bytesOf.get(r.id);
+                return <tr key={r.id}><td>{storeLink(r)}</td><td><PlanTag s={r} /></td><td className="n">{p ? num(p.objects) : '—'}</td><td className="n">{p ? bytes(p.bytes) : '—'}</td><td className="n"><Usage n={r.photos} cap={r.limits.photos} /></td></tr>;
+              })}
+              {extra.map((p) => <tr key={p.id}><td><b>{p.id === '(shared)' ? 'Shared / older uploads' : p.id}</b></td><td /><td className="n">{num(p.objects)}</td><td className="n">{bytes(p.bytes)}</td><td className="n">—</td></tr>)}
+              {stores.data && rows.length === 0 && <tr><td colSpan={5} className="empty">No stores yet.</td></tr>}
             </tbody>
           </table>
         </div>
-        <small>Counts designs, collections and banners that use a photo. Uploaded files nobody uses are not counted, and bytes used appear once Cloud Monitoring is connected.</small>
+        <small>{c && !st ? `${c.storage.note}. ` : ''}Size is the real bytes in the bucket under each store. Photos in use counts designs, collections and banners that use a photo against the plan cap.</small>
       </Card>
+    </>
+  );
+}
+
+export function SubdomainsPage({ summary }: PageProps) {
+  const c = summary.data?.cloud;
+  const [q, setQ] = useState('');
+  const checks = (c?.subdomains.checks ?? []).filter((x) => !q.trim() || x.host.includes(q.trim().toLowerCase()));
+  const certs = c?.certs.data ?? [];
+  return (
+    <>
+      <Load s={summary} />
+      {c && (
+        <>
+          <div className="cn-grid g3">
+            <Card eyebrow="Serving" title={`${c.subdomains.serving} of ${c.subdomains.total}`}><small>Stores whose address answers /health</small></Card>
+            <Card eyebrow="Certificate" title={certs[0] ? certs[0].state[0] + certs[0].state.slice(1).toLowerCase() : NOT_CONNECTED}>
+              {certs.length ? certs.map((x) => <small key={x.name}>{x.name} · {x.domains.join(', ')}{x.expiresAt ? ` · expires ${day(x.expiresAt)}` : ''}</small>) : <small>{c.certs.note}</small>}
+            </Card>
+            <Card eyebrow="Revision" title={c.run.data ? `${num(c.run.data.requests)} requests` : 'Cloud Run'}><small>{summary.data?.env.revision ?? 'Not on Cloud Run'} · {c.region}{c.run.data ? ' · last 24 hours' : ''}</small></Card>
+          </div>
+          <div className="cn-bar"><SearchBox value={q} onChange={setQ} label="Search subdomain" /></div>
+          <div className="cn-card" style={{ padding: 8 }}>
+            <div className="cn-tw">
+              <table className="cn-t">
+                <caption className="sr-only">Store subdomains and whether they answer</caption>
+                <thead><tr><th scope="col">Address</th><th scope="col">Status</th><th scope="col" className="n">Response</th><th scope="col">Certificate</th><th scope="col">Last check</th></tr></thead>
+                <tbody>
+                  {checks.map((x) => (
+                    <tr key={x.id}>
+                      <td><a className="cn-store" href={`#/stores/${x.id}`}>{x.host}</a></td>
+                      <td>{x.ok ? <span className="tag ok">Serving</span> : <span className="tag bad">{x.status ? `HTTP ${x.status}` : 'No answer'}</span>}</td>
+                      <td className="n">{x.ms === null ? '—' : `${x.ms} ms`}</td>
+                      <td>{certs[0] ? (certs[0].domains.some((d) => d.startsWith('*.') && x.host.endsWith(d.slice(1))) ? <>Covered{certs[0].expiresAt ? <small>until {day(certs[0].expiresAt)}</small> : null}</> : 'Not covered') : '—'}</td>
+                      <td>{ago(x.checkedAt)}</td>
+                    </tr>
+                  ))}
+                  {checks.length === 0 && <tr><td colSpan={5} className="empty">No subdomains.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <small style={{ padding: '8px 10px', display: 'block' }}>Checked from the server every 5 minutes at most. One wildcard certificate covers every store address.</small>
+          </div>
+        </>
+      )}
     </>
   );
 }

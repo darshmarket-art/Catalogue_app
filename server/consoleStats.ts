@@ -1,4 +1,6 @@
 import type { Store } from './store';
+import type { Config } from './config';
+import { cloudSummary } from './cloudStats';
 import { TRIAL_DAYS } from './entitlements';
 import { daysAgo, loadDaily, sumDays } from './stats';
 import { scopeStore, type StoreRecord } from './tenancy';
@@ -42,7 +44,7 @@ async function eachStore<T>(root: Store, fn: (rec: StoreRecord, data: Store) => 
 export const planKind = (r: StoreRecord, now = Date.now()) =>
   r.plan === 'founder' ? 'founder' : r.plan === 'pro' ? 'paidPro' : r.trialEndsAt && Date.parse(r.trialEndsAt) > now ? 'proTrial' : 'basic';
 
-export async function summary(root: Store) {
+export async function summary(root: Store, config?: Config) {
   const now = Date.now();
   const weekAgo = new Date(now - 7 * DAY).toISOString();
   const rows = await eachStore(root, async (_rec, data) => {
@@ -83,16 +85,9 @@ export async function summary(root: Store) {
     planMix,
     trialsEndingSoon: { windowDays: SOON_DAYS, count: soon.length, stores: soon },
     series,
-    // Nothing below can be read from app data. null = "Not connected" in the console; no number is invented.
-    cloud: {
-      storageBytes: null as number | null, // ponytail: the Blobs interface cannot list sizes; add a list/size call (or Cloud Monitoring) to fill this
-      firestoreReads: null as number | null,
-      certificates: null as string | null,
-      costInr: null as number | null,
-      subdomainsActive: active,
-      note: 'Connect Cloud Monitoring'
-    },
-    env: { revision: process.env.K_REVISION ?? null }
+    // Real Google figures (cloudStats.ts); null when summary() is called without a config.
+    cloud: config ? await cloudSummary(config, rows.map(([r]) => r.id)) : null,
+    env: { revision: process.env.K_REVISION ?? null, service: process.env.K_SERVICE ?? null, region: process.env.CLOUD_REGION || 'asia-south1' }
   };
 }
 

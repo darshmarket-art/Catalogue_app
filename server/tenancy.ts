@@ -5,7 +5,6 @@ import type { Blobs } from './blobs';
 import type { Store, Doc } from './store';
 import type { MerchantConfig } from './merchant';
 import { effectivePlan, type PlanDoc } from './entitlements';
-import { DEFAULT_LAYOUT, LAYOUT_IDS, layoutPlan, type LayoutId } from '../shared/layouts';
 import { isReservedStoreName, isValidStoreName } from '../shared/storeName';
 
 /** One document per store in the top-level "stores" collection (the only data not inside a store's namespace). */
@@ -33,15 +32,6 @@ export const newStoreRecord = (merchant: MerchantConfig, patch: Partial<StoreRec
 
 export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice });
 
-/** Local preview only: DEV_FORCE_LAYOUT=emergent shows that layout for every store outside production, whatever the plan. */
-const devLayout = (config: Config) => (!config.isProduction && (LAYOUT_IDS as readonly string[]).includes(process.env.DEV_FORCE_LAYOUT ?? '') ? (process.env.DEV_FORCE_LAYOUT as LayoutId) : undefined);
-
-/** The layout a store actually gets: its choice when its plan allows it, otherwise the standard one (so a lapsed trial falls back to Gilded and comes back on upgrade). */
-export const effectiveLayout = (r: StoreRecord): LayoutId => {
-  // A record saved before layouts existed has none: it is Gilded.
-  const saved = r.merchant.layout ?? DEFAULT_LAYOUT;
-  return layoutPlan(saved) === 'pro' && effectivePlan(planOf(r)) !== 'pro' ? DEFAULT_LAYOUT : saved;
-};
 
 const COLLECTION = /^[A-Za-z0-9_]+$/;
 const nsOf = (storeId: string) => {
@@ -197,12 +187,12 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
         return void (wantsJson ? res.status(403).json({ status: 'error', message: 'This store is not available right now.' }) : res.status(403).type('text').send('This store is not available right now.'));
       }
       res.locals.storeId = entry.rec.id;
-      res.locals.merchant = { ...entry.rec.merchant, layout: devLayout(config) ?? effectiveLayout(entry.rec) };
+      res.locals.merchant = entry.rec.merchant;
       (entry.app as unknown as (a: Request, b: Response, c: NextFunction) => void)(req, res, next);
     } catch (e) {
       next(e);
     }
   };
-  // Drops a cached store record, so a change made through this process (the owner's layout choice) shows on the next load.
+  // Drops a cached store record, so a change made through this process (a plan or status change) shows on the next load.
   return { middleware, resolve, invalidate: (id: string) => cache.delete(id) };
 }
