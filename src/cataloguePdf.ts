@@ -23,13 +23,37 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-/** A square, centre-cropped JPEG of the photo; null if the browser will not let us read it. */
-function squareJpeg(img: HTMLImageElement): string | null {
+/** Tiles the brand name diagonally over the whole photo, in the pixels themselves, so it cannot be peeled off the PDF as a separate layer. */
+function stamp(ctx: CanvasRenderingContext2D, text: string) {
+  ctx.save();
+  ctx.translate(PHOTO_PX / 2, PHOTO_PX / 2);
+  ctx.rotate(-Math.PI / 6);
+  ctx.font = '700 26px Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  const label = text.toUpperCase();
+  const stepX = ctx.measureText(label).width + 70;
+  for (let y = -PHOTO_PX; y <= PHOTO_PX; y += 90) {
+    for (let x = -PHOTO_PX - ((y / 90) % 2 ? stepX / 2 : 0); x <= PHOTO_PX; x += stepX) {
+      ctx.strokeText(label, x, y);
+      ctx.fillText(label, x, y);
+    }
+  }
+  ctx.restore();
+}
+
+/** A square, centre-cropped, watermarked JPEG of the photo; null if the browser will not let us read it. */
+function squareJpeg(img: HTMLImageElement, watermark: string): string | null {
   try {
     const side = Math.min(img.naturalWidth, img.naturalHeight);
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = PHOTO_PX;
-    canvas.getContext('2d')!.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, PHOTO_PX, PHOTO_PX);
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, PHOTO_PX, PHOTO_PX);
+    stamp(ctx, watermark);
     return canvas.toDataURL('image/jpeg', 0.82);
   } catch {
     return null;
@@ -46,7 +70,7 @@ export async function downloadCataloguePdf(category: Category, products: Product
   return downloadDesignsPdf(category.name, items, onProgress);
 }
 
-/** The same PDF for designs the owner picked by hand. `title` appears in the file name and on the cover. Phones open the share sheet; elsewhere the file downloads. */
+/** The same PDF for designs the owner picked by hand. `title` appears in the file name and on the cover. The file is downloaded (on phones too), and every photo carries the brand watermark in its pixels. */
 export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void, _mode: 'save' | 'share' = 'save') {
   if (items.length === 0) throw new Error('Pick at least one design first.');
 
@@ -62,7 +86,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   // Photos are fetched a few at a time so a big collection does not flood the connection.
   const photos: Array<string | null> = [];
   for (let i = 0; i < items.length; i += 4) {
-    const batch = await Promise.all(items.slice(i, i + 4).map(async (p) => (p.image ? await loadImage(p.image).then((img) => (img ? squareJpeg(img) : null)) : null)));
+    const batch = await Promise.all(items.slice(i, i + 4).map(async (p) => (p.image ? await loadImage(p.image).then((img) => (img ? squareJpeg(img, merchant.brand.name) : null)) : null)));
     photos.push(...batch);
     onProgress?.(Math.min(i + 4, items.length), items.length);
   }
@@ -185,5 +209,5 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   });
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  await saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`, `${brand} · ${title}`);
+  saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
 }

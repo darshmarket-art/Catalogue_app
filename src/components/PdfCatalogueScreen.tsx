@@ -5,9 +5,6 @@ import { downloadDesignsPdf } from '../cataloguePdf';
 import { Chip, Notice } from './ui';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
 
-// The share sheet is offered where the browser has one (phones); everywhere else the PDF downloads.
-const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-
 /**
  * PDF catalogue (admin): pick designs from every collection, then download or share one PDF.
  * A screen of its own, so it works the same in every layout (the buyer Catalogue screen is layout-specific).
@@ -46,13 +43,13 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
       return next;
     });
 
-  const run = async (mode: 'save' | 'share') => {
+  const run = async () => {
     setBusy(true);
     setError(null);
     setStatus('Preparing the PDF…');
     try {
-      await downloadDesignsPdf(title, chosen, (done, total) => setStatus(`Preparing the PDF… ${done} of ${total} photos`), mode);
-      setStatus(mode === 'share' ? 'PDF ready' : 'PDF downloaded');
+      await downloadDesignsPdf(title, chosen, (done, total) => setStatus(`Preparing the PDF… ${done} of ${total} photos`));
+      setStatus('PDF downloaded');
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
       setStatus(null);
@@ -175,16 +172,10 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                 )}
               </div>
               <div className="row" style={{ gap: 10 }}>
-                <button type="button" data-testid="pdf-export" className="btn" style={{ flex: 1, whiteSpace: 'nowrap', padding: '0 12px' }} disabled={busy || picked.size === 0} onClick={() => run('save')}>
+                <button type="button" data-testid="pdf-export" className="btn" style={{ flex: 1, whiteSpace: 'nowrap', padding: '0 12px' }} disabled={busy || picked.size === 0} onClick={() => run()}>
                   <Icon n="down" size={18} />
                   Export PDF{picked.size > 0 ? ` · ${picked.size}` : ''}
                 </button>
-                {canShare && (
-                  <button type="button" data-testid="pdf-share" className="btn wa" style={{ flex: 'none', width: 'auto', padding: '0 14px' }} disabled={busy || picked.size === 0} onClick={() => run('share')}>
-                    <Icon n="wa" size={18} />
-                    Share
-                  </button>
-                )}
               </div>
             </div>
           </div>
