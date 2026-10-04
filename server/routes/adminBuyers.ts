@@ -19,7 +19,8 @@ export function adminBuyerRoutes(store: Store, requireAdmin: RequestHandler) {
   router.get(
     '/',
     handler(async (_req, res) => {
-      const buyers = await store.list('buyers');
+      const [buyers, seen] = await Promise.all([store.list('buyers'), store.list('visitors', { where: [{ field: 'kind', op: '==', value: 'verified' }] })]);
+      const lastSeen = new Map(seen.map((v) => [String(v.actorId), Number(v.lastSeen)]));
       const data = buyers
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
         .map((b) => ({
@@ -29,7 +30,8 @@ export function adminBuyerRoutes(store: Store, requireAdmin: RequestHandler) {
           gstin: b.gstin,
           marketHub: b.marketHub,
           createdAt: b.createdAt,
-          mustChangePassword: Boolean(b.mustChangePassword)
+          mustChangePassword: Boolean(b.mustChangePassword),
+          lastSeen: lastSeen.has(String(b.phone)) ? new Date(lastSeen.get(String(b.phone))!).toISOString() : null
         }));
       res.json({ status: 'success', count: data.length, data });
     })

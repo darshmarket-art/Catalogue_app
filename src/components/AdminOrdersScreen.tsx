@@ -67,14 +67,8 @@ export const AdminOrdersScreen: React.FC = () => {
 
   return (
     <div className="scroll" style={{ gap: 14 }}>
-      <div className="em-row em-sb" style={{ alignItems: 'flex-end' }}>
-        <div>
-          <div className="em-ey">Orders desk</div>
-          <div className="em-ser em-h2" style={{ fontSize: 22 }}>
-            {orders?.length ?? 0} {orders?.length === 1 ? 'order' : 'orders'}
-          </div>
-          <div className="em-rule" />
-        </div>
+      <div className="em-ser" data-testid="orders-count" style={{ fontSize: 22 }}>
+        {orders?.length ?? 0} {orders?.length === 1 ? 'order' : 'orders'}
       </div>
       <div className="chips">
         {(['all', ...STATUSES] as const).map((st) => (

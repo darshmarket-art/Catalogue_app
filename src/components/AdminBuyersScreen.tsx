@@ -65,6 +65,8 @@ export const AdminBuyersScreen: React.FC = () => {
   const cap = limits.users;
   const left = cap === null ? null : cap - count;
   const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+  const online = (iso: string | null) => !!iso && Date.now() - new Date(iso).getTime() < 120000;
+  const seen = (iso: string | null) => (!iso ? '' : online(iso) ? ' · online now' : new Date(iso).toDateString() === new Date().toDateString() ? ' · Seen today' : ' · seen ' + new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
   const joined = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
@@ -119,13 +121,17 @@ export const AdminBuyersScreen: React.FC = () => {
       <div data-testid="buyer-list">
         {shown.map((b, i) => (
           <div key={b.phone} className="em-row" style={{ gap: 14, padding: '16px 0', borderBottom: i < shown.length - 1 ? '1px solid var(--em-line)' : 0 }}>
-            <div className="em-av">{initials(b.firmName)}</div>
+            <div className="em-av" style={{ position: "relative" }}>
+              {initials(b.firmName)}
+              {online(b.lastSeen) && <span data-testid="buyer-online" aria-label="online" style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: 5, background: "var(--em-ok, #2f8f5b)", border: "2px solid var(--em-card, #fff)" }} />}
+            </div>
             <div className="em-grow">
               <div className="em-ser em-clip" style={{ fontSize: 16 }}>
                 {b.firmName}
               </div>
               <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
                 {b.phone} · joined {joined(b.createdAt)}
+                {seen(b.lastSeen)}
                 {b.mustChangePassword ? ' · setting a new password' : ''}
               </div>
             </div>

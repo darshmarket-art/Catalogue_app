@@ -238,6 +238,15 @@ export default function App() {
     setOrders((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const handleChangeQty = async (id: string, batchQty: number) => {
+    try {
+      const next = await api.setOrderItemQty(id, batchQty);
+      setOrders((prev) => prev.map((item) => (item.id === id ? { ...item, ...next } : item)));
+    } catch (err) {
+      if (err instanceof ApiError && !err.handled) alert(err.message);
+    }
+  };
+
   // Confirm Order (Pure Gram Settlement Allocation)
   const handleConfirmOrder = async (note?: string): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null> => {
     try {
@@ -574,6 +583,7 @@ export default function App() {
             initialTab={ordersTab}
             orders={orders}
             onRemoveItem={handleRemoveOrderItem}
+            onChangeQty={handleChangeQty}
             onConfirmOrder={handleConfirmOrder}
             onGenerateWhatsAppPO={handleGenerateWhatsAppPO}
             onNavigateCatalogue={() => handleNavigate('catalogue')}

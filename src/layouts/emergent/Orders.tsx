@@ -142,7 +142,7 @@ type OrdersProps = Omit<KitProps<'Orders'>, 'onConfirmOrder' | 'onGenerateWhatsA
 };
 
 /** Orders (atlas Orders, with the cart's review bar for the order in progress): the current order, and past orders with their status. */
-export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onConfirmOrder, onGenerateWhatsAppPO, onNavigateCatalogue, initialTab = 'current' }) => {
+export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQty, onConfirmOrder, onGenerateWhatsAppPO, onNavigateCatalogue, initialTab = 'current' }) => {
   const [isBooked, setIsBooked] = useState(false);
   const [confirmedPO, setConfirmedPO] = useState<string | null>(null);
   const [bookedGrams, setBookedGrams] = useState(0);
@@ -274,7 +274,12 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onConfirmO
                 <Icon n="bag" size={18} />
               </span>
               <div className="em-grow">
-                <div className="em-ey g">Draft order</div>
+                <div className="em-row em-sb">
+                  <div className="em-ey g">Draft order</div>
+                  <button type="button" className="em-link" data-testid="cart-clear" style={{ color: "var(--em-gold)", background: "none", border: 0, fontSize: 12, fontWeight: 600, cursor: "pointer" }} onClick={() => orders.forEach((i) => onRemoveItem(i.id))}>
+                    Clear
+                  </button>
+                </div>
                 <div style={{ fontSize: 14, marginTop: 2 }}>
                   {orders.length} {orders.length === 1 ? 'design' : 'designs'} · {totalPieces} {totalPieces === 1 ? 'piece' : 'pieces'}. Review, then place it.
                 </div>
@@ -292,8 +297,19 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onConfirmO
                     <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
                       {item.sku} · {item.purity.split(' ')[0]} · {fmtG(item.unitWt)} × {item.batchQty}
                     </div>
-                    <div className="em-ser" style={{ color: 'var(--em-primary)', fontSize: 15, marginTop: 8 }}>
-                      {fmtG(item.totalNetGold)}
+                    <div className="em-row em-sb" style={{ marginTop: 6 }}>
+                      <span className="em-ser" style={{ color: 'var(--em-primary)', fontSize: 15 }}>
+                        {fmtG(item.totalNetGold)}
+                      </span>
+                      <div className="em-qty sm">
+                        <button type="button" aria-label={`Decrease ${item.title}`} disabled={item.batchQty <= 1} onClick={() => onChangeQty(item.id, item.batchQty - 1)}>
+                          <Icon n="minus" size={16} />
+                        </button>
+                        <em>{item.batchQty}</em>
+                        <button type="button" aria-label={`Increase ${item.title}`} onClick={() => onChangeQty(item.id, item.batchQty + 1)}>
+                          <Icon n="plus" size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <button type="button" className="em-circ" aria-label={`Remove ${item.title}`} onClick={() => onRemoveItem(item.id)}>

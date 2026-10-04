@@ -53,7 +53,16 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
         <div className="em-row" style={{ gap: 10 }}>
           <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgb(255 255 255 / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true">
-              <path d="M50 8L92 90H75L50 38L25 90H8Z" fill="#8ec9ff" />
+              <defs>
+                <linearGradient id="plans-axg" x1=".1" y1="0" x2=".95" y2="1">
+                  <stop offset="0" stopColor="#7CC4FF" />
+                  <stop offset=".55" stopColor="#6100F0" />
+                  <stop offset="1" stopColor="#2B0A7A" />
+                </linearGradient>
+              </defs>
+              <path d="M50 8L92 90L75 90L50 40L25 90L8 90Z" fill="url(#plans-axg)" />
+              <path d="M33 78Q16 90-4 101Q17 94 37 86Z" fill="#F3E35A" />
+              <path d="M45 42C46.6 51 49.4 53.8 58 55.5C49.4 57.2 46.6 60 45 69C43.4 60 40.6 57.2 32 55.5C40.6 53.8 43.4 51 45 42Z" fill="#F3E35A" />
             </svg>
           </span>
           <div>

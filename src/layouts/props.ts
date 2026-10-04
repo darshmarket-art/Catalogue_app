@@ -65,6 +65,8 @@ export interface ShortlistProps {
 export interface OrdersProps {
   orders: OrderItem[];
   onRemoveItem: (id: string) => void;
+  /** The cart stepper: sets one line's quantity. */
+  onChangeQty: (id: string, batchQty: number) => void;
   /** Both take the buyer's optional note to the store. */
   onConfirmOrder: (note?: string) => Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null>;
   onGenerateWhatsAppPO: (note?: string) => void;

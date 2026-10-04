@@ -57,6 +57,18 @@ describe('Basic plan enforcement', () => {
   });
 });
 
+describe('Buyers list lastSeen', () => {
+  it('carries the visitor lastSeen of a verified buyer, null when never seen', async () => {
+    const { app, auth, store } = await basicStore();
+    await store.set('buyers', '9820000001', { id: 'b1', phone: '9820000001', firmName: 'A', createdAt: '2026-01-01' });
+    await store.set('buyers', '9820000002', { id: 'b2', phone: '9820000002', firmName: 'B', createdAt: '2026-01-02' });
+    await store.set('visitors', '9820000001', { actorId: '9820000001', kind: 'verified', name: 'A', lastSeen: 1760000000000 });
+    const rows = (await request(app).get('/api/admin/buyers').set(auth)).body.data;
+    expect(rows.find((r: any) => r.phone === '9820000001').lastSeen).toBe(new Date(1760000000000).toISOString());
+    expect(rows.find((r: any) => r.phone === '9820000002').lastSeen).toBeNull();
+  });
+});
+
 describe('Basic buyer limit', () => {
   it('refuses new numbers (no OTP sent) when full; existing buyers and the owner list/remove still work', async () => {
     const { app, auth, store } = await basicStore();

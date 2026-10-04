@@ -386,6 +386,10 @@ export const api = {
     return (await post('/api/v1/orders/items', item)).data;
   },
 
+  async setOrderItemQty(id: string, batchQty: number): Promise<OrderItem> {
+    return (await request(`/api/v1/orders/items/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ batchQty }) })).data;
+  },
+
   async removeOrderItem(id: string): Promise<void> {
     await request(`/api/v1/orders/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },

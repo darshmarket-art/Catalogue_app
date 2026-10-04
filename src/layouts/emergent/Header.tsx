@@ -13,7 +13,7 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   shortlist: 'Shortlist',
   orders: 'Orders',
   'admin-hub': 'Admin',
-  'admin-orders': 'Orders',
+  'admin-orders': 'Orders desk',
   'admin-visitors': 'Buyer engagement',
   'admin-buyers': 'Buyers',
   'admin-banners': 'Home banners',
@@ -29,13 +29,15 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
  * Everywhere else (admin, About, password, sign-in) it is the atlas's back button, a centred title and the page's aside.
  */
 export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing, eyebrow, aside }) => {
-  const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen);
-  const isTab = TAB_SCREENS.includes(currentScreen);
+  // The owner's Orders tab is the Orders desk: a titled sub-page with a back button, as in the atlas.
+  const adminOrders = currentScreen === 'orders' && isAdminLoggedIn;
+  const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen) || adminOrders;
+  const isTab = TAB_SCREENS.includes(currentScreen) && !adminOrders;
   const isHome = currentScreen === 'categories';
   const isSub = isAdminSub || ['admin-login', 'retailer-auth', 'change-password', 'about'].includes(currentScreen);
   const overHero = currentScreen === 'about'; // the About hero runs under the bar
   const title =
-    currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : TITLES[currentScreen];
+    adminOrders ? 'Orders desk' : currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : TITLES[currentScreen];
   const showTitle = Boolean(title) && !['admin-login', 'retailer-auth'].includes(currentScreen) && !overHero;
   const showProfile = (currentMerchant || isAdminLoggedIn) && (isTab || currentScreen === 'admin-hub');
   const showSignIn = isTab && !currentMerchant && !isAdminLoggedIn;

@@ -132,6 +132,8 @@ export interface BuyerRow {
   marketHub: string;
   createdAt: string;
   mustChangePassword: boolean;
+  /** ISO time the buyer was last active, null if never seen. */
+  lastSeen: string | null;
 }
 
 export interface AdminOrder {

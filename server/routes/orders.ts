@@ -113,6 +113,22 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
     })
   );
 
+  // The stepper in the buyer's cart: same line, new quantity, weights recomputed from the catalogue.
+  router.patch(
+    '/items/:id',
+    handler(async (req, res) => {
+      const { batchQty } = parse(cartItemSchema.pick({ batchQty: true }), req.body);
+      const item = await store.get<CartItem>('cartItems', req.params.id);
+      if (!item || item.ownerId !== user(res).id) throw new HttpError(404, 'Item not found in order');
+      const [product] = await store.list('products', { where: [{ field: 'sku', op: '==', value: item.sku }], limit: 1 });
+      if (!product) throw new HttpError(404, `No catalogue item found for SKU ${item.sku}.`);
+      const line = pack.cartLine(product, batchQty);
+      const next = { totalNetGold: line.totalNetGold, batchQty, qtyUnit: batchQty > 1 ? 'Pcs' : 'Set' };
+      await store.update('cartItems', item.id, next);
+      res.json({ status: 'success', data: shown({ ...item, ...next }) });
+    })
+  );
+
   router.delete(
     '/items/:id',
     handler(async (req, res) => {

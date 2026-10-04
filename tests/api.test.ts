@@ -244,6 +244,23 @@ describe('orders', () => {
     expect(remove.status).toBe(200);
   });
 
+  it('changes a cart line quantity, recomputing weight; not another buyers line, not below 1', async () => {
+    const app = await build();
+    const a = (await signupRetailer(app, 1)).token;
+    const b = (await signupRetailer(app, 2)).token;
+    const added = await request(app).post('/api/orders/items').set('Authorization', `Bearer ${a}`).send({ sku: 'B2B-KND-9082', batchQty: 1 });
+    const id = added.body.data.id;
+    const patch = (t: string, body: object) => request(app).patch(`/api/orders/items/${id}`).set('Authorization', `Bearer ${t}`).send(body);
+    const r = await patch(a, { batchQty: 3 });
+    expect(r.status).toBe(200);
+    expect(r.body.data.batchQty).toBe(3);
+    expect(r.body.data.totalNetGold).toBeCloseTo(added.body.data.totalNetGold * 3, 3);
+    expect((await patch(b, { batchQty: 2 })).status).toBe(404);
+    expect((await patch(a, { batchQty: 0 })).status).toBe(400);
+    const list = await request(app).get('/api/orders').set('Authorization', `Bearer ${a}`);
+    expect(list.body.data[0].batchQty).toBe(3);
+  });
+
   it('computes weights from the catalogue, not from client-supplied values', async () => {
     const app = await build();
     const { token } = await signupRetailer(app);
