@@ -106,3 +106,8 @@ Skipped from the plan: slide-OUT of the previous onboarding step (React unmounts
 | B5 | Back button trail | PLANNED, not built |
 | B6 | Photo ratio rules | PLANNED, not built |
 | B7 | PDF atlas layout + real download | PLANNED, not built |
+
+## Built 2026-10-04 (HEAD 7675c56, 239 tests): B5, B6, B7
+- **B5:** web history is one entry above a guard entry; Back from any screen goes home, on home a toast "Press back again to exit", a second Back within 2 s leaves (`src/nav.ts`, `App.tsx`). Store opened from signup with `location.replace(...#new)`; for that visit "leave" tries `window.close()` then blanks the tab, so the signup/app pages are never reachable by Back. Product detail is an overlay (Back leaves the screen, not the overlay: known gap).
+- **B6:** `shared/photoSpecs.ts`; banner 2:1 1600x800 and collection 1:1 1200x1200 are strict (too small = refused, wrong shape = crop dialog, `PhotoCropper.tsx`); designs 1:1 advised (crop with Skip). Decision taken: designs square (not 4:5) to match the square cards. Banner slide is now `aspect-ratio: 2/1`, gallery square.
+- **B7:** `cataloguePdf.ts` follows the atlas (cover, 2-column cards, footer with Powered by Antarixs logo, page numbers); watermark dropped; `saveFile.ts` shares on phones, downloads as octet-stream elsewhere (no more viewer tab).
