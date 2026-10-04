@@ -8,9 +8,7 @@ import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl, us
 import { HttpError, audit, handler, newId, parse } from '../http';
 import {
   adminLoginSchema,
-  adminRegisterSchema,
-  retailerLoginSchema,
-  retailerSignupSchema
+  adminRegisterSchema
 } from '../schemas';
 
 const BCRYPT_ROUNDS = 12;
@@ -28,13 +26,6 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
     standardHeaders: true,
     legacyHeaders: false,
     message: limited('Too many failed attempts. Please wait a few minutes and try again.')
-  });
-  const signupLimiter = rateLimit({
-    windowMs: HOUR,
-    limit: config.rateLimit.auth,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: limited('Too many sign-ups from this network. Please try again later.')
   });
   const adminRegisterLimiter = rateLimit({
     windowMs: HOUR,
@@ -54,71 +45,6 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
     verified: m.verified,
     mustChangePassword: Boolean(m.mustChangePassword)
   });
-
-  router.post(
-    '/retailer/signup',
-    signupLimiter,
-    handler(async (req, res) => {
-      const body = parse(retailerSignupSchema, req.body);
-      const gstin = body.gstin || 'PENDING-VERIFY';
-
-      if (gstin !== 'PENDING-VERIFY') {
-        const dup = await store.list('buyers', { where: [{ field: 'gstin', op: '==', value: gstin }], limit: 1 });
-        if (dup.length > 0) {
-          throw new HttpError(409, 'A wholesale account with this Phone or GSTIN is already registered. Please sign in.');
-        }
-      }
-
-      const buyer = {
-        id: newId('merch'),
-        firmName: body.firmName,
-        gstin,
-        ownerName: body.ownerName || 'Authorized Signatory',
-        phone: body.phone,
-        password: await bcrypt.hash(body.password, BCRYPT_ROUNDS),
-        marketHub: body.marketHub || config.merchant.onboarding.defaultMarketHub,
-        verified: true,
-        createdAt: new Date().toISOString()
-      };
-
-      if (!(await store.create('buyers', buyer.phone, buyer))) {
-        throw new HttpError(409, 'A wholesale account with this Phone or GSTIN is already registered. Please sign in.');
-      }
-      await audit(store, req, 'RETAILER_SIGNUP_SUCCESS', `Firm registered: ${buyer.firmName} (Phone: ${buyer.phone})`);
-
-      res.status(201).json({
-        status: 'success',
-        token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
-        message: 'Wholesale account created successfully! You are now authenticated.',
-        user: buyerView(buyer)
-      });
-    })
-  );
-
-  router.post(
-    '/retailer/login',
-    loginLimiter,
-    handler(async (req, res) => {
-      const body = parse(retailerLoginSchema, req.body);
-      if (body.authMode === 'wa') {
-        throw new HttpError(501, 'WhatsApp OTP sign-in is not available yet. Please sign in with your password.');
-      }
-
-      const buyer = await store.get('buyers', body.phone);
-      const ok = await verifyPassword(body.password, buyer?.password);
-      if (!buyer || !ok) {
-        await audit(store, req, 'RETAILER_LOGIN_FAILED', `Failed login attempt for phone ${body.phone}.`);
-        throw new HttpError(401, 'Access Denied: Incorrect phone number or password.');
-      }
-
-      await audit(store, req, 'RETAILER_LOGIN_SUCCESS', `Firm authenticated: ${buyer.firmName} (Phone: ${buyer.phone})`);
-      res.json({
-        status: 'success',
-        token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
-        user: buyerView(buyer)
-      });
-    })
-  );
 
   router.post(
     '/admin/register',

@@ -423,31 +423,12 @@ export const api = {
     }
   },
 
-  async signupRetailer(payload: {
-    firmName: string;
-    gstin: string;
-    ownerName: string;
-    phone: string;
-    password: string;
-    marketHub: string;
-  }) {
-    const json = await post('/api/v1/auth/retailer/signup', payload);
-    setAuthToken(json.token);
-    return json;
-  },
-
   async requestOtp(phone: string) {
     return post('/api/v1/auth/retailer/request-otp', { phone });
   },
 
   async verifyOtp(payload: { phone: string; code: string; firmName?: string }) {
     const json = await post('/api/v1/auth/retailer/verify-otp', payload);
-    setAuthToken(json.token);
-    return json;
-  },
-
-  async loginRetailer(payload: { phone: string; password: string }) {
-    const json = await post('/api/v1/auth/retailer/login', payload);
     setAuthToken(json.token);
     return json;
   },

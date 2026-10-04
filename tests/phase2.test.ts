@@ -10,6 +10,7 @@ import { createMedia } from '../server/media';
 import { parseMerchant, themeCss, renderIndexHtml } from '../server/merchant';
 import type { ProductField } from '../server/merchant';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
 
@@ -20,7 +21,7 @@ let config: Config;
 
 async function build(opts: { access?: 'public' | 'login'; productFields?: ProductField[] } = {}) {
   config = {
-    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 }
   };
   config.merchant = { ...config.merchant, catalogueAccess: opts.access ?? 'login', productFields: opts.productFields ?? [] };
@@ -45,7 +46,7 @@ async function admin(app: App, role: 'owner' | 'staff' = 'owner', email = `${rol
 
 async function buyer(app: App, n = 1) {
   const phone = `98200000${String(n).padStart(2, '0')}`;
-  const res = await request(app).post('/api/auth/retailer/signup').send({ firmName: `Shop ${n}`, phone, password: 'StrongPass@1' });
+  const res = await otpBuyer(app, { firmName: `Shop ${n}`, phone });
   return { Authorization: `Bearer ${res.body.token}`, phone };
 }
 

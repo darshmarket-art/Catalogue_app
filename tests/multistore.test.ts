@@ -10,6 +10,7 @@ import { loadMerchant } from '../server/merchant';
 import { newStoreRecord, scopeBlobs, scopeStore, storeIdOf } from '../server/tenancy';
 import { isAvailableStoreName, isValidStoreName } from '../shared/storeName';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const KEY = 'test-master-provisioning-key';
 const SECRET = 'x'.repeat(48);
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]);
@@ -25,7 +26,7 @@ const B = { 'X-Store': 'example' };
 
 async function build(extra: Partial<Config> = {}) {
   config = {
-    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET: SECRET, MASTER_PROVISIONING_KEY: KEY }),
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET: SECRET, MASTER_PROVISIONING_KEY: KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 },
     ...extra
   };
@@ -40,7 +41,7 @@ beforeEach(() => build());
 const admin = async (h: Record<string, string>, email = 'boss@example.com') =>
   (await request(app).post('/api/auth/admin/register').set(h).send({ email, password: 'AdminPass@2026', role: 'owner', masterProvisioningKey: KEY })).body.sessionToken as string;
 const buyer = async (h: Record<string, string>, phone = '9820000001') =>
-  (await request(app).post('/api/auth/retailer/signup').set(h).send({ firmName: 'Test Jewellers', ownerName: 'Owner', phone, password: 'StrongPass@1', gstin: '27ABCDE1234F1Z5', marketHub: 'X' })).body.token as string;
+  (await otpBuyer(app, { firmName: 'Test Jewellers', ownerName: 'Owner', phone, marketHub: 'X' }, h)).body.token as string;
 const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
 describe('store resolution', () => {
@@ -118,11 +119,11 @@ describe('isolation between stores', () => {
   });
 
   it('buyers and admins of one store do not exist in the other', async () => {
-    await buyer(A, '9820000001');
+    const token = await buyer(A, '9820000001');
     await admin(A);
-    const login = (h: Record<string, string>) => request(app).post('/api/auth/retailer/login').set(h).send({ phone: '9820000001', password: 'StrongPass@1' });
-    expect((await login(A)).status).toBe(200);
-    expect((await login(B)).status).toBe(401);
+    const me = (h: Record<string, string>) => request(app).get('/api/auth/me').set(h).set(bearer(token));
+    expect((await me(A)).status).toBe(200);
+    expect((await me(B)).status).toBe(401);
     const adminLogin = (h: Record<string, string>) => request(app).post('/api/auth/admin/login').set(h).send({ adminId: 'boss@example.com', password: 'AdminPass@2026' });
     expect((await adminLogin(A)).status).toBe(200);
     expect((await adminLogin(B)).status).toBe(401);

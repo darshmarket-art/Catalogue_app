@@ -4,38 +4,6 @@ import { photoRef } from './media';
 
 export const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(max);
 
-const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-
-const phone = z
-  .string()
-  .transform((v) => v.replace(/[^0-9]/g, ''))
-  .refine((v) => v.length >= 10 && v.length <= 15, 'Please provide a valid mobile number.');
-
-export const retailerSignupSchema = z.object({
-  firmName: trimmed(120, 2),
-  gstin: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .refine((v) => v === '' || GSTIN.test(v), 'Please provide a valid 15-character GSTIN.')
-    .optional(),
-  ownerName: trimmed(100).optional(),
-  phone,
-  password: trimmed(128, 8),
-  marketHub: trimmed(120).optional()
-});
-
-export const retailerLoginSchema = z.object({
-  phone,
-  password: z.string().trim().min(1).max(128),
-  authMode: z.string().optional()
-});
-
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().trim().min(1).max(128),
-  newPassword: trimmed(128, 8)
-});
-
 export const adminLoginSchema = z.object({
   adminId: trimmed(254),
   password: z.string().trim().min(1).max(128)

@@ -11,6 +11,7 @@ import { makeEntitlements, trialEnd } from '../server/entitlements';
 import { flagsFor, LIMITS } from '../shared/limits';
 import { DEFAULT_LAYOUT, LAYOUTS, LAYOUT_IDS } from '../shared/layouts';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const KEY = 'test-master-provisioning-key';
 const DAY = 86400000;
 const past = () => new Date(Date.now() - DAY).toISOString();
@@ -24,7 +25,7 @@ type Opts = { merchant?: Partial<MerchantConfig>; production?: boolean; seed?: b
 
 /** One store ("bhakti", the default) with the given plan record, an owner session, and the page the server embeds the config into. */
 async function build(patch: Partial<StoreRecord> = {}, opts: Opts = {}) {
-  const config = { ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: KEY }), rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 } };
+  const config = { ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: KEY }), rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 } };
   if (opts.production) config.isProduction = true;
   if (opts.cacheMs) config.storeCacheMs = opts.cacheMs;
   const root = new MemoryStore();
@@ -88,7 +89,7 @@ describe('Emergent is the only layout, for every plan', () => {
 describe('order note', () => {
   async function buyerWithItem(opts: Parameters<typeof build>[1] = { seed: true }) {
     const b = await build({}, opts);
-    const t = await request(b.app).post('/api/auth/retailer/signup').send({ firmName: 'Test Jewellers', phone: '9820000001', password: 'StrongPass@1' });
+    const t = await otpBuyer(b.app, { firmName: 'Test Jewellers', phone: '9820000001' });
     const buyer = { Authorization: `Bearer ${t.body.token}` };
     const add = (sku = 'B2B-COIN-0010') => request(b.app).post('/api/orders/items').set(buyer).send({ sku, batchQty: 1 });
     await add();
@@ -144,7 +145,7 @@ describe('order note', () => {
 describe('remove buyer', () => {
   async function withBuyer(role: 'owner' | 'staff') {
     const b = await build({ plan: 'pro' });
-    await request(b.app).post('/api/auth/retailer/signup').send({ firmName: 'Test Jewellers', phone: '9820000001', password: 'StrongPass@1' });
+    await otpBuyer(b.app, { firmName: 'Test Jewellers', phone: '9820000001' });
     const as = role === 'owner' ? b.auth : { Authorization: `Bearer ${(await request(b.app).post('/api/auth/admin/register').send({ email: 's@example.com', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: KEY })).body.sessionToken}` };
     return { ...b, as, del: (phone: string) => request(b.app).delete(`/api/admin/buyers/${phone}`).set(as) };
   }

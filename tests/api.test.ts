@@ -13,6 +13,7 @@ import { migrateLegacyBuyers } from '../server/migrate';
 import { daysAgo } from '../server/stats';
 import { loadMerchant, renderIndexHtml, themeCss, THEME_TOKENS } from '../server/merchant';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
 
@@ -22,7 +23,7 @@ let config: Config;
 
 async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'public' | 'login' = 'login') {
   config = {
-    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000, ...overrides }
   };
   config.merchant = { ...config.merchant, catalogueAccess: access };
@@ -34,12 +35,11 @@ async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'publ
 
 const retailer = (n = 1) => ({
   firmName: `Test Jewellers ${n}`,
-  phone: `98200000${String(n).padStart(2, '0')}`,
-  password: 'StrongPass@1'
+  phone: `98200000${String(n).padStart(2, '0')}`
 });
 
 async function signupRetailer(app: ReturnType<typeof createApp>, n = 1) {
-  const res = await request(app).post('/api/auth/retailer/signup').send(retailer(n));
+  const res = await otpBuyer(app, retailer(n));
   return { token: res.body.token as string, res };
 }
 
@@ -171,54 +171,27 @@ describe('admin provisioning', () => {
     expect(second.status).toBe(409);
   });
 
-  it('stores only bcrypt hashes', async () => {
+  it('stores only a bcrypt hash for the admin; buyers have no password', async () => {
     const app = await build();
     await createAdmin(app);
     await signupRetailer(app);
     const [admin] = await store.list('admins');
     const [merchant] = await store.list('buyers');
     expect(admin.password).toMatch(/^\$2[aby]\$/);
-    expect(merchant.password).toMatch(/^\$2[aby]\$/);
+    expect(merchant.password).toBeUndefined();
   });
 });
 
 describe('retailer accounts', () => {
-  it('rejects duplicate phones and returns identical errors for unknown phone and wrong password', async () => {
+  it('has no buyer passwords: the password endpoints are gone', async () => {
     const app = await build();
-    await signupRetailer(app);
-    const dup = await request(app).post('/api/auth/retailer/signup').send(retailer(1));
-    expect(dup.status).toBe(409);
-
-    const wrongPw = await request(app).post('/api/auth/retailer/login').send({ phone: retailer(1).phone, password: 'nope-nope-1' });
-    const unknown = await request(app).post('/api/auth/retailer/login').send({ phone: '9999999999', password: 'nope-nope-1' });
-    expect(wrongPw.status).toBe(401);
-    expect(unknown.status).toBe(401);
-    expect(unknown.body.message).toBe(wrongPw.body.message);
+    expect((await request(app).post('/api/auth/retailer/signup').send({ firmName: 'A', phone: '9820000001', password: 'StrongPass@1' })).status).toBe(404);
+    expect((await request(app).post('/api/auth/retailer/login').send({ phone: '9820000001', password: 'StrongPass@1' })).status).toBe(404);
   });
 
-  it('does not allow passwordless WhatsApp sign-in', async () => {
+  it('validates the phone number', async () => {
     const app = await build();
-    await signupRetailer(app);
-    const res = await request(app).post('/api/auth/retailer/login').send({ phone: retailer(1).phone, password: 'x', authMode: 'wa' });
-    expect(res.status).toBe(501);
-    expect(res.body.token).toBeUndefined();
-  });
-
-  it('validates input', async () => {
-    const app = await build();
-    const res = await request(app).post('/api/auth/retailer/signup').send({ firmName: 'A', phone: '12', password: 'short' });
-    expect(res.status).toBe(400);
-  });
-
-  it('rate limits repeated failed logins', async () => {
-    const app = await build({ auth: 3 });
-    const statuses: number[] = [];
-    for (let i = 0; i < 5; i++) {
-      const res = await request(app).post('/api/auth/retailer/login').send({ phone: '9999999999', password: 'wrong-pass-1' });
-      statuses.push(res.status);
-    }
-    expect(statuses.slice(0, 3)).toEqual([401, 401, 401]);
-    expect(statuses.slice(3)).toEqual([429, 429]);
+    expect((await request(app).post('/api/auth/retailer/request-otp').send({ phone: '12' })).status).toBe(400);
   });
 });
 
@@ -476,7 +449,7 @@ describe('platform', () => {
   it('answers unknown API paths with JSON 404 and malformed JSON with 400', async () => {
     const app = await build();
     expect((await request(app).get('/api/nope')).status).toBe(404);
-    const bad = await request(app).post('/api/auth/retailer/login').set('Content-Type', 'application/json').send('{bad');
+    const bad = await request(app).post('/api/auth/retailer/request-otp').set('Content-Type', 'application/json').send('{bad');
     expect(bad.status).toBe(400);
   });
 });
@@ -886,7 +859,8 @@ describe('roles and legacy data', () => {
     // and the moved account can sign in
     config = { ...config };
     const liveApp = createApp(config, legacyRoot);
-    const login = await request(liveApp).post('/api/auth/retailer/login').send({ phone: account.phone, password: 'OldAccount@123' });
+    const login = await otpBuyer(liveApp, { phone: account.phone });
     expect(login.status).toBe(200);
+    expect(login.body.user.storeName).toBe('Legacy Jewellers');
   });
 });
