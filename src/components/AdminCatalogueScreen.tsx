@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { usePlan, upgradeNotice } from '../plan';
 import type { ActiveScreen, Banner, Category, Product, Purity } from '../types';
-import { Icon, Ph, Sheet, StockPill, Title, fmtG } from '../layouts/emergent/ui';
+import { Icon, Ph, Sheet, StockPill, Title, Toast, fmtG } from '../layouts/emergent/ui';
+import { downloadDesignsPdf } from '../cataloguePdf';
 import { AdminBannersScreen } from './AdminBannersScreen';
 import { AdminPuritiesScreen } from './AdminPuritiesScreen';
 
@@ -40,6 +41,8 @@ const SEGMENTS: Array<{ key: CatalogueSegment; label: string }> = [
 export const AdminCatalogueScreen: React.FC<Props> = (p) => {
   const { flags } = usePlan();
   const [adding, setAdding] = useState(false);
+  // The collection the Designs list is showing; opening a collection from the Collections list sets it.
+  const [collection, setCollection] = useState('');
   const designs = p.categories.reduce((n, c) => n + c.designCount, 0);
 
   return (
@@ -62,8 +65,8 @@ export const AdminCatalogueScreen: React.FC<Props> = (p) => {
           ))}
         </div>
 
-        {p.segment === 'designs' && <Designs {...p} pdf={flags.pdfCatalogue} />}
-        {p.segment === 'collections' && <Collections {...p} />}
+        {p.segment === 'designs' && <Designs {...p} pdf={flags.pdfCatalogue} collection={collection} onCollection={setCollection} />}
+        {p.segment === 'collections' && <Collections {...p} onOpenDesigns={(name) => { setCollection(name); p.onSegment('designs'); }} />}
         {p.segment === 'banners' && (
           <div className="em-embed">
             <AdminBannersScreen banners={p.banners} categories={p.categories} onLink={p.onBannerLink} onAdd={p.onBannerAdd} onDelete={p.onBannerDelete} onReorder={p.onBannerReorder} />
@@ -96,10 +99,10 @@ export const AdminCatalogueScreen: React.FC<Props> = (p) => {
   );
 };
 
-const Designs: React.FC<Props & { pdf: boolean }> = ({ categories, onEditProduct, onDeleteProduct, onNavigate, pdf }) => {
+const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection: (name: string) => void }> = ({ categories, onEditProduct, onDeleteProduct, onNavigate, pdf, collection, onCollection }) => {
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [collection, setCollection] = useState('');
+  const [picking, setPicking] = useState(false);
   const [items, setItems] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -162,12 +165,28 @@ const Designs: React.FC<Props & { pdf: boolean }> = ({ categories, onEditProduct
           PDF {!pdf && <span className="pro">Pro</span>}
         </button>
       </div>
-      <div className="em-seg" role="group" aria-label="Collections">
-        <button type="button" className="em-chip" aria-pressed={!collection} onClick={() => setCollection('')}>All</button>
-        {names.map((n) => (
-          <button key={n} type="button" className="em-chip" aria-pressed={collection === n} onClick={() => setCollection(collection === n ? '' : n)}>{n}</button>
-        ))}
-      </div>
+      {categories.length > FEW ? (
+        <>
+          <button type="button" className="em-colpick" data-testid="admin-collection-pick" onClick={() => setPicking(true)}>
+            <Icon n="grid" size={18} />
+            <span className="em-grow em-clip" style={{ textAlign: 'left' }}>{collection || 'All collections'} · {collection ? categories.find((c) => c.name === collection)?.designCount ?? 0 : categories.length}</span>
+            <Icon n="chev" size={16} />
+          </button>
+          {collection && (
+            <div className="em-seg">
+              <button type="button" className="em-chip" aria-pressed="true" onClick={() => onCollection('')}>{collection} <Icon n="x" size={12} /></button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="em-seg" role="group" aria-label="Collections">
+          <button type="button" className="em-chip" aria-pressed={!collection} onClick={() => onCollection('')}>All</button>
+          {names.map((n) => (
+            <button key={n} type="button" className="em-chip" aria-pressed={collection === n} onClick={() => onCollection(collection === n ? '' : n)}>{n}</button>
+          ))}
+        </div>
+      )}
+      {picking && <CollectionPicker categories={categories} current={collection} onPick={(n) => { onCollection(n); setPicking(false); }} onClose={() => setPicking(false)} />}
       {error && <div role="alert" className="em-card" style={{ color: 'var(--em-bad)' }}>{error}</div>}
       <div data-testid="admin-design-list">
         {items.map((d, i) => (
@@ -200,42 +219,136 @@ const Designs: React.FC<Props & { pdf: boolean }> = ({ categories, onEditProduct
   );
 };
 
-const Collections: React.FC<Props> = ({ categories, onNewCategory, onEditCategory, onDeleteCategory }) => {
-  const [confirming, setConfirming] = useState<number | string | null>(null);
+/** Up to this many collections the lists stay plain; beyond it they get search, A to Z and a picker (the buyer app does the same). */
+const FEW = 6;
+
+/** Every page of a collection's designs (the server returns at most 100 at a time). */
+async function designsIn(name: string): Promise<Product[]> {
+  const all: Product[] = [];
+  for (let offset = 0; offset < 5000; offset += 100) {
+    const page = await api.queryProducts({ category: name, sort: 'newest', limit: 100, offset });
+    all.push(...page.items);
+    if (!page.hasMore) break;
+  }
+  return all;
+}
+
+/** A searchable list of the store's collections in a bottom sheet (used by Designs when there are many). */
+const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPick: (name: string) => void; onClose: () => void }> = ({ categories, current, onPick, onClose }) => {
+  const [q, setQ] = useState('');
+  const list = categories.filter((c) => !q.trim() || c.name.toLowerCase().includes(q.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  return (
+    <Sheet label="Choose a collection" onClose={onClose}>
+      <div className="em-ser" style={{ fontSize: 22 }}>Collections · {categories.length}</div>
+      <label className="em-srch" style={{ height: 44 }}>
+        <Icon n="search" size={16} />
+        <input aria-label="Search collections" data-testid="collection-picker-search" placeholder="Search collections" type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} />
+      </label>
+      <div style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+        {!q && (
+          <button type="button" className="em-li" style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)', cursor: 'pointer' }} onClick={() => onPick('')}>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>All collections</b></span>
+            {!current && <Icon n="check" size={18} />}
+          </button>
+        )}
+        {list.map((c) => (
+          <button key={c.id} type="button" className="em-li" data-testid="collection-picker-row" style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)', cursor: 'pointer' }} onClick={() => onPick(c.name)}>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>{c.name}</b><span className="em-mut" style={{ display: 'block', fontSize: 12 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span></span>
+            {current === c.name && <Icon n="check" size={18} />}
+          </button>
+        ))}
+        {list.length === 0 && <p className="em-mut" style={{ textAlign: 'center' }}>No collection with that name.</p>}
+      </div>
+    </Sheet>
+  );
+};
+
+/** Collections: search, A to Z with a letter rail, one tap to open a collection's designs, one tap to make its PDF, one tap to edit. */
+const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> = ({ categories, onNewCategory, onEditCategory, onOpenDesigns }) => {
+  const { flags } = usePlan();
+  const [q, setQ] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const many = categories.length > FEW;
+
+  const makePdf = async (c: Category) => {
+    if (!flags.pdfCatalogue) return void upgradeNotice('PDF catalogue');
+    if (busy) return;
+    setBusy(c.name);
+    setStatus(`Preparing the ${c.name} PDF…`);
+    try {
+      const items = await designsIn(c.name);
+      if (items.length === 0) throw new Error('This collection has no designs yet.');
+      await downloadDesignsPdf(c.name, items, (done, total) => setStatus(`Preparing the ${c.name} PDF… ${done} of ${total} photos`));
+      setStatus(`${c.name} PDF downloaded`);
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Could not create the PDF.');
+    } finally {
+      setBusy(null);
+      setTimeout(() => setStatus(null), 3500);
+    }
+  };
+
+  const term = q.trim().toLowerCase();
+  const list = categories.filter((c) => !term || c.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name));
+  const groups = new Map<string, Category[]>();
+  list.forEach((c) => groups.set(c.name[0].toUpperCase(), [...(groups.get(c.name[0].toUpperCase()) ?? []), c]));
+  const letters = [...groups.keys()];
+  const showRail = many && !term && letters.length > 1;
+
+  const row = (c: Category, i: number) => (
+    <div key={c.id} className="em-li" data-testid="admin-collection-row">
+      <button type="button" className="em-row" style={{ gap: 14, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => onOpenDesigns(c.name)} aria-label={`Open the designs in ${c.name}`}>
+        <Ph src={c.image} tone={i} className="em-thumb" />
+        <span className="em-grow">
+          <span className="em-ser em-clip" style={{ display: 'block', fontSize: 17 }}>{c.name}</span>
+          <span className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>
+            {c.designCount} {c.designCount === 1 ? 'design' : 'designs'}
+            {c.eligibleKarats?.length ? ` · ${c.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ')}` : ''}
+          </span>
+        </span>
+      </button>
+      <div className="em-row" style={{ gap: 6 }}>
+        <button type="button" className="em-circ" data-testid="collection-pdf" disabled={busy !== null && busy !== c.name} aria-label={flags.pdfCatalogue ? `Make a PDF of ${c.name}` : `PDF of ${c.name} (Pro)`} onClick={() => makePdf(c)} style={busy === c.name ? { background: 'var(--em-primary)', color: 'var(--em-on-primary)' } : undefined}>
+          <Icon n={flags.pdfCatalogue ? 'file' : 'lock'} size={16} />
+        </button>
+        <button type="button" className="em-circ" data-testid="collection-edit" aria-label={`Edit ${c.name}`} onClick={() => onEditCategory(c)}>
+          <Icon n="edit" size={16} />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
+      {status && <Toast>{status}</Toast>}
+      {many && (
+        <label className="em-srch" style={{ height: 44 }}>
+          <Icon n="search" size={16} />
+          <input aria-label="Search collections" data-testid="admin-collection-search" placeholder={`Search ${categories.length} collections`} type="search" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+      )}
       {categories.length === 0 && <p className="em-mut" style={{ textAlign: 'center', padding: '16px 0' }}>No collections yet.</p>}
-      {categories.map((c, i) => (
-        <div key={c.id} className="em-card" data-testid="admin-collection-row">
-          <div className="em-row" style={{ gap: 14 }}>
-            <Ph src={c.image} tone={i} className="em-thumb" />
-            <div className="em-grow">
-              <div className="em-ser" style={{ fontSize: 18 }}>{c.name}</div>
-              <div className="em-mut" style={{ fontSize: 12 }}>
-                {c.designCount} {c.designCount === 1 ? 'design' : 'designs'}
-                {c.eligibleKarats?.length ? ` · ${c.eligibleKarats.map((k) => k.split(' ')[0]).join(', ')}` : ''}
-              </div>
-            </div>
-            <button type="button" className="em-circ" aria-label={`Edit ${c.name}`} onClick={() => onEditCategory(c)}><Icon n="edit" size={16} /></button>
-          </div>
-          {confirming === c.id ? (
-            <div className="em-note" style={{ marginTop: 10 }}>
-              <b>Delete {c.name}{c.designCount > 0 ? ` and its ${c.designCount} ${c.designCount === 1 ? 'design' : 'designs'}` : ''}?</b> Photos stay in storage. This cannot be undone.
-              <div className="em-row" style={{ gap: 12, marginTop: 8 }}>
-                <button type="button" className="em-btn danger sm" data-testid="confirm-delete-collection" onClick={async () => { setConfirming(null); await onDeleteCategory(c); }}>
-                  {c.designCount > 0 ? 'Delete collection and designs' : 'Delete collection'}
-                </button>
-                <button type="button" className="em-link" onClick={() => setConfirming(null)}>Keep</button>
-              </div>
-            </div>
-          ) : (
-            <button type="button" className="em-link" data-testid="delete-collection" style={{ marginTop: 6, color: 'var(--em-bad)', display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={() => setConfirming(c.id)}>
-              <Icon n="trash" size={14} />
-              Delete collection
-            </button>
-          )}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <div className="em-grow" data-testid="admin-collection-list">
+          {many && !term
+            ? letters.map((L) => (
+                <div key={L}>
+                  <div id={`AL-${L}`} className="em-letter">{L}</div>
+                  {groups.get(L)!.map((c, i) => row(c, i))}
+                </div>
+              ))
+            : list.map((c, i) => row(c, i))}
+          {many && list.length === 0 && <p className="em-mut" style={{ textAlign: 'center', padding: '16px 0' }}>No collection with that name.</p>}
         </div>
-      ))}
+        {showRail && (
+          <div className="em-rail" aria-label="Jump to letter">
+            {letters.map((L) => (
+              <button key={L} type="button" aria-label={`Jump to ${L}`} onClick={() => document.getElementById(`AL-${L}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })}>{L}</button>
+            ))}
+          </div>
+        )}
+      </div>
       <button type="button" className="em-btn sec" onClick={onNewCategory}>
         <Icon n="plus" size={18} />
         New collection
