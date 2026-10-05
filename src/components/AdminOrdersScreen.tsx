@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { AdminOrder, OrderStatus } from '../types';
 import { Notice } from './ui';
-import { Icon, OrderStatusPill } from '../layouts/emergent/ui';
+import { Icon, OrderStatusPill, Title } from '../layouts/emergent/ui';
 
 const STATUSES: OrderStatus[] = ['new', 'confirmed', 'dispatched', 'cancelled'];
 const label = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
@@ -13,9 +13,14 @@ const ago = (iso: string) => {
 };
 
 /** Orders desk (artboard 3.2): every buyer's orders, moved along with one tap. */
-export const AdminOrdersScreen: React.FC = () => {
+/** Orders with more designs than this show a short preview and a drop-down for the rest. */
+const BIG_ORDER = 8;
+const PREVIEW_ROWS = 3;
+
+export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; onChanged?: () => void }> = ({ initialFilter = 'all', onChanged }) => {
   const [orders, setOrders] = useState<AdminOrder[] | null>(null);
-  const [filter, setFilter] = useState<OrderStatus | 'all'>('all');
+  const [filter, setFilter] = useState<OrderStatus | 'all'>(initialFilter);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   // Cancelling takes two taps, so a stray tap cannot cancel an order.
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -50,6 +55,7 @@ export const AdminOrdersScreen: React.FC = () => {
     setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status } : o)) ?? null);
     try {
       await api.setOrderStatus(order.poId, status);
+      onChanged?.();
     } catch (err: any) {
       setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status: previous } : o)) ?? null);
       if (!err.handled) setError(err.message || 'Could not update the order.');
@@ -67,8 +73,8 @@ export const AdminOrdersScreen: React.FC = () => {
 
   return (
     <div className="scroll" style={{ gap: 14 }}>
-      <div className="em-ser" data-testid="orders-count" style={{ fontSize: 22 }}>
-        {orders?.length ?? 0} {orders?.length === 1 ? 'order' : 'orders'}
+      <div data-testid="orders-count">
+        <Title eyebrow={`${count('new')} waiting for you · ${orders?.length ?? 0} ${orders?.length === 1 ? 'order' : 'orders'}`} title="Orders" />
       </div>
       <div className="chips">
         {(['all', ...STATUSES] as const).map((st) => (
@@ -117,7 +123,7 @@ export const AdminOrdersScreen: React.FC = () => {
                 <OrderStatusPill status={order.status} />
               </div>
               <hr className="em-line" />
-              {order.items.map((item) => (
+              {(order.items.length > BIG_ORDER && !expanded.has(order.poId) ? order.items.slice(0, PREVIEW_ROWS) : order.items).map((item) => (
                 <div key={item.id} className="li">
                   <span>
                     {item.title} <span className="em-mut">× {item.batchQty}</span>
@@ -125,6 +131,19 @@ export const AdminOrdersScreen: React.FC = () => {
                   <span className="em-mut">{item.totalNetGold.toFixed(3)} g</span>
                 </div>
               ))}
+              {order.items.length > BIG_ORDER && (
+                <button
+                  type="button"
+                  className="em-link"
+                  data-testid="order-items-toggle"
+                  style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  aria-expanded={expanded.has(order.poId)}
+                  onClick={() => setExpanded((prev) => { const next = new Set(prev); if (next.has(order.poId)) next.delete(order.poId); else next.add(order.poId); return next; })}
+                >
+                  {expanded.has(order.poId) ? 'Show fewer' : `Show all ${order.items.length} designs`}
+                  <Icon n={expanded.has(order.poId) ? 'up' : 'chev'} size={14} />
+                </button>
+              )}
               {order.note && (
                 <p className="note" data-testid="order-note" style={{ marginTop: 8 }}>
                   <b>Note:</b> {order.note}
@@ -160,6 +179,11 @@ export const AdminOrdersScreen: React.FC = () => {
                   <Icon n="truck" size={18} />
                   Mark dispatched
                 </button>
+                {buyer?.phone && (
+                  <a className="em-wacirc" href={`tel:+${buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`} aria-label={`Call ${buyer.ownerName || order.firmName}`} style={{ color: 'var(--em-primary)' }}>
+                    <Icon n="phone" size={18} />
+                  </a>
+                )}
                 {waCircle}
                 <button type="button" className="em-rm" onClick={() => askCancel(order)}>
                   {confirming === order.poId ? 'Tap again' : 'Cancel'}

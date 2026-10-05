@@ -25,6 +25,8 @@ export interface BottomNavProps {
   orderCount: number;
   shortlistCount: number;
   isAdminLoggedIn: boolean;
+  /** Owner tab badges: new orders waiting, unanswered enquiries. */
+  adminBadges?: { orders: number; buyers: number };
 }
 export interface WelcomeProps { onNavigate: (screen: ActiveScreen) => void }
 export interface CategoriesProps {

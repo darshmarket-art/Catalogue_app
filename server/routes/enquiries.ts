@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import type { Store } from '../store';
 import { user } from '../auth';
-import { handler, newId, parse } from '../http';
+import { HttpError, handler, newId, parse } from '../http';
 import { trimmed } from '../schemas';
 
 /** What a buyer sent to the store on WhatsApp: a question about one design, their shortlist, or a whole order. */
@@ -55,6 +55,17 @@ export function enquiryRoutes(store: Store, requireRetailer: RequestHandler, req
       const rows = await store.list('waEnquiries');
       const data = rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 500);
       res.json({ status: 'success', count: data.length, data });
+    })
+  );
+
+  // The owner tapped Reply: the enquiry stops counting as waiting.
+  admin.post(
+    '/:id/replied',
+    handler(async (req, res) => {
+      const row = await store.get('waEnquiries', String(req.params.id));
+      if (!row) throw new HttpError(404, 'Enquiry not found.');
+      if (!row.repliedAt) await store.update('waEnquiries', row.id, { repliedAt: new Date().toISOString() });
+      res.json({ status: 'success' });
     })
   );
 

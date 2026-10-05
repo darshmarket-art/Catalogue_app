@@ -53,4 +53,23 @@ describe('WhatsApp enquiries', () => {
     expect((await request(app).delete('/api/admin/buyers/9820000001').set(admin)).status).toBe(200);
     expect((await request(app).get('/api/auth/me').set(buyer)).status).toBe(401);
   });
+
+  it('Reply marks an enquiry replied, and the admin summary counts what is waiting', async () => {
+    const { app, admin, buyer } = await build('pro');
+    await request(app).post('/api/enquiries').set(buyer).send({ kind: 'design', sku: 'R-1', title: 'Haar' });
+    await request(app).post('/api/enquiries').set(buyer).send({ kind: 'shortlist', count: 2 });
+    const before = await request(app).get('/api/admin/summary').set(admin);
+    expect(before.body.data).toMatchObject({ newOrders: 0, enquiriesWaiting: 2, messagesFailed: 0 });
+    const first = (await request(app).get('/api/admin/enquiries').set(admin)).body.data[0];
+    expect((await request(app).post(`/api/admin/enquiries/${first.id}/replied`).set(admin)).status).toBe(200);
+    expect((await request(app).get('/api/admin/summary').set(admin)).body.data.enquiriesWaiting).toBe(1);
+    expect((await request(app).post('/api/admin/enquiries/nope/replied').set(admin)).status).toBe(404);
+    expect((await request(app).get('/api/admin/summary').set(buyer)).status).toBe(403);
+  });
+
+  it('a Basic store has no waiting enquiries or orders to count', async () => {
+    const { app, admin, buyer } = await build('basic');
+    await request(app).post('/api/enquiries').set(buyer).send({ kind: 'design' });
+    expect((await request(app).get('/api/admin/summary').set(admin)).body.data).toMatchObject({ newOrders: 0, enquiriesWaiting: 0 });
+  });
 });

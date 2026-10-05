@@ -19,6 +19,7 @@ import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
 import { enquiryRoutes } from './routes/enquiries';
+import { adminSummaryRoutes } from './routes/adminSummary';
 import { adminBuyerRoutes } from './routes/adminBuyers';
 import { mediaRoute, photoUploadRoutes } from './routes/photos';
 import { createBlobs, type Blobs } from './blobs';
@@ -220,6 +221,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   const enquiries = enquiryRoutes(store, auth.requireRetailer, auth.requireAdmin, config.rateLimit.analytics);
   app.use('/api/enquiries', enquiries.buyer);
   app.use('/api/admin/enquiries', enquiries.admin);
+  app.use('/api/admin/summary', adminSummaryRoutes(config, store, log, ent, auth.requireAdmin));
   app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth, { log, receiptsConnected: receiptsEnabled(config) }));
 

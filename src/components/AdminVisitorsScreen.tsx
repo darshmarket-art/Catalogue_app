@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { AnalyticsData, VisitorDetail, VisitorSummary } from '../types';
 import { api } from '../api';
 import { Notice } from './ui';
-import { Icon } from '../layouts/emergent/ui';
 
 const duration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;
@@ -36,7 +35,7 @@ const Figures: React.FC<{ items: Array<[string, string]> }> = ({ items }) => (
 );
 
 /** Buyer engagement (artboard 3.6): who is browsing, and which designs held their attention. */
-export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData; onOpenEnquiries: () => void }> = ({ analytics, onOpenEnquiries }) => {
+export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ analytics }) => {
   const [rows, setRows] = useState<VisitorSummary[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<VisitorDetail | null>(null);
@@ -152,16 +151,6 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData; onOpenEnq
   return (
     <div className="scroll" style={{ gap: 12 }}>
       <p className="sub">Tap a buyer to see which designs held their attention. Last 30 days, refreshed every 15 seconds.</p>
-      <button type="button" className="card em-row em-sb" style={{ gap: 12, width: '100%', textAlign: 'left' }} data-testid="open-enquiries" onClick={onOpenEnquiries}>
-        <span className="em-row" style={{ gap: 12 }}>
-          <Icon n="wa" size={20} />
-          <span>
-            <b>WhatsApp enquiries</b>
-            <span className="sub" style={{ display: 'block', fontSize: 13 }}>Buyers who messaged you, with a reply button</span>
-          </span>
-        </span>
-        <span className="pro">Pro</span>
-      </button>
       <div className="grid2">
         <div className="card">
           <span className="stat" style={{ fontSize: 30 }}>

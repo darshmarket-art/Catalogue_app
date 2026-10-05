@@ -504,3 +504,8 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 
 /* Order cards and buyer rows fade in as they appear. */
 [data-layout="emergent"] .em-ordcard, [data-layout="emergent"] .em-row.em-buyer { animation: row-in 0.22s ease-out both; }
+
+/* Admin screens shown inside another admin screen's segment (Catalogue, Buyers): drop their own page padding. */
+[data-layout="emergent"] .em-embed .scroll { padding: 0; max-width: none; margin: 0; }
+[data-layout="emergent"] .em-seg { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+[data-layout="emergent"] .em-seg::-webkit-scrollbar { display: none; }

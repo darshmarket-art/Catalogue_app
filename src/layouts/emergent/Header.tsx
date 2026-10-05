@@ -5,7 +5,11 @@ import { BrandMark } from '../../components/BrandMark';
 import { ProfileMenu } from '../../components/ProfileMenu';
 import { Icon, type KitProps } from './ui';
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-enquiries', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-alerts', 'admin-password'];
+// The owner's four tabs (plus Store, and the buyer pages they preview) carry the brand and profile bar; everything else is a sub-page with a back button.
+const ADMIN_TAB_SCREENS: ActiveScreen[] = ['admin-hub', 'orders', 'catalogue', 'admin-buyers', 'admin-store', 'categories'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+/** Sub-pages opened from Store go back to Store. */
+const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
 const TAB_SCREENS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders'];
 
 const TITLES: Partial<Record<ActiveScreen, string>> = {
@@ -21,7 +25,9 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-purities': 'Purity options',
   'admin-about': 'About us',
   'admin-plan': 'Plan and usage',
-  'admin-alerts': 'WhatsApp alerts',
+  'admin-alerts': 'Alerts and WhatsApp',
+  'admin-messages': 'Message log',
+  'admin-insights': 'Insights',
   'admin-password': 'Change password',
   about: 'About us',
 };
@@ -31,15 +37,13 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
  * Everywhere else (admin, About, password, sign-in) it is the atlas's back button, a centred title and the page's aside.
  */
 export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, parentScreen, isAdminLoggedIn, currentMerchant, onLogout, onOpenOrders, isEditing, eyebrow, aside }) => {
-  // The owner's Orders tab is the Orders desk: a titled sub-page with a back button, as in the atlas.
-  const adminOrders = currentScreen === 'orders' && isAdminLoggedIn;
-  const isAdminSub = ADMIN_SUB_SCREENS.includes(currentScreen) || adminOrders;
-  const isTab = TAB_SCREENS.includes(currentScreen) && !adminOrders;
+  const isAdminSub = isAdminLoggedIn && ADMIN_SUB_SCREENS.includes(currentScreen);
+  const isTab = isAdminLoggedIn ? ADMIN_TAB_SCREENS.includes(currentScreen) : TAB_SCREENS.includes(currentScreen);
   const isHome = currentScreen === 'categories';
   const isSub = isAdminSub || ['admin-login', 'retailer-auth', 'about'].includes(currentScreen);
   const overHero = currentScreen === 'about'; // the About hero runs under the bar
   const title =
-    adminOrders ? 'Orders desk' : currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : currentScreen === 'about' ? `About ${merchant.brand.name}` : TITLES[currentScreen];
+    currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : currentScreen === 'about' ? `About ${merchant.brand.name}` : TITLES[currentScreen];
   const showTitle = Boolean(title) && !['admin-login', 'retailer-auth'].includes(currentScreen) && !overHero;
   const showProfile = (currentMerchant || isAdminLoggedIn) && (isTab || currentScreen === 'admin-hub');
   const showSignIn = isTab && !currentMerchant && !isAdminLoggedIn;
@@ -48,8 +52,8 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const handleBack = () => {
     if (parentScreen) {
       onNavigate(parentScreen);
-    } else if (isEditing && (currentScreen === 'new-product' || currentScreen === 'add-category')) {
-      onNavigate(currentScreen === 'new-product' ? 'catalogue' : 'categories');
+    } else if (isAdminSub && STORE_CHILDREN.includes(currentScreen)) {
+      onNavigate('admin-store');
     } else if (isAdminSub) {
       onNavigate('admin-hub');
     } else if (currentScreen === 'about') {
@@ -64,7 +68,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
       buyer={currentMerchant}
       isAdmin={isAdminLoggedIn}
       onOpenOrders={onOpenOrders}
-      onOpenAdminConsole={() => onNavigate('admin-hub')}
+      onOpenAdminConsole={() => onNavigate('admin-store')}
       onOpenAbout={() => onNavigate(isAdminLoggedIn ? 'admin-about' : 'about')}
       onLogout={onLogout}
       onNavigate={onNavigate}
@@ -79,7 +83,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
     <header className={`em-top${overHero ? ' clear' : ''}`}>
       {isTab ? (
         <div className="em-top-in" style={{ maxWidth: width }}>
-          <button type="button" className="em-brand" aria-label={`${merchant.brand.name} home`} onClick={() => onNavigate('welcome')}>
+          <button type="button" className="em-brand" aria-label={`${merchant.brand.name} home`} onClick={() => onNavigate(isAdminLoggedIn ? 'admin-hub' : 'welcome')}>
             <span className="em-mark">
               <BrandMark className="w-6 h-6" textClassName="text-[18px]" />
             </span>

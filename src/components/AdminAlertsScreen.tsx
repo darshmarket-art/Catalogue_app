@@ -3,11 +3,13 @@ import { api, type AlertSettings, type AlertTestResult } from '../api';
 import { usePlan, upgradeNotice } from '../plan';
 import { Field, Notice } from './ui';
 import { Icon } from '../layouts/emergent/ui';
+import { OrderNotificationsToggle } from './OrderNotificationsToggle';
+import type { ActiveScreen } from '../types';
 
 const pretty = (n: string) => `+${n}`;
 
 /** Owner alert settings: up to three WhatsApp numbers hear about orders, a test send, and the exact wording Meta approved. */
-export const AdminAlertsScreen: React.FC = () => {
+export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) => void }> = ({ onNavigate }) => {
   const { flags } = usePlan();
   const [data, setData] = useState<AlertSettings | null>(null);
   const [numbers, setNumbers] = useState<string[]>([]);
@@ -59,6 +61,7 @@ export const AdminAlertsScreen: React.FC = () => {
           <span data-testid="alerts-pro-notice">WhatsApp alerts are a Pro feature. You can look around; saving and testing need Pro.</span>
         </Notice>
       )}
+      <OrderNotificationsToggle />
       {err && <Notice tone="error">{err}</Notice>}
       {ok && <Notice tone="ok">{ok}</Notice>}
 
@@ -125,6 +128,16 @@ export const AdminAlertsScreen: React.FC = () => {
               </div>
             )}
           </div>
+
+          {onNavigate && (
+            <button type="button" className="card em-row em-sb" style={{ gap: 12, width: '100%', textAlign: 'left' }} data-testid="open-message-log" onClick={() => onNavigate('admin-messages')}>
+              <span>
+                <b style={{ fontWeight: 600 }}>See what happened to each message</b>
+                <span className="sub" style={{ display: 'block', fontSize: 13 }}>Delivery log for the last 90 days</span>
+              </span>
+              <Icon n="right" size={18} />
+            </button>
+          )}
 
           <div className="card col" style={{ gap: 8 }} data-testid="alert-wording">
             <b style={{ fontWeight: 600 }}>What alerts look like</b>

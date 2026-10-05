@@ -109,23 +109,16 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
 
           {isAdmin ? (
             <>
-              <button role="menuitem" className={itemClass} onClick={choose(onOpenAdminConsole)} type="button">
-                Admin console
+              <button role="menuitem" className={itemClass} data-testid="menu-store" onClick={choose(onOpenAdminConsole)} type="button">
+                Store settings
               </button>
               <button role="menuitem" className={itemClass} data-testid="menu-share-store" onClick={choose(() => setSharing(true))} type="button">
                 Share store link / QR
               </button>
-              {orders && (
-                <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
-                  Placed orders
-                </button>
-              )}
               {onNavigate && (
-                <>
-                  <button role="menuitem" className={itemClass} data-testid="menu-change-password" onClick={choose(() => onNavigate('admin-password'))} type="button">
-                    Change password
-                  </button>
-                </>
+                <button role="menuitem" className={itemClass} data-testid="menu-change-password" onClick={choose(() => onNavigate('admin-password'))} type="button">
+                  Change password
+                </button>
               )}
             </>
           ) : (
@@ -143,9 +136,11 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
             </>
           )}
 
-          <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
-            {isAdmin ? 'About us' : `About ${merchant.brand.name}`}
-          </button>
+          {!isAdmin && (
+            <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
+              {`About ${merchant.brand.name}`}
+            </button>
+          )}
 
           <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">
             Log out

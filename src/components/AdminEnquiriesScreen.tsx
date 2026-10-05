@@ -30,7 +30,7 @@ const about = (e: EnquiryRow) =>
 const digits = (phone: string) => phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1');
 
 /** WhatsApp enquiries (Pro): everything buyers sent the store on WhatsApp, newest first, with a one-tap reply. */
-export const AdminEnquiriesScreen: React.FC = () => {
+export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onChanged }) => {
   const { flags } = usePlan();
   const [rows, setRows] = useState<EnquiryRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export const AdminEnquiriesScreen: React.FC = () => {
           <div key={e.id} className="em-row" style={{ gap: 12, padding: '14px 0', borderBottom: i < shown.length - 1 ? '1px solid var(--em-line)' : 0, alignItems: 'flex-start' }}>
             <div className="em-grow" style={{ minWidth: 0 }}>
               <div className="em-ser em-clip" style={{ fontSize: 16 }}>
-                {e.firmName}
+                {e.firmName} <span className={`tag ${e.repliedAt ? 'ok' : 'warn'}`} style={{ marginLeft: 6, verticalAlign: 'middle' }}>{e.repliedAt ? 'Replied' : 'Waiting'}</span>
               </div>
               <div style={{ fontSize: 13.5, marginTop: 3 }}>{about(e)}</div>
               <div className="em-mut" style={{ fontSize: 11, marginTop: 3 }}>
@@ -97,6 +97,12 @@ export const AdminEnquiriesScreen: React.FC = () => {
               href={`https://wa.me/${digits(e.buyerPhone)}?text=${encodeURIComponent(`Hello ${e.ownerName || e.firmName}, thanks for your enquiry${e.title ? ` about ${e.title}` : ''}.`)}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                if (e.repliedAt) return;
+                setRows((list) => list?.map((r) => (r.id === e.id ? { ...r, repliedAt: new Date().toISOString() } : r)) ?? null);
+                void api.markEnquiryReplied(e.id);
+                onChanged?.();
+              }}
             >
               <Icon n="wa" size={16} />
               Reply

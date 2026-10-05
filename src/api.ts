@@ -14,7 +14,8 @@ import {
   VisitorDetail,
   VisitorKind,
   BuyerRow,
-  EnquiryRow
+  EnquiryRow,
+  AdminSummary
 } from './types';
 import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
@@ -448,6 +449,18 @@ export const api = {
     } catch {
       // the WhatsApp chat opens regardless
     }
+  },
+
+  async markEnquiryReplied(id: string): Promise<void> {
+    try {
+      await post(`/api/v1/admin/enquiries/${encodeURIComponent(id)}/replied`);
+    } catch {
+      // the WhatsApp chat opens regardless
+    }
+  },
+
+  async getAdminSummary(): Promise<AdminSummary> {
+    return (await request('/api/v1/admin/summary')).data;
   },
 
   async getEnquiries(): Promise<EnquiryRow[]> {

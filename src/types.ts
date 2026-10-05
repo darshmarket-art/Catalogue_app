@@ -147,6 +147,15 @@ export interface EnquiryRow {
   purity: string | null;
   count: number | null;
   createdAt: string;
+  /** Set once the owner tapped Reply. */
+  repliedAt?: string | null;
+}
+
+/** What is waiting for the owner (the Today list and the tab badges). */
+export interface AdminSummary {
+  newOrders: number;
+  enquiriesWaiting: number;
+  messagesFailed: number;
 }
 
 export interface BuyerRow {
@@ -186,6 +195,7 @@ export type ActiveScreen =
   | 'admin-orders'
   | 'admin-visitors'
   | 'admin-enquiries'
+  | 'admin-store'
   | 'admin-buyers'
   | 'admin-banners'
   | 'admin-purities'
