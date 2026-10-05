@@ -9,6 +9,7 @@ import { downloadDesignsPdf } from '../../cataloguePdf';
 import { SORT_KEYS, SORT_LABELS, type SortKey } from '../../../shared/jewellery';
 import { Icon, Ph, Pill, Sheet, StockPill, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
+import { CartSheet } from './CartSheet';
 import { withTransition } from '../../viewTransition';
 
 const PAGE = 24;
@@ -55,6 +56,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [addedCount, setAddedCount] = useState(0);
   const [openProductId, setOpenProductId] = useState<string | null>(null);
+  // The design whose Add to cart sheet is open (from the grid, without opening the design).
+  const [cartFor, setCartFor] = useState<Product | null>(null);
   // Admin only: pick designs by hand and turn them into one PDF
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -377,6 +380,11 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     {isPicked && <Icon n="check" size={15} />}
                   </span>
                 )}
+                {!isAdmin && !selecting && flags.orders && (
+                  <button type="button" className="em-addcart" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                    <Icon n="bag" size={16} />
+                  </button>
+                )}
                 {!isAdmin && !selecting && (
                   <button
                     type="button"
@@ -472,6 +480,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           </button>
         </Sheet>
       )}
+
+      {cartFor && <CartSheet product={cartFor} purities={purities} onClose={() => setCartFor(null)} onAdd={(p, qty, pur) => handleAdd(p, pur, qty)} />}
 
       <ProductDetail
         product={openProduct}

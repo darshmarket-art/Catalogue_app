@@ -147,6 +147,10 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-tl { position: absolute; top: 10px; left: 10px; }
 [data-layout="emergent"] .em-heart { position: absolute; top: 10px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--em-bg) 95%, transparent); display: flex; align-items: center; justify-content: center; color: var(--em-mut); border: 0; padding: 0; cursor: pointer; }
 [data-layout="emergent"] .em-heart::after { content: ""; position: absolute; inset: -7px; }
+/* Add to cart on a grid card: a round gold button under the heart, so a design can be added without opening it. */
+[data-layout="emergent"] .em-addcart { position: absolute; top: 46px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%; background: var(--em-primary); color: var(--em-on-primary); display: flex; align-items: center; justify-content: center; border: 0; cursor: pointer; box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--em-deep) 70%, transparent); }
+[data-layout="emergent"] .em-addcart::after { content: ""; position: absolute; inset: -7px; }
+[data-layout="emergent"] .em-addcart:active { transform: scale(0.92); }
 [data-layout="emergent"] .em-heart.on { color: var(--em-primary); }
 [data-layout="emergent"] .em-pick { position: absolute; top: 10px; right: 10px; z-index: 2; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--em-bg) 95%, transparent); border: 1px solid var(--em-line); color: var(--em-on-primary); pointer-events: none; }
 [data-layout="emergent"] .em-sq.picked .em-pick { background: var(--em-primary); border-color: var(--em-primary); }
