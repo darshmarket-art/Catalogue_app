@@ -262,7 +262,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
       <div className="em-chips" role="tablist" aria-label="Orders">
         {(
           [
-            { key: 'current', label: 'Current order', n: orders.length },
+            { key: 'current', label: 'To order', n: orders.length },
             { key: 'past', label: 'Past orders', n: 0 }
           ] as const
         ).map((t) => (

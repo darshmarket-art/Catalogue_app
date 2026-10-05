@@ -112,7 +112,13 @@ export default function App() {
 
   // Set once the guard entry exists (see the Back handling below); remembered in the history state so a reload keeps it.
   const guardArmed = useRef(Boolean(window.history.state?.g));
+  // The Orders tab always opens on "To order". Only the profile menu's "Past orders" link opens it on the past list.
+  const keepOrdersTab = useRef(false);
   const handleNavigate = (target: ActiveScreen, _replace = false) => {
+    if (target === 'orders') {
+      if (!keepOrdersTab.current) setOrdersTab('current');
+      keepOrdersTab.current = false;
+    }
     // Older owner screens now live inside a tab's segment.
     let screen = target;
     if (target === 'admin-orders') screen = 'orders';
@@ -538,6 +544,7 @@ export default function App() {
   };
 
   const openOrders = (tab: 'current' | 'past') => {
+    keepOrdersTab.current = true;
     setOrdersTab(tab);
     handleNavigate('orders');
   };
