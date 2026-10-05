@@ -50,6 +50,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const [draft, setDraft] = useState<Filters>(NO_FILTERS);
   const [sheet, setSheet] = useState(false);
   const [sort, setSort] = useState<SortKey>('newest');
+  const [draftSort, setDraftSort] = useState<SortKey>('newest');
   const { flags } = usePlan();
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
   const [addedCount, setAddedCount] = useState(0);
@@ -249,13 +250,15 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   };
   const openSheet = () => {
     setDraft(filters);
+    setDraftSort(sort);
     setSheet(true);
   };
   const applyDraft = () => {
     setFilters(draft);
+    setSort(draftSort);
     setSheet(false);
   };
-  const draftCount = draft.purity.length + draft.availability.length + (draft.minWt || draft.maxWt ? 1 : 0);
+  const draftCount = draft.purity.length + draft.availability.length + (draft.minWt || draft.maxWt ? 1 : 0) + (draftSort !== 'newest' ? 1 : 0);
 
   return (
     <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
@@ -288,16 +291,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                       Select
                     </button>
                   )}
-                  <label className="em-circ gold em-sortbox" title="Sort designs">
-                    <Icon n="sliders" />
-                    <select aria-label="Sort designs" data-testid="catalogue-sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-                      {SORT_KEYS.map((k) => (
-                        <option key={k} value={k}>
-                          {SORT_LABELS[k]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                 </span>
               }
             />
@@ -313,9 +306,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   </button>
                 )}
               </label>
-              <button type="button" className={`em-filterbtn${active.length ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label="Filters" onClick={openSheet}>
+              <button type="button" className={`em-filterbtn${active.length || sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label="Filter and sort" onClick={openSheet}>
                 <Icon n="sliders" size={16} />
-                {active.length > 0 && <i>{active.length}</i>}
+                {active.length + (sort !== 'newest' ? 1 : 0) > 0 && <i>{active.length + (sort !== 'newest' ? 1 : 0)}</i>}
               </button>
             </div>
           )}
@@ -424,17 +417,26 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       </div>
 
       {sheet && (
-        <Sheet label="Filter designs" onClose={() => setSheet(false)}>
+        <Sheet label="Filter and sort designs" onClose={() => setSheet(false)}>
           <div className="em-row em-sb">
             <span className="em-ser" style={{ fontSize: 22 }}>
-              Filters
+              Filter and sort
             </span>
-            <button type="button" className="em-link" onClick={() => setDraft(NO_FILTERS)} disabled={draftCount === 0}>
+            <button type="button" className="em-link" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>
               Reset
             </button>
           </div>
 
-          <div className="em-ey">{sector.filters.purity}</div>
+          <div className="em-ey">Sort by</div>
+          <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }} data-testid="catalogue-sort">
+            {SORT_KEYS.map((k) => (
+              <button key={k} type="button" className={`em-chip${draftSort === k ? ' on' : ''}`} aria-pressed={draftSort === k} onClick={() => setDraftSort(k)}>
+                {SORT_LABELS[k]}
+              </button>
+            ))}
+          </div>
+
+          <div className="em-ey" style={{ marginTop: 6 }}>{sector.filters.purity}</div>
           <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {purities
               .filter((p) => p.enabled)
@@ -466,7 +468,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           </div>
 
           <button type="button" className="em-btn" style={{ marginTop: 8 }} data-testid="apply-filters" onClick={applyDraft}>
-            {draftCount ? `Apply ${draftCount} ${draftCount === 1 ? 'filter' : 'filters'}` : 'Show all designs'}
+            {draftCount ? `Apply ${draftCount} ${draftCount === 1 ? 'change' : 'changes'}` : 'Show all designs'}
           </button>
         </Sheet>
       )}
