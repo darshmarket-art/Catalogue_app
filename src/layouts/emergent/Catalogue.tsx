@@ -356,7 +356,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             const isHearted = hearted.has(prod.sku);
             const isPicked = picked.has(prod.id);
             return (
-              <article key={prod.id} data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
+              <div key={prod.id} className="em-cardwrap">
+              <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
                 <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" />
                   <span className="em-sc" />
@@ -380,11 +381,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     {isPicked && <Icon n="check" size={15} />}
                   </span>
                 )}
-                {!isAdmin && !selecting && flags.orders && (
-                  <button type="button" className="em-addcart" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
-                    <Icon n="bag" size={16} />
-                  </button>
-                )}
                 {!isAdmin && !selecting && (
                   <button
                     type="button"
@@ -397,6 +393,13 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   </button>
                 )}
               </article>
+              {!isAdmin && !selecting && flags.orders && (
+                <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                  <Icon n="bag" size={16} />
+                  Add to cart
+                </button>
+              )}
+              </div>
             );
           })}
         </div>

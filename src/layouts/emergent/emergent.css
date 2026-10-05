@@ -133,6 +133,11 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-sc { position: absolute; inset: 0; background: linear-gradient(transparent 40%, color-mix(in srgb, var(--em-deep) 88%, transparent)); }
 [data-layout="emergent"] .em-sc.l { background: linear-gradient(color-mix(in srgb, var(--em-deep) 35%, transparent), color-mix(in srgb, var(--em-deep) 92%, transparent)); }
 [data-layout="emergent"] .em-sq { position: relative; aspect-ratio: 1; border-radius: 20px; overflow: hidden; border: 1px solid var(--em-line); background: var(--em-tint); }
+/* A catalogue card is the photo with its own Add to cart button underneath, as wide as the card with rounded corners. */
+[data-layout="emergent"] .em-cardwrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+[data-layout="emergent"] .em-addbar { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; border-radius: 14px; border: 1px solid var(--em-primary); background: var(--em-primary); color: var(--em-on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+[data-layout="emergent"] .em-addbar:hover { filter: brightness(1.08); }
+[data-layout="emergent"] .em-addbar:active { transform: scale(0.985); }
 [data-layout="emergent"] .em-sq.picked { outline: 2.5px solid var(--em-gold); outline-offset: -2.5px; }
 [data-layout="emergent"] .em-hit { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; text-align: left; font: inherit; color: var(--em-on-primary); cursor: pointer; transition: transform 0.25s; }
 [data-layout="emergent"] .em-hit:active { transform: scale(0.985); }
@@ -147,10 +152,6 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-tl { position: absolute; top: 10px; left: 10px; }
 [data-layout="emergent"] .em-heart { position: absolute; top: 10px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--em-bg) 95%, transparent); display: flex; align-items: center; justify-content: center; color: var(--em-mut); border: 0; padding: 0; cursor: pointer; }
 [data-layout="emergent"] .em-heart::after { content: ""; position: absolute; inset: -7px; }
-/* Add to cart on a grid card: a round gold button under the heart, so a design can be added without opening it. */
-[data-layout="emergent"] .em-addcart { position: absolute; top: 46px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%; background: var(--em-primary); color: var(--em-on-primary); display: flex; align-items: center; justify-content: center; border: 0; cursor: pointer; box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--em-deep) 70%, transparent); }
-[data-layout="emergent"] .em-addcart::after { content: ""; position: absolute; inset: -7px; }
-[data-layout="emergent"] .em-addcart:active { transform: scale(0.92); }
 [data-layout="emergent"] .em-heart.on { color: var(--em-primary); }
 [data-layout="emergent"] .em-pick { position: absolute; top: 10px; right: 10px; z-index: 2; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--em-bg) 95%, transparent); border: 1px solid var(--em-line); color: var(--em-on-primary); pointer-events: none; }
 [data-layout="emergent"] .em-sq.picked .em-pick { background: var(--em-primary); border-color: var(--em-primary); }
@@ -321,13 +322,13 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 @keyframes em-card-rise { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes em-pd-open { from { opacity: 0; transform: translateY(40px) scale(0.96); } to { opacity: 1; transform: none; } }
 @keyframes em-hero-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
-[data-layout="emergent"] .em-grid > .em-sq { animation: em-card-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-[data-layout="emergent"] .em-grid > .em-sq:nth-child(2) { animation-delay: 0.06s; }
-[data-layout="emergent"] .em-grid > .em-sq:nth-child(3) { animation-delay: 0.12s; }
-[data-layout="emergent"] .em-grid > .em-sq:nth-child(4) { animation-delay: 0.18s; }
-[data-layout="emergent"] .em-grid > .em-sq:nth-child(5) { animation-delay: 0.24s; }
-[data-layout="emergent"] .em-grid > .em-sq:nth-child(6) { animation-delay: 0.3s; }
-[data-layout="emergent"] .em-grid > .em-sq:nth-child(n+7) { animation-delay: 0.36s; }
+[data-layout="emergent"] .em-grid > .em-sq, [data-layout="emergent"] .em-grid > .em-cardwrap { animation: em-card-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(2), [data-layout="emergent"] .em-grid > .em-cardwrap:nth-child(2) { animation-delay: 0.06s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(3), [data-layout="emergent"] .em-grid > .em-cardwrap:nth-child(3) { animation-delay: 0.12s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(4), [data-layout="emergent"] .em-grid > .em-cardwrap:nth-child(4) { animation-delay: 0.18s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(5), [data-layout="emergent"] .em-grid > .em-cardwrap:nth-child(5) { animation-delay: 0.24s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(6), [data-layout="emergent"] .em-grid > .em-cardwrap:nth-child(6) { animation-delay: 0.3s; }
+[data-layout="emergent"] .em-grid > .em-sq:nth-child(n+7), [data-layout="emergent"] .em-grid > .em-cardwrap:nth-child(n+7) { animation-delay: 0.36s; }
 [data-layout="emergent"] .em-pd { animation: em-pd-open 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
 [data-layout="emergent"] .em-pd-sheet { animation: em-card-rise 0.55s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
 [data-layout="emergent"] .em-slide { animation: em-hero-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
