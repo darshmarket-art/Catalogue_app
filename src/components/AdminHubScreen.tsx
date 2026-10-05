@@ -50,6 +50,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, categ
     { icon: 'bell', label: 'WhatsApp alerts', note: flags.alerts ? 'Numbers · test alert' : 'Pro feature', go: () => onNavigate('admin-alerts'), locked: !flags.alerts, testId: 'tile-alerts' },
     { icon: 'share', label: 'Share store', note: 'Link and QR for buyers', go: () => setSharing(true), testId: 'tile-share' },
     { icon: 'act', label: 'Engagement', note: flags.liveVisitors ? `${analytics.todayVisitors} today · ${analytics.liveVisitors} online` : 'Pro feature', go: onOpenVisitors, testId: 'block-all', locked: !flags.liveVisitors },
+    { icon: 'wa', label: 'Enquiries', note: flags.enquiries ? 'Buyers who messaged you' : 'Pro feature', go: () => onNavigate('admin-enquiries'), locked: !flags.enquiries, testId: 'tile-enquiries' },
     { icon: 'image', label: 'Banners', note: 'Photos on the home', go: () => onNavigate('admin-banners') },
     { icon: 'disc', label: 'Purity', note: 'Karat list for designs', go: () => onNavigate('admin-purities') },
     { icon: 'info', label: 'About us', note: 'Buyer-facing details', go: () => onNavigate('admin-about') },

@@ -1,22 +1,31 @@
 import React, { useState } from 'react';
-import type { Product, Purity } from '../../types';
+import type { Category, Product, Purity } from '../../types';
 import { Icon, Sheet, fmtG } from './ui';
+
+/**
+ * The purities a design is sold in: the ones its collection is set up with (Edit collection > Purities sold here), or every purity
+ * the owner offers when the collection names none. The design's own purity is always included.
+ */
+export function soldPurities(product: Product, purities: Purity[], categories: Category[]): Purity[] {
+  const keys = categories.find((c) => c.name === product.category)?.eligibleKarats ?? [];
+  const sold = purities.filter((p) => (keys.length ? keys.includes(p.key) : p.enabled) || p.key === product.purity);
+  return sold.length ? sold : [{ key: product.purity, title: product.purity, enabled: true }];
+}
 
 interface CartSheetProps {
   product: Product;
   /** Purities the owner currently offers. */
   purities: Purity[];
+  categories: Category[];
   onClose: () => void;
   /** Called once per purity that has pieces, then the sheet closes. */
   onAdd: (product: Product, quantity: number, purity: string) => void;
 }
 
 /** "Add to cart": how many pieces of a design in each purity on offer. The design's own purity starts at 1. */
-export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, onClose, onAdd }) => {
+export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categories, onClose, onAdd }) => {
   const [qtys, setQtys] = useState<Record<string, number>>({ [product.purity]: 1 });
-  // Every purity on offer, plus the design's own if the owner has since switched it off.
-  const offered = purities.filter((p) => p.enabled || p.key === product.purity);
-  const options = offered.length ? offered : [{ key: product.purity, title: product.purity, enabled: true }];
+  const options = soldPurities(product, purities, categories);
   const totalPcs = options.reduce((n, o) => n + (qtys[o.key] ?? 0), 0);
   const setQty = (key: string, n: number) => setQtys((q) => ({ ...q, [key]: Math.max(0, Math.min(999, n)) }));
   const add = () => {

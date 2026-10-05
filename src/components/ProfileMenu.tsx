@@ -66,8 +66,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
   const details: Array<[string, string | undefined]> = [
     ['Owner', buyer?.ownerName],
     ['Mobile', buyer?.phone],
-    ['GST', buyer?.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined],
-    ['City / market', buyer?.marketHub]
+    ['GST', buyer?.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined]
   ];
 
   return (
@@ -145,7 +144,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
           )}
 
           <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
-            About us
+            {isAdmin ? 'About us' : `About ${merchant.brand.name}`}
           </button>
 
           <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">

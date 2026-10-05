@@ -13,7 +13,8 @@ import {
   VisitorSummary,
   VisitorDetail,
   VisitorKind,
-  BuyerRow
+  BuyerRow,
+  EnquiryRow
 } from './types';
 import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
@@ -438,6 +439,19 @@ export const api = {
 
   async getVisitor(id: string): Promise<VisitorDetail> {
     return (await request(`/api/v1/admin/visitors/${encodeURIComponent(id)}`)).data;
+  },
+
+  /** A buyer tapped a WhatsApp button; the owner's Enquiries inbox lists it. Never breaks the UI. */
+  async recordEnquiry(payload: { kind: 'design' | 'shortlist' | 'order'; sku?: string; title?: string; purity?: string; count?: number }): Promise<void> {
+    try {
+      await post('/api/v1/enquiries', payload);
+    } catch {
+      // the WhatsApp chat opens regardless
+    }
+  },
+
+  async getEnquiries(): Promise<EnquiryRow[]> {
+    return (await request('/api/v1/admin/enquiries')).data;
   },
 
   async getBuyers(): Promise<BuyerRow[]> {

@@ -9,7 +9,7 @@ export interface Entitlements {
   trialEndsAt: string | null;
   trialNotice?: string | null;
   limits: { categories: number | null; photos: number | null; photosPerDesign: number; users: number | null };
-  flags: Record<'orders' | 'insights' | 'liveVisitors' | 'buyerEngagement' | 'alerts' | 'auditLog' | 'pdfCatalogue' | 'banners' | 'purities', boolean>;
+  flags: Record<'orders' | 'insights' | 'liveVisitors' | 'buyerEngagement' | 'alerts' | 'enquiries' | 'auditLog' | 'pdfCatalogue' | 'banners' | 'purities', boolean>;
   usage?: { categories: number; photos: number; users?: number };
   /** Buyers a full store turned away (Basic buyer limit). */
   turnedAway?: { today: number; total: number };
@@ -19,7 +19,7 @@ export interface Entitlements {
 const PRO: Entitlements = {
   effectivePlan: 'pro', plan: 'pro', trialEndsAt: null,
   limits: { categories: null, photos: 3000, photosPerDesign: 3, users: null },
-  flags: { orders: true, insights: true, liveVisitors: true, buyerEngagement: true, alerts: true, auditLog: true, pdfCatalogue: true, banners: true, purities: true }
+  flags: { orders: true, insights: true, liveVisitors: true, buyerEngagement: true, alerts: true, enquiries: true, auditLog: true, pdfCatalogue: true, banners: true, purities: true }
 };
 
 const Ctx = createContext<Entitlements>(PRO);

@@ -146,7 +146,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
           <div className="em-ey">{merchant.brand.name}</div>
           <div className="em-rule" style={{ width: 48 }} />
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
-            {needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Buyer showroom'}
+            {needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Login'}
           </h1>
           <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
             {needsName ? (

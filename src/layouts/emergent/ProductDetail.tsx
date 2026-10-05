@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePlan } from '../../plan';
-import type { Product, Purity } from '../../types';
+import type { Category, Product, Purity } from '../../types';
 import { merchant } from '../../merchant';
+import { api } from '../../api';
 import { PhotoViewer } from '../../components/PhotoViewer';
-import { CartSheet } from './CartSheet';
+import { CartSheet, soldPurities } from './CartSheet';
 import { Icon, Ph, Pill, StockPill, fmtG } from './ui';
 
 interface ProductDetailProps {
@@ -11,6 +12,8 @@ interface ProductDetailProps {
   isAdmin: boolean;
   /** Purities the owner currently offers. */
   purities: Purity[];
+  /** The store's collections: each one says which purities it is sold in. */
+  categories: Category[];
   hearted: boolean;
   onToggleShortlist: (product: Product) => void;
   onClose: () => void;
@@ -30,11 +33,10 @@ const specRows = (p: Product) => [
  * A design's details (atlas Product detail): a full-bleed gallery with counter and dots, a rounded sheet over the photo, specifications,
  * quantity and a sticky bar. Same behaviour as the Gilded sheet: tap a photo to zoom, heart, add to order, owner edit, WhatsApp enquiry on Basic.
  */
-export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder }) => {
+export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder }) => {
   const canOrder = usePlan().flags.orders;
   const [slide, setSlide] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
-  const [purity, setPurity] = useState('');
   const [zoomFrom, setZoomFrom] = useState<number | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -46,7 +48,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
   useEffect(() => {
     setSlide(0);
     setCartOpen(false);
-    setPurity(product?.purity ?? '');
     if (!product) return;
     // Escape closes the page, unless the photo viewer is on top (it closes itself).
     const onKey = (e: KeyboardEvent) => {
@@ -69,11 +70,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
 
   if (!product) return null;
   const slides = product.images.length ? product.images : [product.image ?? ''];
-  // The offered purities, plus the design's own if the owner has since switched it off.
-  const options = purities.filter((p) => p.enabled || p.key === product.purity);
-  const chosen = purity || product.purity;
-  const askText = `Hello ${merchant.brand.name}, I'm interested in ${product.title} (${product.sku}), ${chosen}, net ${product.netWt.toFixed(2)} g.`;
+  // Purities are plain text here: the ones this design's collection is sold in. The buyer picks quantities per purity in Add to cart.
+  const sold = soldPurities(product, purities, categories);
+  const askText = `Hello ${merchant.brand.name}, I'm interested in ${product.title} (${product.sku}), ${product.purity}, net ${product.netWt.toFixed(2)} g.`;
   const waHref = `https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(askText)}`;
+  // Tapping a WhatsApp button tells the owner's Enquiries inbox (the chat opens either way).
+  const noteEnquiry = () => {
+    if (!isAdmin) void api.recordEnquiry({ kind: 'design', sku: product.sku, title: product.title, purity: product.purity });
+  };
   const goTo = (i: number) => scroller.current?.scrollTo({ left: i * scroller.current.clientWidth, behavior: 'smooth' });
 
   return (
@@ -126,18 +130,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
             <h2 className="em-ser em-h2">{product.title}</h2>
 
             <div className="em-row" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              {!isAdmin && options.length > 1 ? (
-                options.map((p) => (
-                  <button key={p.key} type="button" className={`em-chip${chosen === p.key ? ' on' : ''}`} aria-pressed={chosen === p.key} onClick={() => setPurity(p.key)}>
-                    {p.title}
-                  </button>
-                ))
-              ) : (
-                <Pill tone="plum">{product.purity.replace(' ', ' · ')}</Pill>
-              )}
               <StockPill status={product.stockStatus} />
               {product.huid && <Pill tone="gold">HUID {product.huid}</Pill>}
             </div>
+            <p className="em-mut" style={{ marginTop: 12, fontSize: 14 }} data-testid="product-purities">
+              Purity: <b style={{ color: 'var(--em-ink)', fontWeight: 600 }}>{sold.map((p) => p.title).join(' · ')}</b>
+            </p>
 
             {product.description && (
               <p className="em-mut" style={{ marginTop: 14, fontSize: 14, lineHeight: 1.5 }} data-testid="product-description">
@@ -175,14 +173,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 <Icon n="bag" />
                 Add to cart
               </button>
-              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" aria-label="Ask about this design on WhatsApp">
+              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry} aria-label="Ask about this design on WhatsApp">
                 <Icon n="wa" />
                 Ask
               </a>
             </div>
           ) : (
             <>
-              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer">
+              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry}>
                 <Icon n="wa" />
                 Enquire on WhatsApp
               </a>
@@ -198,6 +196,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
         <CartSheet
           product={product}
           purities={purities}
+          categories={categories}
           onClose={() => setCartOpen(false)}
           onAdd={(p, qty, pur) => {
             onAddToOrder(p, qty, pur);

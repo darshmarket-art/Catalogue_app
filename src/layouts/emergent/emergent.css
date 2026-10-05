@@ -199,7 +199,9 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-fab-item > a { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--em-deep) 70%, transparent); }
 
 /* ---------- catalogue ---------- */
-[data-layout="emergent"] .em-sticky { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 20; background: var(--em-bg); border-bottom: 1px solid var(--em-line); }
+[data-layout="emergent"] .em-sticky { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 20; background: var(--em-bg); border-bottom: 1px solid var(--em-line); transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+/* Scrolling down slides the title, search and filters out of the way; scrolling up brings them back. */
+[data-layout="emergent"] .em-sticky.hide { transform: translateY(calc(-100% - var(--header-h) - var(--sat))); }
 [data-layout="emergent"] .em-sortbox { overflow: visible; }
 [data-layout="emergent"] .em-sortbox select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
 

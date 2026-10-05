@@ -5,7 +5,7 @@ import { BrandMark } from '../../components/BrandMark';
 import { ProfileMenu } from '../../components/ProfileMenu';
 import { Icon, type KitProps } from './ui';
 
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-alerts', 'admin-password'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-enquiries', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-alerts', 'admin-password'];
 const TAB_SCREENS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders'];
 
 const TITLES: Partial<Record<ActiveScreen, string>> = {
@@ -15,6 +15,7 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-hub': 'Admin',
   'admin-orders': 'Orders desk',
   'admin-visitors': 'Buyer engagement',
+  'admin-enquiries': 'WhatsApp enquiries',
   'admin-buyers': 'Buyers',
   'admin-banners': 'Home banners',
   'admin-purities': 'Purity options',
@@ -38,7 +39,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const isSub = isAdminSub || ['admin-login', 'retailer-auth', 'about'].includes(currentScreen);
   const overHero = currentScreen === 'about'; // the About hero runs under the bar
   const title =
-    adminOrders ? 'Orders desk' : currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : TITLES[currentScreen];
+    adminOrders ? 'Orders desk' : currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : currentScreen === 'about' ? `About ${merchant.brand.name}` : TITLES[currentScreen];
   const showTitle = Boolean(title) && !['admin-login', 'retailer-auth'].includes(currentScreen) && !overHero;
   const showProfile = (currentMerchant || isAdminLoggedIn) && (isTab || currentScreen === 'admin-hub');
   const showSignIn = isTab && !currentMerchant && !isAdminLoggedIn;

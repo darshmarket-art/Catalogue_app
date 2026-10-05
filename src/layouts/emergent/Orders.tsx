@@ -16,8 +16,14 @@ const STATUS_FILTERS: Array<{ key: 'all' | OrderStatus; label: string }> = [
 ];
 
 /** Past orders as the atlas's order cards, with status chips that show how many orders are in each state. */
+/** Orders with more designs than this collapse to a preview with a drop-down. */
+const BIG_ORDER = 8;
+const PREVIEW_ROWS = 3;
+
 const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string) => Promise<string | null> }> = ({ orders, onCancel }) => {
   const [open, setOpen] = useState<string | null>(null);
+  // Big orders whose full item list is showing.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Cancelling takes two taps, so a stray tap cannot cancel an order.
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -73,7 +79,11 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
         )}
         {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>No orders in this state.</p>}
         {shown.map((order) => {
-          const isOpen = open === order.poId || order.status === 'new';
+          // A big order (many designs) shows a short preview and a drop-down for the rest; small ones keep View items / Hide items.
+          const big = order.items.length > BIG_ORDER;
+          const allShown = expanded.has(order.poId);
+          const isOpen = big || open === order.poId || order.status === 'new';
+          const rows = big && !allShown ? order.items.slice(0, PREVIEW_ROWS) : order.items;
           return (
             <article key={order.poId} className="em-ord" style={{ opacity: order.status === 'cancelled' ? 0.75 : 1 }}>
               <div className="in">
@@ -92,7 +102,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                 {isOpen && (
                   <>
                     <hr className="em-line" />
-                    {order.items.map((item) => (
+                    {rows.map((item) => (
                       <div key={item.id} className="li">
                         <span>
                           {item.title} <span className="em-mut">× {item.batchQty}</span>
@@ -100,6 +110,19 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                         <span className="em-mut">{fmtG(item.totalNetGold)}</span>
                       </div>
                     ))}
+                    {big && (
+                      <button
+                        type="button"
+                        className="em-link"
+                        data-testid="past-order-toggle"
+                        style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        aria-expanded={allShown}
+                        onClick={() => setExpanded((prev) => { const next = new Set(prev); if (next.has(order.poId)) next.delete(order.poId); else next.add(order.poId); return next; })}
+                      >
+                        {allShown ? 'Show fewer' : `Show all ${order.items.length} designs`}
+                        <span aria-hidden="true" style={{ display: 'inline-block', transition: 'transform 0.2s', transform: allShown ? 'rotate(180deg)' : 'none' }}>▾</span>
+                      </button>
+                    )}
                     {order.note && (
                       <p className="em-hint" data-testid="past-order-note" style={{ margin: '8px 0 0' }}>
                         <b style={{ fontWeight: 600 }}>Your note:</b> {order.note}
@@ -109,6 +132,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                 )}
                 <div className="em-row" style={{ marginTop: 10 }}>
                   {order.status !== 'new' ? (
+                    big ? null :
                     <button type="button" className="em-link" onClick={() => setOpen(open === order.poId ? null : order.poId)} aria-expanded={isOpen}>
                       {isOpen ? 'Hide items' : 'View items'}
                     </button>

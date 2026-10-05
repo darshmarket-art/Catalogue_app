@@ -10,6 +10,7 @@ import { SORT_KEYS, SORT_LABELS, type SortKey } from '../../../shared/jewellery'
 import { Icon, Ph, Pill, Sheet, StockPill, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
+import { useHideOnScroll } from './useHideOnScroll';
 import { withTransition } from '../../viewTransition';
 
 const PAGE = 24;
@@ -64,6 +65,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const hideBar = useHideOnScroll(selecting);
   const hearted = useMemo(() => new Set(shortlist), [shortlist]);
 
   // What the server has answered so far: the loaded pages, the full count and whether more exist.
@@ -267,7 +269,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
       {(pdfStatus || addedNotice) && <Toast>{pdfStatus ?? `Added ${addedNotice} to your order`}</Toast>}
 
-      <div className="em-sticky">
+      <div className={`em-sticky${hideBar ? ' hide' : ''}`}>
         <div className="em-pad" style={{ paddingTop: 12, paddingBottom: 10 }}>
           {selecting ? (
             <Title
@@ -484,12 +486,13 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         </Sheet>
       )}
 
-      {cartFor && <CartSheet product={cartFor} purities={purities} onClose={() => setCartFor(null)} onAdd={(p, qty, pur) => handleAdd(p, pur, qty)} />}
+      {cartFor && <CartSheet product={cartFor} purities={purities} categories={categories} onClose={() => setCartFor(null)} onAdd={(p, qty, pur) => handleAdd(p, pur, qty)} />}
 
       <ProductDetail
         product={openProduct}
         isAdmin={isAdmin}
         purities={purities}
+        categories={categories}
         hearted={openProduct ? hearted.has(openProduct.sku) : false}
         onToggleShortlist={onToggleShortlist}
         onClose={() => withTransition(() => setOpenProductId(null))}

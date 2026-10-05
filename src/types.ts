@@ -135,6 +135,20 @@ export interface VisitorDetail extends VisitorSummary {
 
 export type VisitorKind = 'all' | 'verified' | 'guest';
 
+/** A WhatsApp enquiry a buyer sent: about one design, their shortlist, or a whole order. */
+export interface EnquiryRow {
+  id: string;
+  kind: 'design' | 'shortlist' | 'order';
+  buyerPhone: string;
+  firmName: string;
+  ownerName: string;
+  sku: string | null;
+  title: string | null;
+  purity: string | null;
+  count: number | null;
+  createdAt: string;
+}
+
 export interface BuyerRow {
   phone: string;
   firmName: string;
@@ -171,6 +185,7 @@ export type ActiveScreen =
   | 'add-category'
   | 'admin-orders'
   | 'admin-visitors'
+  | 'admin-enquiries'
   | 'admin-buyers'
   | 'admin-banners'
   | 'admin-purities'

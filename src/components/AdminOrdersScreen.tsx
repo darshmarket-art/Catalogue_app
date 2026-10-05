@@ -146,6 +146,14 @@ export const AdminOrdersScreen: React.FC = () => {
                 {waCircle}
               </div>
             )}
+            {order.status === 'new' && buyer?.phone && (
+              <div className="ft" style={{ paddingTop: 0 }}>
+                <a className="em-btn sec fl" data-testid="order-call-buyer" href={`tel:+${buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`}>
+                  <Icon n="phone" size={18} />
+                  Call {buyer.ownerName || order.firmName || 'buyer'} to confirm
+                </a>
+              </div>
+            )}
             {order.status === 'confirmed' && (
               <div className="ft">
                 <button type="button" className="em-btn" onClick={() => changeStatus(order, 'dispatched')}>

@@ -3,7 +3,7 @@ import { usePlan } from '../../plan';
 import type { ActiveScreen } from '../../types';
 import { Icon, type KitProps } from './ui';
 
-const ADMIN_SCREENS: ActiveScreen[] = ['admin-hub', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan'];
+const ADMIN_SCREENS: ActiveScreen[] = ['admin-hub', 'admin-login', 'new-product', 'add-category', 'admin-visitors', 'admin-enquiries', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan'];
 
 /**
  * Emergent's tab bar: Home, Catalogue, Shortlist, Orders, with a gold underline on the active tab and gold counts.

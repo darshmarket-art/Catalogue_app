@@ -15,6 +15,7 @@ import { AdminHubScreen } from './components/AdminHubScreen';
 import { AdminOrdersScreen } from './components/AdminOrdersScreen';
 import { NewProductScreen } from './components/NewProductScreen';
 import { AddCategoryScreen } from './components/AddCategoryScreen';
+import { AdminEnquiriesScreen } from './components/AdminEnquiriesScreen';
 import { AdminVisitorsScreen } from './components/AdminVisitorsScreen';
 import { AdminBannersScreen } from './components/AdminBannersScreen';
 import { AdminPuritiesScreen } from './components/AdminPuritiesScreen';
@@ -342,6 +343,8 @@ export default function App() {
       totalNetWeight: parseFloat(totalNet.toFixed(3))
     });
 
+    if (currentMerchant) void api.recordEnquiry({ kind: 'order', count: orders.length });
+
     const msg = sector.orderManifest({ brandName: merchant.brand.name, store, orders }) + (note?.trim() ? `\n\n*Note:* ${note.trim()}` : '');
 
     window.open(`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -511,7 +514,7 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-enquiries', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
   const buyerOnlyScreens: ActiveScreen[] = ['shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
@@ -656,6 +659,9 @@ export default function App() {
             products={products}
             shortlist={shortlist}
             storeName={currentMerchant?.storeName ?? ''}
+            purities={purities}
+            categories={categories}
+            onAddToOrder={handleAddToOrder}
             onRemove={toggleShortlist}
             onAddAllToOrder={handleAddAllToOrder}
             onBrowse={() => handleNavigate('catalogue')}
@@ -715,7 +721,9 @@ export default function App() {
 
         {activeScreen === 'admin-orders' && <AdminOrdersScreen />}
 
-        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen analytics={analytics} />}
+        {activeScreen === 'admin-visitors' && <AdminVisitorsScreen analytics={analytics} onOpenEnquiries={() => handleNavigate('admin-enquiries')} />}
+
+        {activeScreen === 'admin-enquiries' && <AdminEnquiriesScreen />}
 
         {activeScreen === 'admin-plan' && <AdminPlanScreen categories={categories.length} onNavigate={handleNavigate} />}
 

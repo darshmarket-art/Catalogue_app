@@ -59,6 +59,10 @@ export interface ShortlistProps {
   products: Product[];
   shortlist: string[];
   storeName: string;
+  /** Opening a design from the list needs these (the same details page as the catalogue). */
+  purities: Purity[];
+  categories: Category[];
+  onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
   onRemove: (product: Product) => void;
   /** Adds one piece of each design to the current order. */
   onAddAllToOrder: (items: Product[]) => Promise<void>;

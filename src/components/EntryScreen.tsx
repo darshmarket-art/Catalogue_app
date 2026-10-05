@@ -88,7 +88,7 @@ export const EntryScreen: React.FC = () => {
     return (
       <Shell>
         <main className="scroll no-tabs" style={{ gap: 16, maxWidth: 480, margin: '0 auto' }}>
-          <SubTop onBack={() => setView('home')} title={who === 'buyer' ? 'Buyer showroom' : 'Store admin'} />
+          <SubTop onBack={() => setView('home')} title={who === 'buyer' ? 'Login' : 'Store admin'} />
           <div>
             <div className="em-rule" style={{ width: 48 }} />
             <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
@@ -156,7 +156,7 @@ export const EntryScreen: React.FC = () => {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
-            <Role pri icon="bag" title="Buyer showroom" text="Browse the full catalogue, shortlist, and track orders." onClick={() => pick('buyer')} />
+            <Role pri icon="bag" title="Login" text="Browse the full catalogue, shortlist, and track orders." onClick={() => pick('buyer')} />
             <Role icon="grid" title="Store admin" text="Dashboard, orders desk, add designs, manage buyers." onClick={() => pick('admin')} />
             <a href="/signup" className="em-row" style={{ gap: 12, padding: 16, borderRadius: 20, border: '1px dashed var(--em-gold)', color: 'inherit', textDecoration: 'none', marginTop: 4 }}>
               <span style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--em-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--em-primary)', flex: 'none' }}>

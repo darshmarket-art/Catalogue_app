@@ -1,20 +1,25 @@
 import React, { useMemo, useState } from 'react';
+import { api } from '../../api';
 import { usePlan } from '../../plan';
 import type { Product } from '../../types';
 import { merchant } from '../../merchant';
+import { ProductDetail } from './ProductDetail';
 import { Icon, Ph, Title, fmtG, stockTone, type KitProps } from './ui';
 
 /** Shortlist (atlas Shortlist): hearted designs as a divided list, with the total net weight and the order and WhatsApp actions in a bar at the foot. */
-export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, onRemove, onAddAllToOrder, onBrowse }) => {
+export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, purities, categories, onAddToOrder, onRemove, onAddAllToOrder, onBrowse }) => {
   const canOrder = usePlan().flags.orders;
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  // The design whose details are open. Kept as the design itself so un-hearting it inside the details does not close the page.
+  const [open, setOpen] = useState<Product | null>(null);
 
   // Hearted designs that have since been removed from the catalogue simply do not show.
   const items = useMemo(() => shortlist.map((sku) => products.find((p) => p.sku === sku)).filter((p): p is Product => Boolean(p)), [products, shortlist]);
   const totalNet = parseFloat(items.reduce((sum, p) => sum + p.netWt, 0).toFixed(3));
 
   const sendOnWhatsApp = () => {
+    void api.recordEnquiry({ kind: 'shortlist', count: items.length });
     const text =
       `*${merchant.brand.name.toUpperCase()} SHORTLIST*\n*From:* ${storeName}\n*Designs:* ${items.length} · ${totalNet.toFixed(3)} g net\n\n` +
       items.map((p) => `• ${p.title} (${p.sku}) · ${p.purity} · ${p.netWt.toFixed(2)} g`).join('\n') +
@@ -61,6 +66,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
         <div style={{ marginTop: 6 }}>
           {items.map((p, i) => (
             <div key={p.sku} className="em-li">
+              <button type="button" className="em-li-open" aria-label={`View ${p.title}`} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
               <Ph src={p.image} tone={i} className="em-thumb" />
               <div className="em-grow">
                 <div className="em-ser">{p.title}</div>
@@ -72,6 +78,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
                   {p.stockStatus}
                 </div>
               </div>
+              </button>
               <button type="button" className="em-circ" style={{ border: 0, background: 'none' }} aria-label={`Remove ${p.title} from shortlist`} onClick={() => onRemove(p)}>
                 <Icon n="heart" size={20} fill />
               </button>
@@ -82,6 +89,18 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
           Tap a heart on any design to save it here.
         </p>
       </div>
+
+      <ProductDetail
+        product={open}
+        isAdmin={false}
+        purities={purities}
+        categories={categories}
+        hearted={open ? shortlist.includes(open.sku) : false}
+        onToggleShortlist={onRemove}
+        onClose={() => setOpen(null)}
+        onEdit={() => {}}
+        onAddToOrder={onAddToOrder}
+      />
 
       <div className="em-dock">
         <div className="em-dock-in" style={{ gap: 14 }}>

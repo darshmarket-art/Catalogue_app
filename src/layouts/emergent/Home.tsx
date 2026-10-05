@@ -5,6 +5,7 @@ import { downloadCataloguePdf } from '../../cataloguePdf';
 import { merchant } from '../../merchant';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
+import { useHideOnScroll } from './useHideOnScroll';
 
 /**
  * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections one per row as full-width square cards
@@ -16,6 +17,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const paused = useRef(false);
   const slideCount = banners.length || merchant.promotions.length;
   const [searchQuery, setSearchQuery] = useState('');
+  const hideBar = useHideOnScroll();
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   // The collection whose admin menu (edit, share link, share PDF) is open
   const [menuFor, setMenuFor] = useState<Category | null>(null);
@@ -80,11 +82,13 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     <div className="em-page home">
       {toastMessage && <Toast>{toastMessage}</Toast>}
 
-      <div className="em-pad">
-        <label className="em-srch">
-          <Icon n="search" />
-          <input aria-label="Search the catalogue" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        </label>
+      <div className={`em-sticky${hideBar ? ' hide' : ''}`} style={{ borderBottom: 0 }}>
+        <div className="em-pad" style={{ paddingTop: 4, paddingBottom: 8 }}>
+          <label className="em-srch">
+            <Icon n="search" />
+            <input aria-label="Search the catalogue" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          </label>
+        </div>
       </div>
 
       {/* Banners: the owner's photos, or the default messages from merchant.json. Swipe, or use the arrows on desktop. */}

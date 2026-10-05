@@ -14,6 +14,7 @@ const FLAG_LABEL: Record<FlagName, string> = {
   liveVisitors: 'Live visitors',
   buyerEngagement: 'Buyer engagement',
   alerts: 'Order alerts',
+  enquiries: 'WhatsApp enquiries inbox',
   auditLog: 'Audit log',
   pdfCatalogue: 'PDF catalogue',
   banners: 'Home banners',
