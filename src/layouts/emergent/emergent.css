@@ -133,11 +133,12 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-sc { position: absolute; inset: 0; background: linear-gradient(transparent 40%, color-mix(in srgb, var(--em-deep) 88%, transparent)); }
 [data-layout="emergent"] .em-sc.l { background: linear-gradient(color-mix(in srgb, var(--em-deep) 35%, transparent), color-mix(in srgb, var(--em-deep) 92%, transparent)); }
 [data-layout="emergent"] .em-sq { position: relative; aspect-ratio: 1; border-radius: 20px; overflow: hidden; border: 1px solid var(--em-line); background: var(--em-tint); }
-/* A catalogue card is the photo with its own Add to cart button underneath, as wide as the card with rounded corners. */
-[data-layout="emergent"] .em-cardwrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-[data-layout="emergent"] .em-addbar { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; border-radius: 14px; border: 1px solid var(--em-primary); background: var(--em-primary); color: var(--em-on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+/* A catalogue card is one rounded piece: the photo with its Add to cart button fused to the bottom edge. */
+[data-layout="emergent"] .em-cardwrap { display: flex; flex-direction: column; min-width: 0; border-radius: 20px; overflow: hidden; border: 1px solid var(--em-line); background: var(--em-card); }
+[data-layout="emergent"] .em-cardwrap > .em-sq { border: 0; border-radius: 0; }
+[data-layout="emergent"] .em-addbar { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; border: 0; border-radius: 0; background: var(--em-primary); color: var(--em-on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 [data-layout="emergent"] .em-addbar:hover { filter: brightness(1.08); }
-[data-layout="emergent"] .em-addbar:active { transform: scale(0.985); }
+[data-layout="emergent"] .em-addbar:active { filter: brightness(0.94); }
 [data-layout="emergent"] .em-sq.picked { outline: 2.5px solid var(--em-gold); outline-offset: -2.5px; }
 [data-layout="emergent"] .em-hit { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; text-align: left; font: inherit; color: var(--em-on-primary); cursor: pointer; transition: transform 0.25s; }
 [data-layout="emergent"] .em-hit:active { transform: scale(0.985); }
