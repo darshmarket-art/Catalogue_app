@@ -7,7 +7,7 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema } from '../schemas';
+import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
 
@@ -78,6 +78,28 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // Which collections the buyers' Home shows as its hero tiles. Stored on the collection (heroOrder), so a rename keeps it.
+  router.put(
+    '/hero-collections',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { ids } = parse(heroCollectionsSchema, req.body);
+      if (new Set(ids).size !== ids.length) throw new HttpError(400, 'A collection can only be chosen once.');
+      const all = await store.list('categories');
+      const known = new Set(all.map((c) => c.id));
+      const missing = ids.find((id) => !known.has(id));
+      if (missing) throw new HttpError(404, 'One of those collections no longer exists.');
+      await Promise.all(
+        all.map((c) => {
+          const at = ids.indexOf(c.id);
+          return at >= 0 ? store.update('categories', c.id, { heroOrder: at }) : typeof c.heroOrder === 'number' ? store.update('categories', c.id, { heroOrder: null }) : Promise.resolve();
+        })
+      );
+      await audit(store, req, 'HERO_COLLECTIONS_UPDATED', `Home hero collections set to ${ids.length === 0 ? 'none (the busiest four)' : ids.map((id) => all.find((c) => c.id === id)!.name).join(', ')}.`);
+      res.json({ status: 'success', data: { ids } });
+    })
+  );
+
   router.put(
     '/categories/:id',
     requireAdmin,
@@ -91,7 +113,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       if (clash.some((c) => c.id !== existing.id)) throw new HttpError(409, `A category named "${body.name}" already exists.`);
       await ent.assertPhotos([body.image]);
 
-      const category = categoryDoc(body, { id: existing.id, createdAt: existing.createdAt });
+      const category = { ...categoryDoc(body, { id: existing.id, createdAt: existing.createdAt }), ...(typeof existing.heroOrder === 'number' ? { heroOrder: existing.heroOrder } : {}) };
       await store.set('categories', existing.id, category);
 
       // Products point at their category by name, so a rename carries them along.

@@ -370,8 +370,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
               <button type="button" className="em-btn" onClick={handleConfirm} disabled={isBooked}>
                 {isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta}
               </button>
-              <button type="button" className="em-btn wa" onClick={() => onGenerateWhatsAppPO(note.trim() || undefined)}>
-                <Icon n="wa" />
+              <button type="button" className="em-link" style={{ alignSelf: 'center', minHeight: 30 }} data-testid="order-via-whatsapp" onClick={() => onGenerateWhatsAppPO(note.trim() || undefined)}>
                 {sector.copy.orders.whatsappCta.title}
               </button>
             </div>

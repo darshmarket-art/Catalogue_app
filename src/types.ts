@@ -41,6 +41,8 @@ export interface Category {
   eligibleKarats: string[];
   minTargetWt: number;
   maxTargetWt: number;
+  /** 0 to 3 when the owner picked this collection as a hero tile on Home; null or missing otherwise. */
+  heroOrder?: number | null;
 }
 
 export interface Purity {

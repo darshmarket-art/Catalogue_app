@@ -27,6 +27,8 @@ interface Props {
   onBannerDelete: (banner: Banner) => Promise<void>;
   onBannerReorder: (ids: string[]) => Promise<void>;
   onPuritiesSave: (list: Array<{ key: string; enabled: boolean }>) => Promise<boolean>;
+  /** Saves the hero collections shown on the buyers' Home: up to four collection ids, in order. */
+  onHeroSave: (ids: string[]) => Promise<boolean>;
 }
 
 const PAGE = 24;
@@ -264,12 +266,24 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
 };
 
 /** Collections: search, A to Z with a letter rail, one tap to open a collection's designs, one tap to make its PDF, one tap to edit. */
-const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> = ({ categories, onNewCategory, onEditCategory, onOpenDesigns }) => {
+const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> = ({ categories, onNewCategory, onEditCategory, onOpenDesigns, onHeroSave }) => {
   const { flags } = usePlan();
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const many = categories.length > FEW;
+
+  // The hero collections: the tiles the buyers' Home shows first. Up to four, in the order set here.
+  const heroes = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
+  const notice = (msg: string) => { setStatus(msg); setTimeout(() => setStatus(null), 3500); };
+  const saveHeroes = async (ids: string[]) => { if (!(await onHeroSave(ids))) notice('Could not save the hero collections. Try again.'); };
+  const toggleHero = (c: Category) => {
+    const ids = heroes.map((h) => h.id);
+    if (ids.includes(c.id)) return void saveHeroes(ids.filter((x) => x !== c.id));
+    if (ids.length >= 4) return void notice('Home shows four hero collections. Remove one first.');
+    void saveHeroes([...ids, c.id]);
+  };
+  const moveHero = (i: number, d: -1 | 1) => { const ids = heroes.map((h) => h.id); [ids[i], ids[i + d]] = [ids[i + d], ids[i]]; void saveHeroes(ids); };
 
   const makePdf = async (c: Category) => {
     if (!flags.pdfCatalogue) return void upgradeNotice('PDF catalogue');
@@ -309,6 +323,9 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
         </span>
       </button>
       <div className="em-row" style={{ gap: 6 }}>
+        <button type="button" className="em-circ" data-testid="collection-hero" aria-pressed={typeof c.heroOrder === 'number'} aria-label={typeof c.heroOrder === 'number' ? `Remove ${c.name} from the hero collections` : `Make ${c.name} a hero collection on Home`} onClick={() => toggleHero(c)} style={typeof c.heroOrder === 'number' ? { color: 'var(--em-gold-ink)', borderColor: 'var(--em-gold)' } : { color: 'var(--em-mut)' }}>
+          <Icon n="star" size={16} fill={typeof c.heroOrder === 'number'} />
+        </button>
         <button type="button" className="em-circ" data-testid="collection-pdf" disabled={busy !== null && busy !== c.name} aria-label={flags.pdfCatalogue ? `Make a PDF of ${c.name}` : `PDF of ${c.name} (Pro)`} onClick={() => makePdf(c)} style={busy === c.name ? { background: 'var(--em-primary)', color: 'var(--em-on-primary)' } : undefined}>
           <Icon n={flags.pdfCatalogue ? 'file' : 'lock'} size={16} />
         </button>
@@ -322,6 +339,26 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
   return (
     <>
       {status && <Toast>{status}</Toast>}
+      <div className="em-card" data-testid="hero-collections">
+        <div className="em-row em-sb">
+          <b style={{ fontWeight: 600 }}>Hero collections on Home</b>
+          <span className="em-mut" style={{ fontSize: 12 }}>{heroes.length} of 4</span>
+        </div>
+        <p className="em-mut" style={{ fontSize: 12.5, margin: '4px 0 6px' }}>Buyers see these first. Tap the star on a collection to add it.</p>
+        {heroes.length === 0 ? (
+          <p className="em-hint" style={{ margin: 0 }}>None chosen yet, so Home shows your four busiest collections.</p>
+        ) : (
+          heroes.map((h, i) => (
+            <div key={h.id} className="em-row" data-testid="hero-row" style={{ gap: 10, padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
+              <span className="em-ser" style={{ width: 18, color: 'var(--em-gold-ink)' }}>{i + 1}</span>
+              <span className="em-grow em-clip" style={{ fontWeight: 500 }}>{h.name}</span>
+              <button type="button" className="em-circ" style={{ width: 32, height: 32 }} disabled={i === 0} aria-label={`Move ${h.name} earlier`} onClick={() => moveHero(i, -1)}><Icon n="up" size={14} /></button>
+              <button type="button" className="em-circ" style={{ width: 32, height: 32 }} disabled={i === heroes.length - 1} aria-label={`Move ${h.name} later`} onClick={() => moveHero(i, 1)}><Icon n="chev" size={14} /></button>
+              <button type="button" className="em-circ" style={{ width: 32, height: 32 }} aria-label={`Remove ${h.name} from the hero collections`} onClick={() => toggleHero(h)}><Icon n="x" size={14} /></button>
+            </div>
+          ))
+        )}
+      </div>
       {many && (
         <label className="em-srch" style={{ height: 44 }}>
           <Icon n="search" size={16} />

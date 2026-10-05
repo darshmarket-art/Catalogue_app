@@ -312,6 +312,11 @@ export const api = {
     return (await request(`/api/v1/categories/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(cat) })).data;
   },
 
+  /** The owner's hero collections on the buyers' Home: up to four collection ids, in order. */
+  async setHeroCollections(ids: string[]): Promise<void> {
+    await request('/api/v1/hero-collections', { method: 'PUT', body: JSON.stringify({ ids }) });
+  },
+
   async deleteCategory(id: string): Promise<void> {
     await request(`/api/v1/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },

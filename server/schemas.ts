@@ -48,6 +48,9 @@ export const categorySchema = z.object({
   image: photoRef.refine((v) => v !== '', 'Add a photo for the category.')
 });
 
+/** The collections shown as the hero tiles on the buyers' Home: up to four, in this order. */
+export const heroCollectionsSchema = z.object({ ids: z.array(trimmed(80)).max(4) });
+
 export const cartItemSchema = z.object({
   sku: trimmed(60),
   batchQty: z.coerce.number().int().min(1).max(10000).default(1),

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Facebook, Instagram, MapPin, MessageCircle, Youtube } from 'lucide-react';
 import type { Category } from '../../types';
 import { downloadCataloguePdf } from '../../cataloguePdf';
@@ -6,12 +6,18 @@ import { merchant } from '../../merchant';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { useHideOnScroll } from './useHideOnScroll';
+import { CollectionsBrowser } from './CollectionsBrowser';
+import { recentCollections, recentSkus } from '../../recent';
+
+/** Up to this many collections are all shown on Home; more than this and Home features four (the owner's hero collections) plus a Browse all page. */
+const FEW = 6;
 
 /**
  * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections one per row as full-width square cards
  * with index badges, and "The House". The brand row and profile button are in the top bar.
  */
-export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, onEditCategory, onNavigate, onFilterCategoryInCatalogue }) => {
+export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
+  const [browsing, setBrowsing] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
@@ -74,9 +80,20 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       : [])
   ];
 
-  const q = searchQuery.toLowerCase();
-  const filteredCategories = categories.filter((c) => c.name.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q));
+  const q = searchQuery.trim().toLowerCase();
+  const many = categories.length > FEW;
+  // The owner's hero collections in their order; short of four, the busiest others fill in.
+  const heroes = useMemo(() => {
+    const chosen = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
+    const rest = categories.filter((c) => typeof c.heroOrder !== 'number').sort((a, b) => b.designCount - a.designCount);
+    return [...chosen, ...rest].slice(0, 4);
+  }, [categories]);
+  const matches = categories.filter((c) => c.name.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q));
+  const shown = q ? matches : many ? heroes : categories;
+  const jumpBack = q || !many ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
+  const viewed = q ? [] : recentSkus().map((sku) => products.find((p) => p.sku === sku)).filter((p): p is NonNullable<typeof p> => Boolean(p)).slice(0, 8);
   const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ') : `avg ${cat.avgNetWt}`);
+  const searchDesigns = () => onSearchDesigns?.(searchQuery.trim());
 
   return (
     <div className="em-page home">
@@ -86,7 +103,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         <div className="em-pad" style={{ paddingTop: 4, paddingBottom: 8 }}>
           <label className="em-srch">
             <Icon n="search" />
-            <input aria-label="Search the catalogue" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <input aria-label="Search the catalogue" data-testid="home-search" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchQuery.trim() && searchDesigns()} />
           </label>
         </div>
       </div>
@@ -166,9 +183,22 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         </div>
       )}
 
+      {jumpBack.length > 0 && (
+        <div style={{ marginTop: 22 }} data-testid="jump-back">
+          <div className="em-ey em-pad">Jump back in</div>
+          <div className="em-chips" style={{ paddingTop: 8, paddingBottom: 0 }}>
+            {jumpBack.map((c) => (
+              <button key={c.id} type="button" className="em-chip" onClick={() => onFilterCategoryInCatalogue(c.name)}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="em-pad" style={{ marginTop: 28 }}>
         <Title
-          eyebrow="Curated"
+          eyebrow={q ? 'Matching' : many ? 'Featured' : 'Curated'}
           title="Collections"
           size="h2"
           right={
@@ -179,11 +209,19 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           }
         />
 
-        {filteredCategories.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.'}</p>}
+        {q && (
+          <button type="button" className="em-li" style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)' }} data-testid="home-search-designs" onClick={searchDesigns}>
+            <span className="em-badge"><Icon n="search" size={16} /></span>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>Search designs for “{searchQuery.trim()}”</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Name, SKU or weight across the catalogue</span></span>
+            <Icon n="right" size={16} />
+          </button>
+        )}
 
-        <div className="em-grid em-grid-1" style={{ marginTop: 14 }}>
-          {filteredCategories.map((cat, i) => (
-            <div key={cat.id} className="em-sq">
+        {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.'}</p>}
+
+        <div className="em-grid em-grid-2" data-testid="home-collections" style={{ marginTop: 14 }}>
+          {shown.map((cat, i) => (
+            <div key={cat.id} className="em-sq" data-testid="home-collection">
               <button type="button" className="em-hit" aria-label={`Open ${cat.name}`} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
                 <Ph src={cat.image} tone={i} className="em-fill" />
                 <span className="em-sc" />
@@ -195,9 +233,6 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
                   </small>
                 </span>
               </button>
-              <span className="em-idx em-ser" aria-hidden="true">
-                {String(i + 1).padStart(2, '0')}
-              </span>
               {isAdmin && (
                 <button type="button" className="em-circ f em-opts" aria-label={`Options for ${cat.name}`} onClick={() => setMenuFor(cat)}>
                   <Icon n="more" size={16} />
@@ -206,7 +241,32 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             </div>
           ))}
         </div>
+
+        {many && !q && (
+          <button type="button" className="em-browse" data-testid="browse-collections" onClick={() => setBrowsing(true)}>
+            <span className="em-badge"><Icon n="grid" size={18} /></span>
+            <span className="em-grow">
+              <b className="em-ser" style={{ fontSize: 17, fontWeight: 500 }}>Browse all {categories.length} collections</b>
+              <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Search or jump A to Z</span>
+            </span>
+            <Icon n="right" size={18} />
+          </button>
+        )}
       </div>
+
+      {viewed.length > 0 && (
+        <div style={{ marginTop: 28 }} data-testid="recently-viewed">
+          <div className="em-ey em-pad">Recently viewed</div>
+          <div className="em-chips em-strip" style={{ paddingTop: 10, paddingBottom: 0 }}>
+            {viewed.map((p, i) => (
+              <button key={p.id} type="button" className="em-strip-i" aria-label={`Open ${p.title}`} onClick={() => onOpenDesign?.(p.sku)}>
+                <Ph src={p.image} tone={i} className="em-strip-ph" />
+                <span>{p.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="em-pad" style={{ marginTop: 28 }}>
         <div className="em-house">
@@ -257,6 +317,17 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             ))}
           </div>
         </Sheet>
+      )}
+
+      {browsing && (
+        <CollectionsBrowser
+          categories={categories}
+          onClose={() => setBrowsing(false)}
+          onPick={(name) => {
+            setBrowsing(false);
+            if (name) onFilterCategoryInCatalogue(name);
+          }}
+        />
       )}
 
       {/* Floating contact menu: the owner's own WhatsApp, showroom and social pages (a link only appears once it is set in merchant.json) */}

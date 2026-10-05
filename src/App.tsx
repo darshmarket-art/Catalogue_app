@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData, AdminSummary } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
+import { noteCollection } from './recent';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -97,6 +98,8 @@ export default function App() {
     () => new URLSearchParams(window.location.search).get('category')
   );
   // Which Orders tab to open first (the profile menu links straight to past orders).
+  // A search or a design Home hands to the Catalogue (used once).
+  const [handoff, setHandoff] = useState<{ search: string; sku: string | null }>({ search: '', sku: null });
   const [ordersTab, setOrdersTab] = useState<'current' | 'past'>('current');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   // Signed in with a temporary password: the admin must set their own before any other admin screen opens.
@@ -455,6 +458,16 @@ export default function App() {
     }
   };
 
+  const handleHeroSaved = async (ids: string[]): Promise<boolean> => {
+    try {
+      await api.setHeroCollections(ids);
+      setCategories((prev) => prev.map((c) => ({ ...c, heroOrder: ids.includes(c.id) ? ids.indexOf(c.id) : null })));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleBannerAdded = async (image: string, category?: string): Promise<boolean> => {
     try {
       const created = await api.addBanner(image, category);
@@ -518,6 +531,17 @@ export default function App() {
   const handleFilterCategoryInCatalogue = (catName: string) => {
     // Promotion banners pass their own headline, which is not always a category: only filter on real categories.
     setCategoryFilter(categories.some((c) => c.name === catName) ? catName : null);
+    noteCollection(catName);
+    handleNavigate('catalogue');
+  };
+  const handleSearchDesigns = (search: string) => {
+    setCategoryFilter(null);
+    setHandoff({ search, sku: null });
+    handleNavigate('catalogue');
+  };
+  const handleOpenDesign = (sku: string) => {
+    setCategoryFilter(null);
+    setHandoff({ search: '', sku });
     handleNavigate('catalogue');
   };
 
@@ -715,6 +739,7 @@ export default function App() {
             onBannerDelete={handleBannerDeleted}
             onBannerReorder={handleBannersReordered}
             onPuritiesSave={handlePuritiesSaved}
+            onHeroSave={handleHeroSaved}
           />
         )}
 
@@ -733,6 +758,9 @@ export default function App() {
             onToggleShortlist={toggleShortlist}
             orderCount={orders.length}
             onNavigate={handleNavigate}
+            initialSearch={handoff.search}
+            initialSku={handoff.sku}
+            onInitialUsed={() => setHandoff({ search: '', sku: null })}
           />
         )}
 
@@ -759,6 +787,8 @@ export default function App() {
             onEditCategory={openCategoryForm}
             onNavigate={handleNavigate}
             onFilterCategoryInCatalogue={handleFilterCategoryInCatalogue}
+            onSearchDesigns={handleSearchDesigns}
+            onOpenDesign={handleOpenDesign}
           />
         )}
 

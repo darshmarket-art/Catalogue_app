@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
@@ -72,6 +72,12 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
   const fullPhone = () => `91${phone.replace(/\D/g, '')}`;
 
   // After a good code, hold a 2 s greeting before entering the showroom.
+  // The sixth digit signs in on its own; a code that failed is not sent again until it is changed.
+  const tried = useRef('');
+  useEffect(() => {
+    if (codeSent && !needsName && !loading && code.length === 6 && code !== tried.current) void verify();
+  }, [code]);
+
   const [welcome, setWelcome] = useState<{ user: ProfileUser; isNew: boolean } | null>(null);
 
   useEffect(() => {
@@ -101,8 +107,9 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     }
   };
 
-  const verify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const verify = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    tried.current = code;
     setLoading(true);
     setErrorMessage(null);
     try {

@@ -37,6 +37,10 @@ export interface CategoriesProps {
   onEditCategory: (category: Category) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onFilterCategoryInCatalogue: (categoryName: string) => void;
+  /** Opens the Catalogue with this search already typed (Home's "search designs"). */
+  onSearchDesigns?: (query: string) => void;
+  /** Opens a design straight from Home's Recently viewed strip. */
+  onOpenDesign?: (sku: string) => void;
 }
 export interface CatalogueProps {
   products: Product[];
@@ -56,6 +60,10 @@ export interface CatalogueProps {
   /** The order's size and a way to open it (the cart bar). */
   orderCount?: number;
   onNavigate?: (screen: ActiveScreen) => void;
+  /** A search typed on Home, and a design to open at once (Recently viewed); both are used once and then cleared. */
+  initialSearch?: string;
+  initialSku?: string | null;
+  onInitialUsed?: () => void;
 }
 export interface ShortlistProps {
   products: Product[];

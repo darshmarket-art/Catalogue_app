@@ -12,6 +12,11 @@ import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { useHideOnScroll } from './useHideOnScroll';
 import { withTransition } from '../../viewTransition';
+import { CollectionsBrowser } from './CollectionsBrowser';
+import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
+
+/** Up to this many collections show as chips; more get a picker page. */
+const FEW = 6;
 
 const PAGE = 24;
 
@@ -44,10 +49,17 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   shortlist,
   onToggleShortlist,
   orderCount,
-  onNavigate
+  onNavigate,
+  initialSearch = '',
+  initialSku = null,
+  onInitialUsed
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debounced, setDebounced] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [debounced, setDebounced] = useState(initialSearch.trim());
+  const [picking, setPicking] = useState(false);
+  const [view, setView] = useState<CatalogueView>(readView);
+  // A design opened from Home's Recently viewed: it may not be in the first page, so it is fetched on its own.
+  const [extra, setExtra] = useState<Product | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [draft, setDraft] = useState<Filters>(NO_FILTERS);
   const [sheet, setSheet] = useState(false);
@@ -77,7 +89,29 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const reqId = useRef(0);
-  const openProduct = items.find((p) => p.id === openProductId) ?? null;
+  const openProduct = items.find((p) => p.id === openProductId) ?? (extra && extra.id === openProductId ? extra : null);
+  const openIndex = openProduct ? items.findIndex((p) => p.id === openProduct.id) : -1;
+
+  useEffect(() => {
+    onInitialUsed?.();
+    if (!initialSku) return;
+    api.queryProducts({ search: initialSku, limit: 5, offset: 0 }).then((page) => {
+      const hit = page.items.find((p) => p.sku === initialSku);
+      if (hit) {
+        setExtra(hit);
+        setOpenProductId(hit.id);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (openProduct) noteSku(openProduct.sku);
+  }, [openProduct?.id]);
+
+  const pickView = (v: CatalogueView) => {
+    setView(v);
+    writeView(v);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(searchQuery.trim()), 300);
@@ -318,16 +352,32 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             </div>
           )}
         </div>
+        {collectionChips.length > FEW ? (
+          <div className="em-row" style={{ gap: 8, padding: '2px var(--em-px) 12px' }}>
+            <button type="button" className={`em-chip em-grow${categoryFilter ? ' on' : ''}`} style={{ justifyContent: 'space-between', minWidth: 0 }} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
+              <span>{categoryFilter ?? 'All collections'}</span>
+              <Icon n="right" size={14} />
+            </button>
+            <span className="em-seg-v" role="group" aria-label="Layout">
+              {(['grid2', 'grid3', 'list'] as const).map((v) => (
+                <button key={v} type="button" aria-pressed={view === v} aria-label={v === 'grid2' ? 'Two columns' : v === 'grid3' ? 'Three columns' : 'List'} data-testid={`view-${v}`} className={view === v ? 'on' : ''} onClick={() => pickView(v)}>
+                  <Icon n={v === 'list' ? 'file' : 'grid'} size={14} />
+                </button>
+              ))}
+            </span>
+          </div>
+        ) : (
         <div className="em-chips" role="group" aria-label="Collections">
           <button type="button" className={`em-chip${categoryFilter ? '' : ' on'}`} aria-pressed={!categoryFilter} onClick={onClearCategoryFilter}>
             All
           </button>
           {collectionChips.map((name) => (
-            <button key={name} type="button" className={`em-chip${categoryFilter === name ? ' on' : ''}`} aria-pressed={categoryFilter === name} onClick={() => onCategoryChange(categoryFilter === name ? null : name)}>
+            <button key={name} type="button" className={`em-chip${categoryFilter === name ? ' on' : ''}`} aria-pressed={categoryFilter === name} onClick={() => { if (categoryFilter !== name) noteCollection(name); onCategoryChange(categoryFilter === name ? null : name); }}>
               {name}
             </button>
           ))}
         </div>
+        )}
         {active.length > 0 && !selecting && (
           <div className="em-chips em-active" role="group" aria-label="Active filters" data-testid="active-filters">
             {active.map((a) => (
@@ -352,7 +402,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             </button>
           </div>
         )}
-        <div ref={gridRef} className="em-grid" aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1, transition: 'opacity 0.2s' }}>
+        <div ref={gridRef} className={`em-grid${view === 'grid3' ? ' em-grid-3' : view === 'list' ? ' em-grid-1 em-grid-list' : ''}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1, transition: 'opacity 0.2s' }}>
           {loading && items.length === 0 && !error && Array.from({ length: 6 }, (_, i) => <div key={`skel-${i}`} className="em-sq em-skel" aria-hidden="true" />)}
           {items.map((prod, i) => {
             const isHearted = hearted.has(prod.sku);
@@ -486,6 +536,20 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         </Sheet>
       )}
 
+      {picking && (
+        <CollectionsBrowser
+          categories={categories.filter((c) => c.designCount > 0 || c.name === categoryFilter)}
+          current={categoryFilter}
+          allowAll
+          onClose={() => setPicking(false)}
+          onPick={(name) => {
+            setPicking(false);
+            if (name) noteCollection(name);
+            onCategoryChange(name);
+          }}
+        />
+      )}
+
       {cartFor && <CartSheet product={cartFor} purities={purities} categories={categories} onClose={() => setCartFor(null)} onAdd={(p, qty, pur) => handleAdd(p, pur, qty)} />}
 
       <ProductDetail
@@ -494,6 +558,11 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         purities={purities}
         categories={categories}
         hearted={openProduct ? hearted.has(openProduct.sku) : false}
+        position={openIndex >= 0 ? { index: openIndex, total: items.length } : undefined}
+        onStep={(dir) => {
+          const next = items[openIndex + dir];
+          if (next) setOpenProductId(next.id);
+        }}
         onToggleShortlist={onToggleShortlist}
         onClose={() => withTransition(() => setOpenProductId(null))}
         onEdit={(p) => {

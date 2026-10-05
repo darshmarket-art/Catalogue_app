@@ -19,6 +19,9 @@ interface ProductDetailProps {
   onClose: () => void;
   onEdit: (product: Product) => void;
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
+  /** Where this design sits in the list the buyer came from, and a way to step to the previous (-1) or next (1) one. */
+  position?: { index: number; total: number };
+  onStep?: (dir: -1 | 1) => void;
 }
 
 /** The rows under "Specifications": the design's weights, then whatever details this store records (merchant.productFields). */
@@ -33,7 +36,7 @@ const specRows = (p: Product) => [
  * A design's details (atlas Product detail): a full-bleed gallery with counter and dots, a rounded sheet over the photo, specifications,
  * quantity and a sticky bar. Same behaviour as the Gilded sheet: tap a photo to zoom, heart, add to order, owner edit, WhatsApp enquiry on Basic.
  */
-export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder }) => {
+export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, position, onStep }) => {
   const canOrder = usePlan().flags.orders;
   const [slide, setSlide] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
@@ -44,6 +47,94 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
   zooming.current = zoomFrom !== null;
   const cartRef = useRef(false);
   cartRef.current = cartOpen;
+  const pageRef = useRef<HTMLDivElement>(null);
+  const swiped = useRef(false);
+  const stepRef = useRef(onStep);
+  stepRef.current = onStep;
+  const posRef = useRef(position);
+  posRef.current = position;
+  const canStep = (dir: -1 | 1) => Boolean(position && onStep && position.index + dir >= 0 && position.index + dir < position.total);
+  const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  /** Fade through: the design fades out, the next one fades in from a slightly smaller size (opacity and transform only). */
+  const step = (dir: -1 | 1) => {
+    const pos = posRef.current;
+    if (!pos || !stepRef.current || pos.index + dir < 0 || pos.index + dir >= pos.total) return;
+    const el = pageRef.current;
+    swiped.current = true;
+    if (!el || calm()) {
+      stepRef.current(dir);
+      return;
+    }
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.classList.add('em-ft-out');
+    setTimeout(() => {
+      el.classList.remove('em-ft-out');
+      stepRef.current?.(dir);
+    }, 90);
+  };
+
+  // After the page shows the next design: back to the top, then fade it in.
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || !swiped.current) return;
+    swiped.current = false;
+    el.scrollTop = 0;
+    if (calm()) return;
+    el.classList.add('em-ft-in');
+    const t = setTimeout(() => el.classList.remove('em-ft-in'), 260);
+    return () => clearTimeout(t);
+  }, [product?.id]);
+
+  // Touch swipe: a mostly-sideways drag that starts outside a multi-photo gallery (the gallery keeps its own swipe).
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || !product) return;
+    let sx = 0, sy = 0, dx = 0, mode: 'none' | 'wait' | 'h' | 'v' = 'none';
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' || zooming.current || cartRef.current) return;
+      if ((e.target as HTMLElement).closest('[data-testid="product-gallery"]') && (product.images.length > 1)) return;
+      sx = e.clientX;
+      sy = e.clientY;
+      dx = 0;
+      mode = 'wait';
+    };
+    const move = (e: PointerEvent) => {
+      if (mode === 'none' || mode === 'v') return;
+      dx = e.clientX - sx;
+      const dy = e.clientY - sy;
+      if (mode === 'wait') {
+        if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) mode = 'v';
+        else if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) mode = 'h';
+        return;
+      }
+      if (calm()) return;
+      const dir = dx < 0 ? 1 : -1;
+      const room = posRef.current && posRef.current.index + dir >= 0 && posRef.current.index + dir < posRef.current.total;
+      const pull = room ? dx : dx * 0.25;
+      el.style.transform = `translateX(${pull * 0.25}px)`;
+      el.style.opacity = String(1 - Math.min(Math.abs(pull) / 360, 0.45));
+    };
+    const up = () => {
+      const was = mode;
+      mode = 'none';
+      if (was !== 'h') return;
+      el.style.transform = '';
+      el.style.opacity = '';
+      if (Math.abs(dx) > 70) step(dx < 0 ? 1 : -1);
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+    };
+  }, [product?.id]);
 
   useEffect(() => {
     setSlide(0);
@@ -51,7 +142,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
     if (!product) return;
     // Escape closes the page, unless the photo viewer is on top (it closes itself).
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || zooming.current) return;
+      if (zooming.current) return;
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !cartRef.current && !(e.target instanceof HTMLInputElement)) {
+        step(e.key === 'ArrowRight' ? 1 : -1);
+        return;
+      }
+      if (e.key !== 'Escape') return;
       if (cartRef.current) setCartOpen(false);
       else onClose();
     };
@@ -85,7 +181,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
       {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={product.title} onClose={() => setZoomFrom(null)} />}
       <button type="button" aria-label="Close" tabIndex={-1} className="em-scrim" onClick={onClose} />
       <div className="em-pd">
-        <div className="em-pd-scroll">
+        <div ref={pageRef} className="em-pd-scroll em-pd-swipe">
           <div className="em-hero-g">
             <div ref={scroller} data-testid="product-gallery" className="em-gal" onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
               {slides.map((src, i) => (
@@ -119,6 +215,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
           </div>
 
           <div className="em-pd-sheet">
+            {position && position.total > 1 && (
+              <div className="em-pd-nav" data-testid="design-position">
+                <button type="button" data-testid="design-prev" disabled={!canStep(-1)} onClick={() => step(-1)} aria-label="Previous design">
+                  <Icon n="back" size={14} />
+                  Previous
+                </button>
+                <span aria-live="polite">
+                  Design {position.index + 1} of {position.total}
+                </span>
+                <button type="button" data-testid="design-next" disabled={!canStep(1)} onClick={() => step(1)} aria-label="Next design">
+                  Next
+                  <Icon n="next" size={14} />
+                </button>
+              </div>
+            )}
             <div className="em-row em-sb" style={{ gap: 12 }}>
               <span className="em-ey em-clip">
                 {product.category} · {product.sku}
