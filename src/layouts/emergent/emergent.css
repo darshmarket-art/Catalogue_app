@@ -509,3 +509,9 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-embed .scroll { padding: 0; max-width: none; margin: 0; }
 [data-layout="emergent"] .em-seg { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 [data-layout="emergent"] .em-seg::-webkit-scrollbar { display: none; }
+
+/* Admin Collections: letter headers that stay under the top bar, a letter rail, and the collection button above the designs. */
+[data-layout="emergent"] .em-letter { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 5; font-family: var(--font-serif); font-size: 15px; color: var(--em-primary); padding: 10px 0 6px; border-bottom: 1px solid var(--em-gold); background: var(--em-bg); scroll-margin-top: calc(var(--header-h) + var(--sat)); }
+[data-layout="emergent"] .em-rail { position: sticky; top: calc(var(--header-h) + var(--sat) + 48px); width: 22px; display: flex; flex-direction: column; align-items: center; gap: 2px; max-height: calc(100svh - var(--header-h) - var(--em-tab-h) - 120px); overflow: hidden; justify-content: space-between; align-self: flex-start; }
+[data-layout="emergent"] .em-rail button { border: 0; background: none; padding: 1px 0; font: inherit; font-size: 10px; font-weight: 600; color: var(--em-primary); line-height: 1.1; cursor: pointer; }
+[data-layout="emergent"] .em-colpick { display: flex; align-items: center; gap: 10px; width: 100%; height: 46px; padding: 0 16px; border: 1px solid var(--em-gold); background: var(--em-card); border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; color: var(--em-primary); cursor: pointer; }
