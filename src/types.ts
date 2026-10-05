@@ -34,6 +34,8 @@ export interface Category {
   id: string;
   slug: string;
   name: string;
+  /** What the collection is filed under (Rings, Pendants, …). Always set on collections the API returns. */
+  tag: string;
   subtitle: string;
   designCount: number;
   avgNetWt: string;

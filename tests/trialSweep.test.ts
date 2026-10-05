@@ -130,7 +130,7 @@ describe('end of trial keeps data and restores on upgrade', () => {
     const auth = { Authorization: `Bearer ${r.body.sessionToken}` };
     const photo = async () => (await request(app).post('/api/admin/photos').set(auth).set('Content-Type', 'image/jpeg').send(JPEG)).body.data.ref as string;
     // During the trial (Pro): 7 categories, a design with 3 photos, an order.
-    for (let i = 0; i < 7; i++) expect((await request(app).post('/api/categories').set(auth).send({ name: `C${i}`, image: await photo() })).status).toBe(201);
+    for (let i = 0; i < 7; i++) expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: `C${i}`, image: await photo() })).status).toBe(201);
     const d = await request(app).post('/api/products').set(auth).send({ title: 'R', category: 'C0', purity: '22K 916', grossWt: 10, images: [await photo(), await photo(), await photo()] });
     expect(d.status).toBe(201);
     await store.set('orders', 'po1', { poId: 'po1', firmName: 'Buyer' });
@@ -142,14 +142,14 @@ describe('end of trial keeps data and restores on upgrade', () => {
     const prods = await request(app).get('/api/products').set(auth);
     expect(prods.body.data[0].images).toHaveLength(3);
     expect((await request(app).get('/api/entitlements')).body.data.effectivePlan).toBe('basic');
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'C8', image: await photo() })).status).toBe(402);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'C8', image: await photo() })).status).toBe(402);
     expect((await request(app).get('/api/admin/orders').set(auth)).status).toBe(402);
     expect(await store.list('orders')).toHaveLength(1); // stored, only locked
     expect(await store.list('categories')).toHaveLength(7);
 
     await setEnd(undefined, 'pro'); // console sets plan pro
     expect((await request(app).get('/api/admin/orders').set(auth)).status).toBe(200);
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'C8', image: await photo() })).status).toBe(201);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'C8', image: await photo() })).status).toBe(201);
 
     await setEnd(new Date(Date.now() - 1000).toISOString()); // back to basic, then console extends the trial
     expect((await request(app).get('/api/admin/orders').set(auth)).status).toBe(402);

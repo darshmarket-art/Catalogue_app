@@ -10,6 +10,7 @@ import { HttpError, audit, handler, newId, parse } from '../http';
 import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
+import { tagOf } from '../../shared/jewellery';
 
 const byPosition = (a: any, b: any) =>
   (a.position ?? Infinity) - (b.position ?? Infinity) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
@@ -38,6 +39,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       ...base,
       slug: body.slug || `CAT-${body.name.replace(/[^A-Z0-9]/gi, '-').toUpperCase()}`,
       name: body.name,
+      tag: body.tag,
       subtitle: body.subtitle || 'Curated wholesale collection',
       avgNetWt: `${min}g – ${max}g`,
       image: body.image,
@@ -55,7 +57,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const [categories, products] = await Promise.all([store.list('categories'), store.list('products')]);
       const counts = new Map<string, number>();
       for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), designCount: counts.get(c.name) ?? 0 }));
+      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), tag: tagOf(c as { name: string; tag?: string }), designCount: counts.get(c.name) ?? 0 }));
       res.json({ status: 'success', count: data.length, data });
     })
   );

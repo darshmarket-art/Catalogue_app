@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "id": "cat-1",
+      "id": "cat-1", "tag": "Necklaces",
       "slug": "CAT-BRIDAL-CHK",
       "name": "Bridal Chokers & Haar",
       "subtitle": "Kundan, Gulbandh & Imperial Malas",
@@ -16,7 +16,7 @@
       "maxTargetWt": 120
     },
     {
-      "id": "cat-2",
+      "id": "cat-2", "tag": "Sets",
       "slug": "CAT-ANTIQUE-TMP",
       "name": "Antique Temple Jewellery",
       "subtitle": "Nakshi work, Mayur motifs, Basra pearls",
@@ -30,7 +30,7 @@
       "maxTargetWt": 95
     },
     {
-      "id": "cat-3",
+      "id": "cat-3", "tag": "Bangles",
       "slug": "CAT-BANGLES-KDA",
       "name": "Bangles & Kadas",
       "subtitle": "Meenakari, Calcutta filigree, Machine CNC",
@@ -45,7 +45,7 @@
       "maxTargetWt": 70
     },
     {
-      "id": "cat-4",
+      "id": "cat-4", "tag": "Coins & Bars",
       "slug": "CAT-BULLION-CN",
       "name": "Bullion Coins & Minted Bars",
       "subtitle": "Assay Blister packs • 1g to 100g denominations",
@@ -59,7 +59,7 @@
       "maxTargetWt": 100
     },
     {
-      "id": "cat-5",
+      "id": "cat-5", "tag": "Chains",
       "slug": "CAT-MENS-CHN",
       "name": "Men's Chains & Bracelets",
       "subtitle": "Rudraksha caps, Franco chains, Lotus link",
@@ -74,7 +74,7 @@
       "maxTargetWt": 90
     },
     {
-      "id": "cat-6",
+      "id": "cat-6", "tag": "Earrings",
       "slug": "CAT-JHM-CHND",
       "name": "Jhumkas & Chandbalis",
       "subtitle": "Lightweight daily wear to grand bridal",
@@ -88,7 +88,7 @@
       "maxTargetWt": 45
     },
     {
-      "id": "cat-7",
+      "id": "cat-7", "tag": "Sets",
       "slug": "CAT-JADAU-POLKI",
       "name": "Jadau & Polki Uncut",
       "subtitle": "Certified Syndicate Polki & Columbian beads",
@@ -103,7 +103,7 @@
       "maxTargetWt": 150
     },
     {
-      "id": "cat-8",
+      "id": "cat-8", "tag": "Pendants",
       "slug": "CAT-MANGAL-PND",
       "name": "Mangalsutras & Pendants",
       "subtitle": "Daily wear lightweight to heirloom sets",

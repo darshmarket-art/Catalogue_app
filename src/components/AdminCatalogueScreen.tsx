@@ -6,6 +6,7 @@ import { Icon, Ph, Sheet, StockPill, Title, Toast, fmtG } from '../layouts/emerg
 import { downloadDesignsPdf } from '../cataloguePdf';
 import { AdminBannersScreen } from './AdminBannersScreen';
 import { AdminPuritiesScreen } from './AdminPuritiesScreen';
+import { COLLECTION_TAGS, tagOf, tagsInUse } from '../../shared/jewellery';
 
 export type CatalogueSegment = 'designs' | 'collections' | 'banners' | 'purities';
 
@@ -253,11 +254,16 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
             {!current && <Icon n="check" size={18} />}
           </button>
         )}
-        {list.map((c) => (
+        {COLLECTION_TAGS.map((t) => [t, list.filter((c) => tagOf(c) === t)] as const).filter(([, cs]) => cs.length > 0).map(([t, cs]) => (
+          <div key={t}>
+            <div className="em-letter em-tag-h">{t} <span>{cs.length}</span></div>
+          {cs.map((c) => (
           <button key={c.id} type="button" className="em-li" data-testid="collection-picker-row" style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)', cursor: 'pointer' }} onClick={() => onPick(c.name)}>
             <span className="em-grow"><b style={{ fontWeight: 600 }}>{c.name}</b><span className="em-mut" style={{ display: 'block', fontSize: 12 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span></span>
             {current === c.name && <Icon n="check" size={18} />}
           </button>
+          ))}
+          </div>
         ))}
         {list.length === 0 && <p className="em-mut" style={{ textAlign: 'center' }}>No collection with that name.</p>}
       </div>
@@ -303,12 +309,12 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
     }
   };
 
+  const [tag, setTag] = useState<string | null>(null);
   const term = q.trim().toLowerCase();
-  const list = categories.filter((c) => !term || c.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name));
-  const groups = new Map<string, Category[]>();
-  list.forEach((c) => groups.set(c.name[0].toUpperCase(), [...(groups.get(c.name[0].toUpperCase()) ?? []), c]));
-  const letters = [...groups.keys()];
-  const showRail = many && !term && letters.length > 1;
+  const tags = tagsInUse(categories);
+  const list = categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || tagOf(c) === tag)).sort((a, b) => a.name.localeCompare(b.name));
+  // Grouped under each tag (Rings, Pendants, …) in the fixed tag order.
+  const groups = COLLECTION_TAGS.map((t) => [t, list.filter((c) => tagOf(c) === t)] as const).filter(([, cs]) => cs.length > 0);
 
   const row = (c: Category, i: number) => (
     <div key={c.id} className="em-li" data-testid="admin-collection-row">
@@ -366,25 +372,22 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
         </label>
       )}
       {categories.length === 0 && <p className="em-mut" style={{ textAlign: 'center', padding: '16px 0' }}>No collections yet.</p>}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-        <div className="em-grow" data-testid="admin-collection-list">
-          {many && !term
-            ? letters.map((L) => (
-                <div key={L}>
-                  <div id={`AL-${L}`} className="em-letter">{L}</div>
-                  {groups.get(L)!.map((c, i) => row(c, i))}
-                </div>
-              ))
-            : list.map((c, i) => row(c, i))}
-          {many && list.length === 0 && <p className="em-mut" style={{ textAlign: 'center', padding: '16px 0' }}>No collection with that name.</p>}
+      {tags.length > 1 && (
+        <div className="em-chips" role="group" aria-label="Collection tags" data-testid="admin-tag-chips" style={{ padding: '0 0 4px' }}>
+          <button type="button" className={`em-chip${tag ? '' : ' on'}`} aria-pressed={!tag} onClick={() => setTag(null)}>All</button>
+          {tags.map((t) => (
+            <button key={t} type="button" className={`em-chip${tag === t ? ' on' : ''}`} aria-pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>{t}</button>
+          ))}
         </div>
-        {showRail && (
-          <div className="em-rail" aria-label="Jump to letter">
-            {letters.map((L) => (
-              <button key={L} type="button" aria-label={`Jump to ${L}`} onClick={() => document.getElementById(`AL-${L}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })}>{L}</button>
-            ))}
+      )}
+      <div data-testid="admin-collection-list">
+        {groups.map(([t, cs]) => (
+          <div key={t} data-testid="admin-tag-group">
+            <div className="em-letter em-tag-h">{t} <span>{cs.length}</span></div>
+            {cs.map((c, i) => row(c, i))}
           </div>
-        )}
+        ))}
+        {list.length === 0 && categories.length > 0 && <p className="em-mut" style={{ textAlign: 'center', padding: '16px 0' }}>No collection matches.</p>}
       </div>
       <button type="button" className="em-btn sec" onClick={onNewCategory}>
         <Icon n="plus" size={18} />

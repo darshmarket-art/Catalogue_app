@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Category } from '../../types';
 import { Icon, Ph } from './ui';
 import { recentCollections } from '../../recent';
+import { COLLECTION_TAGS, tagOf, tagsInUse } from '../../../shared/jewellery';
 
 interface Props {
   categories: Category[];
@@ -17,15 +18,13 @@ interface Props {
 export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allowAll, onPick, onClose }) => {
   const [q, setQ] = useState('');
   const scroller = useRef<HTMLDivElement>(null);
+  const [tag, setTag] = useState<string | null>(null);
   const term = q.trim().toLowerCase();
-  const list = useMemo(() => categories.filter((c) => !term || c.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term]);
-  const groups = useMemo(() => {
-    const g = new Map<string, Category[]>();
-    list.forEach((c) => g.set(c.name[0].toUpperCase(), [...(g.get(c.name[0].toUpperCase()) ?? []), c]));
-    return g;
-  }, [list]);
-  const letters = [...groups.keys()];
-  const recent = term ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
+  const tags = useMemo(() => tagsInUse(categories), [categories]);
+  const list = useMemo(() => categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || tagOf(c) === tag)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term, tag]);
+  // Collections grouped under their tag, in the fixed tag order.
+  const groups = useMemo(() => COLLECTION_TAGS.map((t) => [t, list.filter((c) => tagOf(c) === t)] as const).filter(([, cs]) => cs.length > 0), [list]);
+  const recent = term || tag ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -66,6 +65,14 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
           <input aria-label="Search collections" data-testid="collection-search" placeholder="Search collections" type="search" autoFocus={false} value={q} onChange={(e) => setQ(e.target.value)} />
         </label>
       </div>
+      {tags.length > 1 && (
+        <div className="em-chips" role="group" aria-label="Collection tags" data-testid="tag-chips" style={{ paddingTop: 8, paddingBottom: 6 }}>
+          <button type="button" className={`em-chip${tag ? '' : ' on'}`} aria-pressed={!tag} onClick={() => setTag(null)}>All</button>
+          {tags.map((t) => (
+            <button key={t} type="button" className={`em-chip${tag === t ? ' on' : ''}`} aria-pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>{t}</button>
+          ))}
+        </div>
+      )}
       <div className="em-colbody">
         <div ref={scroller} className="em-colscroll" id="em-colscroll">
           {allowAll && !term && (
@@ -81,21 +88,14 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
               {recent.map((c, i) => row(c, i, `r-${c.id}`))}
             </>
           )}
-          {letters.map((L) => (
-            <div key={L}>
-              <div id={`CL-${L}`} className="em-letter em-letter-in">{L}</div>
-              {groups.get(L)!.map((c, i) => row(c, i))}
+          {groups.map(([t, cs]) => (
+            <div key={t} data-testid="tag-group">
+              <div className="em-letter em-letter-in em-tag-h">{t} <span>{cs.length}</span></div>
+              {cs.map((c, i) => row(c, i))}
             </div>
           ))}
           {list.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>No collection with that name.</p>}
         </div>
-        {letters.length > 1 && !term && (
-          <div className="em-rail em-rail-in" aria-label="Jump to letter">
-            {letters.map((L) => (
-              <button key={L} type="button" aria-label={`Jump to ${L}`} onClick={() => document.getElementById(`CL-${L}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })}>{L}</button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

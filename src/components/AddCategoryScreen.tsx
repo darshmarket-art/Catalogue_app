@@ -3,6 +3,7 @@ import { ActiveScreen, Category, Purity } from '../types';
 import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, I, Notice } from './ui';
+import { COLLECTION_TAGS } from '../../shared/jewellery';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -18,6 +19,8 @@ interface AddCategoryScreenProps {
 export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOptions, editing, onNavigate, onSave, onDelete }) => {
   const { limits, usage } = usePlan();
   const [name, setName] = useState(editing?.name ?? '');
+  // New collections must be filed under a tag (no default); an older one opens on its own or guessed tag.
+  const [tag, setTag] = useState(editing?.tag ?? '');
   const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? [{ ref: editing.image, url: editing.image }] : []);
   const [uploading, setUploading] = useState(false);
@@ -37,6 +40,8 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
       ? 'Add a photo for the collection'
       : !name.trim()
         ? 'Enter a collection name'
+        : !tag
+          ? 'Choose a tag for the collection'
         : minWt && maxWt && min > max
           ? 'The lightest piece cannot weigh more than the heaviest'
           : null;
@@ -49,6 +54,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
     const ok = await onSave(
       {
         name: name.trim(),
+        tag,
         ...(subtitle.trim() ? { subtitle: subtitle.trim() } : {}),
         image: photos[0].ref,
         ...(Number.isFinite(min) ? { minTargetWt: min } : {}),
@@ -124,6 +130,18 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
       <Field label="Collection name" htmlFor="ac-name">
         <input id="ac-name" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Temple Antique Haar" />
       </Field>
+
+      <div>
+        <span className="lab" id="ac-tag-l">Tag (required)</span>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }} role="radiogroup" aria-labelledby="ac-tag-l" data-testid="collection-tag">
+          {COLLECTION_TAGS.map((t) => (
+            <button key={t} type="button" role="radio" aria-checked={tag === t} className={`chip${tag === t ? ' on' : ''}`} onClick={() => setTag(t)}>
+              {t}
+            </button>
+          ))}
+        </div>
+        <p className="hint" style={{ margin: '6px 0 0' }}>Buyers browse collections by tag, so all rings sit together and all pendants sit together.</p>
+      </div>
 
       <Field label="Short description (optional)" htmlFor="ac-sub">
         <input id="ac-sub" className="inp" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Nakshi work, Mayur motifs" />

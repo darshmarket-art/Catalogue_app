@@ -35,7 +35,7 @@ describe('catalogue search, filters, sort and paging', () => {
   beforeEach(async () => {
     admin = await newStore();
     const h = { ...S, ...bearer(admin) };
-    for (const name of ['Rings', 'Chains']) await request(app).post('/api/categories').set(h).send({ name, image: 'https://example.com/c.jpg' });
+    for (const name of ['Rings', 'Chains']) await request(app).post('/api/categories').set(h).send({ tag: name === 'Chains' ? 'Chains' : 'Rings', name, image: 'https://example.com/c.jpg' });
     await request(app).post('/api/products').set(h).send(product({ title: 'Temple Ring', sku: 'R-1', grossWt: 5, description: 'antique matte finish' }));
     await request(app).post('/api/products').set(h).send(product({ title: 'Rope Chain', sku: 'C-1', category: 'Chains', grossWt: 20, purity: '18K 750', stockStatus: 'Made-to-Order' }));
     await request(app).post('/api/products').set(h).send(product({ title: 'Peacock Ring', sku: 'R-2', grossWt: 8, stoneWt: 1 }));

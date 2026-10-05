@@ -763,7 +763,7 @@ describe('jewellery products (nothing invented)', () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    await request(app).post('/api/categories').set(auth).send({ name: 'Brand New Line', image: 'https://example.com/line.jpg' });
+    await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Brand New Line', image: 'https://example.com/line.jpg' });
     let cats = (await request(app).get('/api/categories').set(auth)).body.data;
     expect(cats.find((c: any) => c.name === 'Brand New Line').designCount).toBe(0);
     expect(cats.find((c: any) => c.name === 'Bridal Chokers & Haar').designCount).toBe(2);
@@ -777,8 +777,8 @@ describe('jewellery products (nothing invented)', () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Lockets' })).status).toBe(400);
-    const res = await request(app).post('/api/categories').set(auth).send({ name: 'Lockets', image: 'https://example.com/l.jpg' });
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Lockets' })).status).toBe(400);
+    const res = await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Lockets', image: 'https://example.com/l.jpg' });
     expect(res.status).toBe(201);
     expect(res.body.data.image).toBe('https://example.com/l.jpg');
     expect(res.body.data.eligibleKarats).toEqual([]);

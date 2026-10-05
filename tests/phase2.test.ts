@@ -277,29 +277,29 @@ describe('categories: one photo, rename, delete', () => {
     const app = await build();
     const auth = await admin(app);
     const ref = (await upload(app, auth)).body.data.ref;
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings' })).status).toBe(400);
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: ref })).status).toBe(201);
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: ref })).status).toBe(409);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings' })).status).toBe(400);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings', image: ref })).status).toBe(201);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings', image: ref })).status).toBe(409);
   });
 
   it('a rename carries its products along; deleting a category takes its products with it', async () => {
     const app = await build();
     const auth = await admin(app);
-    const cat = (await request(app).post('/api/categories').set(auth).send({ name: 'Chains', image: 'https://example.com/c.jpg' })).body.data;
+    const cat = (await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Chains', image: 'https://example.com/c.jpg' })).body.data;
     await request(app).post('/api/products').set(auth).send(product(['https://example.com/x.jpg'], { category: 'Chains', sku: 'CH-1' }));
 
-    const renamed = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ name: 'Gold Chains', image: 'https://example.com/c.jpg' });
+    const renamed = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ tag: 'Rings', name: 'Gold Chains', image: 'https://example.com/c.jpg' });
     expect(renamed.status).toBe(200);
     expect(renamed.body.data.designCount).toBe(1);
     expect((await store.list('products')).find((p) => p.sku === 'CH-1')!.category).toBe('Gold Chains');
 
-    const clash = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ name: 'Bridal Chokers & Haar', image: 'https://example.com/c.jpg' });
+    const clash = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ tag: 'Rings', name: 'Bridal Chokers & Haar', image: 'https://example.com/c.jpg' });
     expect(clash.status).toBe(409);
 
     // deleting the collection deletes its designs too
     expect((await request(app).delete(`/api/categories/${cat.id}`).set(auth)).status).toBe(200);
     expect((await store.list('products')).some((p) => p.sku === 'CH-1')).toBe(false);
-    expect((await request(app).put('/api/categories/none').set(auth).send({ name: 'X', image: 'https://example.com/c.jpg' })).status).toBe(404);
+    expect((await request(app).put('/api/categories/none').set(auth).send({ tag: 'Rings', name: 'X', image: 'https://example.com/c.jpg' })).status).toBe(404);
   });
 });
 

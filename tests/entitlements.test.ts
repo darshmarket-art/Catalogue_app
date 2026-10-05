@@ -38,10 +38,10 @@ describe('Basic plan enforcement', () => {
   it('caps categories at 5 and exposes entitlements', async () => {
     const { app, auth, photo } = await basicStore();
     for (let i = 0; i < 5; i++) {
-      const res = await request(app).post('/api/categories').set(auth).send({ name: `C${i}`, image: await photo() });
+      const res = await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: `C${i}`, image: await photo() });
       expect(res.status).toBe(201);
     }
-    const res = await request(app).post('/api/categories').set(auth).send({ name: 'C6', image: await photo() });
+    const res = await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'C6', image: await photo() });
     expect(res.status).toBe(402);
     const e = await request(app).get('/api/entitlements');
     expect(e.body.data).toMatchObject({ effectivePlan: 'basic', usage: { categories: 5 } });
@@ -49,7 +49,7 @@ describe('Basic plan enforcement', () => {
 
   it('allows 1 photo per design and blocks uploads at the photo cap', async () => {
     const { app, auth, store, photo, up } = await basicStore();
-    await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: await photo() });
+    await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings', image: await photo() });
     const body = { title: 'R', category: 'Rings', purity: '22K 916', grossWt: 10, images: [await photo(), await photo()] };
     expect((await request(app).post('/api/products').set(auth).send(body)).status).toBe(402);
     for (let i = 0; i < 199; i++) await store.set('banners', `b${i}`, { id: `b${i}`, image: `media:${String(i).padStart(32, '0')}.jpg` });

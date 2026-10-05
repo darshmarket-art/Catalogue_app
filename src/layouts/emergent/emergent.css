@@ -519,7 +519,7 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 /* Buyer collections page: a full-screen list with search, letter headers and a letter rail. */
 [data-layout="emergent"] .em-colpage { position: fixed; inset: 0; z-index: 65; background: var(--em-bg); display: flex; flex-direction: column; animation: var(--animate-fade-in); max-width: 640px; margin-inline: auto; }
 [data-layout="emergent"] .em-colbody { position: relative; flex: 1; min-height: 0; display: flex; }
-[data-layout="emergent"] .em-colscroll { flex: 1; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 36px calc(24px + var(--sab)) var(--em-px); }
+[data-layout="emergent"] .em-colscroll { flex: 1; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px var(--em-px) calc(24px + var(--sab)); }
 [data-layout="emergent"] .em-colrow { width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid var(--em-line); cursor: pointer; }
 [data-layout="emergent"] .em-letter-in { top: -4px; }
 [data-layout="emergent"] .em-rail-in { position: absolute; right: 6px; top: 6px; bottom: 6px; max-height: none; }
@@ -548,11 +548,27 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-pd-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0 12px; font-size: 12px; color: var(--em-mut); }
 [data-layout="emergent"] .em-pd-nav button { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 600; color: var(--em-primary); cursor: pointer; min-height: 32px; }
 [data-layout="emergent"] .em-pd-nav button:disabled { opacity: 0.35; cursor: default; }
-@keyframes em-ft-out { to { opacity: 0; transform: scale(0.98); } }
-@keyframes em-ft-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
-[data-layout="emergent"] .em-ft-out { animation: em-ft-out 90ms ease-in forwards; }
-[data-layout="emergent"] .em-ft-in { animation: em-ft-in 210ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes em-ft-out { to { opacity: 0; } }
+@keyframes em-ft-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+[data-layout="emergent"] .em-ft-out { animation: em-ft-out 110ms linear forwards; }
+[data-layout="emergent"] .em-ft-in { animation: em-ft-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 @media (prefers-reduced-motion: reduce) {
   [data-layout="emergent"] .em-ft-out, [data-layout="emergent"] .em-ft-in { animation: none; }
 }
 [data-layout="emergent"] .em-grid-2 .em-col-ov .em-ser { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.15; }
+
+[data-layout="emergent"] .em-tag-h { display: flex; align-items: baseline; gap: 8px; }
+[data-layout="emergent"] .em-tag-h span { font-size: 11px; color: var(--em-mut); font-weight: 500; }
+
+/* Catalogue: compact tile (3 across) and list row */
+[data-layout="emergent"] .em-grid-3 .em-cardwrap.em-tile { border-radius: 14px; }
+[data-layout="emergent"] .em-grid-3 .em-sq { border-radius: 14px; }
+[data-layout="emergent"] .em-tile .em-ov { left: 8px; right: 8px; bottom: 8px; }
+[data-layout="emergent"] .em-tile .em-ov .em-ser { font-size: 11px; font-weight: 600; display: block; }
+[data-layout="emergent"] .em-tile-m { display: block; font-size: 9.5px; opacity: 0.85; margin-top: 2px; }
+[data-layout="emergent"] .em-tadd { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--em-primary); color: var(--em-on-primary); display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+[data-layout="emergent"] .em-grid.em-grid-list, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-list { grid-template-columns: minmax(0, 1fr); gap: 0; max-width: 640px; margin-inline: auto; }
+[data-layout="emergent"] .em-lrow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--em-line); }
+[data-layout="emergent"] .em-grid-list > .em-lrow { animation: none; }
+[data-layout="emergent"] .em-grid-list .em-sq { aspect-ratio: 1; }
+[data-layout="emergent"] .em-grid.em-grid-c2, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 720px; margin-inline: auto; }

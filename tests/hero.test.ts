@@ -43,7 +43,7 @@ describe('hero collections on Home', () => {
     let list = (await request(app).get('/api/categories').set(admin)).body.data as Array<{ id: string; heroOrder: number | null }>;
     expect(list.find((c) => c.id === cats[0].id)!.heroOrder ?? null).toBeNull();
     expect(list.find((c) => c.id === cats[1].id)!.heroOrder).toBe(0);
-    const renamed = await request(app).put(`/api/categories/${cats[1].id}`).set(admin).send({ name: 'Renamed Hero', image: cats[1].image });
+    const renamed = await request(app).put(`/api/categories/${cats[1].id}`).set(admin).send({ tag: 'Rings', name: 'Renamed Hero', image: cats[1].image });
     expect(renamed.status).toBe(200);
     list = (await request(app).get('/api/categories').set(admin)).body.data;
     expect(list.find((c) => c.id === cats[1].id)!.heroOrder).toBe(0);
@@ -62,5 +62,20 @@ describe('hero collections on Home', () => {
     await request(app).put('/api/hero-collections').set(admin).send({ ids: [cats[0].id] });
     const logs = (await request(app).get('/api/admin/audit-logs').set(admin)).body;
     expect(JSON.stringify(logs)).toContain('HERO_COLLECTIONS_UPDATED');
+  });
+});
+
+describe('collection tags', () => {
+  it('requires a known tag on every new collection and when editing, and lists a guessed tag for older ones', async () => {
+    const { app, admin } = await build();
+    const img = 'https://example.com/c.jpg';
+    expect((await request(app).post('/api/categories').set(admin).send({ name: 'No Tag Line', image: img })).status).toBe(400);
+    expect((await request(app).post('/api/categories').set(admin).send({ name: 'Bad Tag', tag: 'Gadgets', image: img })).status).toBe(400);
+    const ok = await request(app).post('/api/categories').set(admin).send({ name: 'Solitaire Rings', tag: 'Rings', image: img });
+    expect(ok.status).toBe(201);
+    expect(ok.body.data.tag).toBe('Rings');
+    expect((await request(app).put(`/api/categories/${ok.body.data.id}`).set(admin).send({ name: 'Solitaire Rings', image: img })).status).toBe(400);
+    const list = (await request(app).get('/api/categories').set(admin)).body.data;
+    expect(list.every((c: any) => typeof c.tag === 'string')).toBe(true);
   });
 });

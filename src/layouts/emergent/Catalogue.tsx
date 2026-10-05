@@ -15,8 +15,6 @@ import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
 
-/** Up to this many collections show as chips; more get a picker page. */
-const FEW = 6;
 
 const PAGE = 24;
 
@@ -352,31 +350,18 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             </div>
           )}
         </div>
-        {collectionChips.length > FEW ? (
-          <div className="em-row" style={{ gap: 8, padding: '2px var(--em-px) 12px' }}>
-            <button type="button" className={`em-chip em-grow${categoryFilter ? ' on' : ''}`} style={{ justifyContent: 'space-between', minWidth: 0 }} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
-              <span>{categoryFilter ?? 'All collections'}</span>
+        {/* The collection in view is named here; tapping opens every collection (grouped by tag) to switch. */}
+        {!selecting && (
+          <div style={{ padding: '2px var(--em-px) 10px' }}>
+            <button type="button" className={`em-colpick${categoryFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
+              <Icon n="grid" size={16} />
+              <span className="em-grow em-clip" data-testid="collection-current" style={{ textAlign: 'left' }}>
+                {categoryFilter ?? 'All collections'}
+                <i style={{ fontStyle: 'normal', opacity: 0.65 }}> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : collectionChips.length}</i>
+              </span>
               <Icon n="right" size={14} />
             </button>
-            <span className="em-seg-v" role="group" aria-label="Layout">
-              {(['grid2', 'grid3', 'list'] as const).map((v) => (
-                <button key={v} type="button" aria-pressed={view === v} aria-label={v === 'grid2' ? 'Two columns' : v === 'grid3' ? 'Three columns' : 'List'} data-testid={`view-${v}`} className={view === v ? 'on' : ''} onClick={() => pickView(v)}>
-                  <Icon n={v === 'list' ? 'file' : 'grid'} size={14} />
-                </button>
-              ))}
-            </span>
           </div>
-        ) : (
-        <div className="em-chips" role="group" aria-label="Collections">
-          <button type="button" className={`em-chip${categoryFilter ? '' : ' on'}`} aria-pressed={!categoryFilter} onClick={onClearCategoryFilter}>
-            All
-          </button>
-          {collectionChips.map((name) => (
-            <button key={name} type="button" className={`em-chip${categoryFilter === name ? ' on' : ''}`} aria-pressed={categoryFilter === name} onClick={() => { if (categoryFilter !== name) noteCollection(name); onCategoryChange(categoryFilter === name ? null : name); }}>
-              {name}
-            </button>
-          ))}
-        </div>
         )}
         {active.length > 0 && !selecting && (
           <div className="em-chips em-active" role="group" aria-label="Active filters" data-testid="active-filters">
@@ -402,11 +387,68 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             </button>
           </div>
         )}
-        <div ref={gridRef} className={`em-grid${view === 'grid3' ? ' em-grid-3' : view === 'list' ? ' em-grid-1 em-grid-list' : ''}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1, transition: 'opacity 0.2s' }}>
+        {!selecting && (
+          <div className="em-row em-sb" style={{ marginBottom: 12 }}>
+            <span className="em-ey" data-testid="result-count">{total} {total === 1 ? 'design' : 'designs'}</span>
+            <span className="em-seg-v" role="group" aria-label="Layout">
+              {([['grid2', 'Large photos', 'grid'], ['grid3', 'Compact grid', 'dense'], ['list', 'List', 'list']] as const).map(([v, label, icon]) => (
+                <button key={v} type="button" aria-pressed={view === v} aria-label={label} data-testid={`view-${v}`} className={view === v ? 'on' : ''} onClick={() => pickView(v)}>
+                  <Icon n={icon} size={16} />
+                </button>
+              ))}
+            </span>
+          </div>
+        )}
+        <div ref={gridRef} className={`em-grid${view === 'grid3' ? ' em-grid-3' : view === 'list' ? ' em-grid-list' : ' em-grid-c2'}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1, transition: 'opacity 0.2s' }}>
           {loading && items.length === 0 && !error && Array.from({ length: 6 }, (_, i) => <div key={`skel-${i}`} className="em-sq em-skel" aria-hidden="true" />)}
           {items.map((prod, i) => {
             const isHearted = hearted.has(prod.sku);
             const isPicked = picked.has(prod.id);
+            if (view === 'list' && !selecting) {
+              return (
+                <div key={prod.id} data-sku={prod.sku} data-testid="product-row" className="em-lrow">
+                  <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={`View ${prod.title}`} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                    <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} />
+                    <span className="em-grow" style={{ minWidth: 0 }}>
+                      <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{prod.title}</span>
+                      <span className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>{prod.sku} · {prod.purity.split(' ')[0]} · {fmtG(prod.netWt)}</span>
+                      <span style={{ display: 'inline-block', marginTop: 4 }}><StockPill status={prod.stockStatus} small /></span>
+                    </span>
+                  </button>
+                  {!isAdmin && (
+                    <button type="button" className={`em-circ${isHearted ? ' on' : ''}`} aria-pressed={isHearted} aria-label={isHearted ? `Remove ${prod.title} from shortlist` : `Add ${prod.title} to shortlist`} onClick={() => toggleHeart(prod)} style={isHearted ? { color: 'var(--em-bad)' } : undefined}>
+                      <Icon n="heart" size={16} fill={isHearted} />
+                    </button>
+                  )}
+                  {!isAdmin && flags.orders && (
+                    <button type="button" className="em-circ" data-testid="card-add-to-cart" style={{ background: 'var(--em-primary)', color: 'var(--em-on-primary)', borderColor: 'var(--em-primary)' }} aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                      <Icon n="bag" size={16} />
+                    </button>
+                  )}
+                </div>
+              );
+            }
+            if (view === 'grid3' && !selecting) {
+              return (
+                <div key={prod.id} className="em-cardwrap em-tile">
+                  <article data-sku={prod.sku} data-testid="product-card" className="em-sq">
+                    <button type="button" className="em-hit" aria-label={`View ${prod.title}`} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                      <Ph src={prod.image} tone={i} className="em-fill" />
+                      <span className="em-sc" />
+                      <span className="em-ov">
+                        <span className="em-ser em-clip">{prod.title}</span>
+                        <span className="em-tile-m">{fmtG(prod.netWt)} · {prod.purity.split(' ')[0]}</span>
+                      </span>
+                    </button>
+                    {!isAdmin && flags.orders && (
+                      <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                        <Icon n="plus" size={16} />
+                      </button>
+                    )}
+                  </article>
+                </div>
+              );
+            }
             return (
               <div key={prod.id} className="em-cardwrap">
               <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>

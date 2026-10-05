@@ -66,13 +66,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
       stepRef.current(dir);
       return;
     }
-    el.style.transform = '';
-    el.style.opacity = '';
     el.classList.add('em-ft-out');
     setTimeout(() => {
-      el.classList.remove('em-ft-out');
+      // em-ft-out stays on until the next design is in place (removed in the effect below), so there is no flash of the old one.
       stepRef.current?.(dir);
-    }, 90);
+    }, 110);
   };
 
   // After the page shows the next design: back to the top, then fade it in.
@@ -81,6 +79,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
     if (!el || !swiped.current) return;
     swiped.current = false;
     el.scrollTop = 0;
+    el.classList.remove('em-ft-out');
     if (calm()) return;
     el.classList.add('em-ft-in');
     const t = setTimeout(() => el.classList.remove('em-ft-in'), 260);
@@ -109,20 +108,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
         else if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) mode = 'h';
         return;
       }
-      if (calm()) return;
-      const dir = dx < 0 ? 1 : -1;
-      const room = posRef.current && posRef.current.index + dir >= 0 && posRef.current.index + dir < posRef.current.total;
-      const pull = room ? dx : dx * 0.25;
-      el.style.transform = `translateX(${pull * 0.25}px)`;
-      el.style.opacity = String(1 - Math.min(Math.abs(pull) / 360, 0.45));
+      // The design on screen stays exactly as it is while the finger moves; the next one fades through on release.
     };
     const up = () => {
       const was = mode;
       mode = 'none';
       if (was !== 'h') return;
-      el.style.transform = '';
-      el.style.opacity = '';
-      if (Math.abs(dx) > 70) step(dx < 0 ? 1 : -1);
+      if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
     };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);
