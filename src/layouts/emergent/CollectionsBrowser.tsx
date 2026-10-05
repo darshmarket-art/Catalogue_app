@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Category } from '../../types';
 import { Icon, Ph } from './ui';
 import { recentCollections } from '../../recent';
+import { useBackLayer } from '../../backLayer';
 import { groupByTag, useTagList } from '../../tagList';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 
 /** Every collection on one page: search, A to Z with a letter rail, and the buyer's recent ones on top. Built for 30 to 40 collections. */
 export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allowAll, onPick, onClose }) => {
+  useBackLayer(true, onClose);
   const [q, setQ] = useState('');
   const scroller = useRef<HTMLDivElement>(null);
   const [tag, setTag] = useState<string | null>(null);

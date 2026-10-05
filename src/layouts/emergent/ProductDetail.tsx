@@ -6,6 +6,7 @@ import { api } from '../../api';
 import { PhotoViewer } from '../../components/PhotoViewer';
 import { CartSheet, soldPurities } from './CartSheet';
 import { Icon, Ph, Pill, StockPill, fmtG } from './ui';
+import { useBackLayer } from '../../backLayer';
 
 interface ProductDetailProps {
   product: Product | null;
@@ -38,6 +39,7 @@ const specRows = (p: Product) => [
  */
 export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, position, onStep }) => {
   const canOrder = usePlan().flags.orders;
+  useBackLayer(Boolean(product), onClose); // Back closes the design
   const [slide, setSlide] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [zoomFrom, setZoomFrom] = useState<number | null>(null);

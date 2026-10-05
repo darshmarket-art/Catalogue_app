@@ -133,7 +133,10 @@ export default function App() {
     setNavDir((TABS.includes(screen) && !TABS.includes(screenRef.current)) || (screen === 'categories' && screenRef.current === 'catalogue') ? 'back' : 'forward');
     setCurrentScreen(screen);
     // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
-    window.history.replaceState({ screen, g: guardArmed.current ? 1 : undefined }, '');
+    // A tab swaps the entry; going deeper (a form, About, a sub-screen) adds one, so Back walks back out the way you came.
+    const ld = window.history.state?.ld;
+    if (guardArmed.current && !TABS.includes(screen) && screen !== screenRef.current) window.history.pushState({ screen, g: 1, ld }, '');
+    else window.history.replaceState({ screen, g: guardArmed.current ? 1 : undefined, ld }, '');
   };
 
   // Back on the web: the page sits on one entry above a "guard" entry. Pressing Back lands on the guard; we put the page back
@@ -155,8 +158,11 @@ export default function App() {
       window.history.replaceState({ screen: 'guard', g: 1 }, '');
       window.history.pushState({ screen: screenRef.current, g: 1 }, '');
     };
-    const gestures = ['pointerdown', 'touchstart', 'keydown'] as const;
-    if (!guardArmed.current) gestures.forEach((ev) => window.addEventListener(ev, arm, { passive: true }));
+    // It must be armed by an event that counts as a real tap (the end of a touch, a click, a key): browsers skip history entries
+    // added before the visitor has genuinely interacted, and a touch's start does not count, which let Back leave the app at once.
+    // Capture phase, so it runs before the tap's own handler (which may open a layer of its own).
+    const gestures = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+    if (!guardArmed.current) gestures.forEach((ev) => window.addEventListener(ev, arm, { passive: true, capture: true }));
     const onPop = (e: PopStateEvent) => {
       const to = e.state?.screen as string | undefined;
       if (to && to !== 'guard') return void setCurrentScreen(to as ActiveScreen);
@@ -171,7 +177,7 @@ export default function App() {
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
-      gestures.forEach((ev) => window.removeEventListener(ev, arm));
+      gestures.forEach((ev) => window.removeEventListener(ev, arm, { capture: true }));
     };
   }, []);
 
@@ -617,7 +623,7 @@ export default function App() {
     lastScreen.current = activeScreen;
     window.scrollTo(0, 0); // a new screen always opens at its top, not where the last one was scrolled
     // After a restored sign-in the screen changes without a navigation: keep the history entry in step (never touch the guard).
-    if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen, g: guardArmed.current ? 1 : undefined }, '');
+    if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen, g: guardArmed.current ? 1 : undefined, ld: window.history.state?.ld }, '');
   }, [activeScreen]);
 
   const shouldShowBottomNav =

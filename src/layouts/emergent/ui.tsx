@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LayoutKit } from '../props';
+import { useBackLayer } from '../../backLayer';
 
 /** The props of a Gilded screen are the contract: an Emergent screen takes exactly the same. */
 export type KitProps<K extends keyof LayoutKit> = React.ComponentProps<LayoutKit[K]>;
@@ -105,15 +106,18 @@ export const Toast: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 );
 
 /** The sheet that slides up from the bottom (menus). */
-export const Sheet: React.FC<{ label: string; onClose: () => void; children: React.ReactNode }> = ({ label, onClose, children }) => (
-  <div className="em-sheet-wrap" role="dialog" aria-modal="true" aria-label={label}>
-    <button type="button" aria-label="Close" className="em-scrim" onClick={onClose} />
-    <div className="em-sheet">
-      <div className="grab" />
-      {children}
+export const Sheet: React.FC<{ label: string; onClose: () => void; children: React.ReactNode }> = ({ label, onClose, children }) => {
+  useBackLayer(true, onClose); // Back closes the sheet
+  return (
+    <div className="em-sheet-wrap" role="dialog" aria-modal="true" aria-label={label}>
+      <button type="button" aria-label="Close" className="em-scrim" onClick={onClose} />
+      <div className="em-sheet">
+        <div className="grab" />
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /** Weights are shown to the milligram, as in every other screen. */
 export const fmtG = (n: number) => `${n.toFixed(3)} g`;
