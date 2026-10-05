@@ -6,7 +6,7 @@ import { Icon, Ph, Sheet, StockPill, Title, Toast, fmtG } from '../layouts/emerg
 import { downloadDesignsPdf } from '../cataloguePdf';
 import { AdminBannersScreen } from './AdminBannersScreen';
 import { AdminPuritiesScreen } from './AdminPuritiesScreen';
-import { COLLECTION_TAGS, tagOf, tagsInUse } from '../../shared/jewellery';
+import { groupByTag, setTagList, useTagList } from '../tagList';
 
 export type CatalogueSegment = 'designs' | 'collections' | 'banners' | 'purities';
 
@@ -30,6 +30,8 @@ interface Props {
   onPuritiesSave: (list: Array<{ key: string; enabled: boolean }>) => Promise<boolean>;
   /** Saves the hero collections shown on the buyers' Home: up to four collection ids, in order. */
   onHeroSave: (ids: string[]) => Promise<boolean>;
+  /** Called after a tag is renamed or deleted, so the collections reload with their new tags. */
+  onTagsChanged: () => void;
 }
 
 const PAGE = 24;
@@ -239,6 +241,7 @@ async function designsIn(name: string): Promise<Product[]> {
 /** A searchable list of the store's collections in a bottom sheet (used by Designs when there are many). */
 const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPick: (name: string) => void; onClose: () => void }> = ({ categories, current, onPick, onClose }) => {
   const [q, setQ] = useState('');
+  const order = useTagList();
   const list = categories.filter((c) => !q.trim() || c.name.toLowerCase().includes(q.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Sheet label="Choose a collection" onClose={onClose}>
@@ -254,7 +257,7 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
             {!current && <Icon n="check" size={18} />}
           </button>
         )}
-        {COLLECTION_TAGS.map((t) => [t, list.filter((c) => tagOf(c) === t)] as const).filter(([, cs]) => cs.length > 0).map(([t, cs]) => (
+        {groupByTag(list, order).map(([t, cs]) => (
           <div key={t}>
             <div className="em-letter em-tag-h">{t} <span>{cs.length}</span></div>
           {cs.map((c) => (
@@ -271,8 +274,90 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
   );
 };
 
+/** Create, rename and delete the tags collections are filed under. A tag in use is deleted by choosing where its collections go. */
+const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = ({ categories, onChanged }) => {
+  const tags = useTagList();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [moveTo, setMoveTo] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const countOf = (t: string) => categories.filter((c) => c.tag === t).length;
+  const run = async (job: () => Promise<string[]>, after?: () => void) => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      setTagList(await job());
+      after?.();
+      onChanged();
+    } catch (err) {
+      setProblem(err instanceof Error ? err.message : 'Could not save the tag.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="em-card" data-testid="tag-manager">
+      <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <b style={{ fontWeight: 600 }}>Tags</b>
+        <span className="em-mut" style={{ fontSize: 12 }}>{tags.length} tags · {open ? 'Hide' : 'Manage'}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>Every collection is filed under one tag. Buyers browse collections by tag.</p>
+          {problem && <p role="alert" style={{ color: 'var(--em-bad)', fontSize: 13, margin: '4px 0' }}>{problem}</p>}
+          {tags.map((t, i) => (
+            <div key={t} data-testid="tag-row" style={{ padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
+              {editing === t ? (
+                <form className="em-row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); void run(() => api.renameTag(t, draft.trim()), () => setEditing(null)); }}>
+                  <input className="inp" style={{ height: 40, flex: 1, minWidth: 0 }} aria-label={`New name for ${t}`} data-testid="tag-rename-input" value={draft} maxLength={30} autoFocus onChange={(e) => setDraft(e.target.value)} />
+                  <button type="submit" className="em-btn sm" disabled={busy || !draft.trim()}>Save</button>
+                  <button type="button" className="em-link" onClick={() => setEditing(null)}>Cancel</button>
+                </form>
+              ) : (
+                <div className="em-row" style={{ gap: 8 }}>
+                  <span className="em-grow em-clip" style={{ fontWeight: 500 }}>{t}</span>
+                  <span className="em-mut" style={{ fontSize: 12 }}>{countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'}</span>
+                  <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-edit" aria-label={`Rename ${t}`} onClick={() => { setEditing(t); setDraft(t); setDeleting(null); setProblem(null); }}><Icon n="edit" size={14} /></button>
+                  <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-delete" disabled={tags.length <= 1} aria-label={`Delete ${t}`} onClick={() => { setDeleting(deleting === t ? null : t); setMoveTo(''); setEditing(null); setProblem(null); }}><Icon n="x" size={14} /></button>
+                </div>
+              )}
+              {deleting === t && (
+                <div style={{ marginTop: 8 }} data-testid="tag-delete-confirm">
+                  {countOf(t) > 0 ? (
+                    <>
+                      <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>Move its {countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'} to:</p>
+                      <select className="inp" style={{ height: 40, width: '100%' }} aria-label="Move collections to" data-testid="tag-move-to" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+                        <option value="">Choose a tag…</option>
+                        {tags.filter((x) => x !== t).map((x) => <option key={x} value={x}>{x}</option>)}
+                      </select>
+                    </>
+                  ) : (
+                    <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>No collections use this tag.</p>
+                  )}
+                  <div className="em-row" style={{ gap: 8, marginTop: 8 }}>
+                    <button type="button" className="em-btn sm" data-testid="tag-delete-go" disabled={busy || (countOf(t) > 0 && !moveTo)} onClick={() => void run(() => api.deleteTag(t, moveTo || undefined), () => setDeleting(null))}>Delete tag</button>
+                    <button type="button" className="em-link" onClick={() => setDeleting(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          <form className="em-row" style={{ gap: 8, marginTop: 10, borderTop: '1px solid var(--em-line)', paddingTop: 10 }} onSubmit={(e) => { e.preventDefault(); if (name.trim()) void run(() => api.createTag(name.trim()), () => setName('')); }}>
+            <input className="inp" style={{ height: 40, flex: 1, minWidth: 0 }} aria-label="New tag name" data-testid="tag-new-input" placeholder="New tag, e.g. Anklets" value={name} maxLength={30} onChange={(e) => setName(e.target.value)} />
+            <button type="submit" className="em-btn sm" data-testid="tag-add" disabled={busy || !name.trim()}>Add</button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** Collections: search, A to Z with a letter rail, one tap to open a collection's designs, one tap to make its PDF, one tap to edit. */
-const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> = ({ categories, onNewCategory, onEditCategory, onOpenDesigns, onHeroSave }) => {
+const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> = ({ categories, onNewCategory, onEditCategory, onOpenDesigns, onHeroSave, onTagsChanged }) => {
   const { flags } = usePlan();
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -311,10 +396,11 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
 
   const [tag, setTag] = useState<string | null>(null);
   const term = q.trim().toLowerCase();
-  const tags = tagsInUse(categories);
-  const list = categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || tagOf(c) === tag)).sort((a, b) => a.name.localeCompare(b.name));
+  const order = useTagList();
+  const tags = groupByTag(categories, order).map(([t]) => t);
+  const list = categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || c.tag === tag)).sort((a, b) => a.name.localeCompare(b.name));
   // Grouped under each tag (Rings, Pendants, …) in the fixed tag order.
-  const groups = COLLECTION_TAGS.map((t) => [t, list.filter((c) => tagOf(c) === t)] as const).filter(([, cs]) => cs.length > 0);
+  const groups = groupByTag(list, order);
 
   const row = (c: Category, i: number) => (
     <div key={c.id} className="em-li" data-testid="admin-collection-row">
@@ -365,6 +451,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
           ))
         )}
       </div>
+      <TagManager categories={categories} onChanged={onTagsChanged} />
       {many && (
         <label className="em-srch" style={{ height: 44 }}>
           <Icon n="search" size={16} />

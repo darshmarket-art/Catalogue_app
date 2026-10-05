@@ -79,3 +79,29 @@ describe('collection tags', () => {
     expect(list.every((c: any) => typeof c.tag === 'string')).toBe(true);
   });
 });
+
+describe('managing tags', () => {
+  it('the owner creates, renames and deletes tags; a tag in use is only deleted by moving its collections', async () => {
+    const { app, admin, buyer } = await build();
+    const img = 'https://example.com/c.jpg';
+    expect((await request(app).get('/api/tags').set(buyer)).body.data).toContain('Rings');
+    expect((await request(app).post('/api/tags').set(buyer).send({ name: 'X' })).status).toBe(403);
+    expect((await request(app).post('/api/tags').set(admin).send({ name: 'Anklets' })).status).toBe(201);
+    expect((await request(app).post('/api/tags').set(admin).send({ name: 'anklets' })).status).toBe(409);
+    const made = await request(app).post('/api/categories').set(admin).send({ name: 'Silver Anklets', tag: 'Anklets', image: img });
+    expect(made.status).toBe(201);
+    // Rename carries the collection along.
+    expect((await request(app).put('/api/tags/Anklets').set(admin).send({ name: 'Payal' })).status).toBe(200);
+    const after = (await request(app).get('/api/categories').set(admin)).body.data.find((c: any) => c.name === 'Silver Anklets');
+    expect(after.tag).toBe('Payal');
+    // In use: refused until a destination is named.
+    expect((await request(app).delete('/api/tags/Payal').set(admin)).status).toBe(409);
+    expect((await request(app).delete('/api/tags/Payal?moveTo=Payal').set(admin)).status).toBe(409);
+    const del = await request(app).delete('/api/tags/Payal?moveTo=Other').set(admin);
+    expect(del.status).toBe(200);
+    expect(del.body.data).not.toContain('Payal');
+    expect((await request(app).get('/api/categories').set(admin)).body.data.find((c: any) => c.name === 'Silver Anklets').tag).toBe('Other');
+    // A deleted tag can no longer be used on a collection.
+    expect((await request(app).post('/api/categories').set(admin).send({ name: 'More Payal', tag: 'Payal', image: img })).status).toBe(400);
+  });
+});

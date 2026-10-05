@@ -6,6 +6,7 @@ import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData, AdminSummary } from './types';
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { noteCollection } from './recent';
+import { setTagList } from './tagList';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -271,6 +272,7 @@ export default function App() {
       const [catsData, prodsData, bannerData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners()]);
       setBanners(bannerData);
       api.getPurities().then((list) => list && setPurities(list));
+      api.getTags().then((list) => list && setTagList(list));
       api.getAbout().then(setAbout);
       if (catsData.length > 0) setCategories(catsData);
       if (prodsData.length > 0) setProducts(prodsData);
@@ -740,6 +742,7 @@ export default function App() {
             onBannerReorder={handleBannersReordered}
             onPuritiesSave={handlePuritiesSaved}
             onHeroSave={handleHeroSaved}
+            onTagsChanged={() => api.getCategories().then((list) => list.length > 0 && setCategories(list))}
           />
         )}
 

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { ADMIN_ROLES } from '../shared/roles';
 import { photoRef } from './media';
-import { COLLECTION_TAGS } from '../shared/jewellery';
 
 export const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(max);
 
@@ -41,7 +40,7 @@ export const bannerOrderSchema = z.object({ ids: z.array(trimmed(80)).max(50) })
 export const categorySchema = z.object({
   name: trimmed(100),
   /** Required: every collection is filed under one tag. */
-  tag: z.enum(COLLECTION_TAGS, { errorMap: () => ({ message: 'Choose a tag for the collection.' }) }),
+  tag: z.string({ required_error: 'Choose a tag for the collection.' }).trim().min(1, 'Choose a tag for the collection.').max(30),
   slug: trimmed(100).optional(),
   subtitle: trimmed(200).optional(),
   minTargetWt: z.coerce.number().min(0).max(100000).optional(),

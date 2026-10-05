@@ -10,7 +10,7 @@ import { HttpError, audit, handler, newId, parse } from '../http';
 import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
-import { tagOf } from '../../shared/jewellery';
+import { MAX_TAGS, loadTags, resolveTag, sameTag, saveTags, tagNameSchema } from '../tags';
 
 const byPosition = (a: any, b: any) =>
   (a.position ?? Infinity) - (b.position ?? Infinity) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
@@ -54,10 +54,10 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     '/categories',
     readGuard,
     handler(async (_req, res) => {
-      const [categories, products] = await Promise.all([store.list('categories'), store.list('products')]);
+      const [categories, products, tags] = await Promise.all([store.list('categories'), store.list('products'), loadTags(store)]);
       const counts = new Map<string, number>();
       for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), tag: tagOf(c as { name: string; tag?: string }), designCount: counts.get(c.name) ?? 0 }));
+      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), tag: resolveTag(c as { name: string; tag?: string }, tags), designCount: counts.get(c.name) ?? 0 }));
       res.json({ status: 'success', count: data.length, data });
     })
   );
@@ -67,6 +67,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     requireAdmin,
     handler(async (req, res) => {
       const body = parse(categorySchema, req.body);
+      if (!(await loadTags(store)).includes(body.tag)) throw new HttpError(400, 'Choose one of the store\'s tags for the collection.');
       await assertPhotosExist(blobs, [body.image]);
       if ((await store.list('categories', { where: [{ field: 'name', op: '==', value: body.name }], limit: 1 })).length > 0) {
         throw new HttpError(409, `A category named "${body.name}" already exists.`);
@@ -109,6 +110,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const existing = await store.get('categories', req.params.id);
       if (!existing) throw new HttpError(404, 'Category not found.');
       const body = parse(categorySchema, req.body);
+      if (!(await loadTags(store)).includes(body.tag)) throw new HttpError(400, 'Choose one of the store\'s tags for the collection.');
       await assertPhotosExist(blobs, [body.image]);
 
       const clash = await store.list('categories', { where: [{ field: 'name', op: '==', value: body.name }], limit: 2 });
@@ -233,6 +235,67 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
         hasMore: q.offset + page.length < list.length,
         data: page.map((p) => media.present(p))
       });
+    })
+  );
+
+  // Collection tags: the owner's own list. Every collection carries exactly one, so a tag in use can only be deleted by moving its collections.
+  router.get(
+    '/tags',
+    readGuard,
+    handler(async (_req, res) => {
+      res.json({ status: 'success', data: await loadTags(store) });
+    })
+  );
+
+  router.post(
+    '/tags',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { name } = parse(tagNameSchema, req.body);
+      const list = await loadTags(store);
+      if (list.some((t) => sameTag(t, name))) throw new HttpError(409, `A tag named "${name}" already exists.`);
+      if (list.length >= MAX_TAGS) throw new HttpError(400, `A store can have up to ${MAX_TAGS} tags.`);
+      await saveTags(store, [...list, name]);
+      await audit(store, req, 'TAG_CREATED', `Tag "${name}" created.`);
+      res.status(201).json({ status: 'success', data: [...list, name] });
+    })
+  );
+
+  router.put(
+    '/tags/:name',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { name } = parse(tagNameSchema, req.body);
+      const list = await loadTags(store);
+      const old = req.params.name;
+      if (!list.includes(old)) throw new HttpError(404, 'Tag not found.');
+      if (list.some((t) => t !== old && sameTag(t, name))) throw new HttpError(409, `A tag named "${name}" already exists.`);
+      await saveTags(store, list.map((t) => (t === old ? name : t)));
+      const cats = await store.list('categories');
+      await Promise.all(cats.filter((c) => resolveTag(c as { name: string; tag?: string }, list) === old).map((c) => store.update('categories', c.id, { tag: name })));
+      await audit(store, req, 'TAG_RENAMED', `Tag "${old}" renamed to "${name}".`);
+      res.json({ status: 'success', data: list.map((t) => (t === old ? name : t)) });
+    })
+  );
+
+  router.delete(
+    '/tags/:name',
+    requireAdmin,
+    handler(async (req, res) => {
+      const list = await loadTags(store);
+      const old = req.params.name;
+      if (!list.includes(old)) throw new HttpError(404, 'Tag not found.');
+      if (list.length === 1) throw new HttpError(400, 'Keep at least one tag.');
+      const cats = (await store.list('categories')).filter((c) => resolveTag(c as { name: string; tag?: string }, list) === old);
+      const moveTo = typeof req.query.moveTo === 'string' ? req.query.moveTo : '';
+      if (cats.length > 0) {
+        if (!moveTo || moveTo === old || !list.includes(moveTo)) throw new HttpError(409, `${cats.length} ${cats.length === 1 ? 'collection uses' : 'collections use'} "${old}". Choose a tag to move ${cats.length === 1 ? 'it' : 'them'} to.`);
+        await Promise.all(cats.map((c) => store.update('categories', c.id, { tag: moveTo })));
+      }
+      const next = list.filter((t) => t !== old);
+      await saveTags(store, next);
+      await audit(store, req, 'TAG_DELETED', `Tag "${old}" deleted${cats.length ? `; ${cats.length} collection(s) moved to "${moveTo}"` : ''}.`);
+      res.json({ status: 'success', data: next });
     })
   );
 

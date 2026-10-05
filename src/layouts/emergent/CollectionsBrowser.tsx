@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Category } from '../../types';
 import { Icon, Ph } from './ui';
 import { recentCollections } from '../../recent';
-import { COLLECTION_TAGS, tagOf, tagsInUse } from '../../../shared/jewellery';
+import { groupByTag, useTagList } from '../../tagList';
 
 interface Props {
   categories: Category[];
@@ -20,10 +20,11 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
   const scroller = useRef<HTMLDivElement>(null);
   const [tag, setTag] = useState<string | null>(null);
   const term = q.trim().toLowerCase();
-  const tags = useMemo(() => tagsInUse(categories), [categories]);
-  const list = useMemo(() => categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || tagOf(c) === tag)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term, tag]);
+  const order = useTagList();
+  const tags = useMemo(() => groupByTag(categories, order).map(([t]) => t), [categories, order]);
+  const list = useMemo(() => categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || c.tag === tag)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term, tag]);
   // Collections grouped under their tag, in the fixed tag order.
-  const groups = useMemo(() => COLLECTION_TAGS.map((t) => [t, list.filter((c) => tagOf(c) === t)] as const).filter(([, cs]) => cs.length > 0), [list]);
+  const groups = useMemo(() => groupByTag(list, order), [list, order]);
   const recent = term || tag ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
 
   useEffect(() => {

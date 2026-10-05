@@ -357,6 +357,23 @@ export const api = {
     await request(`/api/v1/orders/${encodeURIComponent(poId)}/cancel`, { method: 'POST' });
   },
 
+  async getTags(): Promise<string[] | null> {
+    try {
+      return (await request('/api/v1/tags')).data;
+    } catch {
+      return null;
+    }
+  },
+  async createTag(name: string): Promise<string[]> {
+    return (await post('/api/v1/tags', { name })).data;
+  },
+  async renameTag(old: string, name: string): Promise<string[]> {
+    return (await request(`/api/v1/tags/${encodeURIComponent(old)}`, { method: 'PUT', body: JSON.stringify({ name }) })).data;
+  },
+  async deleteTag(name: string, moveTo?: string): Promise<string[]> {
+    return (await request(`/api/v1/tags/${encodeURIComponent(name)}${moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : ''}`, { method: 'DELETE' })).data;
+  },
+
   async getPurities(): Promise<Purity[] | null> {
     try {
       return (await request('/api/v1/purities')).data;
