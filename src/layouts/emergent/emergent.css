@@ -136,7 +136,7 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 /* A catalogue card is one rounded piece: the photo with its Add to cart button fused to the bottom edge. */
 [data-layout="emergent"] .em-cardwrap { display: flex; flex-direction: column; min-width: 0; border-radius: 20px; overflow: hidden; border: 1px solid var(--em-line); background: var(--em-card); }
 [data-layout="emergent"] .em-cardwrap > .em-sq { border: 0; border-radius: 0; }
-[data-layout="emergent"] .em-addbar { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; border: 0; border-radius: 0; background: var(--em-primary); color: var(--em-on-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+[data-layout="emergent"] .em-addbar { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; border: 0; border-radius: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--em-primary) 88%, #000) 0%, var(--em-primary) 100%); color: var(--em-on-primary); font: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--em-gold) 70%, transparent); transition: filter 0.15s; }
 [data-layout="emergent"] .em-addbar:hover { filter: brightness(1.08); }
 [data-layout="emergent"] .em-addbar:active { filter: brightness(0.94); }
 [data-layout="emergent"] .em-sq.picked { outline: 2.5px solid var(--em-gold); outline-offset: -2.5px; }
