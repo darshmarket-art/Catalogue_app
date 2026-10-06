@@ -70,9 +70,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
   const { contact } = merchant;
   // Where buyers can reach the store: only the pages the owner has set (WhatsApp and the showroom map are always offered when known).
+  // Instagram and Facebook always show; until the owner adds their pages in merchant.json they read "Coming soon" and do nothing.
   const socialLinks: Array<{ label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
-    ...(contact.instagramUrl ? [{ label: 'Instagram', href: contact.instagramUrl, style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> }] : []),
-    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> }] : []),
+    { label: 'Instagram', href: contact.instagramUrl ?? '', style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> },
+    { label: 'Facebook', href: contact.facebookUrl ?? '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
     ...(contact.whatsapp ? [{ label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
     ...(contact.address
       ? [{ label: contact.showroomLabel ?? 'Location', href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
@@ -273,12 +274,20 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             <div className="em-ey g">Find us</div>
             <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>Stay in touch with {merchant.brand.name}</p>
             <div className="em-social-row">
-              {socialLinks.map((link) => (
-                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="em-social-i" aria-label={link.label}>
-                  <span style={link.style}>{link.icon}</span>
-                  <small>{link.label}</small>
-                </a>
-              ))}
+              {socialLinks.map((link) =>
+                link.href ? (
+                  <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="em-social-i" aria-label={link.label}>
+                    <span style={link.style}>{link.icon}</span>
+                    <small>{link.label}</small>
+                  </a>
+                ) : (
+                  <div key={link.label} className="em-social-i soon" aria-label={`${link.label}, coming soon`} data-testid={`social-soon-${link.label.toLowerCase()}`}>
+                    <span style={link.style}>{link.icon}</span>
+                    <small>{link.label}</small>
+                    <em>Coming soon</em>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>

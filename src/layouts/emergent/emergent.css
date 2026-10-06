@@ -619,38 +619,70 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 /* Card grids fill the row (auto side margins would otherwise shrink them inside a flex column) */
 [data-layout="emergent"] .em-grid.em-grid-c2, [data-layout="emergent"] .em-grid.em-grid-2, [data-layout="emergent"] .em-grid.em-grid-3 { width: 100%; box-sizing: border-box; }
 
-/* Buyer tour: a dim layer with a lit-up window that glides from control to control, and a card that rises in for each step */
-[data-layout="emergent"] .em-tour { position: fixed; inset: 0; z-index: 90; }
+/* Buyer tour: one dim layer with a lit-up window that flows from control to control. The window and the card move on the
+   compositor (transform), with long, soft easing; only the card's words cross-fade between steps. */
+[data-layout="emergent"] .em-tour { position: fixed; inset: 0; z-index: 90; --flow: cubic-bezier(0.22, 1, 0.36, 1); }
 [data-layout="emergent"] .em-tour-dim { position: absolute; inset: 0; background: transparent; }
-[data-layout="emergent"] .em-tour-dim.full { background: rgba(26, 10, 20, 0.66); animation: em-tour-fade 0.35s ease both; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
-[data-layout="emergent"] .em-tour-hole { position: fixed; border-radius: 18px; box-shadow: 0 0 0 200vmax rgba(26, 10, 20, 0.66); transition: top 0.45s cubic-bezier(0.22, 1, 0.36, 1), left 0.45s cubic-bezier(0.22, 1, 0.36, 1), width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; animation: em-tour-fade 0.35s ease both; }
-[data-layout="emergent"] .em-tour-hole::after { content: ''; position: absolute; inset: -4px; border-radius: 22px; border: 2px solid var(--em-gold); animation: em-tour-pulse 1.8s ease-out infinite; }
-[data-layout="emergent"] .em-tour-card { position: fixed; left: 16px; right: 16px; max-width: 420px; margin-inline: auto; background: var(--em-card); color: var(--em-ink); border-radius: 22px; padding: 18px 18px 16px; box-shadow: 0 18px 50px rgba(26, 10, 20, 0.35); border: 1px solid color-mix(in srgb, var(--em-gold) 45%, transparent); animation: em-tour-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
-[data-layout="emergent"] .em-tour-card.centred { top: 50%; transform: translateY(-50%); text-align: center; padding-top: 26px; animation-name: em-tour-pop; }
-[data-layout="emergent"] .em-tour-card.centred .em-row:first-of-type { justify-content: center; }
-[data-layout="emergent"] .em-tour-card.above { animation-name: em-tour-drop; }
+[data-layout="emergent"] .em-tour-hole { position: fixed; left: 0; top: 0; box-shadow: 0 0 0 200vmax rgba(26, 10, 20, 0.64); pointer-events: none; will-change: transform, width, height; transition: transform 0.75s var(--flow), width 0.75s var(--flow), height 0.75s var(--flow), border-radius 0.75s var(--flow); animation: em-tour-fade 0.5s ease both; }
+[data-layout="emergent"] .em-tour-hole::after { content: ''; position: absolute; inset: -3px; border-radius: inherit; border: 2px solid var(--em-gold); opacity: 0.85; animation: em-tour-breathe 2.6s ease-in-out infinite; }
+[data-layout="emergent"] .em-tour-card { position: fixed; top: 0; left: 16px; right: 16px; max-width: 420px; margin-inline: auto; background: var(--em-card); color: var(--em-ink); border-radius: 22px; padding: 18px 18px 16px; box-shadow: 0 18px 50px rgba(26, 10, 20, 0.35); border: 1px solid color-mix(in srgb, var(--em-gold) 45%, transparent); will-change: transform; transition: transform 0.75s var(--flow); animation: em-tour-fade 0.6s ease both; }
+[data-layout="emergent"] .em-tour-card.centred { text-align: center; padding-top: 26px; }
+[data-layout="emergent"] .em-tour-body { animation: em-tour-words 0.55s var(--flow) both; }
+[data-layout="emergent"] .em-tour-head { gap: 10px; align-items: center; }
+[data-layout="emergent"] .em-tour-card.centred .em-tour-head { justify-content: center; }
 [data-layout="emergent"] .em-tour-card h2 { font-size: 23px; line-height: 1.2; margin: 6px 0 6px; }
 [data-layout="emergent"] .em-tour-card p { font-size: 14px; line-height: 1.5; color: var(--em-mut); margin: 0; }
 [data-layout="emergent"] .em-tour-ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--em-primary); color: var(--em-on-primary); flex: none; }
-[data-layout="emergent"] .em-tour-dots { display: flex; gap: 5px; justify-content: center; margin-top: 14px; }
-[data-layout="emergent"] .em-tour-dots i { width: 6px; height: 6px; border-radius: 6px; background: var(--em-line); transition: width 0.3s, background 0.3s; }
-[data-layout="emergent"] .em-tour-dots i.past { background: color-mix(in srgb, var(--em-gold) 60%, var(--em-line)); }
-[data-layout="emergent"] .em-tour-dots i.on { width: 20px; background: var(--em-primary); }
+[data-layout="emergent"] .em-tour-dots { position: relative; display: flex; gap: 5px; justify-content: center; margin: 14px auto 0; width: max-content; }
+[data-layout="emergent"] .em-tour-dots b { width: 6px; height: 6px; border-radius: 6px; background: var(--em-line); }
+[data-layout="emergent"] .em-tour-dots i { position: absolute; left: -3px; top: -2px; width: 12px; height: 10px; border-radius: 6px; background: var(--em-primary); transition: transform 0.6s var(--flow); }
 [data-layout="emergent"] .em-tour-mark { position: relative; width: 76px; height: 76px; margin: 0 auto 12px; }
-[data-layout="emergent"] .em-tour-mark span { position: absolute; inset: 0; border-radius: 24px; display: grid; place-items: center; background: var(--em-primary); color: var(--em-gold); font-family: var(--font-serif); font-size: 38px; overflow: hidden; animation: em-tour-mark 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-[data-layout="emergent"] .em-tour-mark span::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 236, 190, 0.55) 50%, transparent 70%); background-size: 250% 100%; animation: em-shimmer 2.4s 0.6s ease-in-out infinite; }
+[data-layout="emergent"] .em-tour-mark span { position: absolute; inset: 0; border-radius: 24px; display: grid; place-items: center; background: var(--em-primary); color: var(--em-gold); font-family: var(--font-serif); font-size: 38px; overflow: hidden; animation: em-tour-mark 0.9s var(--flow) both; }
+[data-layout="emergent"] .em-tour-mark span::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 236, 190, 0.55) 50%, transparent 70%); background-size: 250% 100%; animation: em-shimmer 3s 0.8s ease-in-out infinite; }
 [data-layout="emergent"] .em-tour-mark.done span { background: var(--em-ok); color: #fff; }
-[data-layout="emergent"] .em-tour-mark i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; background: var(--em-gold); animation: em-tour-burst 0.9s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-tour-mark i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; background: var(--em-gold); animation: em-tour-burst 1.2s 0.3s var(--flow) both; }
 [data-layout="emergent"] .em-tour-mark i:nth-child(odd) { background: var(--em-primary); width: 5px; height: 5px; }
 @keyframes em-tour-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes em-tour-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes em-tour-drop { from { opacity: 0; transform: translateY(-14px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes em-tour-pop { from { opacity: 0; transform: translateY(-50%) scale(0.92); } to { opacity: 1; transform: translateY(-50%); } }
-@keyframes em-tour-pulse { 0% { opacity: 0.9; transform: scale(1); } 70% { opacity: 0; transform: scale(1.06); } 100% { opacity: 0; transform: scale(1.06); } }
-@keyframes em-tour-mark { from { opacity: 0; transform: scale(0.5) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes em-tour-words { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes em-tour-breathe { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.95; transform: scale(1.015); } }
+@keyframes em-tour-mark { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: none; } }
 @keyframes em-tour-burst { from { opacity: 1; transform: rotate(var(--a)) translateY(0); } to { opacity: 0; transform: rotate(var(--a)) translateY(-58px); } }
 @media (prefers-reduced-motion: reduce) {
-  [data-layout="emergent"] .em-tour-hole, [data-layout="emergent"] .em-tour-card, [data-layout="emergent"] .em-tour-mark span, [data-layout="emergent"] .em-tour-mark i, [data-layout="emergent"] .em-tour-dim.full { animation: none; transition: none; }
+  [data-layout="emergent"] .em-tour-hole, [data-layout="emergent"] .em-tour-card, [data-layout="emergent"] .em-tour-body, [data-layout="emergent"] .em-tour-dots i, [data-layout="emergent"] .em-tour-mark span { animation: none; transition: none; }
   [data-layout="emergent"] .em-tour-hole::after { animation: none; }
   [data-layout="emergent"] .em-tour-mark i { display: none; }
 }
+
+/* Button physics: everything you press gives a little, then springs back on release (transform only, so it stays smooth). */
+[data-layout="emergent"] :is(.em-btn, .btn, .em-chip, .chip, .em-circ, .em-addbar, .em-tab, .em-colpick, .em-filterbtn, .em-heart, .em-tadd, .em-seg-v button, .em-qty button, .em-opt, .em-colcard, .em-hit, .em-browse, .em-social-i, .em-cartbar button, .em-link) {
+  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, filter 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-layout="emergent"] :is(.em-btn, .btn, .em-chip, .chip, .em-circ, .em-addbar, .em-colpick, .em-filterbtn, .em-tadd, .em-seg-v button, .em-qty button, .em-browse, .em-social-i, .em-cartbar button, .em-link):active:not(:disabled) { transform: scale(0.94); transition-duration: 0.12s; transition-timing-function: ease-out; }
+[data-layout="emergent"] :is(.em-heart, .em-tab):active:not(:disabled) { transform: scale(0.86); transition-duration: 0.12s; }
+[data-layout="emergent"] :is(.em-hit, .em-colcard, .em-opt):active { transform: scale(0.985); transition-duration: 0.14s; }
+
+/* Small moments: a chip or tab that becomes selected settles in, a heart pops, a count bumps, a placed order's tick lands. */
+@keyframes em-settle { 0% { transform: scale(0.9); } 60% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes em-pop { 0% { transform: scale(1); } 30% { transform: scale(1.35); } 55% { transform: scale(0.9); } 100% { transform: scale(1); } }
+@keyframes em-bump { 0% { transform: scale(0.4); } 55% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes em-tab-rise { 0% { transform: translateY(0); } 40% { transform: translateY(-4px); } 100% { transform: translateY(0); } }
+@keyframes em-line-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes em-land { 0% { transform: scale(0.3) rotate(-30deg); opacity: 0; } 60% { transform: scale(1.12) rotate(4deg); opacity: 1; } 100% { transform: none; } }
+@keyframes em-slide-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes em-drop-in { from { transform: translate(-50%, -14px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+[data-layout="emergent"] :is(.em-chip.on, .em-chip[aria-pressed="true"], .em-chip[aria-selected="true"], .em-seg-v button.on, .chip.on) { animation: em-settle 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-layout="emergent"] .em-tab.on > span { animation: em-tab-rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-layout="emergent"] .em-tab.on::after { animation: em-line-grow 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-layout="emergent"] :is(.em-heart.on, button[aria-pressed="true"]) svg { animation: em-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-layout="emergent"] .em-bd, [data-layout="emergent"] .em-cartbar .n { animation: em-bump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+[data-layout="emergent"] .em-ok { animation: em-land 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+[data-layout="emergent"] .em-cartbar > div { animation: em-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-layout="emergent"] .em-toast { animation: em-drop-in 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+[data-layout="emergent"] .em-qty em { display: inline-block; }
+@media (prefers-reduced-motion: reduce) {
+  [data-layout="emergent"] :is(.em-btn, .btn, .em-chip, .chip, .em-circ, .em-addbar, .em-tab, .em-colpick, .em-filterbtn, .em-heart, .em-tadd, .em-seg-v button, .em-qty button, .em-opt, .em-colcard, .em-hit, .em-browse, .em-social-i, .em-cartbar button, .em-link) { transition: background-color 0.2s, color 0.2s; transform: none !important; }
+  [data-layout="emergent"] :is(.em-chip.on, .em-chip[aria-pressed="true"], .em-chip[aria-selected="true"], .em-seg-v button.on, .chip.on, .em-tab.on > span, .em-bd, .em-cartbar .n, .em-ok, .em-cartbar > div, .em-toast), [data-layout="emergent"] .em-tab.on::after, [data-layout="emergent"] :is(.em-heart.on, button[aria-pressed="true"]) svg { animation: none; }
+}
+[data-layout="emergent"] .em-social-i.soon span { filter: saturate(0.55); opacity: 0.6; }
+[data-layout="emergent"] .em-social-i.soon em { font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--em-mut); margin-top: -3px; }

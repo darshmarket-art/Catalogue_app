@@ -111,7 +111,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
               <button type="button" className="em-circ" style={{ width: 46, height: 46, color: 'var(--em-wa)' }} onClick={sendOnWhatsApp} aria-label="Send shortlist on WhatsApp">
                 <Icon n="wa" />
               </button>
-              <button type="button" className="em-btn" onClick={addAll} disabled={adding} style={{ whiteSpace: 'nowrap' }}>
+              <button type="button" className="em-btn" data-testid="shortlist-order-all" onClick={addAll} disabled={adding} style={{ whiteSpace: 'nowrap' }}>
                 <Icon n={added ? 'check' : 'bag'} />
                 {adding ? 'Adding…' : added ? 'Added to order' : 'Order all'}
               </button>

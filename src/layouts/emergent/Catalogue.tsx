@@ -587,7 +587,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       {showCartBar && (
         <div className="em-cartbar">
           <div>
-            <span className="n">{inOrder}</span>
+            <span key={inOrder} className="n">{inOrder}</span>
             <b style={{ flex: 1, fontWeight: 600 }}>{orderCount !== undefined ? `${inOrder} ${inOrder === 1 ? 'design' : 'designs'} in your order` : `${inOrder} added to your order`}</b>
             {onNavigate && (
               <button type="button" onClick={() => onNavigate('orders')}>

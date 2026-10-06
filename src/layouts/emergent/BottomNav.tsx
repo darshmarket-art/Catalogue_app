@@ -33,7 +33,7 @@ export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNa
           <button key={tab.screen} type="button" onClick={() => onNavigate(tab.screen)} aria-current={tab.active ? 'page' : undefined} className={`em-tab${tab.active ? ' on' : ''}`}>
             <span>
               <Icon n={tab.icon} size={tab.active ? 22 : 20} />
-              {tab.badge ? <b className="em-bd">{tab.badge > 99 ? '99+' : tab.badge}</b> : null}
+              {tab.badge ? <b key={tab.badge} className="em-bd">{tab.badge > 99 ? '99+' : tab.badge}</b> : null}
             </span>
             {tab.label}
           </button>

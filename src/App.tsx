@@ -8,7 +8,7 @@ import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler }
 import { noteCollection } from './recent';
 import { setTagList } from './tagList';
 import { isTidying } from './backLayer';
-import { BuyerTour, markTourSeen, tourSeen } from './components/BuyerTour';
+import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -363,6 +363,43 @@ export default function App() {
     setOrders((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // The design the tour borrows to show the shortlist and the cart: the newest one that is not already in the buyer's order.
+  // It is only ever a draft line, removed again before the tour ends; the tour never places an order.
+  const latest = useRef({ products, orders });
+  latest.current = { products, orders };
+  const samplePick = useRef<Product | null>(null);
+  const pickSample = () => {
+    if (samplePick.current) return samplePick.current;
+    const inCart = new Set(latest.current.orders.map((o) => o.sku));
+    samplePick.current = latest.current.products.find((p) => !inCart.has(p.sku) && p.stockStatus !== 'Draft') ?? null;
+    return samplePick.current;
+  };
+  const tourSample: TourSample = {
+    title: () => pickSample()?.title ?? null,
+    heart: () => {
+      const p = pickSample();
+      if (!p || shortlistRef.current.includes(p.sku)) return false;
+      toggleShortlist(p);
+      return true;
+    },
+    unheart: () => {
+      const p = pickSample();
+      if (p && shortlistRef.current.includes(p.sku)) toggleShortlist(p);
+    },
+    addToCart: async () => {
+      const p = pickSample();
+      if (!p) return null;
+      try {
+        const item = await api.addOrderItem({ sku: p.sku, batchQty: 1 });
+        setOrders((prev) => [...prev.filter((i) => i.id !== item.id), item]);
+        return item.id;
+      } catch {
+        return null;
+      }
+    },
+    removeFromCart: (id) => handleRemoveOrderItem(id)
+  };
+
   const handleChangeQty = async (id: string, batchQty: number) => {
     try {
       const next = await api.setOrderItemQty(id, batchQty);
@@ -692,9 +729,11 @@ export default function App() {
       {touring && currentMerchant && !isAdminLoggedIn && (
         <BuyerTour
           buyerName={currentMerchant.ownerName || currentMerchant.storeName}
+          sample={tourSample}
           onNavigate={(to) => screenRef.current !== to && handleNavigate(to)}
           onClose={() => {
             markTourSeen(currentMerchant.phone);
+            samplePick.current = null;
             setTouring(false);
             handleNavigate('categories');
           }}

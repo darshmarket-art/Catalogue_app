@@ -5,6 +5,18 @@ import { usePlan } from '../plan';
 import { Icon } from '../layouts/emergent/ui';
 import { useBackLayer } from '../backLayer';
 
+/** A design the tour borrows to show shortlisting and ordering; removed again when the tour ends. */
+export interface TourSample {
+  /** The design's name (chosen when first needed, once the catalogue has loaded). */
+  title: () => string | null;
+  /** Hearts the design (only if it was not already hearted); returns false when there was nothing to do. */
+  heart: () => boolean;
+  unheart: () => void;
+  /** Puts one piece in the cart as a draft line (never sent to the store); returns the line id. */
+  addToCart: () => Promise<string | null>;
+  removeFromCart: (lineId: string) => Promise<void>;
+}
+
 /** One stop on the tour: which screen it needs, what to light up there, and what to say. */
 interface Step {
   id: string;
@@ -13,100 +25,160 @@ interface Step {
   target?: () => Element | null;
   /** Leave the step out when its element is not on screen (e.g. Browse all only exists with many collections). */
   optional?: boolean;
+  /** Something the tour does itself before lighting up this step (heart the sample, add it to the cart, remove it). */
+  enter?: () => Promise<void> | void;
   icon: string;
   title: string;
   body: string;
 }
 
 const $ = (sel: string) => () => document.querySelector(sel);
-const tab = (label: string) => () => [...document.querySelectorAll('nav[aria-label="Main"] button')].find((b) => b.textContent?.trim().startsWith(label)) ?? null;
+const tab = (label: string) => () => [...document.querySelectorAll('nav[aria-label="Main"] button')].find((b) => b.textContent?.replace(/\d+/g, '').trim().startsWith(label)) ?? null;
 const near = (sel: string, up: string) => () => document.querySelector(sel)?.closest(up) ?? document.querySelector(sel);
+const byText = (sel: string, text: string) => () => [...document.querySelectorAll(sel)].find((b) => b.textContent?.trim().startsWith(text)) ?? null;
+const removeBtn = (title: string | null) => (title ? document.querySelector(`button[aria-label="Remove ${CSS.escape(title)}"]`) : null);
 
-const steps = (orders: boolean, name: string): Step[] => [
-  { id: 'hello', screen: 'categories', icon: 'star', title: `Welcome${name ? `, ${name}` : ''}`, body: `This is ${merchant.brand.name}'s private showroom. A one-minute tour shows you how to find designs, save favourites and ${orders ? 'place an order' : 'ask about a design'}.` },
-  { id: 'search', screen: 'categories', target: near('[data-testid="home-search"]', '.em-srch'), icon: 'search', title: 'Search anything', body: 'Type a design name, SKU or collection. Press enter to search every design in the catalogue.' },
-  { id: 'featured', screen: 'categories', target: $('[data-testid="home-collections"]'), icon: 'grid', title: 'Featured collections', body: 'The store picks these for you. Tap one to see all of its designs.' },
-  { id: 'browse', screen: 'categories', target: $('[data-testid="browse-collections"]'), optional: true, icon: 'layers', title: 'Every collection, by type', body: 'Browse all collections grouped by tag: rings together, pendants together, and so on.' },
-  { id: 'catalogue-tab', screen: 'categories', target: tab('Catalogue'), icon: 'grid', title: 'The Catalogue', body: 'Every design in one place. Let us open it.' },
-  { id: 'picker', screen: 'catalogue', target: $('[data-testid="collection-picker"]'), icon: 'layers', title: 'Switch collection', body: 'The collection you are looking at is named here. Tap to pick another one.' },
-  { id: 'filter', screen: 'catalogue', target: $('[data-testid="catalogue-filter-button"]'), icon: 'sliders', title: 'Filter and sort', body: 'Narrow by purity, weight range or availability, and sort lightest or heaviest first.' },
-  { id: 'layout', screen: 'catalogue', target: $('[aria-label="Layout"]'), icon: 'dense', title: 'Your view', body: 'Large photos, a compact grid of three, or a quick list. The app remembers your choice.' },
-  { id: 'card', screen: 'catalogue', target: near('[data-testid="product-card"]', '.em-cardwrap'), optional: true, icon: 'eye', title: 'Open a design', body: 'Tap the photo for details and every photo. On the design page, swipe left or right to move to the next design, and tap a photo to zoom.' },
-  { id: 'heart', screen: 'catalogue', target: $('.em-heart'), optional: true, icon: 'heart', title: 'Shortlist with a heart', body: 'Tap the heart to save a design to your Shortlist and come back to it later.' },
-  ...(orders
-    ? [{ id: 'add', screen: 'catalogue' as const, target: $('[data-testid="card-add-to-cart"]'), optional: true, icon: 'bag', title: 'Add to cart', body: 'Choose how many pieces you want in each purity. The net weight adds up as you go.' }]
-    : []),
-  { id: 'shortlist-tab', screen: 'catalogue', target: tab('Shortlist'), icon: 'heart', title: 'Your Shortlist', body: 'Everything you hearted, in one list. Open any design again, or add them all to your order at once.' },
-  ...(orders
-    ? [{ id: 'orders-tab', screen: 'catalogue' as const, target: tab('Orders'), icon: 'package', title: 'Review and place your order', body: 'Check quantities, add a note for the store and tap Place order. We confirm on WhatsApp. Past orders shows each order’s status.' }]
-    : []),
-  { id: 'profile', screen: 'catalogue', target: $('[aria-label="Profile menu"]'), icon: 'user', title: 'Your profile', body: `Your details, past orders, About ${merchant.brand.name} and this tour again, whenever you want it.` },
-  { id: 'done', screen: 'categories', icon: 'check', title: 'You are all set', body: 'Use your phone’s Back button to step back at any time. Happy browsing!' }
-];
-
-/** Where the lit-up box is, in the viewport. */
-type Box = { top: number; left: number; width: number; height: number } | null;
+/** Where the lit-up window is, in the viewport. A zero-size box in the middle means "no element": the window closes to a point. */
+type Box = { top: number; left: number; width: number; height: number; r: number };
 const PAD = 8;
+const centre = (): Box => ({ top: window.innerHeight / 2, left: window.innerWidth / 2, width: 0, height: 0, r: 40 });
+const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * A guided tour for new buyers: it walks through the real app, lighting up each control in turn and moving between screens on its own.
+ * It hearts a sample design and puts it in the cart to show shortlisting and ordering, then removes both: nothing is ever sent to the store.
  * Opens after a new buyer's first sign-in and again from the profile menu. Back, Escape or Skip ends it.
  */
-export const BuyerTour: React.FC<{ buyerName: string; onNavigate: (screen: ActiveScreen) => void; onClose: () => void }> = ({ buyerName, onNavigate, onClose }) => {
+export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null; onNavigate: (screen: ActiveScreen) => void; onClose: () => void }> = ({ buyerName, sample, onNavigate, onClose }) => {
   const orders = usePlan().flags.orders;
-  const all = useRef(steps(orders, buyerName.split(' ')[0] ?? '')).current;
+  // What the tour changed, so it can be undone however the tour ends.
+  const made = useRef<{ hearted: boolean; line: string | null }>({ hearted: false, line: null });
+  const undo = useCallback(async () => {
+    if (!sample) return;
+    if (made.current.hearted) sample.unheart();
+    if (made.current.line) await sample.removeFromCart(made.current.line);
+    made.current = { hearted: false, line: null };
+  }, [sample]);
+  const finish = useCallback(() => {
+    void undo();
+    onClose();
+  }, [undo, onClose]);
+
+  const all = useRef<Step[]>(
+    (() => {
+      const first = buyerName.split(' ')[0] ?? '';
+      const s = sample;
+      const list: Step[] = [
+        { id: 'hello', screen: 'categories', icon: 'star', title: `Welcome${first ? `, ${first}` : ''}`, body: `This is ${merchant.brand.name}'s private showroom. A short tour shows you how to find designs, save favourites and ${orders ? 'place an order' : 'ask about a design'}.` },
+        { id: 'search', screen: 'categories', target: near('[data-testid="home-search"]', '.em-srch'), icon: 'search', title: 'Search anything', body: 'Type a design name, SKU or collection. Press enter to search every design in the catalogue.' },
+        { id: 'featured', screen: 'categories', target: $('[data-testid="home-collections"]'), icon: 'grid', title: 'Featured collections', body: 'The store picks these for you. Tap one to see all of its designs.' },
+        { id: 'browse', screen: 'categories', target: $('[data-testid="browse-collections"]'), optional: true, icon: 'layers', title: 'Every collection, by type', body: 'Browse all collections grouped by type: rings together, pendants together, and so on.' },
+        { id: 'catalogue-tab', screen: 'categories', target: tab('Catalogue'), icon: 'grid', title: 'The Catalogue', body: 'Every design in one place. Let us open it.' },
+        { id: 'picker', screen: 'catalogue', target: $('[data-testid="collection-picker"]'), icon: 'layers', title: 'Switch collection', body: 'The collection you are looking at is named here. Tap to pick another one.' },
+        { id: 'filter', screen: 'catalogue', target: $('[data-testid="catalogue-filter-button"]'), icon: 'sliders', title: 'Filter and sort', body: 'Narrow by purity, weight range or availability, and sort lightest or heaviest first.' },
+        { id: 'layout', screen: 'catalogue', target: $('[aria-label="Layout"]'), icon: 'dense', title: 'Your view', body: 'Large photos, a compact grid of three, or a quick list. The app remembers your choice.' },
+        { id: 'card', screen: 'catalogue', target: near('[data-testid="product-card"]', '.em-cardwrap'), optional: true, icon: 'eye', title: 'Open a design', body: 'Tap the photo for details and every photo. On the design page, swipe left or right for the next design, and tap a photo to zoom.' },
+        { id: 'heart', screen: 'catalogue', target: () => document.querySelector('.em-heart.on') ?? document.querySelector('.em-heart'), optional: true, icon: 'heart', title: 'Shortlist with a heart', body: 'Tap the heart to save a design for later. We have hearted one for you, so you can see where it goes.', enter: () => { if (s && s.heart()) made.current.hearted = true; } },
+        { id: 'shortlist-tab', screen: 'catalogue', target: tab('Shortlist'), icon: 'heart', title: 'Your Shortlist tab', body: 'Everything you heart is kept here. Let us open it.' },
+        { id: 'shortlist-list', screen: 'shortlist', target: near('[data-testid="shortlist-open"]', '.em-li'), optional: true, icon: 'heart', title: 'Saved designs, with weights', body: 'Each saved design shows its net weight. Tap it to open the design again, or tap the heart to remove it.' },
+        ...(orders
+          ? [{ id: 'shortlist-order', screen: 'shortlist' as const, target: $('[data-testid="shortlist-order-all"]'), optional: true, icon: 'bag', title: 'Order the whole list', body: 'Order all adds one piece of every saved design to your order. The green button sends the list to the store on WhatsApp.' }]
+          : []),
+        ...(orders
+          ? [
+              { id: 'add', screen: 'catalogue' as const, target: $('[data-testid="card-add-to-cart"]'), optional: true, icon: 'bag', title: 'Add to cart', body: 'Choose how many pieces you want in each purity. The net weight adds up as you go. We are adding a sample piece for you now.', enter: async () => { if (s && !made.current.line) made.current.line = await s.addToCart(); } },
+              { id: 'orders-tab', screen: 'catalogue' as const, target: tab('Orders'), icon: 'package', title: 'The Orders tab', body: 'Your order waits here until you place it. Let us open it.' },
+              { id: 'orders-line', screen: 'orders' as const, target: () => removeBtn(s?.title() ?? null)?.closest('.em-li') ?? document.querySelector('.em-li'), optional: true, icon: 'package', title: 'This is a sample order', body: `We put one piece of a design in your order as a sample. Change pieces with + and −. The total net weight is at the bottom.` },
+              { id: 'orders-note', screen: 'orders' as const, target: $('[data-testid="order-note-input"]'), optional: true, icon: 'edit', title: 'A note for the store', body: 'Add a delivery date, finish or size change. The store sees it with your order.' },
+              { id: 'orders-place', screen: 'orders' as const, target: byText('.em-dock button', 'Place order'), optional: true, icon: 'check', title: 'Place order', body: 'When you are ready, tap Place order. The store confirms on WhatsApp. We will not place this sample.' },
+              { id: 'orders-remove', screen: 'orders' as const, target: () => removeBtn(s?.title() ?? null) ?? document.querySelector('.em-li .em-circ'), optional: true, icon: 'x', title: 'Remove the sample', body: 'Tap × to take a line out of your order. Tap Next and we will remove the sample for you.' },
+              { id: 'orders-past', screen: 'orders' as const, target: byText('[role="tab"]', 'Past orders'), icon: 'clock', title: 'Past orders', body: 'Sample removed. Every order you place appears under Past orders with its status: new, confirmed or dispatched. A new order can still be cancelled with two taps.', enter: async () => { if (s && made.current.line) { await s.removeFromCart(made.current.line); made.current.line = null; } } }
+            ]
+          : [{ id: 'orders-skip', screen: 'catalogue' as const, target: $('.em-heart'), optional: true, icon: 'chat', title: 'Ask on WhatsApp', body: 'Open a design and tap Enquire on WhatsApp to ask the store about price and availability.' }]),
+        { id: 'profile', screen: orders ? 'orders' : 'catalogue', target: $('[aria-label="Profile menu"]'), icon: 'user', title: 'Your profile', body: `Your details, past orders, About ${merchant.brand.name} and this tour again, whenever you want it.`, enter: () => { if (s && made.current.hearted) { s.unheart(); made.current.hearted = false; } } },
+        { id: 'done', screen: 'categories', icon: 'check', title: 'You are all set', body: 'The sample is gone and nothing was sent to the store. Use your phone’s Back button to step back at any time. Happy browsing!' }
+      ];
+      return list;
+    })()
+  ).current;
+
   const [at, setAt] = useState(0);
-  const [box, setBox] = useState<Box>(null);
-  const [ready, setReady] = useState(false);
+  const [box, setBox] = useState<Box>(centre);
+  // The card stays on screen between steps; only its words cross-fade while it glides to its new place.
+  const [shown, setShown] = useState(0);
+  const [placing, setPlacing] = useState(true);
   const target = useRef<Element | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const dir = useRef<1 | -1>(1);
-  useBackLayer(true, onClose);
-  const step = all[at];
+  const [cardH, setCardH] = useState(240);
+  useBackLayer(true, finish);
+  const step = all[shown];
 
   const measure = useCallback(() => {
     const el = target.current;
-    if (!el || !el.isConnected) return setBox(null);
+    if (!el || !el.isConnected) return setBox(centre());
     const r = el.getBoundingClientRect();
-    setBox({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 });
+    const radius = parseFloat(getComputedStyle(el).borderRadius) || 14;
+    setBox({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2, r: Math.min(radius + PAD, 28) });
   }, []);
 
-  // Each step: go to its screen, wait for its element (designs load from the server), bring it into view, then light it up.
+  // Follow the element every frame for a moment after each step, so the window flows with the page as it scrolls instead of jumping after it.
+  const follow = useCallback((ms: number) => {
+    const until = performance.now() + ms;
+    let raf = 0;
+    const tick = () => {
+      measure();
+      if (performance.now() < until) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [measure]);
+
+  // Each step: do its action, go to its screen, wait for its element (designs load from the server), glide it into view, then light it up.
   useEffect(() => {
     let cancelled = false;
-    setReady(false);
-    target.current = null;
-    if (step.screen) onNavigate(step.screen);
-    if (!step.target) {
-      setBox(null);
-      setReady(true);
-      return;
-    }
-    const started = Date.now();
-    const look = () => {
+    let stopFollow = () => {};
+    const s = all[at];
+    setPlacing(true);
+    (async () => {
+      if (s.enter) await s.enter();
       if (cancelled) return;
-      const el = step.target!();
-      if (el) {
-        target.current = el;
-        const r = el.getBoundingClientRect();
-        const fixed = getComputedStyle(el).position === 'fixed' || !!el.closest('.em-tabs, .em-top');
-        if (!fixed && (r.top < 90 || r.bottom > window.innerHeight - 260)) el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-        setTimeout(() => {
-          if (cancelled) return;
-          measure();
-          setReady(true);
-        }, fixed ? 60 : 380);
-      } else if (Date.now() - started < 2500) setTimeout(look, 120);
-      else if (step.optional) setAt((i) => Math.min(all.length - 1, Math.max(0, i + dir.current)));
-      else {
-        setBox(null);
-        setReady(true);
+      if (s.screen) onNavigate(s.screen);
+      if (!s.target) {
+        target.current = null;
+        setBox(centre());
+        setShown(at);
+        setPlacing(false);
+        return;
       }
-    };
-    const t = setTimeout(look, 140);
+      const started = Date.now();
+      const look = () => {
+        if (cancelled) return;
+        const el = s.target!();
+        if (el) {
+          target.current = el;
+          const r = el.getBoundingClientRect();
+          const fixed = !!el.closest('.em-tabs, .em-top, .em-dock, .em-sheet') || getComputedStyle(el).position === 'fixed';
+          const room = window.innerHeight - 280;
+          if (!fixed && (r.top < 90 || r.bottom > room)) el.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
+          stopFollow = follow(900);
+          setShown(at);
+          setPlacing(false);
+        } else if (Date.now() - started < 2500) setTimeout(look, 90);
+        else if (s.optional) setAt((i) => Math.min(all.length - 1, Math.max(0, i + dir.current)));
+        else {
+          target.current = null;
+          setBox(centre());
+          setShown(at);
+          setPlacing(false);
+        }
+      };
+      setTimeout(look, 60);
+    })();
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      stopFollow();
     };
   }, [at]);
 
@@ -127,18 +199,20 @@ export const BuyerTour: React.FC<{ buyerName: string; onNavigate: (screen: Activ
   }, [measure]);
 
   useLayoutEffect(() => {
-    if (ready) nextRef.current?.focus({ preventScroll: true });
-  }, [ready, at]);
+    if (cardRef.current) setCardH(cardRef.current.offsetHeight);
+    nextRef.current?.focus({ preventScroll: true });
+  }, [shown]);
 
   const go = (d: 1 | -1) => {
+    if (placing) return;
     dir.current = d;
-    if (at + d >= all.length) return onClose();
+    if (at + d >= all.length) return finish();
     setAt(Math.max(0, at + d));
   };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') finish();
       else if (e.key === 'ArrowRight') go(1);
       else if (e.key === 'ArrowLeft') go(-1);
     };
@@ -146,65 +220,65 @@ export const BuyerTour: React.FC<{ buyerName: string; onNavigate: (screen: Activ
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  // The card sits under the lit-up element when there is room, otherwise above it; centred cards for welcome and finish.
-  const centred = !box;
-  const below = box ? box.top + box.height + 16 + 230 < window.innerHeight : true;
-  const cardStyle: React.CSSProperties = centred ? {} : below ? { top: box!.top + box!.height + 14 } : { bottom: window.innerHeight - box!.top + 14 };
-  const shown = all.length;
-  const last = at === shown - 1;
+  // The card sits under the lit-up element when there is room, otherwise above it, otherwise in the middle. It moves with transform only.
+  const centred = box.width === 0;
+  const vh = window.innerHeight;
+  const y = centred ? (vh - cardH) / 2 : box.top + box.height + 14 + cardH < vh - 8 ? box.top + box.height + 14 : Math.max(8, box.top - 14 - cardH);
+  const last = shown === all.length - 1;
 
   return (
-    <div className="em-tour" role="dialog" aria-modal="true" aria-label={`App tour, step ${at + 1} of ${shown}`} data-testid="buyer-tour">
+    <div className="em-tour" role="dialog" aria-modal="true" aria-label={`App tour, step ${shown + 1} of ${all.length}`} data-testid="buyer-tour">
       {/* Catches every tap outside the card: the tour leads, the buyer follows. */}
-      <div className={`em-tour-dim${centred ? ' full' : ''}`} />
-      {box && <div className="em-tour-hole" style={{ top: box.top, left: box.left, width: box.width, height: box.height }} aria-hidden="true" />}
-      {ready && (
-        <div key={step.id} className={`em-tour-card${centred ? ' centred' : below ? ' below' : ' above'}`} style={cardStyle} data-step={step.id}>
+      <div className="em-tour-dim" />
+      <div className="em-tour-hole" style={{ transform: `translate3d(${box.left}px, ${box.top}px, 0)`, width: box.width, height: box.height, borderRadius: box.r }} aria-hidden="true" />
+      <div ref={cardRef} className={`em-tour-card${centred ? ' centred' : ''}`} style={{ transform: `translate3d(0, ${y}px, 0)` }} data-step={step.id}>
+        <div key={step.id} className="em-tour-body">
           {centred && (
             <div className={`em-tour-mark${last ? ' done' : ''}`} aria-hidden="true">
               <span>{last ? <Icon n="check" size={30} /> : merchant.brand.name.slice(0, 1)}</span>
               {last && Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--a': `${i * 36}deg` } as React.CSSProperties} />)}
             </div>
           )}
-          <div className="em-row" style={{ gap: 10, alignItems: 'center' }}>
+          <div className="em-row em-tour-head">
             {!centred && (
               <span className="em-tour-ic" aria-hidden="true">
                 <Icon n={step.icon} size={16} />
               </span>
             )}
             <span className="em-ey" style={{ margin: 0 }}>
-              {at === 0 ? 'Quick tour · 1 minute' : last ? 'Tour complete' : `Step ${at} of ${shown - 2}`}
+              {shown === 0 ? 'Quick tour · 2 minutes' : last ? 'Tour complete' : `Step ${shown} of ${all.length - 2}`}
             </span>
           </div>
           <h2 className="em-ser" aria-live="polite">{step.title}</h2>
           <p>{step.body}</p>
-          <div className="em-tour-dots" aria-hidden="true">
-            {all.map((s, i) => (
-              <i key={s.id} className={i === at ? 'on' : i < at ? 'past' : ''} />
-            ))}
-          </div>
-          <div className="em-row em-sb" style={{ marginTop: 14, gap: 10 }}>
-            {last ? (
-              <span />
-            ) : (
-              <button type="button" className="em-link" data-testid="tour-skip" onClick={onClose}>
-                Skip tour
+        </div>
+        <div className="em-tour-dots" aria-hidden="true">
+          <i style={{ transform: `translateX(${shown * 11}px)` }} />
+          {all.map((s) => (
+            <b key={s.id} />
+          ))}
+        </div>
+        <div className="em-row em-sb" style={{ marginTop: 14, gap: 10 }}>
+          {last ? (
+            <span />
+          ) : (
+            <button type="button" className="em-link" data-testid="tour-skip" onClick={finish}>
+              Skip tour
+            </button>
+          )}
+          <span className="em-row" style={{ gap: 8 }}>
+            {shown > 0 && !last && (
+              <button type="button" className="em-btn sec sm" data-testid="tour-back" onClick={() => go(-1)} aria-label="Previous step">
+                <Icon n="back" size={16} />
               </button>
             )}
-            <span className="em-row" style={{ gap: 8 }}>
-              {at > 0 && !last && (
-                <button type="button" className="em-btn sec sm" data-testid="tour-back" onClick={() => go(-1)} aria-label="Previous step">
-                  <Icon n="back" size={16} />
-                </button>
-              )}
-              <button ref={nextRef} type="button" className="em-btn sm" data-testid="tour-next" onClick={() => go(1)}>
-                {at === 0 ? 'Show me around' : last ? 'Start browsing' : 'Next'}
-                {!last && <Icon n="right" size={16} />}
-              </button>
-            </span>
-          </div>
+            <button ref={nextRef} type="button" className="em-btn sm" data-testid="tour-next" onClick={() => go(1)} aria-busy={placing}>
+              {shown === 0 ? 'Show me around' : last ? 'Start browsing' : 'Next'}
+              {!last && <Icon n="right" size={16} />}
+            </button>
+          </span>
         </div>
-      )}
+      </div>
     </div>
   );
 };
