@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Request } from 'express';
 import type { MerchantConfig } from './merchant';
+import type { Config } from './config';
 
 /**
  * The pages a site needs before it is public, written per store from its own merchant record: Privacy, Terms, a proper "page not found",
@@ -46,8 +47,15 @@ nav a{margin-left:16px;font-size:14px}
 .btn:hover{filter:brightness(1.1)}
 `;
 
-function shell(m: MerchantConfig, title: string, body: string, robots = 'index,follow') {
-  const name = esc(m.brand.name);
+/** What the page frame needs to know about whose site it is. */
+interface Site {
+  name: string;
+  address?: string;
+}
+const siteOf = (m: MerchantConfig): Site => ({ name: m.brand.name, address: m.contact.address });
+
+function shell(site: Site, title: string, body: string, robots = 'index,follow') {
+  const name = esc(site.name);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -62,7 +70,7 @@ function shell(m: MerchantConfig, title: string, body: string, robots = 'index,f
 <body>
 <header><div class="in"><a class="brand" href="/">${name}</a><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></div></header>
 <main><div class="in">${body}</div></main>
-<footer><div class="in">${name}${m.contact.address ? ` · ${esc(m.contact.address)}` : ''} · <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms &amp; conditions</a></div></footer>
+<footer><div class="in">${name}${site.address ? ` · ${esc(site.address)}` : ''} · <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms &amp; conditions</a></div></footer>
 </body>
 </html>`;
 }
@@ -78,7 +86,7 @@ function contactLine(m: MerchantConfig) {
 export function privacyPage(m: MerchantConfig) {
   const name = esc(m.brand.name);
   return shell(
-    m,
+    siteOf(m),
     'Privacy policy',
     `<h1>Privacy policy</h1>
 <p class="upd">Last updated ${LEGAL_UPDATED}</p>
@@ -136,7 +144,7 @@ export function privacyPage(m: MerchantConfig) {
 export function termsPage(m: MerchantConfig) {
   const name = esc(m.brand.name);
   return shell(
-    m,
+    siteOf(m),
     'Terms & conditions',
     `<h1>Terms &amp; conditions</h1>
 <p class="upd">Last updated ${LEGAL_UPDATED}</p>
@@ -180,7 +188,7 @@ export function termsPage(m: MerchantConfig) {
 /** A real 404: the store's name, a way home, and "do not index" for search engines. */
 export function notFoundPage(m: MerchantConfig) {
   return shell(
-    m,
+    siteOf(m),
     'Page not found',
     `<h1>Page not found</h1>
 <hr class="rule">
@@ -222,5 +230,161 @@ export function legalRoutes(m: MerchantConfig) {
     res.set('Cache-Control', 'public, max-age=3600').type('application/xml').send(xml);
   });
 
+  return router;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Antarixs itself (app.<domain>): the entry page and store signup. Same frame, wording for store owners.
+// Who the operator is comes from PLATFORM_LEGAL_NAME / PLATFORM_CONTACT_EMAIL / PLATFORM_ADDRESS (shown in square brackets until set).
+// ---------------------------------------------------------------------------------------------------------------------
+
+const platformSite = (c: Config): Site => ({ name: 'Antarixs', address: c.platform.address.startsWith('[') ? undefined : c.platform.address });
+
+function platformContact(c: Config) {
+  const { email, address } = c.platform;
+  return `${esc(email)}${address ? `, ${esc(address)}` : ''}`;
+}
+
+export function platformPrivacyPage(c: Config) {
+  const who = esc(c.platform.legalName);
+  return shell(
+    platformSite(c),
+    'Privacy policy',
+    `<h1>Privacy policy</h1>
+<p class="upd">Last updated ${LEGAL_UPDATED}</p>
+<hr class="rule">
+<p>Antarixs is operated by ${who} (“we”, “us”). Antarixs lets a jewellery business create its own catalogue store. This policy covers the Antarixs website, store sign-up and the owner’s console. How a store handles its own buyers’ data is set out in that store’s own privacy policy.</p>
+
+<h2>What we collect when you create a store</h2>
+<ul>
+<li>Your name, WhatsApp mobile number and email address, and a password (stored only in a one-way hashed form).</li>
+<li>Your brand name, store address (name.antarixs.com), brand colour, logo, and the catalogue content you add: designs, photos, weights, prices and banners.</li>
+<li>Your plan, trial and billing status, and the orders, buyers and enquiries your store receives.</li>
+<li>Technical details such as your IP address and browser, used to keep the service secure and to limit repeated sign-in or sign-up attempts.</li>
+</ul>
+
+<h2>Your buyers’ data</h2>
+<p>For the buyers who sign in to your store, you decide why and how their data is used and we process it on your behalf, to run your store. Please tell your buyers what you do with it.</p>
+
+<h2>How we use it</h2>
+<ul>
+<li>To create and run your store, sign you in with a code sent on WhatsApp, and send order and account messages.</li>
+<li>To show you how your store is used (views, enquiries, orders).</li>
+<li>To keep the service safe, fix faults and improve it.</li>
+</ul>
+<p>We do not sell your data and we show no advertising.</p>
+
+<h2>Cookies and device storage</h2>
+<p>We do not set cookies. We keep small items in your browser’s local storage to keep you signed in and to remember your choices, such as language.</p>
+
+<h2>Who else handles your data</h2>
+<ul>
+<li><b>WhatsApp (Meta):</b> delivers sign-in codes and order messages.</li>
+<li><b>Google Cloud:</b> hosting, database and photo storage.</li>
+<li><b>Google Fonts:</b> typefaces load from Google, which receives your IP address when they do.</li>
+</ul>
+<p>We share data with others only when the law requires it.</p>
+
+<h2>How long we keep it</h2>
+<p>We keep your account and store while it is open. When you ask us to close it we delete your store’s data, except records we must keep for tax, accounting or legal reasons.</p>
+
+<h2>Your choices</h2>
+<p>You can ask to see, correct, export or delete the data we hold about you or your store, and to stop messages. Write to ${platformContact(c)}.</p>
+
+<h2>Security</h2>
+<p>All traffic uses HTTPS, sign-in uses one-time codes and hashed passwords, and repeated attempts are limited. No system is perfectly secure, so please keep your phone, WhatsApp and password safe.</p>
+
+<h2>Changes</h2>
+<p>If we change this policy we will update the date above and, for significant changes, tell you in the console or on WhatsApp.</p>
+
+<h2>Contact</h2>
+<p>${who}, ${platformContact(c)}.</p>`
+  );
+}
+
+export function platformTermsPage(c: Config) {
+  const who = esc(c.platform.legalName);
+  return shell(
+    platformSite(c),
+    'Terms & conditions',
+    `<h1>Terms &amp; conditions</h1>
+<p class="upd">Last updated ${LEGAL_UPDATED}</p>
+<hr class="rule">
+<p>These terms apply when you create or run a store on Antarixs, operated by ${who} (“we”, “us”). By creating a store you agree to them.</p>
+
+<h2>Your account</h2>
+<p>You must give true details, be allowed to run the business you register, and keep your phone, WhatsApp and password secure. You are responsible for what happens in your store and for the staff you let in.</p>
+
+<h2>Trial and plans</h2>
+<p>A new store starts with a free trial. After it, the store continues on the plan you choose; features and limits for each plan are shown in the console. We tell you before a change to your plan takes effect.</p>
+
+<h2>Your content</h2>
+<p>You keep ownership of your photos, designs and text. You give us permission to store and show them as needed to run your store. You promise that you have the right to use them and that they do not break anyone’s rights or the law.</p>
+
+<h2>Your buyers</h2>
+<p>You are responsible for your dealings with your buyers: prices, orders, delivery, and how you use their data. Antarixs provides the tool; we are not a party to your sales.</p>
+
+<h2>Acceptable use</h2>
+<p>No illegal goods, no misleading listings, no attempts to break in or overload the service, no bulk or spam messaging. We may suspend a store that does this.</p>
+
+<h2>Availability and changes</h2>
+<p>We work to keep the service running but do not promise it will never be interrupted. We may improve or change features.</p>
+
+<h2>Ending your store</h2>
+<p>You can ask us to close your store at any time. We may close a store that breaks these terms or stays unpaid after notice. See the <a href="/privacy">privacy policy</a> for what happens to the data.</p>
+
+<h2>Liability</h2>
+<p>The service is provided “as is”. To the extent the law allows, we are not liable for indirect losses or for interruptions outside our control, and our total liability is limited to what you paid us in the 3 months before the claim.</p>
+
+<h2>Governing law</h2>
+<p>These terms are governed by the laws of India. The courts at ${who}’s place of business have jurisdiction.</p>
+
+<h2>Contact</h2>
+<p>${who}, ${platformContact(c)}.</p>`
+  );
+}
+
+export function platformNotFoundPage(c: Config) {
+  return shell(
+    platformSite(c),
+    'Page not found',
+    `<h1>Page not found</h1>
+<hr class="rule">
+<p>The page you were looking for is not here. It may have moved, or the address may have a typo.</p>
+<p><a class="btn" href="/welcome-antarixs">Go to Antarixs</a></p>`,
+    'noindex'
+  );
+}
+
+/** The mark browsers show in the tab: Antarixs's purple tile with a white A. */
+const PLATFORM_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#2b0a7a"/><path d="M26 76 50 24l24 52h-11l-4.5-10.5H41.5L37 76Zm19-21h10L50 43Z" fill="#f7f3ff"/></svg>`;
+const iconCache = new Map<number, Promise<Buffer>>();
+const iconPng = (px: number) => {
+  let p = iconCache.get(px);
+  if (!p) iconCache.set(px, (p = import('sharp').then((m) => m.default(Buffer.from(PLATFORM_ICON_SVG)).resize(px, px).png().toBuffer())));
+  return p;
+};
+
+/** /privacy, /terms, robots.txt, sitemap.xml, the favicon and the icon files for the Antarixs site. Anything else falls through. */
+export function platformRoutes(c: Config) {
+  const router = Router();
+  const html = (page: () => string) => (_req: Request, res: import('express').Response) => void res.set('Cache-Control', 'public, max-age=3600').type('html').send(page());
+  router.get('/privacy', html(() => platformPrivacyPage(c)));
+  router.get('/terms', html(() => platformTermsPage(c)));
+  router.get('/favicon.svg', (_req, res) => void res.set('Cache-Control', 'public, max-age=86400').type('image/svg+xml').send(PLATFORM_ICON_SVG));
+  router.get('/favicon.ico', (_req, res) => res.redirect(302, '/pwa/icon-192.png'));
+  router.get('/pwa/icon-192.png', (_req, res, next) => void iconPng(192).then((b) => res.set('Cache-Control', 'public, max-age=86400').type('png').send(b)).catch(next));
+  router.get('/pwa/apple-touch-icon.png', (_req, res, next) => void iconPng(180).then((b) => res.set('Cache-Control', 'public, max-age=86400').type('png').send(b)).catch(next));
+  router.get('/robots.txt', (req, res) => {
+    // The entry page and sign-up are the site's shop window: open to search engines, except the API and the owner's console.
+    res.set('Cache-Control', 'public, max-age=3600').type('text/plain').send(['User-agent: *', 'Allow: /', 'Disallow: /api/', 'Disallow: /media/', `Sitemap: ${origin(req)}/sitemap.xml`].join('\n') + '\n');
+  });
+  router.get('/sitemap.xml', (req, res) => {
+    const base = origin(req);
+    const urls = ['/welcome-antarixs', '/signup', '/privacy', '/terms'];
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${esc(base + u)}</loc></url>`).join('\n')}\n</urlset>\n`;
+    res.set('Cache-Control', 'public, max-age=3600').type('application/xml').send(xml);
+  });
   return router;
 }

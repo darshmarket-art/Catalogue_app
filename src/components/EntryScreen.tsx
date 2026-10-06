@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalLinks';
 import React, { useEffect, useState } from 'react';
 import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
@@ -132,7 +133,7 @@ export const EntryScreen: React.FC = () => {
 
   return (
     <Shell>
-      <div className="em-welcome">
+      <main className="em-welcome">
         <section className="em-hero lg" style={{ background: DEEP }}>
           <AntarixsWordmark dark caption="Store" />
           <div>
@@ -177,9 +178,10 @@ export const EntryScreen: React.FC = () => {
               Compare Basic &amp; Pro
             </button>
             <PoweredByAntarixs />
+            <LegalLinks platform />
           </div>
         </div>
-      </div>
+      </main>
     </Shell>
   );
 };

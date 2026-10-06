@@ -4,15 +4,17 @@ import { legalUrl } from '../storeLink';
 import { t, useLang } from '../i18n';
 
 /** Links to the store's Privacy policy and Terms pages (server pages, opened in a new tab). */
-export const LegalLinks: React.FC<{ lead?: string; align?: 'center' | 'left' }> = ({ lead, align = 'center' }) => {
+/** `platform` is for the Antarixs site itself (entry page, store sign-up), whose own privacy and terms pages are at /privacy and /terms. */
+export const LegalLinks: React.FC<{ lead?: string; align?: 'center' | 'left'; platform?: boolean }> = ({ lead, align = 'center', platform }) => {
   useLang();
   const native = Capacitor.isNativePlatform();
+  const href = (page: 'privacy' | 'terms') => (platform ? `/${page}` : legalUrl(page, native));
   return (
     <p className="em-hint" data-testid="legal-links" style={{ textAlign: align, margin: 0 }}>
       {lead && <span style={{ display: 'block' }}>{t(lead)}</span>}
-      <a href={legalUrl('terms', native)} target="_blank" rel="noopener noreferrer" className="lnk">{t('Terms & conditions')}</a>
+      <a href={href('terms')} target="_blank" rel="noopener noreferrer" className="lnk">{t('Terms & conditions')}</a>
       {' · '}
-      <a href={legalUrl('privacy', native)} target="_blank" rel="noopener noreferrer" className="lnk">{t('Privacy policy')}</a>
+      <a href={href('privacy')} target="_blank" rel="noopener noreferrer" className="lnk">{t('Privacy policy')}</a>
     </p>
   );
 };

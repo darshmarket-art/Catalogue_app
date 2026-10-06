@@ -247,5 +247,7 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
   };
   let out = html;
   for (const [key, value] of Object.entries(replacements)) out = out.split(key).join(value);
+  // A site with no preview image (the Antarixs entry page) says so, rather than sending an empty address to Facebook, WhatsApp and X.
+  if (!merchant.brand.logoUrl) out = out.replace(/^[ \t]*<meta (?:property="og:image(?::alt)?"|name="twitter:image") content="[^"]*" \/>\r?\n/gm, '').replace('content="summary_large_image"', 'content="summary"');
   return out;
 }

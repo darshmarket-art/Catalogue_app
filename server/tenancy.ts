@@ -178,7 +178,8 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
         if (req.path.startsWith('/api') || req.path.startsWith('/media')) return void res.status(404).json({ status: 'error', message: 'Store not found.' });
         if (req.path === '/') return void res.redirect(302, '/welcome-antarixs');
         const b = config.merchant.brand;
-        res.locals.merchant = { ...config.merchant, brand: { ...b, seoTitle: 'Antarixs: your jewellery catalogue store', seoDescription: 'Create your own catalogue store with Antarixs. Free for 14 days.', logoUrl: '' } };
+        res.locals.platform = true;
+        res.locals.merchant = { ...config.merchant, brand: { ...b, name: 'Antarixs', seoTitle: 'Antarixs: your jewellery catalogue store', seoDescription: 'Create your own catalogue store with Antarixs. Free for 14 days.', logoUrl: '' } };
         return void next();
       }
       const id = storeIdOf(req, config);

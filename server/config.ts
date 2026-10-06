@@ -16,6 +16,8 @@ export interface Config {
   baseDomain: string;
   /** True on the bare/run.app host to show the Antarixs entry page instead of the default store. */
   platformMode: boolean;
+  /** Who runs Antarixs itself, for its privacy and terms pages (PLATFORM_LEGAL_NAME, PLATFORM_CONTACT_EMAIL, PLATFORM_ADDRESS). Square brackets mean "not set yet". */
+  platform: { legalName: string; email: string; address: string };
   /** How long a store record is cached, in ms. */
   storeCacheMs: number;
   isProduction: boolean;
@@ -127,6 +129,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     defaultStore: merchant.id,
     baseDomain: (env.BASE_DOMAIN?.trim() || 'antarixs.com').toLowerCase(),
     platformMode: env.PLATFORM_MODE === 'true',
+    platform: {
+      legalName: env.PLATFORM_LEGAL_NAME?.trim() || '[company legal name]',
+      email: env.PLATFORM_CONTACT_EMAIL?.trim() || '[contact email]',
+      address: env.PLATFORM_ADDRESS?.trim() || '[company address]'
+    },
     storeCacheMs: env.STORE_CACHE_MS ? parseInt(env.STORE_CACHE_MS, 10) : env.NODE_ENV === 'test' ? 0 : 15000,
     isProduction,
     minAppVersion: env.MIN_APP_VERSION || '0.0.0',

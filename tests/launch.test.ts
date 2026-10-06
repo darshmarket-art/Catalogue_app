@@ -92,3 +92,56 @@ describe('photo optimising', () => {
     expect(await optimisePhoto(fake, 'image/jpeg')).toBe(fake);
   });
 });
+
+describe('the Antarixs site (app.<domain>)', () => {
+  const get = (path: string) => request(app).get(path).set('Host', 'app.antarixs.com');
+  it('has its own privacy and terms, in Antarixs’s name and not a store’s', async () => {
+    for (const path of ['/privacy', '/terms']) {
+      const res = await get(path);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Antarixs');
+      expect(res.text).not.toContain('Bhakti');
+    }
+    expect((await get('/privacy')).text).toContain('[company legal name]'); // until PLATFORM_LEGAL_NAME is set
+  });
+  it('shows the operator once it is configured', async () => {
+    const named = createApp(loadConfig({ NODE_ENV: 'test', ...env, PLATFORM_LEGAL_NAME: 'Antarixs Technologies Pvt Ltd', PLATFORM_CONTACT_EMAIL: 'hello@antarixs.com' }), new MemoryStore(), new MemoryBlobs());
+    const res = await request(named).get('/terms').set('Host', 'app.antarixs.com');
+    expect(res.text).toContain('Antarixs Technologies Pvt Ltd');
+    expect(res.text).toContain('hello@antarixs.com');
+  });
+  it('is open to search engines, with a sitemap', async () => {
+    const robots = await get('/robots.txt');
+    expect(robots.text).toContain('Allow: /');
+    expect(robots.text).not.toMatch(/^Disallow: \/$/m);
+    expect((await get('/sitemap.xml')).text).toContain('/signup</loc>');
+  });
+  it('has its own icon files and favicon', async () => {
+    const png = await get('/pwa/icon-192.png');
+    expect(png.status).toBe(200);
+    expect(png.type).toBe('image/png');
+    expect(png.body.subarray(1, 4).toString()).toBe('PNG');
+    expect((await get('/favicon.ico')).headers.location).toBe('/pwa/icon-192.png');
+    expect((await get('/favicon.svg')).type).toBe('image/svg+xml');
+  });
+  it('a store keeps its own pages on its own address', async () => {
+    const res = await request(app).get('/privacy');
+    expect(res.text).toContain('Bhakti Jewels');
+  });
+});
+
+describe('link previews', () => {
+  it('leaves out the preview image tags when a site has no image', async () => {
+    const { renderIndexHtml } = await import('../server/merchant');
+    const fs = await import('fs');
+    const tpl = fs.readFileSync('index.html', 'utf-8');
+    const base = loadConfig({ NODE_ENV: 'test', ...env }).merchant;
+    const none = renderIndexHtml(tpl, { ...base, brand: { ...base.brand, name: 'Antarixs', logoUrl: '' } });
+    expect(none).not.toMatch(/og:image|twitter:image/);
+    expect(none).toContain('content="summary"');
+    expect(none).toContain('og:site_name" content="Antarixs"');
+    const some = renderIndexHtml(tpl, base);
+    expect(some).toContain('twitter:image');
+    expect(some).toContain('summary_large_image');
+  });
+});

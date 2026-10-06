@@ -1,3 +1,4 @@
+import { LegalLinks } from './LegalLinks';
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { setAuthToken } from '../api';
@@ -356,6 +357,7 @@ export const SignupScreen: React.FC = () => {
           <p className="hint" style={{ textAlign: 'center' }}>
             Your 14-day Pro trial starts now.
           </p>
+          <LegalLinks platform lead="By creating your store you agree to:" />
         </form>
       )}
     </main>

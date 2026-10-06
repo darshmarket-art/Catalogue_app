@@ -1,5 +1,5 @@
 import { entitlements } from './entitlements';
-import { createStoreResolver, planOf, scopeBlobs, scopeStore, secretFor, type StoreRecord } from './tenancy';
+import { createStoreResolver, isPlatformRequest, planOf, scopeBlobs, scopeStore, secretFor, type StoreRecord } from './tenancy';
 import type { PlanDoc } from './entitlements';
 import express from 'express';
 import type { RequestHandler } from 'express';
@@ -15,7 +15,7 @@ import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
 import { aboutRoutes } from './routes/about';
 import { pwaRoutes } from './routes/pwa';
-import { legalRoutes } from './legal';
+import { legalRoutes, platformRoutes } from './legal';
 import compression from 'compression';
 import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
@@ -143,6 +143,9 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root, undefined, log));
+  // Antarixs's own site (app.<domain>) has its own privacy, terms, robots, sitemap and icons; every other request carries on to the store.
+  const platform = platformRoutes(config);
+  app.use((req, res, next) => (isPlatformRequest(req, config) ? platform(req, res, next) : next()));
   app.use(resolver.middleware);
   return app;
 }
