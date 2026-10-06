@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
+import { LegalLinks } from './LegalLinks';
 import { Icon } from '../layouts/emergent/ui';
 import { Notice } from './ui';
 import { DevOtpHint } from './DevOtpHint';
@@ -236,6 +237,8 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
             </p>
           </form>
         )}
+
+        <LegalLinks lead="By continuing you agree to:" />
 
         {/* Admin entry: deliberately quiet, so buyers are not shown admin tools */}
         <button type="button" className="em-link" style={{ alignSelf: 'center' }} data-testid="buyer-admin-signin-link" onClick={() => onNavigate('admin-login')}>

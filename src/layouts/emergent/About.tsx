@@ -1,5 +1,6 @@
 import React from 'react';
 import { merchant } from '../../merchant';
+import { LegalLinks } from '../../components/LegalLinks';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
 import { hl, hn, t, tl, ts, useLang } from '../../i18n';
@@ -95,6 +96,7 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
         <div className="em-ab-foot" style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <PoweredByAntarixs />
           <span className="em-hint">{window.location.hostname}</span>
+          <LegalLinks />
         </div>
       </div>
     </div>

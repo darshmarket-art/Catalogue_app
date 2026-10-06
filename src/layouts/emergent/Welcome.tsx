@@ -4,6 +4,7 @@ import { BrandMark } from '../../components/BrandMark';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
 import { LangToggle } from '../../components/LangToggle';
+import { LegalLinks } from '../../components/LegalLinks';
 import { t, tl, ts, useLang } from '../../i18n';
 
 /** The store's first screen (atlas Welcome): the brand on a deep panel, then the way in as role-style cards, what the store offers, and the legal footer. */
@@ -80,6 +81,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
           <PoweredByAntarixs />
           {tl(merchant.welcome.footerLine) && <span className="em-hint">{tl(merchant.welcome.footerLine)}</span>}
           {tl(merchant.legal.registrationLine) && <span className="em-hint">{tl(merchant.legal.registrationLine)}</span>}
+          <LegalLinks />
         </div>
       </div>
     </div>

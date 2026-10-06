@@ -238,6 +238,7 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
     '{{SEO_TITLE}}': escapeHtml(merchant.brand.seoTitle),
     '{{SEO_DESCRIPTION}}': escapeHtml(merchant.brand.seoDescription),
     '{{OG_IMAGE}}': escapeHtml(merchant.brand.logoUrl),
+    '{{SITE_NAME}}': escapeHtml(merchant.brand.name),
     '{{THEME_COLOR}}': themeColor,
     '{{THEME_STYLE}}':
       (merchant.theme.fonts.url ? `<link rel="stylesheet" href="${escapeHtml(merchant.theme.fonts.url)}">` : '') +

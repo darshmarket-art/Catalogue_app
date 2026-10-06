@@ -356,4 +356,7 @@ export const HI: Record<string, string> = {
   Shortlisted: 'शॉर्टलिस्ट में',
   'Visit and contact': 'मिलें और संपर्क करें',
   Photos: 'फ़ोटो',
+  'Terms & conditions': 'नियम और शर्तें',
+  'Privacy policy': 'गोपनीयता नीति',
+  'By continuing you agree to:': 'जारी रखकर आप इनसे सहमत होते हैं:',
 };

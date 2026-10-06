@@ -88,8 +88,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
 
       {open && (
         <div
-          role="menu"
-          aria-label="Profile"
           className="card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50 animate-fade-in" style={{ boxShadow: "var(--sh-2)" }}
         >
           <div className="px-5 pt-4 pb-3">
@@ -110,6 +108,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
             )}
           </div>
 
+          <div role="menu" aria-label="Profile">
           {isAdmin ? (
             <>
               <button role="menuitem" className={itemClass} data-testid="menu-store" onClick={choose(onOpenAdminConsole)} type="button">
@@ -154,6 +153,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
           <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">
             {isAdmin ? 'Log out' : t('Log out')}
           </button>
+          </div>
         </div>
       )}
       {sharing && <StoreShareSheet name={merchant.brand.name} url={currentStoreUrl()} onClose={() => setSharing(false)} />}

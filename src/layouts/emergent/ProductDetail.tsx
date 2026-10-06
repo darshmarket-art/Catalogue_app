@@ -193,7 +193,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
             <div ref={scroller} data-testid="product-gallery" className="em-gal" onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
               {slides.map((src, i) => (
                 <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={t('Zoom photo {n} of {name}', { n: i + 1, name })}>
-                  <Ph src={src} tone={i} style={i === 0 ? { viewTransitionName: 'product-photo' } as React.CSSProperties : undefined} />
+                  <Ph src={src} tone={i} alt={slides.length > 1 ? `${name}, ${t('Photo {n}', { n: i + 1 })}` : name} style={i === 0 ? { viewTransitionName: 'product-photo' } as React.CSSProperties : undefined} />
                 </button>
               ))}
             </div>

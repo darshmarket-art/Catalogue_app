@@ -5,8 +5,9 @@ import { newPhotoFile, objectName, type Media } from '../media';
 import type { Entitlements } from '../entitlements';
 import { HttpError, handler } from '../http';
 import { logger } from '../logger';
+import sharp from 'sharp';
 
-// Originals are kept as uploaded (no resizing), so the limit is generous. Cloud Run accepts requests up to 32 MB.
+// Uploads can be large (phone photos), so the limit is generous; they are shrunk before they are stored. Cloud Run accepts requests up to 32 MB.
 export const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
 
 const TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const;
@@ -17,6 +18,24 @@ function sniff(data: Buffer): 'image/jpeg' | 'image/png' | 'image/webp' | null {
   if (data.length > 12 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
   if (data.length > 12 && data.subarray(0, 4).toString() === 'RIFF' && data.subarray(8, 12).toString() === 'WEBP') return 'image/webp';
   return null;
+}
+
+/** The longest side a stored photo keeps. Larger than any screen the catalogue shows it on, far smaller than a phone camera's original. */
+const MAX_SIDE = 2400;
+
+/**
+ * Shrinks an upload before it is stored: turned upright by its camera orientation, no larger than MAX_SIDE, re-saved at a good quality with
+ * its hidden camera and location details removed. If that fails or does not make the file smaller, the original is kept as it was sent.
+ */
+export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/png' | 'image/webp'): Promise<Buffer> {
+  try {
+    const img = sharp(data, { failOn: 'none' }).rotate().resize({ width: MAX_SIDE, height: MAX_SIDE, fit: 'inside', withoutEnlargement: true });
+    const out = await (type === 'image/jpeg' ? img.jpeg({ quality: 85, mozjpeg: true }) : type === 'image/webp' ? img.webp({ quality: 85 }) : img.png({ compressionLevel: 9 })).toBuffer();
+    return out.length < data.length ? out : data;
+  } catch (err) {
+    logger.warn('Photo could not be optimised; storing it as sent', { error: err instanceof Error ? err.message : String(err) });
+    return data;
+  }
 }
 
 /** Admin-only: the browser sends the photo as the raw request body; it is stored in the merchant's bucket. */
@@ -36,9 +55,10 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const type = sniff(body);
       if (!type) throw new HttpError(415, 'That file is not a valid JPEG, PNG or WebP image.');
 
+      const stored = await optimisePhoto(body, type);
       const file = newPhotoFile(TYPES[type]);
-      await blobs.put(objectName(file), body, type);
-      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: body.length } });
+      await blobs.put(objectName(file), stored, type);
+      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: stored.length } });
     })
   );
 

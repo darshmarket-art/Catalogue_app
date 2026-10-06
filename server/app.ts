@@ -15,6 +15,8 @@ import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
 import { aboutRoutes } from './routes/about';
 import { pwaRoutes } from './routes/pwa';
+import { legalRoutes } from './legal';
+import compression from 'compression';
 import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
@@ -54,6 +56,18 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   app.disable('x-powered-by');
   // Cloud Run terminates TLS in front of the container; trust exactly one proxy hop for client IPs.
   if (config.isProduction) app.set('trust proxy', 1);
+
+  // Plain-http requests that reach us through the load balancer are sent to https (the health check is exempt).
+  if (config.isProduction) {
+    app.use((req, res, next) => {
+      const host = req.headers.host ?? '';
+      if (req.headers['x-forwarded-proto'] === 'http' && req.path !== '/health' && /^[a-z0-9.-]+(:\d+)?$/i.test(host)) {
+        return void res.redirect(308, `https://${host}${req.originalUrl}`);
+      }
+      next();
+    });
+  }
+  app.use(compression());
 
   app.use(
     helmet({
@@ -142,6 +156,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   if (config.isProduction) app.set('trust proxy', 1);
 
   app.use(pwaRoutes(config.merchant));
+  app.use(legalRoutes(config.merchant));
 
   app.use(
     '/api',

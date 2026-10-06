@@ -106,6 +106,8 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   return (
     <div className="em-page home">
       {toastMessage && <Toast>{toastMessage}</Toast>}
+      {/* Phones have no greeting, so the page's one heading is the store's name, for screen readers. Desktop's greeting is the heading there. */}
+      <h1 className="em-sr em-mb">{ts(merchant.brand.name)}</h1>
 
       <div className={`em-sticky em-home-top${hideBar ? ' hide' : ''}`} style={{ borderBottom: 0 }}>
         <div className="em-pad em-home-row" style={{ paddingTop: 4, paddingBottom: 8 }}>
@@ -139,7 +141,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
               {banners.length > 0
                 ? banners.map((b, i) => (
                     <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? t('Open {name}', { name: catName(b.category) }) : t('Banner {n}', { n: i + 1 })}>
-                      <Ph src={b.image} tone={i} className="em-fill" />
+                      <Ph src={b.image} tone={i} className="em-fill" alt={b.category ? catName(b.category) : t('Banner {n}', { n: i + 1 })} />
                       {b.category && (
                         <>
                           <span className="em-sc" />
@@ -247,7 +249,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           {shown.map((cat, i) => (
             <div key={cat.id} className="em-sq" data-testid="home-collection">
               <button type="button" className="em-hit" aria-label={t('Open {name}', { name: hn(cat.name, cat.nameHi) })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
-                <Ph src={cat.image} tone={i} className="em-fill" />
+                <Ph src={cat.image} tone={i} className="em-fill" alt={hn(cat.name, cat.nameHi)} />
                 <span className="em-sc" />
                 {cat.tag && <span className="em-dk em-pill em-col-tag">{ts(cat.tag)}</span>}
                 <span className="em-col-ov">
@@ -301,7 +303,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         <div className="em-pad" style={{ marginTop: 28 }}>
           <div className="em-card em-social" data-testid="social-links">
             <div className="em-social-head">
-              <div className="em-ey g">{t('Find us')}</div>
+              <div className="em-ey" style={{ color: 'var(--em-gold-ink)' }}>{t('Find us')}</div>
               <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: ts(merchant.brand.name) })}</p>
               {contact.address && (
                 <div className="em-dk em-find-addr">

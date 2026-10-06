@@ -64,10 +64,10 @@ export const Icon: React.FC<{ n: string; size?: number; fill?: boolean; classNam
   </svg>
 );
 
-/** A photo frame: the image, or a tinted placeholder from the store's own gold. A span, so it can sit inside a button. */
-export const Ph: React.FC<{ src?: string; tone?: number; className?: string; style?: React.CSSProperties; children?: React.ReactNode }> = ({ src, tone = 0, className = '', style, children }) => (
+/** A photo frame: the image, or a tinted placeholder from the store's own gold. A span, so it can sit inside a button. Give it `alt` when the photo is the only thing that names the item; beside a visible name the empty default is right. */
+export const Ph: React.FC<{ src?: string; tone?: number; className?: string; style?: React.CSSProperties; alt?: string; children?: React.ReactNode }> = ({ src, tone = 0, className = '', style, alt = '', children }) => (
   <span className={`em-ph t${tone % 4} ${className}`} style={style}>
-    {src && <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />}
+    {src && <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" />}
     {children}
   </span>
 );

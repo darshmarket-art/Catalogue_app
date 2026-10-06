@@ -730,6 +730,8 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
  * a filter panel beside the Catalogue, a two-column design window, and a side panel on Orders and Shortlist.
  * ====================================================================================================== */
 [data-layout="emergent"] .em-dk { display: none !important; }
+/* Read by screen readers, not seen. */
+[data-layout="emergent"] .em-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 [data-layout="emergent"] .em-colcard-t, [data-layout="emergent"] .em-ab-story { display: contents; }
 [data-layout="emergent"] .em-promo-act { display: block; }
 

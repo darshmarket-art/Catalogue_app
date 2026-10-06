@@ -7,6 +7,7 @@ import { createApp } from './server/app';
 import { seedDemoCatalogue } from './server/seed';
 import { migrateLegacyBuyers } from './server/migrate';
 import { renderIndexHtml } from './server/merchant';
+import { isAppPath, notFoundPage } from './server/legal';
 import { scopeStore } from './server/tenancy';
 import { createBlobs } from './server/blobs';
 import { logger } from './server/logger';
@@ -40,6 +41,7 @@ async function startServer() {
     });
     app.get('*', async (req, res, next) => {
       try {
+        if (!isAppPath(req.path) && !/^\/(@|src\/|node_modules\/)/.test(req.path)) return void res.status(404).type('html').send(notFoundPage(res.locals.merchant));
         const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         const html = renderIndexHtml(await vite.transformIndexHtml(req.originalUrl, template), res.locals.merchant);
         res.status(200).type('html').send(html);
@@ -56,9 +58,13 @@ async function startServer() {
     app.get('/sw.js', (_req, res) => {
       res.set('Cache-Control', 'no-cache').type('js').sendFile(path.join(distPath, 'sw.js'));
     });
-    app.use(express.static(distPath, { index: false }));
-    app.get('*', (_req, res) => {
-      res.type('html').send(renderIndexHtml(template, res.locals.merchant));
+    // Built files have a hash in their name, so they can be kept for a year; everything else is re-checked.
+    app.use('/assets', express.static(path.join(distPath, 'assets'), { index: false, maxAge: '1y', immutable: true, fallthrough: false }));
+    app.use(express.static(distPath, { index: false, maxAge: '1h' }));
+    app.get('*', (req, res) => {
+      // Only the app's own addresses open the app; anything else is a real "page not found".
+      if (!isAppPath(req.path)) return void res.status(404).set('Cache-Control', 'no-store').type('html').send(notFoundPage(res.locals.merchant));
+      res.set('Cache-Control', 'no-cache').type('html').send(renderIndexHtml(template, res.locals.merchant));
     });
   }
 

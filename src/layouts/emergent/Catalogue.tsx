@@ -466,7 +466,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               return (
                 <div key={prod.id} data-sku={prod.sku} data-testid="product-row" className="em-lrow">
                   <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
-                    <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} />
+                    <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} alt={hn(prod.title, prod.titleHi)} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
                       <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{hn(prod.title, prod.titleHi)}</span>
                       <span className="em-wt" style={{ display: 'block', marginTop: 3 }}>{fmtG(prod.netWt)}</span>
@@ -490,7 +490,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                 <div key={prod.id} className="em-cardwrap em-tile">
                   <article data-sku={prod.sku} data-testid="product-card" className="em-sq">
                     <button type="button" className="em-hit" aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
-                      <Ph src={prod.image} tone={i} className="em-fill" />
+                      <Ph src={prod.image} tone={i} className="em-fill" alt={hn(prod.title, prod.titleHi)} />
                     </button>
                     {!isAdmin && flags.orders && (
                       <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: hn(prod.title, prod.titleHi) })} onClick={() => setCartFor(prod)}>
@@ -509,7 +509,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               <div key={prod.id} className="em-cardwrap">
               <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
                 <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : t('View {name}', { name: hn(prod.title, prod.titleHi) })} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
-                  <Ph src={prod.image} tone={i} className="em-fill" />
+                  <Ph src={prod.image} tone={i} className="em-fill" alt={hn(prod.title, prod.titleHi)} />
                 </button>
                 {selecting && (
                   <span className="em-pick" aria-hidden="true">
