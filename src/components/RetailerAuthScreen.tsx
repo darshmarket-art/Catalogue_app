@@ -12,7 +12,8 @@ import type { ProfileUser } from './ProfileMenu';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onLoginSuccess: (user: ProfileUser) => void;
+  /** isNew: the number signed up just now (the buyer gets the app tour). */
+  onLoginSuccess: (user: ProfileUser, isNew: boolean) => void;
 }
 
 /** The buyer details the profile menu shows. */
@@ -128,7 +129,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       <WelcomeGreeting
         title={`${welcome.isNew ? 'Welcome' : 'Welcome back'}, ${welcome.user.ownerName || welcome.user.storeName}`}
         subtitle="Opening your showroom…"
-        onDone={() => onLoginSuccess(welcome.user)}
+        onDone={() => onLoginSuccess(welcome.user, welcome.isNew)}
       />
     );
   }

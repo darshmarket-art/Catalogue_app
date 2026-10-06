@@ -8,6 +8,7 @@ import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler }
 import { noteCollection } from './recent';
 import { setTagList } from './tagList';
 import { isTidying } from './backLayer';
+import { BuyerTour, markTourSeen, tourSeen } from './components/BuyerTour';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -100,6 +101,13 @@ export default function App() {
     () => new URLSearchParams(window.location.search).get('category')
   );
   // Which Orders tab to open first (the profile menu links straight to past orders).
+  // The guided tour for buyers: after a new buyer's first sign-in, or from the profile menu.
+  const [touring, setTouring] = useState(false);
+  useEffect(() => {
+    const open = () => setTouring(true);
+    window.addEventListener('app-tour', open);
+    return () => window.removeEventListener('app-tour', open);
+  }, []);
   // A search or a design Home hands to the Catalogue (used once).
   const [handoff, setHandoff] = useState<{ search: string; sku: string | null }>({ search: '', sku: null });
   const [ordersTab, setOrdersTab] = useState<'current' | 'past'>('current');
@@ -681,6 +689,17 @@ export default function App() {
 
   return (
     <div data-layout={DEFAULT_LAYOUT} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+      {touring && currentMerchant && !isAdminLoggedIn && (
+        <BuyerTour
+          buyerName={currentMerchant.ownerName || currentMerchant.storeName}
+          onNavigate={(to) => screenRef.current !== to && handleNavigate(to)}
+          onClose={() => {
+            markTourSeen(currentMerchant.phone);
+            setTouring(false);
+            handleNavigate('categories');
+          }}
+        />
+      )}
       {exitHint && (
         <div role="status" className="em-toast">
           Press back again to exit
@@ -823,8 +842,10 @@ export default function App() {
         {activeScreen === 'retailer-auth' && (
           <RetailerAuthScreen
             onNavigate={(next) => handleNavigate(next, true)}
-            onLoginSuccess={(user) => {
+            onLoginSuccess={(user, isNew) => {
               setCurrentMerchant(user);
+              // New buyers get the guided tour once (it can be replayed from the profile menu).
+              if (isNew && !tourSeen(user.phone)) setTimeout(() => setTouring(true), 450);
               handleNavigate(categoryFilter ? 'catalogue' : 'categories', true);
               if (flags.orders) api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
             }}

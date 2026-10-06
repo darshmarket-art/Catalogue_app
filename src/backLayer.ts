@@ -9,6 +9,23 @@ let wired = false;
 /** True while the app itself is removing a closed layer's history entry; that step must not change the screen. */
 let tidying = false;
 export const isTidying = () => tidying;
+let tidyTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Removes history entries left by layers the app closed itself (a button, a tap outside, an add that closes two sheets at once).
+ * One step at a time: a second request while one is pending or travelling would otherwise go back too far and leave the app.
+ */
+const scheduleTidy = () => {
+  if (tidyTimer || tidying) return;
+  tidyTimer = setTimeout(() => {
+    tidyTimer = null;
+    const extra = (window.history.state?.ld ?? 0) - stack.length;
+    if (extra > 0) {
+      tidying = true;
+      window.history.go(-extra);
+    }
+  }, 0);
+};
 
 const wire = () => {
   if (wired) return;
@@ -16,7 +33,10 @@ const wire = () => {
   window.addEventListener('popstate', (e) => {
     const depth = e.state && typeof e.state.ld === 'number' ? e.state.ld : 0;
     while (stack.length > depth) stack.pop()!.close();
+    const wasTidying = tidying;
     tidying = false;
+    // A layer closed while the last tidy was travelling: tidy again now that history has settled.
+    if (wasTidying && (window.history.state?.ld ?? 0) > stack.length) scheduleTidy();
   });
 };
 
@@ -47,14 +67,7 @@ export function useBackLayer(open: boolean, close: () => void) {
       if (at < 0) return; // already closed by Back: its history entry is gone
       // Closed by the app (a button, a tap outside): drop the history entry it added.
       stack.splice(at, 1);
-      // Tidied on the next tick, once any layer opening in the same moment has registered.
-      setTimeout(() => {
-        const extra = (window.history.state?.ld ?? 0) - stack.length;
-        if (extra > 0) {
-          tidying = true;
-          window.history.go(-extra);
-        }
-      }, 0);
+      scheduleTidy();
     };
   }, [open]);
 }

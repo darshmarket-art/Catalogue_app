@@ -142,6 +142,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
             </button>
           )}
 
+          {!isAdmin && (
+            <button role="menuitem" className={itemClass} data-testid="menu-tour" onClick={choose(() => window.dispatchEvent(new Event('app-tour')))} type="button">
+              Take the app tour
+            </button>
+          )}
+
           <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">
             Log out
           </button>

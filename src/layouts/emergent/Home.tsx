@@ -246,7 +246,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             <span className="em-badge"><Icon n="grid" size={18} /></span>
             <span className="em-grow">
               <b className="em-ser" style={{ fontSize: 17, fontWeight: 500 }}>Browse all {categories.length} collections</b>
-              <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Search or jump A to Z</span>
+              <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Search or browse by type</span>
             </span>
             <Icon n="right" size={18} />
           </button>
