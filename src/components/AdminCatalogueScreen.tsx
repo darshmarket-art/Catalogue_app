@@ -421,20 +421,20 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
   // Grouped under each tag (Rings, Pendants, …) in the fixed tag order.
   const groups = groupByTag(list, order);
 
+  // One collection as a card: the photo (tap to open its designs), name and count underneath, and the star, PDF and edit buttons.
   const row = (c: Category, i: number) => (
-    <div key={c.id} className="em-li" data-testid="admin-collection-row">
-      <button type="button" className="em-row" style={{ gap: 14, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => onOpenDesigns(c.name)} aria-label={`Open the designs in ${c.name}`}>
-        <Ph src={c.image} tone={i} className="em-thumb" />
-        <span className="em-grow">
-          <span className="em-ser em-clip" style={{ display: 'block', fontSize: 17 }}>{c.name}</span>
-          <span className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>
-            {c.designCount} {c.designCount === 1 ? 'design' : 'designs'}
-            {c.eligibleKarats?.length ? ` · ${c.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ')}` : ''}
-          </span>
-        </span>
-      </button>
-      <div className="em-row" style={{ gap: 6 }}>
-        <button type="button" className="em-circ" data-testid="collection-hero" aria-pressed={typeof c.heroOrder === 'number'} aria-label={typeof c.heroOrder === 'number' ? `Remove ${c.name} from the hero collections` : `Make ${c.name} a hero collection on Home`} onClick={() => toggleHero(c)} style={typeof c.heroOrder === 'number' ? { color: 'var(--em-gold-ink)', borderColor: 'var(--em-gold)' } : { color: 'var(--em-mut)' }}>
+    <div key={c.id} className="em-cardwrap" data-testid="admin-collection-row">
+      <div className="em-sq">
+        <button type="button" className="em-hit" onClick={() => onOpenDesigns(c.name)} aria-label={`Open the designs in ${c.name}`}>
+          <Ph src={c.image} tone={i} className="em-fill" />
+        </button>
+      </div>
+      <div className="em-card-t">
+        <span className="em-ser em-clip">{c.name}</span>
+        <span className="em-mut" style={{ fontSize: 12 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span>
+      </div>
+      <div className="em-row em-sb" style={{ padding: '0 10px 10px', gap: 6 }}>
+        <button type="button" className="em-circ" data-testid="collection-hero" aria-pressed={typeof c.heroOrder === 'number'} aria-label={typeof c.heroOrder === 'number' ? `Remove ${c.name} from the hero collections` : `Make ${c.name} a hero collection on Home`} onClick={() => toggleHero(c)} style={typeof c.heroOrder === 'number' ? { color: 'var(--em-gold-ink)', borderColor: 'var(--em-gold)', background: 'color-mix(in srgb, var(--em-gold) 22%, var(--em-card))' } : { color: 'var(--em-mut)' }}>
           <Icon n="star" size={16} fill={typeof c.heroOrder === 'number'} />
         </button>
         <button type="button" className="em-circ" data-testid="collection-pdf" disabled={busy !== null && busy !== c.name} aria-label={flags.pdfCatalogue ? `Make a PDF of ${c.name}` : `PDF of ${c.name} (Pro)`} onClick={() => makePdf(c)} style={busy === c.name ? { background: 'var(--em-primary)', color: 'var(--em-on-primary)' } : undefined}>
@@ -490,7 +490,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
         {groups.map(([t, cs]) => (
           <div key={t} data-testid="admin-tag-group">
             <div className="em-letter em-tag-h">{t} <span>{cs.length}</span></div>
-            {cs.map((c, i) => row(c, i))}
+            <div className="em-grid em-grid-c2" style={{ margin: '10px 0 6px' }}>{cs.map((c, i) => row(c, i))}</div>
           </div>
         ))}
         {list.length === 0 && categories.length > 0 && <p className="em-mut" style={{ textAlign: 'center', padding: '16px 0' }}>No collection matches.</p>}

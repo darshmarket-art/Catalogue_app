@@ -35,14 +35,18 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
 
   return (
     <Sheet label={`Add ${product.title} to cart`} onClose={onClose}>
-      <div>
-        <span className="em-ey">{product.sku}</span>
-        <div className="em-ser" style={{ fontSize: 22, marginTop: 2 }}>
-          {product.title}
+      <div className="em-row" style={{ alignItems: 'flex-start', gap: 12 }}>
+        <div className="em-grow" style={{ minWidth: 0 }}>
+          <div className="em-ser" style={{ fontSize: 22 }}>
+            {product.title}
+          </div>
+          <p className="em-mut" style={{ fontSize: 13, margin: '4px 0 0' }}>
+            Choose how many pieces you want in each purity.
+          </p>
         </div>
-        <p className="em-mut" style={{ fontSize: 13, margin: '4px 0 0' }}>
-          Choose how many pieces you want in each purity.
-        </p>
+        <button type="button" className="em-circ" data-testid="cart-sheet-close" aria-label="Close" onClick={onClose} style={{ flex: 'none' }}>
+          <Icon n="x" size={18} />
+        </button>
       </div>
 
       <div data-testid="cart-purity-rows">

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Category } from '../../types';
 import { Icon, Ph } from './ui';
-import { recentCollections } from '../../recent';
 import { useBackLayer } from '../../backLayer';
 import { groupByTag, useTagList } from '../../tagList';
 
@@ -27,7 +26,6 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
   const list = useMemo(() => categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || c.tag === tag)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term, tag]);
   // Collections grouped under their tag, in the fixed tag order.
   const groups = useMemo(() => groupByTag(list, order), [list, order]);
-  const recent = term || tag ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -84,12 +82,6 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
               <span className="em-grow"><span className="em-ser" style={{ display: 'block', fontSize: 17 }}>All collections</span><span className="em-mut" style={{ fontSize: 11 }}>Every design in the store</span></span>
               {!current ? <Icon n="check" size={18} /> : <Icon n="right" size={18} />}
             </button>
-          )}
-          {recent.length > 0 && (
-            <>
-              <div className="em-ey" style={{ margin: '14px 0 2px' }}>Recent</div>
-              <div className="em-colgrid">{recent.map((c, i) => card(c, i, `r-${c.id}`))}</div>
-            </>
           )}
           {groups.map(([t, cs]) => (
             <div key={t} data-testid="tag-group">
