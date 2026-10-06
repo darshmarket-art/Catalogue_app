@@ -2,6 +2,7 @@ import React from 'react';
 import { usePlan } from '../../plan';
 import type { ActiveScreen } from '../../types';
 import { Icon, type KitProps } from './ui';
+import { t, useLang } from '../../i18n';
 
 /**
  * Emergent's tab bar: Home, Catalogue, Shortlist, Orders, with a gold underline on the active tab and gold counts.
@@ -10,6 +11,7 @@ import { Icon, type KitProps } from './ui';
  */
 export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNavigate, orderCount, shortlistCount, isAdminLoggedIn, adminBadges }) => {
   const { flags } = usePlan();
+  useLang();
 
   // The owner has their own four tabs: Today, Orders, Catalogue, Buyers. Setup and account sit under the profile button (Store).
   const ownerTabs: Array<{ screen: ActiveScreen; label: string; icon: string; active: boolean; badge?: number }> = [
@@ -19,10 +21,10 @@ export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNa
     { screen: 'admin-buyers', label: 'Buyers', icon: 'users', active: currentScreen === 'admin-buyers', badge: adminBadges?.buyers }
   ];
   const buyerTabs: Array<{ screen: ActiveScreen; label: string; icon: string; active: boolean; badge?: number }> = [
-    { screen: 'categories', label: 'Home', icon: 'home', active: currentScreen === 'categories' },
-    { screen: 'catalogue', label: 'Catalogue', icon: 'grid', active: currentScreen === 'catalogue' },
-    { screen: 'shortlist', label: 'Shortlist', icon: 'heart', active: currentScreen === 'shortlist', badge: shortlistCount },
-    ...(flags.orders ? [{ screen: 'orders' as const, label: 'Orders', icon: 'package', active: currentScreen === 'orders', badge: orderCount }] : [])
+    { screen: 'categories', label: t('Home'), icon: 'home', active: currentScreen === 'categories' },
+    { screen: 'catalogue', label: t('Catalogue'), icon: 'grid', active: currentScreen === 'catalogue' },
+    { screen: 'shortlist', label: t('Shortlist'), icon: 'heart', active: currentScreen === 'shortlist', badge: shortlistCount },
+    ...(flags.orders ? [{ screen: 'orders' as const, label: t('Orders'), icon: 'package', active: currentScreen === 'orders', badge: orderCount }] : [])
   ];
   const tabs = isAdminLoggedIn ? ownerTabs : buyerTabs;
 
@@ -30,7 +32,7 @@ export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNa
     <div className="em-tabs">
       <nav aria-label="Main">
         {tabs.map((tab) => (
-          <button key={tab.screen} type="button" onClick={() => onNavigate(tab.screen)} aria-current={tab.active ? 'page' : undefined} className={`em-tab${tab.active ? ' on' : ''}`}>
+          <button key={tab.screen} type="button" data-tab={tab.screen} onClick={() => onNavigate(tab.screen)} aria-current={tab.active ? 'page' : undefined} className={`em-tab${tab.active ? ' on' : ''}`}>
             <span>
               <Icon n={tab.icon} size={tab.active ? 22 : 20} />
               {tab.badge ? <b key={tab.badge} className="em-bd">{tab.badge > 99 ? '99+' : tab.badge}</b> : null}

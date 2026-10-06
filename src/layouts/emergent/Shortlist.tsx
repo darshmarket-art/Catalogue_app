@@ -5,10 +5,12 @@ import type { Product } from '../../types';
 import { merchant } from '../../merchant';
 import { ProductDetail } from './ProductDetail';
 import { Icon, Ph, Title, fmtG, stockTone, type KitProps } from './ui';
+import { t, tn, useLang } from '../../i18n';
 
 /** Shortlist (atlas Shortlist): hearted designs as a divided list, with the total net weight and the order and WhatsApp actions in a bar at the foot. */
 export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, purities, categories, onAddToOrder, onRemove, onAddAllToOrder, onBrowse }) => {
   const canOrder = usePlan().flags.orders;
+  useLang();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   // The design whose details are open. Kept as the design itself so un-hearting it inside the details does not close the page.
@@ -39,20 +41,20 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
     return (
       <div className="em-page">
         <div className="em-pad">
-          <Title eyebrow="Your favourites" title="Shortlist" />
+          <Title eyebrow={t('Your favourites')} title={t('Shortlist')} />
         </div>
         <div className="em-empty" style={{ paddingTop: 32 }}>
           <span className="em-badge">
             <Icon n="heart" size={24} />
           </span>
           <h2 className="em-ser" style={{ fontSize: 24 }}>
-            Your shortlist is empty
+            {t('Your shortlist is empty')}
           </h2>
           <p className="em-mut" style={{ maxWidth: 300, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
-            Tap the heart on any design to keep it here. Then send the list on WhatsApp or add it all to your order.
+            {t('Tap the heart on any design to keep it here. Then send the list on WhatsApp or add it all to your order.')}
           </p>
           <button type="button" className="em-btn" onClick={onBrowse}>
-            Browse designs
+            {t('Browse designs')}
           </button>
         </div>
       </div>
@@ -62,11 +64,11 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
   return (
     <div className="em-page dock1">
       <div className="em-pad">
-        <Title eyebrow={`Your favourites · ${items.length} ${items.length === 1 ? 'design' : 'designs'}`} title="Shortlist" />
+        <Title eyebrow={`${t('Your favourites')} · ${tn(items.length, '{n} design', '{n} designs')}`} title={t('Shortlist')} />
         <div style={{ marginTop: 6 }}>
           {items.map((p, i) => (
             <div key={p.sku} className="em-li">
-              <button type="button" className="em-li-open" aria-label={`View ${p.title}`} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+              <button type="button" className="em-li-open" aria-label={t('View {name}', { name: p.title })} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
               <Ph src={p.image} tone={i} className="em-thumb" />
               <div className="em-grow">
                 <div className="em-ser">{p.title}</div>
@@ -75,14 +77,14 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
                 </div>
               </div>
               </button>
-              <button type="button" className="em-circ" style={{ border: 0, background: 'none' }} aria-label={`Remove ${p.title} from shortlist`} onClick={() => onRemove(p)}>
+              <button type="button" className="em-circ" style={{ border: 0, background: 'none' }} aria-label={t('Remove {name} from shortlist', { name: p.title })} onClick={() => onRemove(p)}>
                 <Icon n="heart" size={20} fill />
               </button>
             </div>
           ))}
         </div>
         <p className="em-hint" style={{ textAlign: 'center', marginTop: 12 }}>
-          Tap a heart on any design to save it here.
+          {t('Tap a heart on any design to save it here.')}
         </p>
       </div>
 
@@ -102,24 +104,24 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
         <div className="em-dock-in" style={{ gap: 14 }}>
           <div className="em-grow">
             <div className="em-ey em-clip">
-              {items.length} {items.length === 1 ? 'design' : 'designs'} · 1 pc each
+              {tn(items.length, '{n} design', '{n} designs')} · {t('1 pc each')}
             </div>
-            <div className="em-ser tot">{fmtG(totalNet)} net</div>
+            <div className="em-ser tot">{t('{w} net', { w: fmtG(totalNet) })}</div>
           </div>
           {canOrder ? (
             <>
-              <button type="button" className="em-circ" style={{ width: 46, height: 46, color: 'var(--em-wa)' }} onClick={sendOnWhatsApp} aria-label="Send shortlist on WhatsApp">
+              <button type="button" className="em-circ" style={{ width: 46, height: 46, color: 'var(--em-wa)' }} onClick={sendOnWhatsApp} aria-label={t('Send shortlist on WhatsApp')}>
                 <Icon n="wa" />
               </button>
               <button type="button" className="em-btn" data-testid="shortlist-order-all" onClick={addAll} disabled={adding} style={{ whiteSpace: 'nowrap' }}>
                 <Icon n={added ? 'check' : 'bag'} />
-                {adding ? 'Adding…' : added ? 'Added to order' : 'Order all'}
+                {t(adding ? 'Adding…' : added ? 'Added to order' : 'Order all')}
               </button>
             </>
           ) : (
             <button type="button" className="em-btn wa" onClick={sendOnWhatsApp}>
               <Icon n="wa" />
-              Enquire on WhatsApp
+              {t('Enquire on WhatsApp')}
             </button>
           )}
         </div>

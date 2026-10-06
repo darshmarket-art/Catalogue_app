@@ -9,6 +9,7 @@ import { noteCollection } from './recent';
 import { setTagList } from './tagList';
 import { isTidying } from './backLayer';
 import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
+import { t, useLang } from './i18n';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -46,6 +47,7 @@ const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-aler
 const DRILL: ActiveScreen[] = ['categories', 'catalogue'];
 
 export default function App() {
+  useLang(); // the buyer screens re-render in the chosen language
   const plan = usePlan();
   const { flags } = plan;
   // The current screen lives in the browser history too, so Back/Forward (and a reload) stay inside the app.
@@ -229,7 +231,7 @@ export default function App() {
   // Any request that finds the token expired or revoked signs the user out once, with a clear message.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      alert('Your session has expired. Please sign in again.');
+      alert(t('Your session has expired. Please sign in again.'));
       handleLogout();
     });
     return () => setUnauthorizedHandler(null);
@@ -344,7 +346,7 @@ export default function App() {
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
-          alert('Please sign in to your wholesale account to add items to your order.');
+          alert(t('Please sign in to your wholesale account to add items to your order.'));
           handleNavigate('retailer-auth');
         } else {
           alert(err.message);
@@ -419,7 +421,7 @@ export default function App() {
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
-          alert('Please sign in to your wholesale account to confirm this order.');
+          alert(t('Please sign in to your wholesale account to confirm this order.'));
           handleNavigate('retailer-auth');
         } else {
           alert(err.message);
@@ -741,7 +743,7 @@ export default function App() {
       )}
       {exitHint && (
         <div role="status" className="em-toast">
-          Press back again to exit
+          {t('Press back again to exit')}
         </div>
       )}
       {/* Persistent Header */}

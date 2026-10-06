@@ -7,6 +7,7 @@ import { PhotoViewer } from '../../components/PhotoViewer';
 import { CartSheet, soldPurities } from './CartSheet';
 import { Icon, Ph, Pill, StockPill, fmtG } from './ui';
 import { useBackLayer } from '../../backLayer';
+import { t, useLang } from '../../i18n';
 
 interface ProductDetailProps {
   product: Product | null;
@@ -27,9 +28,9 @@ interface ProductDetailProps {
 
 /** The rows under "Specifications": the design's weights, then whatever details this store records (merchant.productFields). */
 const specRows = (p: Product) => [
-  { key: 'gross', label: 'Gross weight', value: fmtG(p.grossWt), net: false },
-  ...(p.stoneWt ? [{ key: 'stone', label: 'Stone / tare', value: fmtG(p.stoneWt), net: false }] : []),
-  { key: 'net', label: 'Net weight', value: fmtG(p.netWt), net: true },
+  { key: 'gross', label: t('Gross weight'), value: fmtG(p.grossWt), net: false },
+  ...(p.stoneWt ? [{ key: 'stone', label: t('Stone / tare'), value: fmtG(p.stoneWt), net: false }] : []),
+  { key: 'net', label: t('Net weight'), value: fmtG(p.netWt), net: true },
   ...merchant.productFields.filter((f) => p.extra?.[f.key] !== undefined).map((f) => ({ key: `x-${f.key}`, label: f.label, value: `${p.extra?.[f.key]}${f.unit ? ` ${f.unit}` : ''}`, net: false }))
 ];
 
@@ -39,6 +40,7 @@ const specRows = (p: Product) => [
  */
 export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, position, onStep }) => {
   const canOrder = usePlan().flags.orders;
+  useLang();
   useBackLayer(Boolean(product), onClose); // Back closes the design
   // A view is one buyer opening a design's details (once per design per visit; swiping on to the next design counts that one).
   useEffect(() => {
@@ -88,8 +90,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
     el.classList.remove('em-ft-out');
     if (calm()) return;
     el.classList.add('em-ft-in');
-    const t = setTimeout(() => el.classList.remove('em-ft-in'), 260);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => el.classList.remove('em-ft-in'), 260);
+    return () => clearTimeout(timer);
   }, [product?.id]);
 
   // Touch swipe: a mostly-sideways drag that starts outside a multi-photo gallery (the gallery keeps its own swipe).
@@ -177,23 +179,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
   return (
     <div className="em-pd-wrap" role="dialog" aria-modal="true" aria-label={product.title}>
       {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={product.title} onClose={() => setZoomFrom(null)} />}
-      <button type="button" aria-label="Close" tabIndex={-1} className="em-scrim" onClick={onClose} />
+      <button type="button" aria-label={t('Close')} tabIndex={-1} className="em-scrim" onClick={onClose} />
       <div className="em-pd">
         <div ref={pageRef} className="em-pd-scroll em-pd-swipe">
           <div className="em-hero-g">
             <div ref={scroller} data-testid="product-gallery" className="em-gal" onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
               {slides.map((src, i) => (
-                <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={`Zoom photo ${i + 1} of ${product.title}`}>
+                <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={t('Zoom photo {n} of {name}', { n: i + 1, name: product.title })}>
                   <Ph src={src} tone={i} style={i === 0 ? { viewTransitionName: 'product-photo' } as React.CSSProperties : undefined} />
                 </button>
               ))}
             </div>
             <div className="em-pd-top">
-              <button ref={closeRef} type="button" className="em-circ f" aria-label="Close" onClick={onClose}>
+              <button ref={closeRef} type="button" className="em-circ f" aria-label={t('Close')} onClick={onClose}>
                 <Icon n="back" size={20} />
               </button>
               {!isAdmin && (
-                <button type="button" className="em-circ f" onClick={() => onToggleShortlist(product)} aria-pressed={hearted} aria-label={hearted ? 'Remove from shortlist' : 'Add to shortlist'}>
+                <button type="button" className="em-circ f" onClick={() => onToggleShortlist(product)} aria-pressed={hearted} aria-label={t(hearted ? 'Remove from shortlist' : 'Add to shortlist')}>
                   <Icon n="heart" fill={hearted} />
                 </button>
               )}
@@ -205,7 +207,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 </span>
                 <div className="em-pd-dots">
                   {slides.map((src, i) => (
-                    <button key={`${i}-${src}`} type="button" aria-label={`Photo ${i + 1}`} aria-current={slide === i ? 'true' : undefined} className={slide === i ? 'on' : ''} onClick={() => goTo(i)} />
+                    <button key={`${i}-${src}`} type="button" aria-label={t('Photo {n}', { n: i + 1 })} aria-current={slide === i ? 'true' : undefined} className={slide === i ? 'on' : ''} onClick={() => goTo(i)} />
                   ))}
                 </div>
               </>
@@ -215,15 +217,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
           <div className="em-pd-sheet">
             {position && position.total > 1 && (
               <div className="em-pd-nav" data-testid="design-position">
-                <button type="button" data-testid="design-prev" disabled={!canStep(-1)} onClick={() => step(-1)} aria-label="Previous design">
+                <button type="button" data-testid="design-prev" disabled={!canStep(-1)} onClick={() => step(-1)} aria-label={t('Previous design')}>
                   <Icon n="back" size={14} />
-                  Previous
+                  {t('Previous')}
                 </button>
                 <span aria-live="polite">
-                  Design {position.index + 1} of {position.total}
+                  {t('Design {n} of {total}', { n: position.index + 1, total: position.total })}
                 </span>
-                <button type="button" data-testid="design-next" disabled={!canStep(1)} onClick={() => step(1)} aria-label="Next design">
-                  Next
+                <button type="button" data-testid="design-next" disabled={!canStep(1)} onClick={() => step(1)} aria-label={t('Next design')}>
+                  {t('Next')}
                   <Icon n="next" size={14} />
                 </button>
               </div>
@@ -233,7 +235,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 {product.category} · {product.sku}
               </span>
               <span className="em-mut" style={{ fontSize: 10, whiteSpace: 'nowrap' }}>
-                Tap a photo to zoom
+                {t('Tap a photo to zoom')}
               </span>
             </div>
             <h2 className="em-ser em-h2">{product.title}</h2>
@@ -250,7 +252,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
             )}
 
             <div className="em-rule" style={{ width: 48, marginTop: 16 }} />
-            <div className="em-ey">Specifications</div>
+            <div className="em-ey">{t('Specifications')}</div>
             <div style={{ marginTop: 10 }}>
               {specRows(product).map((r) => (
                 <div key={r.key} className={`em-spec${r.net ? ' net' : ''}`}>
@@ -277,21 +279,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 onClick={() => setCartOpen(true)}
               >
                 <Icon n="bag" />
-                Add to cart
+                {t('Add to cart')}
               </button>
-              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry} aria-label="Ask about this design on WhatsApp">
+              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry} aria-label={t('Ask about this design on WhatsApp')}>
                 <Icon n="wa" />
-                Ask
+                {t('Ask')}
               </a>
             </div>
           ) : (
             <>
               <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry}>
                 <Icon n="wa" />
-                Enquire on WhatsApp
+                {t('Enquire on WhatsApp')}
               </a>
               <p className="em-hint" style={{ textAlign: 'center', margin: 0 }}>
-                Ask about price and availability on WhatsApp.
+                {t('Ask about price and availability on WhatsApp.')}
               </p>
             </>
           )}

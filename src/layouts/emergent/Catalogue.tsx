@@ -14,6 +14,7 @@ import { useHideOnScroll } from './useHideOnScroll';
 import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
+import { t, tn, useLang } from '../../i18n';
 
 
 const PAGE = 24;
@@ -52,6 +53,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   initialSku = null,
   onInitialUsed
 }) => {
+  useLang();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debounced, setDebounced] = useState(initialSearch.trim());
   const [picking, setPicking] = useState(false);
@@ -112,8 +114,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   };
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(searchQuery.trim()), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const query = useMemo(
@@ -142,7 +144,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         setTotal(page.total);
         setHasMore(page.hasMore);
       })
-      .catch((err) => id === reqId.current && setError(err instanceof Error ? err.message : 'Could not load the catalogue.'))
+      .catch((err) => id === reqId.current && setError(err instanceof Error ? err.message : t('Could not load the catalogue.')))
       .finally(() => id === reqId.current && setLoading(false));
   }, [query, retry]);
 
@@ -260,7 +262,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     ...(filters.minWt || filters.maxWt
       ? [{ key: 'weight', label: `${filters.minWt || '0'} – ${filters.maxWt || '∞'} g`, clear: () => setFilters((f) => ({ ...f, minWt: '', maxWt: '' })) }]
       : []),
-    ...filters.availability.map((v) => ({ key: `avail:${v}`, label: v, clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) }))
+    ...filters.availability.map((v) => ({ key: `avail:${v}`, label: t(v), clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) }))
   ];
   const anyNarrowing = Boolean(debounced || categoryFilter || active.length);
   const clearAll = () => {
@@ -282,7 +284,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
 
   return (
     <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
-      {(pdfStatus || addedNotice) && <Toast>{pdfStatus ?? `Added ${addedNotice} to your order`}</Toast>}
+      {(pdfStatus || addedNotice) && <Toast>{pdfStatus ?? t('Added {name} to your order', { name: addedNotice ?? '' })}</Toast>}
 
       <div className={`em-sticky${hideBar ? ' hide' : ''}`}>
         <div className="em-pad" style={{ paddingTop: 12, paddingBottom: 10 }}>
@@ -301,8 +303,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             />
           ) : (
             <Title
-              eyebrow={<span data-testid="catalogue-count">{loading && items.length === 0 ? `${merchant.brand.name} · searching…` : `${merchant.brand.name} · ${total} ${total === 1 ? 'design' : 'designs'}`}</span>}
-              title="Catalogue"
+              eyebrow={<span data-testid="catalogue-count">{loading && items.length === 0 ? `${merchant.brand.name} · ${t('searching…')}` : `${merchant.brand.name} · ${tn(total, '{n} design', '{n} designs')}`}</span>}
+              title={t('Catalogue')}
               right={
                 <span className="em-row" style={{ gap: 8, marginBottom: 8 }}>
                   {isAdmin && flags.pdfCatalogue && (
@@ -319,14 +321,14 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             <div className="em-row" style={{ gap: 8 }}>
               <label className="em-srch em-grow" style={{ height: 44 }}>
                 <Icon n="search" size={16} />
-                <input aria-label="Search designs" data-testid="catalogue-search" placeholder={sector.filters.searchPlaceholder} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <input aria-label={t('Search designs')} data-testid="catalogue-search" placeholder={t(sector.filters.searchPlaceholder)} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 {searchQuery && (
-                  <button type="button" aria-label="Clear search" className="em-x" onClick={() => setSearchQuery('')}>
+                  <button type="button" aria-label={t('Clear search')} className="em-x" onClick={() => setSearchQuery('')}>
                     <Icon n="x" size={14} />
                   </button>
                 )}
               </label>
-              <button type="button" className={`em-filterbtn${active.length || sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label="Filter and sort" onClick={openSheet}>
+              <button type="button" className={`em-filterbtn${active.length || sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label={t('Filter and sort')} onClick={openSheet}>
                 <Icon n="sliders" size={16} />
                 {active.length + (sort !== 'newest' ? 1 : 0) > 0 && <i>{active.length + (sort !== 'newest' ? 1 : 0)}</i>}
               </button>
@@ -339,7 +341,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             <button type="button" className={`em-colpick${categoryFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
               <Icon n="grid" size={16} />
               <span className="em-grow em-clip" data-testid="collection-current" style={{ textAlign: 'left' }}>
-                {categoryFilter ?? 'All collections'}
+                {categoryFilter ?? t('All collections')}
                 <i style={{ fontStyle: 'normal', opacity: 0.65 }}> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : collectionChips.length}</i>
               </span>
               <Icon n="right" size={14} />
@@ -347,15 +349,15 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           </div>
         )}
         {active.length > 0 && !selecting && (
-          <div className="em-chips em-active" role="group" aria-label="Active filters" data-testid="active-filters">
+          <div className="em-chips em-active" role="group" aria-label={t('Active filters')} data-testid="active-filters">
             {active.map((a) => (
-              <button key={a.key} type="button" className="em-chip on" onClick={a.clear} aria-label={`Remove filter ${a.label}`}>
+              <button key={a.key} type="button" className="em-chip on" onClick={a.clear} aria-label={t('Remove filter {name}', { name: a.label })}>
                 {a.label}
                 <Icon n="x" size={12} />
               </button>
             ))}
             <button type="button" className="em-link" style={{ flex: 'none', fontSize: 12 }} data-testid="clear-filters" onClick={clearAll}>
-              Clear all
+              {t('Clear all')}
             </button>
           </div>
         )}
@@ -366,16 +368,16 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           <div className="em-empty" style={{ paddingTop: 24 }}>
             <p className="em-mut">{error}</p>
             <button type="button" className="em-link" onClick={() => setRetry((n) => n + 1)}>
-              Try again
+              {t('Try again')}
             </button>
           </div>
         )}
         {!selecting && (
           <div className="em-row em-sb" style={{ marginBottom: 12 }}>
-            <span className="em-ey" data-testid="result-count">{total} {total === 1 ? 'design' : 'designs'}</span>
-            <span className="em-seg-v" role="group" aria-label="Layout">
+            <span className="em-ey" data-testid="result-count">{tn(total, '{n} design', '{n} designs')}</span>
+            <span className="em-seg-v" role="group" aria-label={t('Layout')} data-testid="layout-switch">
               {([['grid2', 'Large photos', 'grid'], ['grid3', 'Compact grid', 'dense'], ['list', 'List', 'list']] as const).map(([v, label, icon]) => (
-                <button key={v} type="button" aria-pressed={view === v} aria-label={label} data-testid={`view-${v}`} className={view === v ? 'on' : ''} onClick={() => pickView(v)}>
+                <button key={v} type="button" aria-pressed={view === v} aria-label={t(label)} data-testid={`view-${v}`} className={view === v ? 'on' : ''} onClick={() => pickView(v)}>
                   <Icon n={icon} size={16} />
                 </button>
               ))}
@@ -390,7 +392,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             if (view === 'list' && !selecting) {
               return (
                 <div key={prod.id} data-sku={prod.sku} data-testid="product-row" className="em-lrow">
-                  <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={`View ${prod.title}`} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                  <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={t('View {name}', { name: prod.title })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                     <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
                       <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{prod.title}</span>
@@ -398,12 +400,12 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     </span>
                   </button>
                   {!isAdmin && (
-                    <button type="button" className={`em-circ${isHearted ? ' on' : ''}`} aria-pressed={isHearted} aria-label={isHearted ? `Remove ${prod.title} from shortlist` : `Add ${prod.title} to shortlist`} onClick={() => toggleHeart(prod)} style={isHearted ? { color: 'var(--em-bad)' } : undefined}>
+                    <button type="button" className={`em-circ${isHearted ? ' on' : ''}`} aria-pressed={isHearted} aria-label={t(isHearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name: prod.title })} onClick={() => toggleHeart(prod)} style={isHearted ? { color: 'var(--em-bad)' } : undefined}>
                       <Icon n="heart" size={16} fill={isHearted} />
                     </button>
                   )}
                   {!isAdmin && flags.orders && (
-                    <button type="button" className="em-circ" data-testid="card-add-to-cart" style={{ background: 'var(--em-primary)', color: 'var(--em-on-primary)', borderColor: 'var(--em-primary)' }} aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                    <button type="button" className="em-circ" data-testid="card-add-to-cart" style={{ background: 'var(--em-primary)', color: 'var(--em-on-primary)', borderColor: 'var(--em-primary)' }} aria-label={t('Add {name} to cart', { name: prod.title })} onClick={() => setCartFor(prod)}>
                       <Icon n="bag" size={16} />
                     </button>
                   )}
@@ -414,11 +416,11 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               return (
                 <div key={prod.id} className="em-cardwrap em-tile">
                   <article data-sku={prod.sku} data-testid="product-card" className="em-sq">
-                    <button type="button" className="em-hit" aria-label={`View ${prod.title}`} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                    <button type="button" className="em-hit" aria-label={t('View {name}', { name: prod.title })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                       <Ph src={prod.image} tone={i} className="em-fill" />
                     </button>
                     {!isAdmin && flags.orders && (
-                      <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                      <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: prod.title })} onClick={() => setCartFor(prod)}>
                         <Icon n="plus" size={16} />
                       </button>
                     )}
@@ -433,7 +435,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             return (
               <div key={prod.id} className="em-cardwrap">
               <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
-                <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : t('View {name}', { name: prod.title })} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" />
                 </button>
                 {selecting && (
@@ -447,7 +449,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     className={`em-heart${isHearted ? ' on' : ''}`}
                     onClick={() => toggleHeart(prod)}
                     aria-pressed={isHearted}
-                    aria-label={isHearted ? `Remove ${prod.title} from shortlist` : `Add ${prod.title} to shortlist`}
+                    aria-label={t(isHearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name: prod.title })}
                   >
                     <Icon n="heart" size={15} fill={isHearted} />
                   </button>
@@ -458,9 +460,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                 <span className="em-wt">{fmtG(prod.netWt)}</span>
               </div>
               {!isAdmin && !selecting && flags.orders && (
-                <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
+                <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: prod.title })} onClick={() => setCartFor(prod)}>
                   <Icon n="bag" size={16} />
-                  Add to cart
+                  {t('Add to cart')}
                 </button>
               )}
               </div>
@@ -471,7 +473,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         {hasMore && !error && (
           <div ref={sentinelRef} className="em-more" data-testid="load-more">
             <button type="button" className="em-btn sec sm" disabled={loadingMore} onClick={loadMore}>
-              {loadingMore ? 'Loading…' : `Show more · ${total - items.length} left`}
+              {loadingMore ? t('Loading…') : t('Show more · {n} left', { n: total - items.length })}
             </button>
           </div>
         )}
@@ -481,10 +483,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             <span className="em-badge">
               <Icon n="search" size={24} />
             </span>
-            <p className="em-mut">{anyNarrowing ? 'No designs match your search and filters.' : 'No designs have been added yet.'}</p>
+            <p className="em-mut">{t(anyNarrowing ? 'No designs match your search and filters.' : 'No designs have been added yet.')}</p>
             {anyNarrowing && (
               <button type="button" className="em-link" onClick={clearAll}>
-                Clear search and filters
+                {t('Clear search and filters')}
               </button>
             )}
           </div>
@@ -492,26 +494,26 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       </div>
 
       {sheet && (
-        <Sheet label="Filter and sort designs" onClose={() => setSheet(false)}>
+        <Sheet label={t('Filter and sort designs')} onClose={() => setSheet(false)}>
           <div className="em-row em-sb">
             <span className="em-ser" style={{ fontSize: 22 }}>
-              Filter and sort
+              {t('Filter and sort')}
             </span>
             <button type="button" className="em-link" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>
-              Reset
+              {t('Reset')}
             </button>
           </div>
 
-          <div className="em-ey">Sort by</div>
+          <div className="em-ey">{t('Sort by')}</div>
           <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }} data-testid="catalogue-sort">
             {SORT_KEYS.map((k) => (
               <button key={k} type="button" className={`em-chip${draftSort === k ? ' on' : ''}`} aria-pressed={draftSort === k} onClick={() => setDraftSort(k)}>
-                {SORT_LABELS[k]}
+                {t(SORT_LABELS[k])}
               </button>
             ))}
           </div>
 
-          <div className="em-ey" style={{ marginTop: 6 }}>{sector.filters.purity}</div>
+          <div className="em-ey" style={{ marginTop: 6 }}>{t(sector.filters.purity)}</div>
           <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {purities
               .filter((p) => p.enabled)
@@ -523,27 +525,27 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           </div>
 
           <div className="em-ey" style={{ marginTop: 6 }}>
-            {sector.filters.weight}
+            {t(sector.filters.weight)}
           </div>
           <div className="em-row" style={{ gap: 10 }}>
-            <input aria-label="Minimum net weight" data-testid="filter-min-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder="Min" value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
-            <span className="em-mut">to</span>
-            <input aria-label="Maximum net weight" data-testid="filter-max-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder="Max" value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
+            <input aria-label={t('Minimum net weight')} data-testid="filter-min-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Min')} value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
+            <span className="em-mut">{t('to')}</span>
+            <input aria-label={t('Maximum net weight')} data-testid="filter-max-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Max')} value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
           </div>
 
           <div className="em-ey" style={{ marginTop: 6 }}>
-            {sector.filters.availability}
+            {t(sector.filters.availability)}
           </div>
           <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {sector.stockStatuses.map((s) => (
               <button key={s.key} type="button" className={`em-chip${draft.availability.includes(s.key) ? ' on' : ''}`} aria-pressed={draft.availability.includes(s.key)} onClick={() => setDraft({ ...draft, availability: toggle(draft.availability, s.key) })}>
-                {s.key}
+                {t(s.key)}
               </button>
             ))}
           </div>
 
           <button type="button" className="em-btn" style={{ marginTop: 8 }} data-testid="apply-filters" onClick={applyDraft}>
-            {draftCount ? `Apply ${draftCount} ${draftCount === 1 ? 'change' : 'changes'}` : 'Show all designs'}
+            {draftCount ? tn(draftCount, 'Apply {n} change', 'Apply {n} changes') : t('Show all designs')}
           </button>
         </Sheet>
       )}
@@ -588,10 +590,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         <div className="em-cartbar">
           <div>
             <span key={inOrder} className="n">{inOrder}</span>
-            <b style={{ flex: 1, fontWeight: 600 }}>{orderCount !== undefined ? `${inOrder} ${inOrder === 1 ? 'design' : 'designs'} in your order` : `${inOrder} added to your order`}</b>
+            <b style={{ flex: 1, fontWeight: 600 }}>{orderCount !== undefined ? tn(inOrder, '{n} design in your order', '{n} designs in your order') : t('{n} added to your order', { n: inOrder })}</b>
             {onNavigate && (
               <button type="button" onClick={() => onNavigate('orders')}>
-                Review
+                {t('Review')}
                 <Icon n="right" size={16} />
               </button>
             )}

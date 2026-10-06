@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LayoutKit } from '../props';
 import { useBackLayer } from '../../backLayer';
+import { t } from '../../i18n';
 
 /** The props of a Gilded screen are the contract: an Emergent screen takes exactly the same. */
 export type KitProps<K extends keyof LayoutKit> = React.ComponentProps<LayoutKit[K]>;
@@ -77,12 +78,12 @@ export const Pill: React.FC<{ tone?: string; small?: boolean; children: React.Re
 export const stockTone = (status: string) => (/ready|stock/i.test(status) ? 'conf' : /order/i.test(status) ? 'disp' : 'new');
 export const StockPill: React.FC<{ status: string; small?: boolean }> = ({ status, small }) => (
   <Pill tone={stockTone(status)} small={small}>
-    {status}
+    {t(status)}
   </Pill>
 );
 
 export const OrderStatusPill: React.FC<{ status: string }> = ({ status }) => (
-  <Pill tone={{ new: 'new', confirmed: 'conf', dispatched: 'disp', cancelled: 'canc' }[status] ?? ''}>{status}</Pill>
+  <Pill tone={{ new: 'new', confirmed: 'conf', dispatched: 'disp', cancelled: 'canc' }[status] ?? ''}>{t(status)}</Pill>
 );
 
 /** Eyebrow, serif title and the gold hairline under it. */
@@ -110,7 +111,7 @@ export const Sheet: React.FC<{ label: string; onClose: () => void; children: Rea
   useBackLayer(true, onClose); // Back closes the sheet
   return (
     <div className="em-sheet-wrap" role="dialog" aria-modal="true" aria-label={label}>
-      <button type="button" aria-label="Close" className="em-scrim" onClick={onClose} />
+      <button type="button" aria-label={t('Close')} className="em-scrim" onClick={onClose} />
       <div className="em-sheet">
         <div className="grab" />
         {children}

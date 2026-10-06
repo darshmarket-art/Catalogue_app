@@ -4,8 +4,9 @@ import { api } from '../../api';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
 import { Icon, OrderStatusPill, Ph, Pill, Title, fmtG, type KitProps } from './ui';
+import { getLang, t, tn, useLang } from '../../i18n';
 
-const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+const when = (iso: string) => new Date(iso).toLocaleString(getLang() === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
 const STATUS_FILTERS: Array<{ key: 'all' | OrderStatus; label: string }> = [
   { key: 'all', label: 'All' },
@@ -21,6 +22,7 @@ const BIG_ORDER = 8;
 const PREVIEW_ROWS = 3;
 
 const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string) => Promise<string | null> }> = ({ orders, onCancel }) => {
+  useLang();
   const [open, setOpen] = useState<string | null>(null);
   // Big orders whose full item list is showing.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -43,7 +45,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
     setBusy(null);
   };
 
-  if (orders === null) return <p className="em-hint" style={{ textAlign: 'center', padding: '32px 0' }}>Loading your orders…</p>;
+  if (orders === null) return <p className="em-hint" style={{ textAlign: 'center', padding: '32px 0' }}>{t('Loading your orders…')}</p>;
   if (orders.length === 0) {
     return (
       <div className="em-empty" style={{ paddingTop: 32 }}>
@@ -51,9 +53,9 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
           <Icon n="clock" size={24} />
         </span>
         <h2 className="em-ser" style={{ fontSize: 24 }}>
-          No past orders yet
+          {t('No past orders yet')}
         </h2>
-        <p className="em-mut" style={{ margin: 0, fontSize: 14 }}>Orders you place will be listed here.</p>
+        <p className="em-mut" style={{ margin: 0, fontSize: 14 }}>{t('Orders you place will be listed here.')}</p>
       </div>
     );
   }
@@ -63,10 +65,10 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
 
   return (
     <>
-      <div className="em-chips" role="group" aria-label="Order status">
+      <div className="em-chips" role="group" aria-label={t('Order status')}>
         {STATUS_FILTERS.filter((f) => f.key === 'all' || count(f.key) > 0 || status === f.key).map((f) => (
           <button key={f.key} type="button" className={`em-chip${status === f.key ? ' on' : ''}`} aria-pressed={status === f.key} onClick={() => setStatus(f.key)}>
-            {f.label}
+            {t(f.label)}
             <i>{count(f.key)}</i>
           </button>
         ))}
@@ -77,7 +79,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
             {problem}
           </div>
         )}
-        {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>No orders in this state.</p>}
+        {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{t('No orders in this state.')}</p>}
         {shown.map((order) => {
           // A big order (many designs) shows a short preview and a drop-down for the rest; small ones keep View items / Hide items.
           const big = order.items.length > BIG_ORDER;
@@ -91,10 +93,10 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                   <div className="em-grow">
                     <div className="em-ey">{when(order.timestamp)}</div>
                     <div className="em-ser" style={{ fontSize: 19, marginTop: 2 }}>
-                      Order {order.poId}
+                      {t('Order {id}', { id: order.poId })}
                     </div>
                     <div className="em-mut" style={{ fontSize: 12, marginTop: 4 }}>
-                      {order.itemCount} {order.itemCount === 1 ? 'design' : 'designs'} · {fmtG(order.totalNetGrams)} net
+                      {tn(order.itemCount, '{n} design', '{n} designs')} · {t('{w} net', { w: fmtG(order.totalNetGrams) })}
                     </div>
                   </div>
                   <OrderStatusPill status={order.status} />
@@ -119,13 +121,13 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                         aria-expanded={allShown}
                         onClick={() => setExpanded((prev) => { const next = new Set(prev); if (next.has(order.poId)) next.delete(order.poId); else next.add(order.poId); return next; })}
                       >
-                        {allShown ? 'Show fewer' : `Show all ${order.items.length} designs`}
+                        {allShown ? t('Show fewer') : t('Show all {n} designs', { n: order.items.length })}
                         <span aria-hidden="true" style={{ display: 'inline-block', transition: 'transform 0.2s', transform: allShown ? 'rotate(180deg)' : 'none' }}>▾</span>
                       </button>
                     )}
                     {order.note && (
                       <p className="em-hint" data-testid="past-order-note" style={{ margin: '8px 0 0' }}>
-                        <b style={{ fontWeight: 600 }}>Your note:</b> {order.note}
+                        <b style={{ fontWeight: 600 }}>{t('Your note:')}</b> {order.note}
                       </p>
                     )}
                   </>
@@ -134,18 +136,18 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                   {order.status !== 'new' ? (
                     big ? null :
                     <button type="button" className="em-link" onClick={() => setOpen(open === order.poId ? null : order.poId)} aria-expanded={isOpen}>
-                      {isOpen ? 'Hide items' : 'View items'}
+                      {t(isOpen ? 'Hide items' : 'View items')}
                     </button>
                   ) : (
                     <button type="button" disabled={busy === order.poId} onClick={() => cancel(order.poId)} className="em-btn danger sm" style={{ marginLeft: 'auto' }}>
-                      {busy === order.poId ? 'Cancelling…' : confirming === order.poId ? 'Tap again to cancel' : 'Cancel order'}
+                      {t(busy === order.poId ? 'Cancelling…' : confirming === order.poId ? 'Tap again to cancel' : 'Cancel order')}
                     </button>
                   )}
                 </div>
               </div>
               <div className="ft">
                 <span className="em-ey" style={{ color: 'var(--em-deep)' }}>
-                  Net total
+                  {t('Net total')}
                 </span>
                 <span className="em-ser" style={{ fontSize: 18, color: 'var(--em-primary)' }}>
                   {fmtG(order.totalNetGrams)}
@@ -167,6 +169,7 @@ type OrdersProps = Omit<KitProps<'Orders'>, 'onConfirmOrder' | 'onGenerateWhatsA
 
 /** Orders (atlas Orders, with the cart's review bar for the order in progress): the current order, and past orders with their status. */
 export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQty, onConfirmOrder, onGenerateWhatsAppPO, onNavigateCatalogue, initialTab = 'current' }) => {
+  useLang();
   const [isBooked, setIsBooked] = useState(false);
   const [confirmedPO, setConfirmedPO] = useState<string | null>(null);
   const [bookedGrams, setBookedGrams] = useState(0);
@@ -191,7 +194,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
       return null;
     } catch (err) {
       api.getOrderHistory().then(setHistory);
-      return err instanceof Error ? err.message : 'Could not cancel the order.';
+      return err instanceof Error ? err.message : t('Could not cancel the order.');
     }
   };
 
@@ -219,14 +222,14 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
             {confirmedPO}
           </div>
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.2 }}>
-            {sector.copy.orders.bookedBanner}
+            {t(sector.copy.orders.bookedBanner)}
           </h1>
           <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 320 }}>
-            {fmtG(bookedGrams)} net. {merchant.orders.bookedNote ? `Your order is booked, ${merchant.orders.bookedNote}` : 'We will confirm on WhatsApp shortly.'}
+            {t('{w} net.', { w: fmtG(bookedGrams) })} {merchant.orders.bookedNote ? `${t('Your order is booked,')} ${merchant.orders.bookedNote}` : t('We will confirm on WhatsApp shortly.')}
           </p>
           <a href={waLink} target="_blank" rel="noreferrer" className="em-btn wa">
             <Icon n="wa" />
-            Send order on WhatsApp
+            {t('Send order on WhatsApp')}
           </a>
           <button
             type="button"
@@ -237,7 +240,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
               setTab('past');
             }}
           >
-            View past orders
+            {t('View past orders')}
           </button>
         </div>
       </div>
@@ -250,8 +253,8 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
     <div className={`em-page${hasLines ? ' dock2' : ''}`}>
       <div className="em-pad">
         <Title
-          eyebrow={tab === 'past' && history ? `Your activity · ${history.length} ${history.length === 1 ? 'order' : 'orders'}` : 'Your activity'}
-          title="Orders"
+          eyebrow={tab === 'past' && history ? `${t('Your activity')} · ${tn(history.length, '{n} order', '{n} orders')}` : t('Your activity')}
+          title={t('Orders')}
           right={
             <span style={{ marginBottom: 8 }}>
               <Pill tone="gold">Pro</Pill>
@@ -259,16 +262,16 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
           }
         />
       </div>
-      <div className="em-chips" role="tablist" aria-label="Orders">
+      <div className="em-chips" role="tablist" aria-label={t('Orders')}>
         {(
           [
-            { key: 'current', label: 'To order', n: orders.length },
-            { key: 'past', label: 'Past orders', n: 0 }
+            { key: 'current', label: t('To order'), n: orders.length },
+            { key: 'past', label: t('Past orders'), n: 0 }
           ] as const
-        ).map((t) => (
-          <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`em-chip${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
-            {t.label}
-            {t.n > 0 && <i>{t.n}</i>}
+        ).map((tb) => (
+          <button key={tb.key} type="button" role="tab" data-testid={`orders-tab-${tb.key}`} aria-selected={tab === tb.key} className={`em-chip${tab === tb.key ? ' on' : ''}`} onClick={() => setTab(tb.key)}>
+            {tb.label}
+            {tb.n > 0 && <i>{tb.n}</i>}
           </button>
         ))}
       </div>
@@ -281,13 +284,13 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
             <Icon n="bag" size={24} />
           </span>
           <h2 className="em-ser" style={{ fontSize: 24 }}>
-            {sector.copy.orders.emptyTitle}
+            {t(sector.copy.orders.emptyTitle)}
           </h2>
           <p className="em-mut" style={{ maxWidth: 300, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
-            {sector.copy.orders.emptyText}
+            {t(sector.copy.orders.emptyText)}
           </p>
           <button type="button" className="em-btn" onClick={onNavigateCatalogue}>
-            Browse designs
+            {t('Browse designs')}
           </button>
         </div>
       ) : (
@@ -295,10 +298,10 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
           <div className="em-pad">
             <div className="em-row em-sb" style={{ marginBottom: 2 }}>
               <span className="em-mut" style={{ fontSize: 13 }}>
-                {orders.length} {orders.length === 1 ? 'design' : 'designs'} · {totalPieces} {totalPieces === 1 ? 'piece' : 'pieces'}
+                {tn(orders.length, '{n} design', '{n} designs')} · {tn(totalPieces, '{n} piece', '{n} pieces')}
               </span>
               <button type="button" className="em-link" data-testid="cart-clear" onClick={() => orders.forEach((i) => onRemoveItem(i.id))}>
-                Clear
+                {t('Clear')}
               </button>
             </div>
 
@@ -318,17 +321,17 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                         {fmtG(item.totalNetGold)}
                       </span>
                       <div className="em-qty sm">
-                        <button type="button" aria-label={`Decrease ${item.title}`} disabled={item.batchQty <= 1} onClick={() => onChangeQty(item.id, item.batchQty - 1)}>
+                        <button type="button" aria-label={t('Decrease {name}', { name: item.title })} disabled={item.batchQty <= 1} onClick={() => onChangeQty(item.id, item.batchQty - 1)}>
                           <Icon n="minus" size={16} />
                         </button>
                         <em>{item.batchQty}</em>
-                        <button type="button" aria-label={`Increase ${item.title}`} onClick={() => onChangeQty(item.id, item.batchQty + 1)}>
+                        <button type="button" aria-label={t('Increase {name}', { name: item.title })} onClick={() => onChangeQty(item.id, item.batchQty + 1)}>
                           <Icon n="plus" size={16} />
                         </button>
                       </div>
                     </div>
                   </div>
-                  <button type="button" className="em-circ" aria-label={`Remove ${item.title}`} onClick={() => onRemoveItem(item.id)}>
+                  <button type="button" className="em-circ" data-testid="order-line-remove" aria-label={t('Remove {name}', { name: item.title })} onClick={() => onRemoveItem(item.id)}>
                     <Icon n="x" size={16} />
                   </button>
                 </div>
@@ -336,14 +339,14 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
             </div>
             <div className="em-rule" style={{ width: 40, marginTop: 18 }} />
             <label htmlFor="em-order-note" className="em-ey" style={{ display: 'block' }}>
-              Note for {merchant.brand.name}
+              {t('Note for {name}', { name: merchant.brand.name })}
             </label>
-            <textarea id="em-order-note" data-testid="order-note-input" className="em-note" maxLength={300} placeholder="Delivery date, finish, size changes…" value={note} onChange={(e) => setNote(e.target.value)} />
+            <textarea id="em-order-note" data-testid="order-note-input" className="em-note" maxLength={300} placeholder={t('Delivery date, finish, size changes…')} value={note} onChange={(e) => setNote(e.target.value)} />
             <div className="em-row" style={{ gap: 8, marginTop: 14, alignItems: 'flex-start' }}>
               <span style={{ color: 'var(--em-gold-ink)' }}>
                 <Icon n="shield" size={14} />
               </span>
-              <span className="em-hint">{merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}</span>
+              <span className="em-hint">{merchant.orders.guaranteeLine ? t(merchant.orders.guaranteeLine) : t(sector.copy.orders.guaranteeFallback)}</span>
             </div>
           </div>
 
@@ -352,18 +355,18 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
               <div className="em-row em-sb" style={{ alignItems: 'flex-end' }}>
                 <div>
                   <div className="em-ey">
-                    {orders.length} {orders.length === 1 ? 'design' : 'designs'} · {totalPieces} pcs
+                    {tn(orders.length, '{n} design', '{n} designs')} · {t('{n} pcs', { n: totalPieces })}
                   </div>
                   <div className="em-ser tot" style={{ fontSize: 28 }}>
-                    {fmtG(totalNetGold)} net
+                    {t('{w} net', { w: fmtG(totalNetGold) })}
                   </div>
                 </div>
               </div>
-              <button type="button" className="em-btn" onClick={handleConfirm} disabled={isBooked}>
-                {isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta}
+              <button type="button" className="em-btn" data-testid="place-order" onClick={handleConfirm} disabled={isBooked}>
+                {t(isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta)}
               </button>
               <button type="button" className="em-link" style={{ alignSelf: 'center', minHeight: 30 }} data-testid="order-via-whatsapp" onClick={() => onGenerateWhatsAppPO(note.trim() || undefined)}>
-                {sector.copy.orders.whatsappCta.title}
+                {t(sector.copy.orders.whatsappCta.title)}
               </button>
             </div>
           </div>

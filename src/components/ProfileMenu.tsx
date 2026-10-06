@@ -4,6 +4,7 @@ import type { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { currentStoreUrl } from '../storeLink';
 import { StoreShareSheet } from './StoreShareSheet';
+import { t, useLang } from '../i18n';
 
 export interface ProfileUser {
   storeName: string;
@@ -31,6 +32,7 @@ const itemClass =
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout, onNavigate }) => {
   const orders = usePlan().flags.orders;
+  useLang();
   const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -64,9 +66,9 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
   };
 
   const details: Array<[string, string | undefined]> = [
-    ['Owner', buyer?.ownerName],
-    ['Mobile', buyer?.phone],
-    ['GST', buyer?.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined]
+    [t('Owner'), buyer?.ownerName],
+    [t('Mobile'), buyer?.phone],
+    [t('GST'), buyer?.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined]
   ];
 
   return (
@@ -78,6 +80,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Profile menu"
+        title={t('Profile')}
         className="ib"
       >
         <i aria-hidden="true" className="i i-user" />
@@ -126,10 +129,10 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
               {orders && (
                 <>
                   <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
-                    My order
+                    {t('My order')}
                   </button>
                   <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('past'))} type="button">
-                    Past orders
+                    {t('Past orders')}
                   </button>
                 </>
               )}
@@ -138,18 +141,18 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
 
           {!isAdmin && (
             <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
-              {`About ${merchant.brand.name}`}
+              {t('About {name}', { name: merchant.brand.name })}
             </button>
           )}
 
           {!isAdmin && (
             <button role="menuitem" className={itemClass} data-testid="menu-tour" onClick={choose(() => window.dispatchEvent(new Event('app-tour')))} type="button">
-              Take the app tour
+              {t('Take the app tour')}
             </button>
           )}
 
           <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">
-            Log out
+            {isAdmin ? 'Log out' : t('Log out')}
           </button>
         </div>
       )}

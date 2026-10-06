@@ -8,6 +8,7 @@ import { Icon, Ph, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { useHideOnScroll } from './useHideOnScroll';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { recentCollections, recentSkus } from '../../recent';
+import { t, tn, useLang } from '../../i18n';
 
 /** Up to this many collections are all shown on Home; more than this and Home features four (the owner's hero collections) plus a Browse all page. */
 const FEW = 6;
@@ -17,6 +18,7 @@ const FEW = 6;
  * with index badges, and "The House". The brand row and profile button are in the top bar.
  */
 export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
+  useLang();
   const [browsing, setBrowsing] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         await navigator.share({ title: merchant.brand.name, url });
       } else {
         await navigator.clipboard.writeText(url);
-        showToast('Link copied to clipboard');
+        showToast(t('Link copied to clipboard'));
       }
     } catch {
       // the user closed the share sheet
@@ -76,7 +78,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     { label: 'Facebook', href: contact.facebookUrl ?? '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
     ...(contact.whatsapp ? [{ label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
     ...(contact.address
-      ? [{ label: contact.showroomLabel ?? 'Location', href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
+      ? [{ label: contact.showroomLabel ?? t('Location'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
       : [])
   ];
 
@@ -92,7 +94,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const shown = q ? matches : many ? heroes : categories;
   const jumpBack = q || !many ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
   const viewed = q ? [] : recentSkus().map((sku) => products.find((p) => p.sku === sku)).filter((p): p is NonNullable<typeof p> => Boolean(p)).slice(0, 8);
-  const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ') : `avg ${cat.avgNetWt}`);
+  const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ') : t('avg {w}', { w: cat.avgNetWt }));
   const searchDesigns = () => onSearchDesigns?.(searchQuery.trim());
 
   return (
@@ -103,7 +105,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         <div className="em-pad" style={{ paddingTop: 4, paddingBottom: 8 }}>
           <label className="em-srch">
             <Icon n="search" />
-            <input aria-label="Search the catalogue" data-testid="home-search" placeholder="Search name, SKU or collection" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchQuery.trim() && searchDesigns()} />
+            <input aria-label={t('Search the catalogue')} data-testid="home-search" placeholder={t('Search name, SKU or collection')} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchQuery.trim() && searchDesigns()} />
           </label>
         </div>
       </div>
@@ -121,13 +123,13 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             >
               {banners.length > 0
                 ? banners.map((b, i) => (
-                    <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? `Open ${b.category}` : `Banner ${i + 1}`}>
+                    <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? t('Open {name}', { name: b.category }) : t('Banner {n}', { n: i + 1 })}>
                       <Ph src={b.image} tone={i} className="em-fill" />
                       {b.category && (
                         <>
                           <span className="em-sc" />
                           <span className="em-ov">
-                            <span className="em-ey g">Collection</span>
+                            <span className="em-ey g">{t('Collection')}</span>
                             <span className="em-ser">{b.category}</span>
                           </span>
                         </>
@@ -154,13 +156,13 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             {slideCount > 1 && (
               <>
                 {(['prev', 'next'] as const).map((dir) => (
-                  <button key={dir} type="button" aria-label={dir === 'prev' ? 'Previous banner' : 'Next banner'} onClick={() => goToSlide(activeSlide + (dir === 'prev' ? -1 : 1))} className="em-circ f em-arrow" style={dir === 'prev' ? { left: 8 } : { right: 8 }}>
+                  <button key={dir} type="button" aria-label={dir === 'prev' ? t('Previous banner') : t('Next banner')} onClick={() => goToSlide(activeSlide + (dir === 'prev' ? -1 : 1))} className="em-circ f em-arrow" style={dir === 'prev' ? { left: 8 } : { right: 8 }}>
                     <Icon n={dir === 'prev' ? 'back' : 'next'} />
                   </button>
                 ))}
                 <div className="em-dots">
                   {Array.from({ length: slideCount }, (_, i) => (
-                    <button key={i} type="button" aria-label={`Banner ${i + 1}`} aria-current={activeSlide === i ? 'true' : undefined} className={activeSlide === i ? 'on' : ''} onClick={() => goToSlide(i)} />
+                    <button key={i} type="button" aria-label={t('Banner {n}', { n: i + 1 })} aria-current={activeSlide === i ? 'true' : undefined} className={activeSlide === i ? 'on' : ''} onClick={() => goToSlide(i)} />
                   ))}
                 </div>
               </>
@@ -185,7 +187,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
       {jumpBack.length > 0 && (
         <div style={{ marginTop: 22 }} data-testid="jump-back">
-          <div className="em-ey em-pad">Jump back in</div>
+          <div className="em-ey em-pad">{t('Jump back in')}</div>
           <div className="em-chips" style={{ paddingTop: 8, paddingBottom: 0 }}>
             {jumpBack.map((c) => (
               <button key={c.id} type="button" className="em-chip" onClick={() => onFilterCategoryInCatalogue(c.name)}>
@@ -198,12 +200,12 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
       <div className="em-pad" style={{ marginTop: 28 }}>
         <Title
-          eyebrow={q ? 'Matching' : many ? 'Featured' : 'Curated'}
-          title="Collections"
+          eyebrow={t(q ? 'Matching' : many ? 'Featured' : 'Curated')}
+          title={t('Collections')}
           size="h2"
           right={
             <button type="button" className="em-link" onClick={() => onNavigate('catalogue')} style={{ marginBottom: 8 }}>
-              All designs
+              {t('All designs')}
               <Icon n="right" size={14} />
             </button>
           }
@@ -212,24 +214,24 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         {q && (
           <button type="button" className="em-li" style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)' }} data-testid="home-search-designs" onClick={searchDesigns}>
             <span className="em-badge"><Icon n="search" size={16} /></span>
-            <span className="em-grow"><b style={{ fontWeight: 600 }}>Search designs for “{searchQuery.trim()}”</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Name, SKU or weight across the catalogue</span></span>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>{t('Search designs for “{q}”', { q: searchQuery.trim() })}</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>{t('Name, SKU or weight across the catalogue')}</span></span>
             <Icon n="right" size={16} />
           </button>
         )}
 
-        {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.'}</p>}
+        {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{t(categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.')}</p>}
 
         <div className="em-grid em-grid-2" data-testid="home-collections" style={{ marginTop: 14 }}>
           {shown.map((cat, i) => (
             <div key={cat.id} className="em-sq" data-testid="home-collection">
-              <button type="button" className="em-hit" aria-label={`Open ${cat.name}`} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
+              <button type="button" className="em-hit" aria-label={t('Open {name}', { name: cat.name })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
                 <Ph src={cat.image} tone={i} className="em-fill" />
                 <span className="em-sc" />
                 <span className="em-col-ov">
                   <span className="em-ey g">{purityOf(cat)}</span>
                   <span className="em-ser">{cat.name}</span>
                   <small>
-                    {cat.designCount} {cat.designCount === 1 ? 'design' : 'designs'}
+                    {tn(cat.designCount, '{n} design', '{n} designs')}
                   </small>
                 </span>
               </button>
@@ -246,8 +248,8 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <button type="button" className="em-browse" data-testid="browse-collections" onClick={() => setBrowsing(true)}>
             <span className="em-badge"><Icon n="grid" size={18} /></span>
             <span className="em-grow">
-              <b className="em-ser" style={{ fontSize: 17, fontWeight: 500 }}>Browse all {categories.length} collections</b>
-              <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Search or browse by type</span>
+              <b className="em-ser" style={{ fontSize: 17, fontWeight: 500 }}>{t('Browse all {n} collections', { n: categories.length })}</b>
+              <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>{t('Search or browse by type')}</span>
             </span>
             <Icon n="right" size={18} />
           </button>
@@ -256,10 +258,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
       {viewed.length > 0 && (
         <div style={{ marginTop: 28 }} data-testid="recently-viewed">
-          <div className="em-ey em-pad">Recently viewed</div>
+          <div className="em-ey em-pad">{t('Recently viewed')}</div>
           <div className="em-chips em-strip" style={{ paddingTop: 10, paddingBottom: 0 }}>
             {viewed.map((p, i) => (
-              <button key={p.id} type="button" className="em-strip-i" aria-label={`Open ${p.title}`} onClick={() => onOpenDesign?.(p.sku)}>
+              <button key={p.id} type="button" className="em-strip-i" aria-label={t('Open {name}', { name: p.title })} onClick={() => onOpenDesign?.(p.sku)}>
                 <Ph src={p.image} tone={i} className="em-strip-ph" />
                 <span>{p.title}</span>
               </button>
@@ -271,8 +273,8 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       {socialLinks.length > 0 && (
         <div className="em-pad" style={{ marginTop: 28 }}>
           <div className="em-card em-social" data-testid="social-links">
-            <div className="em-ey g">Find us</div>
-            <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>Stay in touch with {merchant.brand.name}</p>
+            <div className="em-ey g">{t('Find us')}</div>
+            <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: merchant.brand.name })}</p>
             <div className="em-social-row">
               {socialLinks.map((link) =>
                 link.href ? (
@@ -281,10 +283,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
                     <small>{link.label}</small>
                   </a>
                 ) : (
-                  <div key={link.label} className="em-social-i soon" aria-label={`${link.label}, coming soon`} data-testid={`social-soon-${link.label.toLowerCase()}`}>
+                  <div key={link.label} className="em-social-i soon" aria-label={`${link.label}, ${t('Coming soon')}`} data-testid={`social-soon-${link.label.toLowerCase()}`}>
                     <span style={link.style}>{link.icon}</span>
                     <small>{link.label}</small>
-                    <em>Coming soon</em>
+                    <em>{t('Coming soon')}</em>
                   </div>
                 )
               )}

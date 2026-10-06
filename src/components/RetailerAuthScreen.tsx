@@ -9,6 +9,7 @@ import { CatalogueFullScreen } from './CatalogueFullScreen';
 import { WelcomeGreeting } from './WelcomeGreeting';
 import { DeliveryPill, FAILURE_TEXT, useOtpDelivery } from './DeliveryStatus';
 import type { ProfileUser } from './ProfileMenu';
+import { t, useLang } from '../i18n';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -36,7 +37,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
         </div>
       ))}
       <input
-        aria-label="6-digit code"
+        aria-label={t('6-digit code')}
         inputMode="numeric"
         autoComplete="one-time-code"
         maxLength={6}
@@ -54,6 +55,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
 
 /** Buyer showroom sign-in (atlas): the number first, then the 6-digit code sent on WhatsApp. A new number is asked for a name after the code; returning buyers go straight in. */
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNavigate, onLoginSuccess }) => {
+  useLang();
   const [name, setName] = useState('');
   const [needsName, setNeedsName] = useState(false); // a new number: asked for a name after the code checks out
   const [phone, setPhone] = useState('');
@@ -83,8 +85,8 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
 
   useEffect(() => {
     if (wait <= 0) return;
-    const t = setTimeout(() => setWait(wait - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setWait(wait - 1), 1000);
+    return () => clearTimeout(timer);
   }, [wait]);
 
   const sendCode = async (e?: React.FormEvent) => {
@@ -102,7 +104,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       setWait(30);
     } catch (err: any) {
       if (err.code === 'CATALOGUE_FULL') setFull(true);
-      else setErrorMessage(err.message || 'Could not send the code.');
+      else setErrorMessage(err.message || t('Could not send the code.'));
     } finally {
       setLoading(false);
     }
@@ -118,7 +120,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       if (res.status === 'needs-name') setNeedsName(true);
       else setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
     } catch (err: any) {
-      setErrorMessage(err.message || 'That code did not work.');
+      setErrorMessage(err.message || t('That code did not work.'));
     } finally {
       setLoading(false);
     }
@@ -127,8 +129,8 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
   if (welcome) {
     return (
       <WelcomeGreeting
-        title={`${welcome.isNew ? 'Welcome' : 'Welcome back'}, ${welcome.user.ownerName || welcome.user.storeName}`}
-        subtitle="Opening your showroom…"
+        title={t(welcome.isNew ? 'Welcome, {name}' : 'Welcome back, {name}', { name: welcome.user.ownerName || welcome.user.storeName })}
+        subtitle={t('Opening your showroom…')}
         onDone={() => onLoginSuccess(welcome.user, welcome.isNew)}
       />
     );
@@ -154,18 +156,18 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
           <div className="em-ey">{merchant.brand.name}</div>
           <div className="em-rule" style={{ width: 48 }} />
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
-            {needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Login'}
+            {t(needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Login')}
           </h1>
           <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
             {needsName ? (
-              'Your number is verified. Tell us your name to finish signing in.'
+              t('Your number is verified. Tell us your name to finish signing in.')
             ) : codeSent ? (
               <>
-                Sent to +91 {phone.trim()} on WhatsApp.
+                {t('Sent to +91 {phone} on WhatsApp.', { phone: phone.trim() })}
                 {delivery.status && <> <DeliveryPill status={delivery.status} testId="otp-delivery-status" /></>}
               </>
             ) : (
-              'Sign in with your WhatsApp number to browse the catalogue, shortlist and place orders.'
+              t('Sign in with your WhatsApp number to browse the catalogue, shortlist and place orders.')
             )}
           </p>
         </div>
@@ -173,7 +175,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
         {errorMessage && <Notice tone="error">{errorMessage}</Notice>}
         {codeSent && delivery.status === 'failed' && (
           <Notice tone="error">
-            <span data-testid="otp-delivery-failed">{FAILURE_TEXT[delivery.failure ?? 'other']}</span>
+            <span data-testid="otp-delivery-failed">{t(FAILURE_TEXT[delivery.failure ?? 'other'])}</span>
           </Notice>
         )}
 
@@ -181,7 +183,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
           <form onSubmit={sendCode} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label className="lab" htmlFor="login-phone">
-                WhatsApp number
+                {t('WhatsApp number')}
               </label>
               <div className="em-row" style={{ gap: 10 }}>
                 <span className="inp" style={{ width: 64, justifyContent: 'center', fontWeight: 600, padding: 0, background: 'var(--em-tint)' }}>
@@ -192,7 +194,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
             </div>
             <button type="submit" className="btn wa" data-testid="buyer-send-code" disabled={loading || phone.replace(/\D/g, '').length < 10}>
               <Icon n="wa" />
-              {loading ? 'Sending…' : 'Send code on WhatsApp'}
+              {t(loading ? 'Sending…' : 'Send code on WhatsApp')}
             </button>
           </form>
         ) : (
@@ -201,9 +203,9 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
             {needsName ? (
               <div>
                 <label className="lab" htmlFor="login-name">
-                  Welcome! What should we call you?
+                  {t('Welcome! What should we call you?')}
                 </label>
-                <input id="login-name" data-testid="buyer-name-input" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramesh Shah" autoComplete="name" required minLength={2} maxLength={100} autoFocus />
+                <input id="login-name" data-testid="buyer-name-input" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Ramesh Shah')} autoComplete="name" required minLength={2} maxLength={100} autoFocus />
               </div>
             ) : (
               <CodeBoxes value={code} onChange={setCode} />
@@ -219,25 +221,25 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
                   setNeedsName(false);
                 }}
               >
-                Change number
+                {t('Change number')}
               </button>
               <button type="button" className="em-link" data-testid="buyer-resend-code" onClick={() => sendCode()} disabled={loading || wait > 0}>
-                {wait > 0 ? `Resend in ${wait}s` : 'Resend code'}
+                {wait > 0 ? t('Resend in {n}s', { n: wait }) : t('Resend code')}
               </button>
             </div>
             <button type="submit" className="btn" data-testid="buyer-verify" disabled={loading || code.length !== 6 || (needsName && name.trim().length < 2)}>
-              {loading ? 'Checking…' : needsName ? 'Continue' : 'Verify and enter'}
+              {t(loading ? 'Checking…' : needsName ? 'Continue' : 'Verify and enter')}
               <Icon n="right" size={18} />
             </button>
             <p className="em-hint" style={{ textAlign: 'center' }}>
-              New number? You are added automatically while the store has room.
+              {t('New number? You are added automatically while the store has room.')}
             </p>
           </form>
         )}
 
         {/* Admin entry: deliberately quiet, so buyers are not shown admin tools */}
         <button type="button" className="em-link" style={{ alignSelf: 'center' }} data-testid="buyer-admin-signin-link" onClick={() => onNavigate('admin-login')}>
-          Admin sign-in
+          {t('Admin sign-in')}
         </button>
       </div>
     </div>

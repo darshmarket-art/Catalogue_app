@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, type FailureKind, type MessageStatus } from '../api';
+import { t } from '../i18n';
 
 export const STATUS_LABEL: Record<MessageStatus, string> = { accepted: 'Sending…', sent: 'Sent', delivered: 'Delivered ✓', read: 'Read ✓', failed: 'Not delivered' };
 export const statusTone = (s: MessageStatus) => (s === 'failed' ? 'bad' : s === 'delivered' || s === 'read' ? 'ok' : s === 'sent' ? 'mut' : 'warn');
@@ -13,7 +14,7 @@ export const FAILURE_TEXT: Record<FailureKind, string> = {
 /** Small calm pill for a message's delivery stage. */
 export const DeliveryPill: React.FC<{ status: MessageStatus; testId?: string }> = ({ status, testId }) => (
   <span className={`tag ${statusTone(status)}`} data-testid={testId}>
-    {STATUS_LABEL[status]}
+    {t(STATUS_LABEL[status])}
   </span>
 );
 

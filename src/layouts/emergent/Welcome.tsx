@@ -3,12 +3,18 @@ import { merchant } from '../../merchant';
 import { BrandMark } from '../../components/BrandMark';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
+import { LangToggle } from '../../components/LangToggle';
+import { t, useLang } from '../../i18n';
 
 /** The store's first screen (atlas Welcome): the brand on a deep panel, then the way in as role-style cards, what the store offers, and the legal footer. */
 export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
+  useLang();
   return (
     <div className="em-welcome">
-      <section className="em-hero lg">
+      <section className="em-hero lg" style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 'calc(14px + var(--sat))', right: 16 }}>
+          <LangToggle onDark />
+        </div>
         <span className="em-mark lg" style={{ alignSelf: 'flex-start' }}>
           <BrandMark className="w-8 h-8" textClassName="text-[26px]" />
         </span>
@@ -29,8 +35,8 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
               <Icon n="bag" size={22} />
             </span>
             <span className="em-grow">
-              <span className="em-ser">Enter the portal</span>
-              <small>For registered buyers. Sign in with your WhatsApp number.</small>
+              <span className="em-ser">{t('Enter the portal')}</span>
+              <small>{t('For registered buyers. Sign in with your WhatsApp number.')}</small>
             </span>
             <Icon n="right" size={20} />
           </button>

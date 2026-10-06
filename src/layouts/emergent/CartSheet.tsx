@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Category, Product, Purity } from '../../types';
 import { Icon, Sheet, fmtG } from './ui';
+import { t, tn, useLang } from '../../i18n';
 
 /**
  * The purities a design is sold in: the ones its collection is set up with (Edit collection > Purities sold here), or every purity
@@ -24,6 +25,7 @@ interface CartSheetProps {
 
 /** "Add to cart": how many pieces of a design in each purity on offer. The design's own purity starts at 1. */
 export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categories, onClose, onAdd }) => {
+  useLang();
   const [qtys, setQtys] = useState<Record<string, number>>({ [product.purity]: 1 });
   const options = soldPurities(product, purities, categories);
   const totalPcs = options.reduce((n, o) => n + (qtys[o.key] ?? 0), 0);
@@ -34,17 +36,17 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
   };
 
   return (
-    <Sheet label={`Add ${product.title} to cart`} onClose={onClose}>
+    <Sheet label={t('Add {name} to cart', { name: product.title })} onClose={onClose}>
       <div className="em-row" style={{ alignItems: 'flex-start', gap: 12 }}>
         <div className="em-grow" style={{ minWidth: 0 }}>
           <div className="em-ser" style={{ fontSize: 22 }}>
             {product.title}
           </div>
           <p className="em-mut" style={{ fontSize: 13, margin: '4px 0 0' }}>
-            Choose how many pieces you want in each purity.
+            {t('Choose how many pieces you want in each purity.')}
           </p>
         </div>
-        <button type="button" className="em-circ" data-testid="cart-sheet-close" aria-label="Close" onClick={onClose} style={{ flex: 'none' }}>
+        <button type="button" className="em-circ" data-testid="cart-sheet-close" aria-label={t('Close')} onClick={onClose} style={{ flex: 'none' }}>
           <Icon n="x" size={18} />
         </button>
       </div>
@@ -57,17 +59,17 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{o.title}</div>
                 <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
-                  {n > 0 ? `${n} × ${fmtG(product.netWt)} = ${fmtG(product.netWt * n)} net` : `${fmtG(product.netWt)} net each`}
+                  {n > 0 ? t('{n} × {w} = {total} net', { n, w: fmtG(product.netWt), total: fmtG(product.netWt * n) }) : t('{w} net each', { w: fmtG(product.netWt) })}
                 </div>
               </div>
               <div className="em-qty">
-                <button type="button" aria-label={`Decrease ${o.title}`} disabled={n === 0} onClick={() => setQty(o.key, n - 1)}>
+                <button type="button" aria-label={t('Decrease {name}', { name: o.title })} disabled={n === 0} onClick={() => setQty(o.key, n - 1)}>
                   <Icon n="minus" size={16} />
                 </button>
                 <em className="em-ser" aria-live="polite">
                   {n}
                 </em>
-                <button type="button" aria-label={`Increase ${o.title}`} onClick={() => setQty(o.key, n + 1)}>
+                <button type="button" aria-label={t('Increase {name}', { name: o.title })} onClick={() => setQty(o.key, n + 1)}>
                   <Icon n="plus" size={16} />
                 </button>
               </div>
@@ -77,15 +79,15 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
       </div>
 
       <div className="em-row em-sb" style={{ borderTop: '1px solid var(--em-line)', paddingTop: 12 }}>
-        <span className="em-ey">Total</span>
+        <span className="em-ey">{t('Total')}</span>
         <b>
-          {totalPcs} {totalPcs === 1 ? 'piece' : 'pieces'} · {fmtG(product.netWt * totalPcs)} net
+          {tn(totalPcs, '{n} piece', '{n} pieces')} · {t('{w} net', { w: fmtG(product.netWt * totalPcs) })}
         </b>
       </div>
 
       <button type="button" className="em-btn" data-testid="cart-confirm" disabled={totalPcs === 0} onClick={add}>
         <Icon n="bag" />
-        Add to cart
+        {t('Add to cart')}
       </button>
     </Sheet>
   );
