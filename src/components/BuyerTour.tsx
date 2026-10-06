@@ -69,7 +69,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
       const first = buyerName.split(' ')[0] ?? '';
       const s = sample;
       const list: Step[] = [
-        { id: 'hello', screen: 'categories', icon: 'star', title: `Welcome${first ? `, ${first}` : ''}`, body: `This is ${merchant.brand.name}'s private showroom. A short tour shows you how to find designs, save favourites and ${orders ? 'place an order' : 'ask about a design'}.` },
+        { id: 'hello', screen: 'categories', icon: 'star', title: `Welcome${first ? `, ${first}` : ''}`, body: `This is your private showroom at ${merchant.brand.name}. A short tour shows you how to find designs, save favourites and ${orders ? 'place an order' : 'ask about a design'}.` },
         { id: 'search', screen: 'categories', target: near('[data-testid="home-search"]', '.em-srch'), icon: 'search', title: 'Search anything', body: 'Type a design name, SKU or collection. Press enter to search every design in the catalogue.' },
         { id: 'featured', screen: 'categories', target: $('[data-testid="home-collections"]'), icon: 'grid', title: 'Featured collections', body: 'The store picks these for you. Tap one to see all of its designs.' },
         { id: 'browse', screen: 'categories', target: $('[data-testid="browse-collections"]'), optional: true, icon: 'layers', title: 'Every collection, by type', body: 'Browse all collections grouped by type: rings together, pendants together, and so on.' },

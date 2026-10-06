@@ -685,4 +685,4 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
   [data-layout="emergent"] :is(.em-chip.on, .em-chip[aria-pressed="true"], .em-chip[aria-selected="true"], .em-seg-v button.on, .chip.on, .em-tab.on > span, .em-bd, .em-cartbar .n, .em-ok, .em-cartbar > div, .em-toast), [data-layout="emergent"] .em-tab.on::after, [data-layout="emergent"] :is(.em-heart.on, button[aria-pressed="true"]) svg { animation: none; }
 }
 [data-layout="emergent"] .em-social-i.soon span { filter: saturate(0.55); opacity: 0.6; }
-[data-layout="emergent"] .em-social-i.soon em { font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--em-mut); margin-top: -3px; }
+[data-layout="emergent"] .em-social-i.soon em { font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; text-transform: uppercase; color: var(--em-mut); margin-top: -3px; }
