@@ -400,7 +400,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
                       <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{prod.title}</span>
-                      <span className="em-mut" style={{ display: 'block', fontSize: 12.5, marginTop: 3 }}>{fmtG(prod.netWt)}</span>
+                      <span className="em-wt" style={{ display: 'block', marginTop: 3 }}>{fmtG(prod.netWt)}</span>
                     </span>
                   </button>
                   {!isAdmin && (
@@ -431,7 +431,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   </article>
                   <div className="em-card-t">
                     <span className="em-ser em-clip">{prod.title}</span>
-                    <span className="em-mut">{fmtG(prod.netWt)}</span>
+                    <span className="em-wt">{fmtG(prod.netWt)}</span>
                   </div>
                 </div>
               );
@@ -461,7 +461,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               </article>
               <div className="em-card-t">
                 <span className="em-ser em-clip">{prod.title}</span>
-                <span className="em-mut">{fmtG(prod.netWt)}</span>
+                <span className="em-wt">{fmtG(prod.netWt)}</span>
               </div>
               {!isAdmin && !selecting && flags.orders && (
                 <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>

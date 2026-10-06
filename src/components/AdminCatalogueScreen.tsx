@@ -210,7 +210,8 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
             </div>
             <div className="em-card-t">
               <span className="em-ser em-clip">{d.title}</span>
-              <span className="em-mut">{d.sku} · {fmtG(d.netWt)}</span>
+              <span className="em-wt">{fmtG(d.netWt)}</span>
+              <span className="em-mut" style={{ fontSize: 11 }}>{d.sku}</span>
               <span style={{ marginTop: 4 }}><StockPill status={d.stockStatus} small /></span>
             </div>
           </div>

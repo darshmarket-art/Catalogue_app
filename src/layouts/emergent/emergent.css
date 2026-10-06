@@ -610,3 +610,9 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 /* Purities: on is green, off is grey */
 [data-layout="emergent"] .em-embed .card.pur-on { border-left: 4px solid var(--em-ok); background: color-mix(in srgb, var(--em-ok) 7%, var(--em-card)); }
 [data-layout="emergent"] .em-embed .card.pur-off { border-left: 4px solid var(--em-line); }
+
+/* Weight is what buyers look for: large, bold, in the brand colour */
+[data-layout="emergent"] .em-wt { font-size: 17px; font-weight: 700; color: var(--em-primary); letter-spacing: 0.1px; line-height: 1.2; }
+[data-layout="emergent"] .em-card-t .em-ser { font-size: 14px; }
+[data-layout="emergent"] .em-grid-3 .em-card-t .em-wt { font-size: 13px; }
+[data-layout="emergent"] .em-grid-3 .em-card-t .em-ser { font-size: 11px; }

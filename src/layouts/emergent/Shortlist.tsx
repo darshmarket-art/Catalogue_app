@@ -70,7 +70,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
               <Ph src={p.image} tone={i} className="em-thumb" />
               <div className="em-grow">
                 <div className="em-ser">{p.title}</div>
-                <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
+                <div className="em-wt" style={{ marginTop: 3 }}>
                   {fmtG(p.netWt)}
                 </div>
               </div>
