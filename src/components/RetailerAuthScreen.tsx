@@ -150,8 +150,8 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
   }
 
   return (
-    <div className="em-page notabs" style={{ maxWidth: 480 }}>
-      <div className="em-pad" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="em-page notabs em-signin" style={{ maxWidth: 480 }}>
+      <div className="em-pad em-signin-card" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
           <div className="em-ey">{ts(merchant.brand.name)}</div>
           <div className="em-rule" style={{ width: 48 }} />

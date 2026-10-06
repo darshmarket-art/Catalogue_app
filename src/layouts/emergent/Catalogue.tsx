@@ -11,6 +11,7 @@ import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { useHideOnScroll } from './useHideOnScroll';
+import { useDesktop } from './useDesktop';
 import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
@@ -54,6 +55,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   onInitialUsed
 }) => {
   useLang();
+  // Desktop buyers get the filters as a panel beside the designs instead of a sheet; the choices and the Apply step are the same.
+  const desk = useDesktop() && !isAdmin;
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debounced, setDebounced] = useState(initialSearch.trim());
   const [picking, setPicking] = useState(false);
@@ -280,14 +283,82 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     setSort(draftSort);
     setSheet(false);
   };
+  useEffect(() => {
+    if (!desk) return;
+    setDraft(filters);
+    setDraftSort(sort);
+  }, [desk, filters, sort]);
   const draftCount = draft.purity.length + draft.availability.length + (draft.minWt || draft.maxWt ? 1 : 0) + (draftSort !== 'newest' ? 1 : 0);
+
+  // Desktop: the same choices as the filter sheet, always open beside the designs. Nothing changes until Apply, as in the sheet.
+  const filterPanel = (
+    <aside className="em-fside" aria-label={t('Filter and sort')} data-testid="filter-panel">
+      <div className="em-fcard">
+        <div className="em-row em-sb">
+          <span className="em-ser" style={{ fontSize: 20 }}>{t('Filter and sort')}</span>
+          <button type="button" className="em-link" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>
+            {t('Reset')}
+          </button>
+        </div>
+
+        <div className="em-ey">{t('Sort by')}</div>
+        <div className="em-row" style={{ gap: 8, flexWrap: 'wrap' }} data-testid="catalogue-sort">
+          {SORT_KEYS.map((k) => (
+            <button key={k} type="button" className={`em-chip${draftSort === k ? ' on' : ''}`} aria-pressed={draftSort === k} onClick={() => setDraftSort(k)}>
+              {t(SORT_LABELS[k])}
+            </button>
+          ))}
+        </div>
+
+        <div className="em-ey">{t(sector.filters.purity)}</div>
+        <div className="em-checks">
+          {purities
+            .filter((p) => p.enabled)
+            .map((p) => (
+              <label key={p.key} className="em-check">
+                <input type="checkbox" checked={draft.purity.includes(p.key)} onChange={() => setDraft({ ...draft, purity: toggle(draft.purity, p.key) })} />
+                {pur(p.title)}
+              </label>
+            ))}
+        </div>
+
+        <div className="em-ey">{t(sector.filters.weight)}</div>
+        <div className="em-row" style={{ gap: 10 }}>
+          <input aria-label={t('Minimum net weight')} data-testid="filter-min-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Min')} value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
+          <span className="em-mut">{t('to')}</span>
+          <input aria-label={t('Maximum net weight')} data-testid="filter-max-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Max')} value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
+        </div>
+
+        <div className="em-ey">{t(sector.filters.availability)}</div>
+        <div className="em-checks">
+          {sector.stockStatuses.map((s) => (
+            <label key={s.key} className="em-check">
+              <input type="checkbox" checked={draft.availability.includes(s.key)} onChange={() => setDraft({ ...draft, availability: toggle(draft.availability, s.key) })} />
+              {t(s.key)}
+            </label>
+          ))}
+        </div>
+
+        <button type="button" className="em-btn" data-testid="apply-filters" onClick={applyDraft}>
+          {draftCount ? tn(draftCount, 'Apply {n} change', 'Apply {n} changes') : t('Show all designs')}
+        </button>
+      </div>
+    </aside>
+  );
 
   return (
     <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
       {(pdfStatus || addedNotice) && <Toast>{pdfStatus ?? t('Added {name} to your order', { name: addedNotice ?? '' })}</Toast>}
 
-      <div className={`em-sticky${hideBar ? ' hide' : ''}`}>
-        <div className="em-pad" style={{ paddingTop: 12, paddingBottom: 10 }}>
+      <div className={`em-sticky em-cat-head${hideBar ? ' hide' : ''}`}>
+        <div className="em-pad em-cat-top" style={{ paddingTop: 12, paddingBottom: 10 }}>
+          {onNavigate && !selecting && (
+            <nav className="em-dk fx em-crumbs" aria-label="Breadcrumb">
+              <button type="button" className="em-link" onClick={() => onNavigate('categories')}>{t('Home')}</button>
+              <Icon n="right" size={14} />
+              <span aria-current="page">{t('Catalogue')}</span>
+            </nav>
+          )}
           {selecting ? (
             <Title
               eyebrow="Pick designs for a PDF"
@@ -318,7 +389,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             />
           )}
           {!selecting && (
-            <div className="em-row" style={{ gap: 8 }}>
+            <div className="em-row em-cat-search" style={{ gap: 8 }}>
               <label className="em-srch em-grow" style={{ height: 44 }}>
                 <Icon n="search" size={16} />
                 <input aria-label={t('Search designs')} data-testid="catalogue-search" placeholder={t(sector.filters.searchPlaceholder)} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
@@ -328,7 +399,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   </button>
                 )}
               </label>
-              <button type="button" className={`em-filterbtn${active.length || sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label={t('Filter and sort')} onClick={openSheet}>
+              <button type="button" className={`em-filterbtn em-mb${active.length || sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label={t('Filter and sort')} onClick={openSheet}>
                 <Icon n="sliders" size={16} />
                 {active.length + (sort !== 'newest' ? 1 : 0) > 0 && <i>{active.length + (sort !== 'newest' ? 1 : 0)}</i>}
               </button>
@@ -337,7 +408,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         </div>
         {/* The collection in view is named here; tapping opens every collection (grouped by tag) to switch. */}
         {!selecting && (
-          <div style={{ padding: '2px var(--em-px) 10px' }}>
+          <div className="em-cat-pick" style={{ padding: '2px var(--em-px) 10px' }}>
             <button type="button" className={`em-colpick${categoryFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
               <Icon n="grid" size={16} />
               <span className="em-grow em-clip" data-testid="collection-current" style={{ textAlign: 'left' }}>
@@ -363,7 +434,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         )}
       </div>
 
-      <div className="em-pad" style={{ paddingTop: 16 }}>
+      <div className="em-pad em-cat-body" style={{ paddingTop: 16 }}>
+        {desk && !selecting && filterPanel}
+        <div className="em-cat-main">
         {error && (
           <div className="em-empty" style={{ paddingTop: 24 }}>
             <p className="em-mut">{error}</p>
@@ -491,6 +564,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             )}
           </div>
         )}
+        </div>
       </div>
 
       {sheet && (

@@ -4,6 +4,7 @@ import { usePlan } from '../../plan';
 import type { Product } from '../../types';
 import { merchant } from '../../merchant';
 import { ProductDetail } from './ProductDetail';
+import { CartSheet } from './CartSheet';
 import { Icon, Ph, Title, fmtG, stockTone, type KitProps } from './ui';
 import { getLang, hn, pur, t, tn, ts, useLang } from '../../i18n';
 
@@ -15,6 +16,8 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
   const [added, setAdded] = useState(false);
   // The design whose details are open. Kept as the design itself so un-hearting it inside the details does not close the page.
   const [open, setOpen] = useState<Product | null>(null);
+  // Desktop: the design whose Add to cart dialog is open from its row.
+  const [cartFor, setCartFor] = useState<Product | null>(null);
 
   // Hearted designs that have since been removed from the catalogue simply do not show.
   const items = useMemo(() => shortlist.map((sku) => products.find((p) => p.sku === sku)).filter((p): p is Product => Boolean(p)), [products, shortlist]);
@@ -69,18 +72,25 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
     <div className="em-page dock1 em-split">
       <div className="em-pad em-body">
         <Title eyebrow={`${t('Your favourites')} · ${tn(items.length, '{n} design', '{n} designs')}`} title={t('Shortlist')} />
-        <div style={{ marginTop: 6 }}>
+        <div className="em-sl-list" style={{ marginTop: 6 }}>
           {items.map((p, i) => (
             <div key={p.sku} className="em-li">
               <button type="button" className="em-li-open" aria-label={t('View {name}', { name: hn(p.title, p.titleHi) })} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
               <Ph src={p.image} tone={i} className="em-thumb" />
               <div className="em-grow">
+                <div className="em-ey em-dk em-sl-coll">{hn(p.category, categories.find((c) => c.name === p.category)?.nameHi)}</div>
                 <div className="em-ser">{hn(p.title, p.titleHi)}</div>
+                <div className="em-mut em-dk em-sl-meta">{p.sku} · {pur(p.purity)} · {t('1 pc each')}</div>
                 <div className="em-wt" style={{ marginTop: 3 }}>
                   {fmtG(p.netWt)}
                 </div>
               </div>
               </button>
+              {canOrder && (
+                <button type="button" className="em-btn sec sm em-dk in" onClick={() => setCartFor(p)}>
+                  {t('Add to cart')}
+                </button>
+              )}
               <button type="button" className="em-circ" style={{ border: 0, background: 'none' }} aria-label={t('Remove {name} from shortlist', { name: hn(p.title, p.titleHi) })} onClick={() => onRemove(p)}>
                 <Icon n="heart" size={20} fill />
               </button>
@@ -104,9 +114,17 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
         onAddToOrder={onAddToOrder}
       />
 
+      {cartFor && <CartSheet product={cartFor} purities={purities} categories={categories} onClose={() => setCartFor(null)} onAdd={(p, qty, pu) => onAddToOrder(p, qty, pu)} />}
+
       <div className="em-dock">
         <div className="em-dock-in" style={{ gap: 14 }}>
-          <div className="em-grow">
+          <h2 className="em-ser em-dk em-dock-h">{t('Order the whole list')}</h2>
+          <dl className="em-dk em-dock-dl">
+            <dt>{t('Designs')}</dt><dd>{items.length}</dd>
+            <dt>{t('Pieces (1 pc each)')}</dt><dd>{items.length}</dd>
+            <dt>{t('Net total')}</dt><dd className="net">{t('{w} net', { w: fmtG(totalNet) })}</dd>
+          </dl>
+          <div className="em-grow em-mb">
             <div className="em-ey em-clip">
               {tn(items.length, '{n} design', '{n} designs')} · {t('1 pc each')}
             </div>
@@ -114,8 +132,9 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
           </div>
           {canOrder ? (
             <>
-              <button type="button" className="em-circ" style={{ width: 46, height: 46, color: 'var(--em-wa)' }} onClick={sendOnWhatsApp} aria-label={t('Send shortlist on WhatsApp')}>
+              <button type="button" className="em-circ em-wabtn" style={{ width: 46, height: 46, color: 'var(--em-wa)' }} onClick={sendOnWhatsApp} aria-label={t('Send shortlist on WhatsApp')}>
                 <Icon n="wa" />
+                <span className="em-dk">{t('Send shortlist on WhatsApp')}</span>
               </button>
               <button type="button" className="em-btn" data-testid="shortlist-order-all" onClick={addAll} disabled={adding} style={{ whiteSpace: 'nowrap' }}>
                 <Icon n={added ? 'check' : 'bag'} />
@@ -128,6 +147,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
               {t('Enquire on WhatsApp')}
             </button>
           )}
+          {canOrder && <p className="em-dk em-hint em-dock-note">{t('Order all adds one piece of every saved design to your order. The green button sends the list to the store on WhatsApp.')}</p>}
         </div>
       </div>
     </div>

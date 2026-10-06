@@ -92,7 +92,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
             </span>
             <span style={{ minWidth: 0 }}>
               <span className="em-ser em-clip">{isAdminLoggedIn ? merchant.brand.name : ts(merchant.brand.name)}</span>
-              {isHome && <span className="em-ey em-clip">{isAdminLoggedIn ? merchant.brand.tagline : ts(merchant.brand.tagline)}</span>}
+              <span className={`em-ey em-clip${isHome ? '' : ' em-dk'}`}>{isAdminLoggedIn ? merchant.brand.tagline : ts(merchant.brand.tagline)}</span>
             </span>
           </button>
           <span className="em-grow" />

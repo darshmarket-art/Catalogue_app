@@ -31,7 +31,7 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
   ];
 
   return (
-    <div className="em-page notabs" style={{ paddingTop: 0 }}>
+    <div className="em-page notabs em-about" style={{ paddingTop: 0 }}>
       <section className="em-hero about">
         <div className="em-ey g">{t('About the house')}</div>
         <h1 className="em-ser" style={{ fontSize: 33, lineHeight: 1.2, marginTop: 8, color: 'var(--em-on-primary)' }}>
@@ -40,13 +40,29 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
         <p style={{ fontSize: 13, opacity: 0.75, margin: '6px 0 0' }}>{ts(merchant.brand.tagline)}</p>
       </section>
 
-      <div className="em-pad" style={{ paddingTop: 20 }}>
+      <div className="em-pad em-ab" style={{ paddingTop: 20 }}>
+        <div className="em-ab-story">
         <div className="em-rule" />
         <p className="em-mut" style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line' }}>
           {story}
         </p>
+        </div>
 
-        <div style={{ marginTop: 22 }}>
+        {merchant.welcome.features.length > 0 && (
+          <section className="em-dk em-ab-promises" aria-label={t('Our promises')}>
+            {merchant.welcome.features.map((f) => (
+              <div key={f.title} className="em-card em-ab-promise">
+                <span className="em-ico">
+                  <span className="material-symbols-outlined">{f.icon}</span>
+                </span>
+                <b>{ts(f.title)}</b>
+                <span className="em-hint">{tl(f.description)}</span>
+              </div>
+            ))}
+          </section>
+        )}
+
+        <div className="em-ab-details" style={{ marginTop: 22 }}>
           {details.map(([icon, label, value]) =>
             value ? (
               <div key={label} className="em-feature">
@@ -62,7 +78,7 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
           )}
         </div>
 
-        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="em-ab-actions" style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <a className="em-btn wa" href={`https://wa.me/${merchant.contact.whatsapp}`} target="_blank" rel="noopener noreferrer">
             <Icon n="wa" />
             {t('WhatsApp us')}
@@ -76,7 +92,7 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
             ))}
           </div>
         </div>
-        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div className="em-ab-foot" style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <PoweredByAntarixs />
           <span className="em-hint">{window.location.hostname}</span>
         </div>

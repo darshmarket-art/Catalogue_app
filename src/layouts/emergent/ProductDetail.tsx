@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { usePlan } from '../../plan';
 import type { Category, Product, Purity } from '../../types';
 import { merchant } from '../../merchant';
+import { sector } from '../../sector';
 import { api, trackProductView } from '../../api';
 import { PhotoViewer } from '../../components/PhotoViewer';
 import { CartSheet, soldPurities } from './CartSheet';
 import { Icon, Ph, Pill, StockPill, fmtG } from './ui';
 import { useBackLayer } from '../../backLayer';
-import { getLang, hl, hn, pur, t, ts, useLang } from '../../i18n';
+import { getLang, hl, hn, pur, t, tl, ts, useLang } from '../../i18n';
 
 interface ProductDetailProps {
   product: Product | null;
@@ -201,11 +202,20 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 <Icon n="back" size={20} />
               </button>
               {!isAdmin && (
-                <button type="button" className="em-circ f" onClick={() => onToggleShortlist(product)} aria-pressed={hearted} aria-label={t(hearted ? 'Remove from shortlist' : 'Add to shortlist')}>
+                <button type="button" className="em-circ f em-mb" onClick={() => onToggleShortlist(product)} aria-pressed={hearted} aria-label={t(hearted ? 'Remove from shortlist' : 'Add to shortlist')}>
                   <Icon n="heart" fill={hearted} />
                 </button>
               )}
             </div>
+            {slides.length > 1 && (
+              <div className="em-dk fx em-pd-thumbs" role="group" aria-label={t('Photos')}>
+                {slides.map((src, i) => (
+                  <button key={`th-${i}-${src}`} type="button" className={slide === i ? 'on' : ''} aria-label={t('Photo {n}', { n: i + 1 })} aria-current={slide === i ? 'true' : undefined} onClick={() => goTo(i)}>
+                    <Ph src={src} tone={i} className="em-fill" />
+                  </button>
+                ))}
+              </div>
+            )}
             {slides.length > 1 && (
               <>
                 <span className="em-pd-count">
@@ -257,6 +267,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
               </p>
             )}
 
+            <div className="em-dk fx em-netcall">
+              <b className="em-ser">{fmtG(product.netWt)}</b>
+              <span>{t('Net weight')}</span>
+            </div>
             <div className="em-rule" style={{ width: 48, marginTop: 16 }} />
             <div className="em-ey">{t('Specifications')}</div>
             <div style={{ marginTop: 10 }}>
@@ -278,6 +292,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
               Edit or delete
             </button>
           ) : canOrder ? (
+            <>
             <div className="em-row">
               <button
                 type="button"
@@ -287,11 +302,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 <Icon n="bag" />
                 {t('Add to cart')}
               </button>
-              <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry} aria-label={t('Ask about this design on WhatsApp')}>
+              {!isAdmin && (
+                <button type="button" className="em-btn sec em-dk fx em-pd-heart" onClick={() => onToggleShortlist(product)} aria-pressed={hearted}>
+                  <Icon n="heart" fill={hearted} />
+                  {t(hearted ? 'Shortlisted' : 'Shortlist')}
+                </button>
+              )}
+              <a className="em-btn wa em-pd-ask" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry} aria-label={t('Ask about this design on WhatsApp')}>
                 <Icon n="wa" />
-                {t('Ask')}
+                <span className="em-mb">{t('Ask')}</span>
+                <span className="em-dk">{t('Ask about this design on WhatsApp')}</span>
               </a>
             </div>
+            <p className="em-dk fx em-hint em-pd-guar">
+              <Icon n="shield" size={16} />
+              {tl(merchant.orders.guaranteeLine) || t(sector.copy.orders.guaranteeFallback)}
+            </p>
+            </>
           ) : (
             <>
               <a className="em-btn wa" href={waHref} target="_blank" rel="noopener noreferrer" onClick={noteEnquiry}>

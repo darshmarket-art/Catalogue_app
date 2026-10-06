@@ -24,6 +24,22 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
             {ts(merchant.brand.name)}
           </h1>
           <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{tl(merchant.brand.description)}</p>
+          {merchant.welcome.features.length > 0 && (
+            <ul className="em-dk em-hero-feats">
+              {merchant.welcome.features.map((f) => (
+                <li key={f.title}>
+                  <span className="em-ico">
+                    <span className="material-symbols-outlined">{f.icon}</span>
+                  </span>
+                  <span>
+                    <b>{ts(f.title)}</b>
+                    <span>{tl(f.description)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {tl(merchant.legal.registrationLine) && <p className="em-dk em-hero-legal">{tl(merchant.legal.registrationLine)}</p>}
         </div>
       </section>
 
@@ -43,7 +59,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
         </div>
 
         {merchant.welcome.features.length > 0 && (
-          <div className="em-card" style={{ padding: '2px 16px', marginTop: 22 }}>
+          <div className="em-card em-mb" style={{ padding: '2px 16px', marginTop: 22 }}>
             {merchant.welcome.features.map((f) => (
               <div key={f.title} className="em-feature">
                 <span className="em-ico">

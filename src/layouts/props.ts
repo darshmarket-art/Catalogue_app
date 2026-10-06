@@ -34,6 +34,8 @@ export interface CategoriesProps {
   products: Product[];
   banners: Banner[];
   isAdmin: boolean;
+  /** The signed-in buyer's name, for the desktop greeting beside the search. */
+  buyerName?: string;
   onEditCategory: (category: Category) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onFilterCategoryInCatalogue: (categoryName: string) => void;

@@ -341,5 +341,19 @@ export const HI: Record<string, string> = {
   'Your profile': 'आपकी प्रोफ़ाइल',
   'Your details, past orders, About {brand} and this tour again, whenever you want it.': 'आपकी जानकारी, पुराने ऑर्डर, {brand} के बारे में, और यह टूर दोबारा, जब चाहें।',
   'You are all set': 'आप तैयार हैं',
-  'The sample is gone and nothing was sent to the store. Use your phone’s Back button to step back at any time. Happy browsing!': 'सैंपल हट गया है और स्टोर को कुछ नहीं भेजा गया। कभी भी पीछे जाने के लिए फ़ोन का Back बटन दबाइए। ख़ुशी से देखिए!'
+  'The sample is gone and nothing was sent to the store. Use your phone’s Back button to step back at any time. Happy browsing!': 'सैंपल हट गया है और स्टोर को कुछ नहीं भेजा गया। कभी भी पीछे जाने के लिए फ़ोन का Back बटन दबाइए। ख़ुशी से देखिए!',
+
+  // Desktop screens
+  'Welcome back': 'फिर से स्वागत है',
+  'Good morning, {name}': 'सुप्रभात, {name}',
+  'Good afternoon, {name}': 'नमस्कार, {name}',
+  'Good evening, {name}': 'शुभ संध्या, {name}',
+  'Your order': 'आपका ऑर्डर',
+  Designs: 'डिज़ाइन',
+  Pieces: 'नग',
+  'Pieces (1 pc each)': 'नग (हर डिज़ाइन का 1)',
+  'Our promises': 'हमारे वादे',
+  Shortlisted: 'शॉर्टलिस्ट में',
+  'Visit and contact': 'मिलें और संपर्क करें',
+  Photos: 'फ़ोटो',
 };

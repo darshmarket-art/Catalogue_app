@@ -865,6 +865,7 @@ export default function App() {
             products={products}
             banners={banners}
             isAdmin={isAdminLoggedIn}
+            buyerName={currentMerchant?.ownerName || currentMerchant?.storeName}
             onEditCategory={openCategoryForm}
             onNavigate={handleNavigate}
             onFilterCategoryInCatalogue={handleFilterCategoryInCatalogue}

@@ -3,7 +3,7 @@ import type { Category } from '../../types';
 import { Icon, Ph } from './ui';
 import { useBackLayer } from '../../backLayer';
 import { groupByTag, useTagList } from '../../tagList';
-import { hn, t, tn, ts, useLang } from '../../i18n';
+import { grams, hl, hn, t, tn, ts, useLang } from '../../i18n';
 import { toHindi } from '../../../shared/hindi';
 
 interface Props {
@@ -48,14 +48,17 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
         <Ph src={c.image} tone={i} className="em-fill" />
         {current === c.name && <span className="em-pick" style={{ background: 'var(--em-primary)', borderColor: 'var(--em-primary)' }}><Icon n="check" size={15} /></span>}
       </span>
-      <span className="em-ser em-colcard-n">{hn(c.name, c.nameHi)}</span>
-      <span className="em-mut" style={{ fontSize: 11 }}>{tn(c.designCount, '{n} design', '{n} designs')}</span>
+      <span className="em-colcard-t">
+        <span className="em-ser em-colcard-n">{hn(c.name, c.nameHi)}</span>
+        {hl(c.subtitle, c.subtitleHi) && <span className="em-mut em-dk em-colcard-sub">{hl(c.subtitle, c.subtitleHi)}</span>}
+        <span className="em-mut" style={{ fontSize: 11 }}>{tn(c.designCount, '{n} design', '{n} designs')}<span className="em-dk in">{'\u00a0'}· {t('avg {w}', { w: grams(c.avgNetWt) })}</span></span>
+      </span>
     </button>
   );
 
   return (
     <div className="em-colpage" role="dialog" aria-modal="true" aria-label={t('All collections')} data-testid="collections-browser">
-      <div className="em-row em-sb em-pad" style={{ paddingTop: 'calc(18px + var(--sat))' }}>
+      <div className="em-row em-sb em-pad em-col-head" style={{ paddingTop: 'calc(18px + var(--sat))' }}>
         <button type="button" className="em-circ" aria-label={t('Back')} onClick={onClose}><Icon n="back" size={20} /></button>
         <div style={{ textAlign: 'center' }}>
           <div className="em-ey">{t('Collections')}</div>
@@ -63,14 +66,14 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
         </div>
         <span style={{ width: 40 }} />
       </div>
-      <div className="em-pad" style={{ padding: '12px var(--em-px) 4px' }}>
+      <div className="em-pad em-col-search" style={{ padding: '12px var(--em-px) 4px' }}>
         <label className="em-srch">
           <Icon n="search" />
           <input aria-label={t('Search collections')} data-testid="collection-search" placeholder={t('Search collections')} type="search" autoFocus={false} value={q} onChange={(e) => setQ(e.target.value)} />
         </label>
       </div>
       {tags.length > 1 && (
-        <div className="em-chips" role="group" aria-label={t('Collection tags')} data-testid="tag-chips" style={{ paddingTop: 8, paddingBottom: 6 }}>
+        <div className="em-chips em-col-tags" role="group" aria-label={t('Collection tags')} data-testid="tag-chips" style={{ paddingTop: 8, paddingBottom: 6 }}>
           <button type="button" className={`em-chip${tag ? '' : ' on'}`} aria-pressed={!tag} onClick={() => setTag(null)}>{t('All')}</button>
           {tags.map((tg) => (
             <button key={tg} type="button" className={`em-chip${tag === tg ? ' on' : ''}`} aria-pressed={tag === tg} onClick={() => setTag(tag === tg ? null : tg)}>{ts(tg)}</button>

@@ -3,6 +3,7 @@ import type { OrderStatus, PastOrder } from '../../types';
 import { api } from '../../api';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
+import { useDesktop } from './useDesktop';
 import { Icon, OrderStatusPill, Ph, Pill, Title, fmtG, type KitProps } from './ui';
 import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
 
@@ -177,6 +178,8 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   const [tab, setTab] = useState<'current' | 'past'>(initialTab);
   const [history, setHistory] = useState<PastOrder[] | null>(null);
   const [note, setNote] = useState('');
+  // Desktop shows the note and the guarantee in the side panel; phones keep them under the list.
+  const desk = useDesktop();
 
   // Past orders are fetched when the tab is opened, and again after a new order is booked.
   useEffect(() => {
@@ -249,6 +252,23 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
 
   const hasLines = tab === 'current' && orders.length > 0;
 
+  // The note to the store and the guarantee line: one block, shown under the list on phones and in the order panel on desktop.
+  const noteBlock = (
+    <>
+      <div className="em-rule" style={{ width: 40, marginTop: 18 }} />
+      <label htmlFor="em-order-note" className="em-ey" style={{ display: 'block' }}>
+        {t('Note for {name}', { name: ts(merchant.brand.name) })}
+      </label>
+      <textarea id="em-order-note" data-testid="order-note-input" className="em-note" maxLength={300} placeholder={t('Delivery date, finish, size changes…')} value={note} onChange={(e) => setNote(e.target.value)} />
+      <div className="em-row" style={{ gap: 8, marginTop: 14, alignItems: 'flex-start' }}>
+        <span style={{ color: 'var(--em-gold-ink)' }}>
+          <Icon n="shield" size={14} />
+        </span>
+        <span className="em-hint">{tl(merchant.orders.guaranteeLine) || t(sector.copy.orders.guaranteeFallback)}</span>
+      </div>
+    </>
+  );
+
   return (
     <div className={`em-page${hasLines ? ' dock2 em-split' : ''}`}>
       <div className="em-pad">
@@ -305,7 +325,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
               </button>
             </div>
 
-            <div style={{ marginTop: 8 }}>
+            <div className="em-ol-list" style={{ marginTop: 8 }}>
               {orders.map((item, i) => (
                 <div key={item.id} className="em-li">
                   <Ph src={item.image} tone={i} className="em-thumb" style={{ width: 76, height: 76 }} />
@@ -337,22 +357,19 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                 </div>
               ))}
             </div>
-            <div className="em-rule" style={{ width: 40, marginTop: 18 }} />
-            <label htmlFor="em-order-note" className="em-ey" style={{ display: 'block' }}>
-              {t('Note for {name}', { name: ts(merchant.brand.name) })}
-            </label>
-            <textarea id="em-order-note" data-testid="order-note-input" className="em-note" maxLength={300} placeholder={t('Delivery date, finish, size changes…')} value={note} onChange={(e) => setNote(e.target.value)} />
-            <div className="em-row" style={{ gap: 8, marginTop: 14, alignItems: 'flex-start' }}>
-              <span style={{ color: 'var(--em-gold-ink)' }}>
-                <Icon n="shield" size={14} />
-              </span>
-              <span className="em-hint">{tl(merchant.orders.guaranteeLine) || t(sector.copy.orders.guaranteeFallback)}</span>
-            </div>
+            {!desk && noteBlock}
           </div>
 
           <div className="em-dock">
             <div className="em-dock-in col">
-              <div className="em-row em-sb" style={{ alignItems: 'flex-end' }}>
+              <h2 className="em-ser em-dk em-dock-h">{t('Your order')}</h2>
+              <dl className="em-dk em-dock-dl">
+                <dt>{t('Designs')}</dt><dd>{orders.length}</dd>
+                <dt>{t('Pieces')}</dt><dd>{totalPieces}</dd>
+                <dt>{t('Net total')}</dt><dd className="net">{t('{w} net', { w: fmtG(totalNetGold) })}</dd>
+              </dl>
+              {desk && <div className="em-dock-note-wrap">{noteBlock}</div>}
+              <div className="em-row em-sb em-mb" style={{ alignItems: 'flex-end' }}>
                 <div>
                   <div className="em-ey">
                     {tn(orders.length, '{n} design', '{n} designs')} · {t('{n} pcs', { n: totalPieces })}
@@ -365,6 +382,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
               <button type="button" className="em-btn" data-testid="place-order" onClick={handleConfirm} disabled={isBooked}>
                 {t(isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta)}
               </button>
+              <p className="em-dk em-hint em-dock-confirm">{t('We will confirm on WhatsApp shortly.')}</p>
               <button type="button" className="em-link" style={{ alignSelf: 'center', minHeight: 30 }} data-testid="order-via-whatsapp" onClick={() => onGenerateWhatsAppPO(note.trim() || undefined)}>
                 {t(sector.copy.orders.whatsappCta.title)}
               </button>

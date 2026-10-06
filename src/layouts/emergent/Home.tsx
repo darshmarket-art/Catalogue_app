@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Facebook, Instagram, MapPin, MessageCircle } from 'lucide-react';
+import { Facebook, Instagram, MapPin, MessageCircle, Phone } from 'lucide-react';
 import type { Category } from '../../types';
 import { downloadCataloguePdf } from '../../cataloguePdf';
 import { merchant } from '../../merchant';
@@ -18,7 +18,7 @@ const FEW = 6;
  * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections one per row as full-width square cards
  * with index badges, and "The House". The brand row and profile button are in the top bar.
  */
-export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
+export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, buyerName, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
   useLang();
   const [browsing, setBrowsing] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -98,17 +98,30 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => pur(k.split(' ')[0])).join(' · ') : t('avg {w}', { w: grams(cat.avgNetWt) }));
   const catName = (name: string) => { const c = categories.find((x) => x.name === name); return hn(name, c?.nameHi); };
   const searchDesigns = () => onSearchDesigns?.(searchQuery.trim());
+  // Desktop only: the greeting that sits beside the search. First name only, by the time of day.
+  const hour = new Date().getHours();
+  const greetKey = hour < 12 ? 'Good morning, {name}' : hour < 17 ? 'Good afternoon, {name}' : 'Good evening, {name}';
+  const firstName = (buyerName ?? '').trim().split(' ')[0];
 
   return (
     <div className="em-page home">
       {toastMessage && <Toast>{toastMessage}</Toast>}
 
-      <div className={`em-sticky${hideBar ? ' hide' : ''}`} style={{ borderBottom: 0 }}>
-        <div className="em-pad" style={{ paddingTop: 4, paddingBottom: 8 }}>
-          <label className="em-srch">
-            <Icon n="search" />
-            <input aria-label={t('Search the catalogue')} data-testid="home-search" placeholder={t('Search name, SKU or collection')} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchQuery.trim() && searchDesigns()} />
-          </label>
+      <div className={`em-sticky em-home-top${hideBar ? ' hide' : ''}`} style={{ borderBottom: 0 }}>
+        <div className="em-pad em-home-row" style={{ paddingTop: 4, paddingBottom: 8 }}>
+          {!isAdmin && firstName && (
+            <div className="em-dk em-greet">
+              <span className="em-ey" style={{ color: 'var(--em-gold-ink)' }}>{t('Welcome back')}</span>
+              <h1 className="em-ser em-h1">{t(greetKey, { name: firstName })}</h1>
+            </div>
+          )}
+          <div className="em-home-search">
+            <label className="em-srch">
+              <Icon n="search" />
+              <input aria-label={t('Search the catalogue')} data-testid="home-search" placeholder={t('Search name, SKU or collection')} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchQuery.trim() && searchDesigns()} />
+            </label>
+            <span className="em-dk em-hint">{t('Name, SKU or weight across the catalogue')}</span>
+          </div>
         </div>
       </div>
 
@@ -143,13 +156,20 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
                       <Ph tone={i} className="em-fill" />
                       <span className="em-sc l" />
                       <div className="em-ov">
-                        <span className="em-ey g">{ts(promo.tag)}</span>
+                        <span className="em-ey g em-mb">{ts(promo.tag)}</span>
+                        <span className="em-dk fx em-promo-pills">
+                          <span className="em-pill gold">{ts(promo.tag)}</span>
+                          {promo.stampText && <span className="em-pill stamp"><Icon n="shield" size={13} />{ts(promo.stampText)}</span>}
+                        </span>
                         <span className="em-ser">{ts(promo.title)}</span>
                         {tl(promo.subtitle) && <p>{tl(promo.subtitle)}</p>}
-                        <button type="button" className="em-link" onClick={() => onFilterCategoryInCatalogue(promo.title)}>
-                          {ts(promo.actionLabel)}
-                          <Icon n="right" size={14} />
-                        </button>
+                        <span className="em-promo-act">
+                          <button type="button" className="em-link" onClick={() => onFilterCategoryInCatalogue(promo.title)}>
+                            {ts(promo.actionLabel)}
+                            <Icon n="right" size={14} />
+                          </button>
+                          {promo.note && <span className="em-dk em-promo-note">{ts(promo.note)}</span>}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -229,11 +249,15 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
               <button type="button" className="em-hit" aria-label={t('Open {name}', { name: hn(cat.name, cat.nameHi) })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
                 <Ph src={cat.image} tone={i} className="em-fill" />
                 <span className="em-sc" />
+                {cat.tag && <span className="em-dk em-pill em-col-tag">{ts(cat.tag)}</span>}
                 <span className="em-col-ov">
-                  <span className="em-ey g">{purityOf(cat)}</span>
+                  <span className="em-ey g em-mb">{purityOf(cat)}</span>
                   <span className="em-ser">{hn(cat.name, cat.nameHi)}</span>
-                  <small>
+                  <small className="em-mb">
                     {tn(cat.designCount, '{n} design', '{n} designs')}
+                  </small>
+                  <small className="em-dk">
+                    {tn(cat.designCount, '{n} design', '{n} designs')} · {t('avg {w}', { w: grams(cat.avgNetWt) })}
                   </small>
                 </span>
               </button>
@@ -266,6 +290,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
               <button key={p.id} type="button" className="em-strip-i" aria-label={t('Open {name}', { name: hn(p.title, p.titleHi) })} onClick={() => onOpenDesign?.(p.sku)}>
                 <Ph src={p.image} tone={i} className="em-strip-ph" />
                 <span>{hn(p.title, p.titleHi)}</span>
+                <b className="em-dk em-strip-wt">{t('{w} net', { w: fmtG(p.netWt) })}</b>
               </button>
             ))}
           </div>
@@ -275,8 +300,25 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       {socialLinks.length > 0 && (
         <div className="em-pad" style={{ marginTop: 28 }}>
           <div className="em-card em-social" data-testid="social-links">
-            <div className="em-ey g">{t('Find us')}</div>
-            <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: ts(merchant.brand.name) })}</p>
+            <div className="em-social-head">
+              <div className="em-ey g">{t('Find us')}</div>
+              <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: ts(merchant.brand.name) })}</p>
+              {contact.address && (
+                <div className="em-dk em-find-addr">
+                  <MapPin size={22} aria-hidden="true" />
+                  <div>
+                    <span className="em-ey" style={{ color: 'var(--em-gold-ink)' }}>{contact.showroomLabel ? ts(contact.showroomLabel) : t('Location')}</span>
+                    <b>{ts(contact.address)}</b>
+                    {contact.deskPhone && (
+                      <a className="em-find-call" href={`tel:${contact.deskPhone.replace(/\s/g, '')}`}>
+                        <Phone size={14} aria-hidden="true" />
+                        {contact.deskPhone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="em-social-row">
               {socialLinks.map((link) =>
                 link.href ? (

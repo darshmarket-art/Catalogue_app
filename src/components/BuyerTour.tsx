@@ -40,6 +40,8 @@ interface Step {
 
 const $ = (sel: string) => () => document.querySelector(sel);
 const tab = (screen: string) => () => document.querySelector(`nav[aria-label="Main"] button[data-tab="${screen}"]`);
+/** The first of these that is on screen (phones show the filter button, desktop the filter panel). */
+const visibleOf = (sel: string) => () => [...document.querySelectorAll(sel)].find((e) => e.getClientRects().length) ?? null;
 const near = (sel: string, up: string) => () => document.querySelector(sel)?.closest(up) ?? document.querySelector(sel);
 /** The sample's line in the order (found by its name), or null. */
 const lineOf = (title: string | null) => (title ? [...document.querySelectorAll('.em-li')].find((li) => li.querySelector('.em-ser')?.textContent?.trim() === title) ?? null : null);
@@ -84,7 +86,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
         { id: 'browse', screen: 'categories', target: $('[data-testid="browse-collections"]'), optional: true, icon: 'layers', title: 'Every collection, by type', body: 'Browse all collections grouped by type: rings together, pendants together, and so on.' },
         { id: 'catalogue-tab', screen: 'categories', target: tab('catalogue'), icon: 'grid', title: 'The Catalogue', body: 'Every design in one place. Let us open it.' },
         { id: 'picker', screen: 'catalogue', target: $('[data-testid="collection-picker"]'), icon: 'layers', title: 'Switch collection', body: 'The collection you are looking at is named here. Tap to pick another one.' },
-        { id: 'filter', screen: 'catalogue', target: $('[data-testid="catalogue-filter-button"]'), icon: 'sliders', title: 'Filter and sort', body: 'Narrow by purity, weight range or availability, and sort lightest or heaviest first.' },
+        { id: 'filter', screen: 'catalogue', target: visibleOf('[data-testid="catalogue-filter-button"], [data-testid="filter-panel"] .em-fcard'), icon: 'sliders', title: 'Filter and sort', body: 'Narrow by purity, weight range or availability, and sort lightest or heaviest first.' },
         { id: 'layout', screen: 'catalogue', target: $('[data-testid="layout-switch"]'), icon: 'dense', title: 'Your view', body: 'Large photos, a compact grid of three, or a quick list. The app remembers your choice.' },
         { id: 'card', screen: 'catalogue', target: near('[data-testid="product-card"]', '.em-cardwrap'), optional: true, icon: 'eye', title: 'Open a design', body: 'Tap the photo for details and every photo. On the design page, swipe left or right for the next design, and tap a photo to zoom.' },
         { id: 'heart', screen: 'catalogue', target: () => document.querySelector('.em-heart.on') ?? document.querySelector('.em-heart'), optional: true, icon: 'heart', title: 'Shortlist with a heart', body: 'Tap the heart to save a design for later. We have hearted one for you, so you can see where it goes.', enter: () => { if (s && s.heart()) made.current.hearted = true; } },

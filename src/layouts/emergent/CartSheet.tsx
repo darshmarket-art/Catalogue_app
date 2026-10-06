@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Category, Product, Purity } from '../../types';
-import { Icon, Sheet, fmtG } from './ui';
+import { Icon, Ph, Sheet, fmtG } from './ui';
 import { hn, pur, t, tn, useLang } from '../../i18n';
 
 /**
@@ -38,10 +38,13 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
   return (
     <Sheet label={t('Add {name} to cart', { name: hn(product.title, product.titleHi) })} onClose={onClose}>
       <div className="em-row" style={{ alignItems: 'flex-start', gap: 12 }}>
+        <Ph src={product.image} className="em-dk em-cs-thumb" />
         <div className="em-grow" style={{ minWidth: 0 }}>
+          <div className="em-ey em-dk" style={{ color: 'var(--em-gold-ink)' }}>{t('Add to cart')}</div>
           <div className="em-ser" style={{ fontSize: 22 }}>
             {hn(product.title, product.titleHi)}
           </div>
+          <p className="em-mut em-dk em-cs-sku">{product.sku} · {t('{w} net each', { w: fmtG(product.netWt) })}</p>
           <p className="em-mut" style={{ fontSize: 13, margin: '4px 0 0' }}>
             {t('Choose how many pieces you want in each purity.')}
           </p>
@@ -78,7 +81,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
         })}
       </div>
 
-      <div className="em-row em-sb" style={{ borderTop: '1px solid var(--em-line)', paddingTop: 12 }}>
+      <div className="em-row em-sb em-cs-total" style={{ borderTop: '1px solid var(--em-line)', paddingTop: 12 }}>
         <span className="em-ey">{t('Total')}</span>
         <b>
           {tn(totalPcs, '{n} piece', '{n} pieces')} · {t('{w} net', { w: fmtG(product.netWt * totalPcs) })}
