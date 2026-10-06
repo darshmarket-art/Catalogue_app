@@ -736,7 +736,7 @@ export default function App() {
   if (booting) return <div className="min-h-screen bg-surface" />;
 
   return (
-    <div data-layout={DEFAULT_LAYOUT} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+    <div data-layout={DEFAULT_LAYOUT} data-role={isAdminLoggedIn ? 'owner' : 'buyer'} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {touring && currentMerchant && !isAdminLoggedIn && (
         <BuyerTour
           buyerName={currentMerchant.ownerName || currentMerchant.storeName}

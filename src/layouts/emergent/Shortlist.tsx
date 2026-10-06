@@ -66,8 +66,8 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
   }
 
   return (
-    <div className="em-page dock1">
-      <div className="em-pad">
+    <div className="em-page dock1 em-split">
+      <div className="em-pad em-body">
         <Title eyebrow={`${t('Your favourites')} · ${tn(items.length, '{n} design', '{n} designs')}`} title={t('Shortlist')} />
         <div style={{ marginTop: 6 }}>
           {items.map((p, i) => (

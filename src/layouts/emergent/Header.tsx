@@ -85,7 +85,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   return (
     <header className={`em-top${overHero ? ' clear' : ''}`}>
       {isTab ? (
-        <div className="em-top-in" style={{ maxWidth: width }}>
+        <div className="em-top-in" style={{ '--em-w': `${width}px` } as React.CSSProperties}>
           <button type="button" className="em-brand" aria-label={isAdminLoggedIn ? `${merchant.brand.name} home` : ts(merchant.brand.name)} onClick={() => onNavigate(isAdminLoggedIn ? 'admin-hub' : 'welcome')}>
             <span className="em-mark">
               <BrandMark className="w-6 h-6" textClassName="text-[18px]" />
@@ -100,7 +100,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
           {profile}
         </div>
       ) : (
-        <div className="em-top-in sub" style={{ maxWidth: width }}>
+        <div className="em-top-in sub" style={{ '--em-w': `${width}px` } as React.CSSProperties}>
           <div className="em-top-l">
             {isSub && (
               <button type="button" className={`em-circ${overHero ? ' f' : ''}`} aria-label={t('Back')} onClick={handleBack}>

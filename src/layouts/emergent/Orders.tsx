@@ -250,7 +250,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   const hasLines = tab === 'current' && orders.length > 0;
 
   return (
-    <div className={`em-page${hasLines ? ' dock2' : ''}`}>
+    <div className={`em-page${hasLines ? ' dock2 em-split' : ''}`}>
       <div className="em-pad">
         <Title
           eyebrow={tab === 'past' && history ? `${t('Your activity')} · ${tn(history.length, '{n} order', '{n} orders')}` : t('Your activity')}
@@ -295,7 +295,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
         </div>
       ) : (
         <>
-          <div className="em-pad">
+          <div className="em-pad em-body">
             <div className="em-row em-sb" style={{ marginBottom: 2 }}>
               <span className="em-mut" style={{ fontSize: 13 }}>
                 {tn(orders.length, '{n} design', '{n} designs')} · {tn(totalPieces, '{n} piece', '{n} pieces')}

@@ -65,7 +65,7 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 /* ---------- top bar ---------- */
 [data-layout="emergent"] .em-top { position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: var(--sat); background: color-mix(in srgb, var(--em-bg) 90%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
 [data-layout="emergent"] .em-top.clear { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
-[data-layout="emergent"] .em-top-in { height: var(--header-h); margin-inline: auto; padding-inline: var(--em-px); display: flex; align-items: center; gap: 10px; }
+[data-layout="emergent"] .em-top-in { height: var(--header-h); max-width: var(--em-w, 640px); margin-inline: auto; padding-inline: var(--em-px); display: flex; align-items: center; gap: 10px; }
 [data-layout="emergent"] .em-top-in.sub { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; }
 [data-layout="emergent"] .em-top-l, [data-layout="emergent"] .em-top-r { display: flex; align-items: center; gap: 8px; min-width: 0; }
 [data-layout="emergent"] .em-top-r { justify-content: flex-end; }
@@ -720,3 +720,129 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-tour-lang button.on { border-color: var(--em-primary); background: var(--em-tint); color: var(--em-primary); }
 [data-layout="emergent"] .em-tour-lang button:active { transform: scale(0.97); }
 :lang(hi) [data-layout="emergent"] .em-ey, [data-layout="emergent"]:lang(hi) .em-ey { letter-spacing: 0.04em; }
+
+/* ======================================================================================================
+ * Desktop (buyers, 1024px and wider). Phones and small tablets never reach these rules, so the mobile
+ * screens stay exactly as they are. The tabs move from the bottom into the top bar, pages widen to
+ * 1240px, Orders and Shortlist get a side panel, the design page opens as a two-column window and
+ * the bottom sheets (Add to cart, filters) open as centred dialogs.
+ * ====================================================================================================== */
+@media (min-width: 1024px) {
+  [data-layout="emergent"][data-role="buyer"] { --em-tab-h: 0px; --header-h: 72px; --em-px: 32px; }
+
+  /* Top bar: wide, with the tabs in its middle */
+  [data-layout="emergent"][data-role="buyer"] .em-top { border-bottom: 1px solid var(--em-line); }
+  [data-layout="emergent"][data-role="buyer"] .em-top.clear { border-bottom: 0; }
+  [data-layout="emergent"][data-role="buyer"] .em-top-in { max-width: 1240px; gap: 14px; }
+  [data-layout="emergent"][data-role="buyer"] .em-top-in.sub { grid-template-columns: 1fr minmax(0, 2fr) 1fr; }
+  [data-layout="emergent"][data-role="buyer"] .em-top-c { max-width: none; }
+  [data-layout="emergent"][data-role="buyer"] .em-brand { max-width: calc(50% - 300px); }
+  [data-layout="emergent"][data-role="buyer"] .em-brand .em-ser { font-size: 20px; }
+  [data-layout="emergent"][data-role="buyer"] .em-mark { width: 40px; height: 40px; }
+  [data-layout="emergent"][data-role="buyer"] .em-lang { height: 40px; }
+  [data-layout="emergent"][data-role="buyer"] .em-lang button { height: 32px; min-width: 36px; font-size: 13px; }
+
+  [data-layout="emergent"][data-role="buyer"] .em-tabs { top: calc(var(--sat)); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); z-index: 51; background: none; border: 0; padding: 0; }
+  [data-layout="emergent"][data-role="buyer"] .em-tabs nav { height: var(--header-h); max-width: none; align-items: center; gap: 2px; }
+  [data-layout="emergent"][data-role="buyer"] .em-tab { flex: none; flex-direction: row; gap: 8px; height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; }
+  [data-layout="emergent"][data-role="buyer"] .em-tab:hover { background: var(--em-tint); color: var(--em-primary); }
+  [data-layout="emergent"][data-role="buyer"] .em-tab::after { position: absolute; left: 16px; right: 16px; bottom: 5px; width: auto; margin: 0; }
+  [data-layout="emergent"][data-role="buyer"] .em-tab > span { display: inline-flex; align-items: center; gap: 6px; }
+  [data-layout="emergent"][data-role="buyer"] .em-tab .em-ic { width: 18px; height: 18px; }
+  [data-layout="emergent"][data-role="buyer"] .em-tab { flex-direction: row-reverse; }
+  [data-layout="emergent"][data-role="buyer"] .em-bd { position: static; min-width: 20px; height: 20px; border-radius: 10px; font-size: 11px; background: var(--em-primary); color: var(--em-on-primary); order: 2; }
+  [data-layout="emergent"][data-role="buyer"] .em-tab > span > .em-ic { display: none; }
+
+  /* Pages */
+  [data-layout="emergent"][data-role="buyer"] .em-page { max-width: 880px; padding-top: 28px; padding-bottom: 64px; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.home, [data-layout="emergent"][data-role="buyer"] .em-page.wide, [data-layout="emergent"][data-role="buyer"] .em-page.em-split { max-width: 1240px; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.notabs { max-width: 1040px; }
+  [data-layout="emergent"][data-role="buyer"] .em-h1 { font-size: 40px; }
+  [data-layout="emergent"][data-role="buyer"] .em-h2 { font-size: 30px; }
+  [data-layout="emergent"][data-role="buyer"] .em-ey { font-size: 11px; }
+
+  /* Home: a wide banner, four collections a row, a row of recently viewed designs */
+  [data-layout="emergent"][data-role="buyer"] .em-page.home .em-sticky .em-srch { max-width: 680px; height: 52px; margin-inline: auto; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.home .em-slide { aspect-ratio: 16 / 5; }
+  [data-layout="emergent"][data-role="buyer"] .em-car-track { border-radius: 28px; }
+  [data-layout="emergent"][data-role="buyer"] .em-slide .em-ov { left: 72px; right: 45%; bottom: 48px; }
+  [data-layout="emergent"][data-role="buyer"] .em-slide .em-ov > .em-ser { font-size: 44px; line-height: 1.08; }
+  [data-layout="emergent"][data-role="buyer"] .em-slide .em-ov p { font-size: 16px; margin-top: 12px; }
+  [data-layout="emergent"][data-role="buyer"] .em-slide .em-sc { background: linear-gradient(90deg, color-mix(in srgb, var(--em-deep) 92%, transparent) 0%, color-mix(in srgb, var(--em-deep) 70%, transparent) 45%, transparent 80%); }
+  [data-layout="emergent"][data-role="buyer"] .em-arrow { width: 48px; height: 48px; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid.em-grid-2, [data-layout="emergent"][data-role="buyer"] .em-page.wide .em-grid.em-grid-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; max-width: none; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid-2 .em-sq { aspect-ratio: 4 / 5; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid-2 .em-col-ov { left: 20px; right: 20px; bottom: 20px; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid-2 .em-col-ov .em-ser { font-size: 22px; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid-2 .em-col-ov small { font-size: 12.5px; margin-top: 2px; }
+  [data-layout="emergent"][data-role="buyer"] .em-browse { max-width: 560px; margin-top: 24px; }
+  [data-layout="emergent"][data-role="buyer"] .em-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; overflow: visible; }
+  [data-layout="emergent"][data-role="buyer"] .em-strip-i, [data-layout="emergent"][data-role="buyer"] .em-strip-ph { width: 100%; }
+  [data-layout="emergent"][data-role="buyer"] .em-strip-ph { height: auto; aspect-ratio: 1; border-radius: 18px; }
+  [data-layout="emergent"][data-role="buyer"] .em-strip-i span { font-size: 13.5px; }
+  [data-layout="emergent"][data-role="buyer"] .em-chips { flex-wrap: wrap; overflow: visible; }
+
+  /* Catalogue: four photo cards a row, six compact tiles, list rows in two columns */
+  [data-layout="emergent"][data-role="buyer"] .em-page.wide .em-grid { gap: 22px; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid.em-grid-c2, [data-layout="emergent"][data-role="buyer"] .em-page.wide .em-grid.em-grid-c2 { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: none; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid.em-grid-3, [data-layout="emergent"][data-role="buyer"] .em-page.wide .em-grid.em-grid-3 { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+  [data-layout="emergent"][data-role="buyer"] .em-grid.em-grid-list, [data-layout="emergent"][data-role="buyer"] .em-page.wide .em-grid.em-grid-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; max-width: none; }
+  [data-layout="emergent"][data-role="buyer"] .em-card-t { padding: 12px 16px 14px; }
+  [data-layout="emergent"][data-role="buyer"] .em-card-t .em-ser { font-size: 16px; }
+  [data-layout="emergent"][data-role="buyer"] .em-card-t .em-wt { font-size: 18px; }
+  [data-layout="emergent"][data-role="buyer"] .em-heart { width: 36px; height: 36px; top: 12px; right: 12px; }
+  [data-layout="emergent"][data-role="buyer"] .em-cartbar { bottom: 20px; }
+  [data-layout="emergent"][data-role="buyer"] .em-cartbar > div { max-width: 720px; padding: 14px 24px; font-size: 15px; }
+
+  /* Orders and Shortlist: the list on the left, the totals and buttons in a panel on the right */
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); column-gap: 40px; align-items: start; padding-inline: var(--em-px); }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > * { grid-column: 1 / -1; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-pad { padding-inline: 0; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-chips { padding-inline: 0; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-body { grid-column: 1; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-dock { grid-column: 2; position: sticky; top: calc(var(--header-h) + var(--sat) + 24px); left: auto; right: auto; bottom: auto; z-index: 5; border: 1px solid var(--em-line); border-radius: 22px; box-shadow: 0 20px 50px -30px color-mix(in srgb, var(--em-deep) 45%, transparent); }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-dock .em-dock-in { max-width: none; padding: 22px; flex-wrap: wrap; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-dock .em-dock-in > .em-grow { flex-basis: 100%; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split > .em-dock .em-dock-in > .em-btn { flex: 1; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split .em-thumb { width: 104px !important; height: 104px !important; }
+  [data-layout="emergent"][data-role="buyer"] .em-page.em-split .em-li .em-ser { font-size: 19px !important; }
+  [data-layout="emergent"][data-role="buyer"] .em-li { padding: 18px 0; gap: 20px; }
+
+  /* Design page: photos on the left, details on the right */
+  [data-layout="emergent"][data-role="buyer"] .em-pd-wrap { align-items: center; padding: 32px; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd { max-width: 1120px; height: min(820px, calc(100vh - 64px)); margin: 0; border-radius: 28px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd-scroll { grid-column: 1 / -1; grid-row: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; }
+  [data-layout="emergent"][data-role="buyer"] .em-hero-g { position: sticky; top: 0; height: min(820px, calc(100vh - 64px)); }
+  [data-layout="emergent"][data-role="buyer"] .em-gal, [data-layout="emergent"][data-role="buyer"] .em-gal > button, [data-layout="emergent"][data-role="buyer"] .em-gal .em-ph { height: 100%; }
+  [data-layout="emergent"][data-role="buyer"] .em-gal .em-ph { aspect-ratio: auto; max-height: none; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd-count { bottom: 22px; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd-dots { bottom: 16px; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd-sheet { margin-top: 0; border-radius: 0; padding: 32px 40px 140px; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd-sheet .em-h2 { font-size: 38px; }
+  [data-layout="emergent"][data-role="buyer"] .em-pd-bar { grid-column: 2; grid-row: 2; z-index: 2; padding: 16px 40px 20px; }
+
+  /* Bottom sheets (Add to cart, filters, menus) open as dialogs in the middle */
+  [data-layout="emergent"][data-role="buyer"] .em-sheet-wrap { align-items: center; padding: 32px; }
+  [data-layout="emergent"][data-role="buyer"] .em-sheet { max-width: 560px; border-radius: 28px; padding: 24px 28px 28px; box-shadow: 0 30px 80px color-mix(in srgb, var(--em-deep) 35%, transparent); }
+  [data-layout="emergent"][data-role="buyer"] .em-sheet .grab { display: none; }
+
+  /* All collections: a wide page, four cards a row */
+  [data-layout="emergent"][data-role="buyer"] .em-colpage { max-width: 1240px; }
+  [data-layout="emergent"][data-role="buyer"] .em-colgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 20px; }
+
+  /* Welcome: the brand panel on the left, the way in on the right */
+  [data-layout="emergent"][data-role="buyer"] .em-welcome { max-width: none; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); padding: 0; }
+  [data-layout="emergent"][data-role="buyer"] .em-welcome .em-hero.lg { min-height: 100vh; margin: 0; border-radius: 0; padding: 56px 64px; }
+  [data-layout="emergent"][data-role="buyer"] .em-welcome .em-hero h1 { font-size: 58px !important; }
+  [data-layout="emergent"][data-role="buyer"] .em-welcome .em-hero p { font-size: 17px !important; max-width: 520px !important; }
+  [data-layout="emergent"][data-role="buyer"] .em-welcome > .em-pad { display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 600px; margin-inline: auto; padding: 56px 48px; }
+
+  /* About */
+  [data-layout="emergent"][data-role="buyer"] .em-hero.about { min-height: calc(380px + var(--header-h) + var(--sat)); padding-inline: 48px; }
+}
+
+/* Desktop pointers: cards lift a little under the mouse */
+@media (min-width: 1024px) and (hover: hover) {
+  [data-layout="emergent"][data-role="buyer"] .em-sq, [data-layout="emergent"][data-role="buyer"] .em-cardwrap { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s; }
+  [data-layout="emergent"][data-role="buyer"] .em-sq:hover, [data-layout="emergent"][data-role="buyer"] .em-cardwrap:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--em-deep) 55%, transparent); }
+}
