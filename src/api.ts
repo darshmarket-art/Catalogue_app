@@ -238,7 +238,7 @@ async function flushProductViews() {
   }
 }
 
-/** Records that a product card was seen; batched, and sent at most once per SKU per page load. */
+/** Records that a design's details page was opened; batched, and sent at most once per SKU per page load. */
 export function trackProductView(sku: string) {
   if (seenSkus.has(sku)) return;
   seenSkus.add(sku);

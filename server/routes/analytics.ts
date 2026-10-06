@@ -70,7 +70,7 @@ export function analyticsRoutes(
     message: { status: 'error', message: 'Too many requests. Please slow down.' }
   });
 
-  // One view = one product card seen by one visitor session on one day. Admin browsing is excluded.
+  // One view = one design details page opened by one visitor session on one day. Admin browsing is excluded.
   router.post(
     '/analytics/product-views',
     trackingLimiter,

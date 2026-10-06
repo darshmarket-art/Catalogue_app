@@ -3,7 +3,7 @@ import { usePlan } from '../../plan';
 import type { Product } from '../../types';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
-import { api, trackProductView, trackSearch, trackSelect } from '../../api';
+import { api, trackSearch, trackSelect } from '../../api';
 import { clearOnScreen, setOnScreen } from '../../attention';
 import { downloadDesignsPdf } from '../../cataloguePdf';
 import { SORT_KEYS, SORT_LABELS, type SortKey } from '../../../shared/jewellery';
@@ -179,14 +179,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Counts one view per design once it has been on screen, and times how long each is looked at.
+  // Times how long each design is on screen (a view itself is counted when its details page opens, in ProductDetail).
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid || !('IntersectionObserver' in window)) return;
-    const counted = new Observer((el) => {
-      const sku = el.dataset.sku;
-      if (sku) trackProductView(sku);
-    });
     const seen = new Set<string>();
     const timing = new IntersectionObserver(
       (entries) => {
@@ -201,11 +197,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       { threshold: 0.5 }
     );
     grid.querySelectorAll<HTMLElement>('[data-sku]').forEach((el) => {
-      counted.watch(el);
       timing.observe(el);
     });
     return () => {
-      counted.stop();
       timing.disconnect();
       seen.forEach((sku) => setOnScreen(sku, false));
     };
@@ -624,26 +618,3 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     </div>
   );
 };
-
-/** Calls back once for each element that is at least half visible, then stops watching it. */
-class Observer {
-  private io: IntersectionObserver;
-  constructor(onSeen: (el: HTMLElement) => void) {
-    this.io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          onSeen(entry.target as HTMLElement);
-          this.io.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.5 }
-    );
-  }
-  watch(el: HTMLElement) {
-    this.io.observe(el);
-  }
-  stop() {
-    this.io.disconnect();
-  }
-}
