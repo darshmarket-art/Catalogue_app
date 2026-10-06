@@ -71,11 +71,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
               <div className="em-grow">
                 <div className="em-ser">{p.title}</div>
                 <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
-                  {p.sku} · {p.purity.split(' ')[0]} · {fmtG(p.netWt)}
-                </div>
-                <div className="em-row" style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: stockTone(p.stockStatus) === 'conf' ? 'var(--em-ok)' : 'var(--em-mut)' }}>
-                  <i className="em-dot" style={stockTone(p.stockStatus) === 'conf' ? undefined : { background: 'var(--em-warn)' }} />
-                  {p.stockStatus}
+                  {fmtG(p.netWt)}
                 </div>
               </div>
               </button>

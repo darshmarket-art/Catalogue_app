@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Facebook, Instagram, MapPin, MessageCircle, Youtube } from 'lucide-react';
+import { Facebook, Instagram, MapPin, MessageCircle } from 'lucide-react';
 import type { Category } from '../../types';
 import { downloadCataloguePdf } from '../../cataloguePdf';
 import { merchant } from '../../merchant';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
-import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
+import { Icon, Ph, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { useHideOnScroll } from './useHideOnScroll';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { recentCollections, recentSkus } from '../../recent';
@@ -24,7 +24,6 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const slideCount = banners.length || merchant.promotions.length;
   const [searchQuery, setSearchQuery] = useState('');
   const hideBar = useHideOnScroll();
-  const [speedDialOpen, setSpeedDialOpen] = useState(false);
   // The collection whose admin menu (edit, share link, share PDF) is open
   const [menuFor, setMenuFor] = useState<Category | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -70,13 +69,13 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   };
 
   const { contact } = merchant;
-  const contactLinks: Array<{ label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
-    { label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={22} /> },
-    ...(contact.instagramUrl ? [{ label: 'Instagram', href: contact.instagramUrl, style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={22} /> }] : []),
-    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={22} /> }] : []),
-    ...(contact.youtubeUrl ? [{ label: 'YouTube', href: contact.youtubeUrl, style: { background: '#FF0000', color: '#fff' }, icon: <Youtube size={22} /> }] : []),
+  // Where buyers can reach the store: only the pages the owner has set (WhatsApp and the showroom map are always offered when known).
+  const socialLinks: Array<{ label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
+    ...(contact.instagramUrl ? [{ label: 'Instagram', href: contact.instagramUrl, style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> }] : []),
+    ...(contact.facebookUrl ? [{ label: 'Facebook', href: contact.facebookUrl, style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> }] : []),
+    ...(contact.whatsapp ? [{ label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
     ...(contact.address
-      ? [{ label: contact.showroomLabel ?? 'Showroom', href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={22} /> }]
+      ? [{ label: contact.showroomLabel ?? 'Location', href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
       : [])
   ];
 
@@ -268,16 +267,22 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         </div>
       )}
 
-      <div className="em-pad" style={{ marginTop: 28 }}>
-        <div className="em-house">
-          <div className="em-ey g">The House</div>
-          <p className="em-ser">{merchant.brand.description}</p>
-          <button type="button" className="em-link" onClick={() => onNavigate('about')}>
-            Visit about us
-            <Icon n="right" size={14} />
-          </button>
+      {socialLinks.length > 0 && (
+        <div className="em-pad" style={{ marginTop: 28 }}>
+          <div className="em-card em-social" data-testid="social-links">
+            <div className="em-ey g">Find us</div>
+            <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>Stay in touch with {merchant.brand.name}</p>
+            <div className="em-social-row">
+              {socialLinks.map((link) => (
+                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="em-social-i" aria-label={link.label}>
+                  <span style={link.style}>{link.icon}</span>
+                  <small>{link.label}</small>
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ marginTop: 26, display: 'flex', justifyContent: 'center' }}>
         <PoweredByAntarixs />
@@ -329,22 +334,6 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           }}
         />
       )}
-
-      {/* Floating contact menu: the owner's own WhatsApp, showroom and social pages (a link only appears once it is set in merchant.json) */}
-      <div className="em-fab">
-        {speedDialOpen &&
-          contactLinks.map((link) => (
-            <div key={link.label} className="em-fab-item animate-fade-in">
-              <Pill tone="plum">{link.label}</Pill>
-              <a href={link.href} target="_blank" rel="noopener noreferrer" aria-label={link.label} style={link.style}>
-                {link.icon}
-              </a>
-            </div>
-          ))}
-        <button type="button" className="em-fab-btn" onClick={() => setSpeedDialOpen(!speedDialOpen)} aria-expanded={speedDialOpen} aria-label={speedDialOpen ? 'Close contact menu' : 'Contact us'}>
-          <Icon n={speedDialOpen ? 'x' : 'chat'} size={22} />
-        </button>
-      </div>
     </div>
   );
 };

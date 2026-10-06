@@ -7,6 +7,7 @@ import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, Anal
 import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
 import { noteCollection } from './recent';
 import { setTagList } from './tagList';
+import { isTidying } from './backLayer';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -164,6 +165,8 @@ export default function App() {
     const gestures = ['pointerup', 'touchend', 'click', 'keydown'] as const;
     if (!guardArmed.current) gestures.forEach((ev) => window.addEventListener(ev, arm, { passive: true, capture: true }));
     const onPop = (e: PopStateEvent) => {
+      // A closed sheet or picker tidying its history entry: stay on the screen the app is showing now.
+      if (isTidying()) return void window.history.replaceState({ screen: screenRef.current, g: 1, ld: e.state?.ld }, '');
       const to = e.state?.screen as string | undefined;
       if (to && to !== 'guard') return void setCurrentScreen(to as ActiveScreen);
       window.history.pushState({ screen: screenRef.current, g: 1 }, '');

@@ -293,21 +293,13 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
       ) : (
         <>
           <div className="em-pad">
-            <div className="em-draft">
-              <span className="em-badge">
-                <Icon n="bag" size={18} />
+            <div className="em-row em-sb" style={{ marginBottom: 2 }}>
+              <span className="em-mut" style={{ fontSize: 13 }}>
+                {orders.length} {orders.length === 1 ? 'design' : 'designs'} · {totalPieces} {totalPieces === 1 ? 'piece' : 'pieces'}
               </span>
-              <div className="em-grow">
-                <div className="em-row em-sb">
-                  <div className="em-ey g">Draft order</div>
-                  <button type="button" className="em-link" data-testid="cart-clear" style={{ color: "var(--em-gold)", background: "none", border: 0, fontSize: 12, fontWeight: 600, cursor: "pointer" }} onClick={() => orders.forEach((i) => onRemoveItem(i.id))}>
-                    Clear
-                  </button>
-                </div>
-                <div style={{ fontSize: 14, marginTop: 2 }}>
-                  {orders.length} {orders.length === 1 ? 'design' : 'designs'} · {totalPieces} {totalPieces === 1 ? 'piece' : 'pieces'}. Review, then place it.
-                </div>
-              </div>
+              <button type="button" className="em-link" data-testid="cart-clear" onClick={() => orders.forEach((i) => onRemoveItem(i.id))}>
+                Clear
+              </button>
             </div>
 
             <div style={{ marginTop: 8 }}>

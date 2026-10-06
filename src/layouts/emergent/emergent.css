@@ -572,3 +572,41 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-grid-list > .em-lrow { animation: none; }
 [data-layout="emergent"] .em-grid-list .em-sq { aspect-ratio: 1; }
 [data-layout="emergent"] .em-grid.em-grid-c2, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 720px; margin-inline: auto; }
+
+/* Browse all collections: two cards a row under each tag */
+[data-layout="emergent"] .em-colgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding: 10px 0 6px; }
+[data-layout="emergent"] .em-colcard { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+[data-layout="emergent"] .em-colcard .em-sq { width: 100%; }
+[data-layout="emergent"] .em-colcard-n { font-size: 15.5px; line-height: 1.2; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Catalogue cards: a clear photo, the name and weight underneath */
+[data-layout="emergent"] .em-card-t { display: flex; flex-direction: column; gap: 2px; padding: 9px 12px 10px; min-width: 0; }
+[data-layout="emergent"] .em-card-t .em-ser { font-size: 15px; line-height: 1.25; }
+[data-layout="emergent"] .em-card-t .em-mut { font-size: 12.5px; }
+[data-layout="emergent"] .em-grid-3 .em-card-t { padding: 6px 8px 8px; }
+[data-layout="emergent"] .em-grid-3 .em-card-t .em-ser { font-size: 11.5px; }
+[data-layout="emergent"] .em-grid-3 .em-card-t .em-mut { font-size: 10.5px; }
+
+/* Home: social links card */
+[data-layout="emergent"] .em-social { padding: 18px 16px 16px; }
+[data-layout="emergent"] .em-social-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 10px; }
+[data-layout="emergent"] .em-social-i { display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none; color: var(--em-ink); }
+[data-layout="emergent"] .em-social-i span { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.14); }
+[data-layout="emergent"] .em-social-i small { font-size: 11.5px; font-weight: 600; }
+
+/* Colour for what is selected: every pressed chip is filled, and each Catalogue section has its own colour. */
+[data-layout="emergent"] .em-chip[aria-pressed="true"] { background: var(--em-primary); color: var(--em-on-primary); border-color: var(--em-primary); }
+[data-layout="emergent"] .em-chip[aria-pressed="true"] i { background: color-mix(in srgb, var(--em-on-primary) 22%, transparent); color: var(--em-on-primary); }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="designs"][aria-pressed="true"] { background: var(--em-primary); border-color: var(--em-primary); color: var(--em-on-primary); }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="collections"][aria-pressed="true"] { background: #1f6b4f; border-color: #1f6b4f; color: #fff; }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="banners"][aria-pressed="true"] { background: var(--em-gold); border-color: var(--em-gold); color: #2b1d05; }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="purities"][aria-pressed="true"] { background: #2f5d9f; border-color: #2f5d9f; color: #fff; }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="designs"]:not([aria-pressed="true"]) { border-color: color-mix(in srgb, var(--em-primary) 35%, var(--em-line)); }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="collections"]:not([aria-pressed="true"]) { border-color: color-mix(in srgb, #1f6b4f 40%, var(--em-line)); }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="banners"]:not([aria-pressed="true"]) { border-color: color-mix(in srgb, var(--em-gold) 55%, var(--em-line)); }
+[data-layout="emergent"] .em-seg .em-chip[data-seg="purities"]:not([aria-pressed="true"]) { border-color: color-mix(in srgb, #2f5d9f 40%, var(--em-line)); }
+/* A thin bar in the section's colour under the tabs */
+[data-layout="emergent"] .em-seg-bar { height: 3px; border-radius: 3px; margin-top: -6px; }
+/* Purities: on is green, off is grey */
+[data-layout="emergent"] .em-embed .card.pur-on { border-left: 4px solid var(--em-ok); background: color-mix(in srgb, var(--em-ok) 7%, var(--em-card)); }
+[data-layout="emergent"] .em-embed .card.pur-off { border-left: 4px solid var(--em-line); }

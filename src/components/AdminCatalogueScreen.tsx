@@ -64,12 +64,13 @@ export const AdminCatalogueScreen: React.FC<Props> = (p) => {
         />
         <div className="em-seg" role="group" aria-label="Catalogue sections">
           {SEGMENTS.map((s) => (
-            <button key={s.key} type="button" className="em-chip" data-testid={`catalogue-seg-${s.key}`} aria-pressed={p.segment === s.key} onClick={() => p.onSegment(s.key)}>
+            <button key={s.key} type="button" className="em-chip" data-seg={s.key} data-testid={`catalogue-seg-${s.key}`} aria-pressed={p.segment === s.key} onClick={() => p.onSegment(s.key)}>
               {s.label}
             </button>
           ))}
         </div>
 
+        <div className="em-seg-bar" aria-hidden="true" style={{ background: { designs: 'var(--em-primary)', collections: '#1f6b4f', banners: 'var(--em-gold)', purities: '#2f5d9f' }[p.segment] }} />
         {p.segment === 'designs' && <Designs {...p} pdf={flags.pdfCatalogue} collection={collection} onCollection={setCollection} />}
         {p.segment === 'collections' && <Collections {...p} onOpenDesigns={(name) => { setCollection(name); p.onSegment('designs'); }} />}
         {p.segment === 'banners' && (
@@ -114,6 +115,8 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  // The design whose three-dot menu (Edit, Delete) is open.
+  const [menuFor, setMenuFor] = useState<Product | null>(null);
   const req = useRef(0);
 
   useEffect(() => {
@@ -151,6 +154,7 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
       return;
     }
     setConfirming(null);
+    setMenuFor(null);
     if (await onDeleteProduct(product)) {
       setItems((prev) => prev.filter((x) => x.id !== product.id));
       setTotal((n) => Math.max(0, n - 1));
@@ -193,28 +197,42 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
       )}
       {picking && <CollectionPicker categories={categories} current={collection} onPick={(n) => { onCollection(n); setPicking(false); }} onClose={() => setPicking(false)} />}
       {error && <div role="alert" className="em-card" style={{ color: 'var(--em-bad)' }}>{error}</div>}
-      <div data-testid="admin-design-list">
+      <div className="em-grid em-grid-c2" data-testid="admin-design-list">
         {items.map((d, i) => (
-          <div key={d.id} className="em-li" data-testid="admin-design-row">
-            <button type="button" className="em-row" style={{ gap: 14, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => onEditProduct(d)} aria-label={`Edit ${d.title}`}>
-              <Ph src={d.image} tone={i} className="em-thumb" />
-              <span className="em-grow">
-                <span className="em-ser em-clip" style={{ display: 'block', fontSize: 16 }}>{d.title}</span>
-                <span className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>{d.sku} · {d.purity} · {fmtG(d.netWt)}</span>
-                <span style={{ display: 'block', marginTop: 6 }}><StockPill status={d.stockStatus} small /></span>
-              </span>
-            </button>
-            <div className="em-row" style={{ gap: 6 }}>
-              <button type="button" className="em-circ" aria-label={`Edit ${d.title}`} onClick={() => onEditProduct(d)}><Icon n="edit" size={16} /></button>
-              <button type="button" className="em-circ" data-testid="admin-design-delete" aria-label={confirming === d.id ? `Tap again to delete ${d.title}` : `Delete ${d.title}`} style={confirming === d.id ? { background: 'var(--em-bad)', color: '#fff', borderColor: 'var(--em-bad)' } : { color: 'var(--em-bad)' }} onClick={() => remove(d)}>
-                <Icon n={confirming === d.id ? 'check' : 'trash'} size={16} />
+          <div key={d.id} className="em-cardwrap" data-testid="admin-design-row">
+            <div className="em-sq">
+              <button type="button" className="em-hit" onClick={() => onEditProduct(d)} aria-label={`Edit ${d.title}`}>
+                <Ph src={d.image} tone={i} className="em-fill" />
               </button>
+              <button type="button" className="em-circ f em-opts" style={{ left: "auto", right: 10 }} data-testid="admin-design-menu" aria-label={`Options for ${d.title}`} onClick={() => { setMenuFor(d); setConfirming(null); }}>
+                <Icon n="more" size={16} />
+              </button>
+            </div>
+            <div className="em-card-t">
+              <span className="em-ser em-clip">{d.title}</span>
+              <span className="em-mut">{d.sku} · {fmtG(d.netWt)}</span>
+              <span style={{ marginTop: 4 }}><StockPill status={d.stockStatus} small /></span>
             </div>
           </div>
         ))}
+      </div>
+      <div>
         {loading && items.length === 0 && <p className="em-hint" style={{ textAlign: 'center' }}>Loading…</p>}
         {!loading && items.length === 0 && !error && <p className="em-mut" style={{ textAlign: 'center', padding: '24px 0' }}>{debounced || collection ? 'No designs match.' : 'No designs yet. Tap + to add the first one.'}</p>}
       </div>
+      {menuFor && (
+        <Sheet label={`Options for ${menuFor.title}`} onClose={() => setMenuFor(null)}>
+          <h2 className="em-ser" style={{ fontSize: 22 }}>{menuFor.title}</h2>
+          <button type="button" className="em-opt" data-testid="admin-design-edit" onClick={() => { const d = menuFor; setMenuFor(null); onEditProduct(d); }}>
+            <span className="em-badge"><Icon n="edit" size={16} /></span>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>Edit design</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Photos, weights, details</span></span>
+          </button>
+          <button type="button" className="em-opt" data-testid="admin-design-delete" onClick={() => void remove(menuFor)} style={confirming === menuFor.id ? { color: 'var(--em-bad)' } : undefined}>
+            <span className="em-badge" style={{ color: 'var(--em-bad)' }}><Icon n={confirming === menuFor.id ? 'check' : 'trash'} size={16} /></span>
+            <span className="em-grow"><b style={{ fontWeight: 600, color: 'var(--em-bad)' }}>{confirming === menuFor.id ? 'Tap again to delete for good' : 'Delete design'}</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>This cannot be undone</span></span>
+          </button>
+        </Sheet>
+      )}
       {hasMore && (
         <button type="button" className="em-btn sec sm" onClick={() => void more()}>
           Show more · {total - items.length} left

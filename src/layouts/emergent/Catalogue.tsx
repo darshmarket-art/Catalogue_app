@@ -7,7 +7,7 @@ import { api, trackProductView, trackSearch, trackSelect } from '../../api';
 import { clearOnScreen, setOnScreen } from '../../attention';
 import { downloadDesignsPdf } from '../../cataloguePdf';
 import { SORT_KEYS, SORT_LABELS, type SortKey } from '../../../shared/jewellery';
-import { Icon, Ph, Pill, Sheet, StockPill, Title, Toast, fmtG, type KitProps } from './ui';
+import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { useHideOnScroll } from './useHideOnScroll';
@@ -400,8 +400,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
                       <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{prod.title}</span>
-                      <span className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>{prod.sku} · {prod.purity.split(' ')[0]} · {fmtG(prod.netWt)}</span>
-                      <span style={{ display: 'inline-block', marginTop: 4 }}><StockPill status={prod.stockStatus} small /></span>
+                      <span className="em-mut" style={{ display: 'block', fontSize: 12.5, marginTop: 3 }}>{fmtG(prod.netWt)}</span>
                     </span>
                   </button>
                   {!isAdmin && (
@@ -423,11 +422,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   <article data-sku={prod.sku} data-testid="product-card" className="em-sq">
                     <button type="button" className="em-hit" aria-label={`View ${prod.title}`} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                       <Ph src={prod.image} tone={i} className="em-fill" />
-                      <span className="em-sc" />
-                      <span className="em-ov">
-                        <span className="em-ser em-clip">{prod.title}</span>
-                        <span className="em-tile-m">{fmtG(prod.netWt)} · {prod.purity.split(' ')[0]}</span>
-                      </span>
                     </button>
                     {!isAdmin && flags.orders && (
                       <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
@@ -435,6 +429,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                       </button>
                     )}
                   </article>
+                  <div className="em-card-t">
+                    <span className="em-ser em-clip">{prod.title}</span>
+                    <span className="em-mut">{fmtG(prod.netWt)}</span>
+                  </div>
                 </div>
               );
             }
@@ -443,21 +441,6 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
                 <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : `View ${prod.title}`} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" />
-                  <span className="em-sc" />
-                  <span className="em-tl">
-                    <StockPill status={prod.stockStatus} small />
-                  </span>
-                  <span className="em-ov">
-                    <span className="em-ser">{prod.title}</span>
-                    <span className="em-ov-r">
-                      <span>
-                        <i>{prod.sku}</i>
-                        &nbsp;·&nbsp;
-                        <b className="g">{prod.purity.split(' ')[0]}</b>
-                      </span>
-                      <b>{fmtG(prod.netWt)}</b>
-                    </span>
-                  </span>
                 </button>
                 {selecting && (
                   <span className="em-pick" aria-hidden="true">
@@ -476,6 +459,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   </button>
                 )}
               </article>
+              <div className="em-card-t">
+                <span className="em-ser em-clip">{prod.title}</span>
+                <span className="em-mut">{fmtG(prod.netWt)}</span>
+              </div>
               {!isAdmin && !selecting && flags.orders && (
                 <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={`Add ${prod.title} to cart`} onClick={() => setCartFor(prod)}>
                   <Icon n="bag" size={16} />

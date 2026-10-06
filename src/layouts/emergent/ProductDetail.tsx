@@ -238,9 +238,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
               <StockPill status={product.stockStatus} />
               {product.huid && <Pill tone="gold">HUID {product.huid}</Pill>}
             </div>
-            <p className="em-mut" style={{ marginTop: 12, fontSize: 14 }} data-testid="product-purities">
-              Purity: <b style={{ color: 'var(--em-ink)', fontWeight: 600 }}>{sold.map((p) => p.title).join(' · ')}</b>
-            </p>
 
             {product.description && (
               <p className="em-mut" style={{ marginTop: 14, fontSize: 14, lineHeight: 1.5 }} data-testid="product-description">

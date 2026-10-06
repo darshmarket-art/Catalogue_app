@@ -40,15 +40,15 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
     };
   }, []);
 
-  const purities = (c: Category) => (c.eligibleKarats?.length ? ` · ${c.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ')}` : '');
-  const row = (c: Category, i: number, key = c.id) => (
-    <button key={key} type="button" className="em-li em-colrow" data-testid="collection-row" onClick={() => onPick(c.name)}>
-      <Ph src={c.image} tone={i} className="em-thumb" style={{ width: 56, height: 56 }} />
-      <span className="em-grow">
-        <span className="em-ser" style={{ display: 'block', fontSize: 17 }}>{c.name}</span>
-        <span className="em-mut" style={{ fontSize: 11 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}{purities(c)}</span>
+  // One collection as a card: the photo, then its name and design count underneath.
+  const card = (c: Category, i: number, key = c.id) => (
+    <button key={key} type="button" className="em-colcard" data-testid="collection-row" aria-label={`Open ${c.name}`} onClick={() => onPick(c.name)}>
+      <span className="em-sq" style={current === c.name ? { outline: '2.5px solid var(--em-gold)', outlineOffset: -2.5 } : undefined}>
+        <Ph src={c.image} tone={i} className="em-fill" />
+        {current === c.name && <span className="em-pick" style={{ background: 'var(--em-primary)', borderColor: 'var(--em-primary)' }}><Icon n="check" size={15} /></span>}
       </span>
-      {current === c.name ? <Icon n="check" size={18} /> : <Icon n="right" size={18} />}
+      <span className="em-ser em-colcard-n">{c.name}</span>
+      <span className="em-mut" style={{ fontSize: 11 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span>
     </button>
   );
 
@@ -88,13 +88,13 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
           {recent.length > 0 && (
             <>
               <div className="em-ey" style={{ margin: '14px 0 2px' }}>Recent</div>
-              {recent.map((c, i) => row(c, i, `r-${c.id}`))}
+              <div className="em-colgrid">{recent.map((c, i) => card(c, i, `r-${c.id}`))}</div>
             </>
           )}
           {groups.map(([t, cs]) => (
             <div key={t} data-testid="tag-group">
               <div className="em-letter em-letter-in em-tag-h">{t} <span>{cs.length}</span></div>
-              {cs.map((c, i) => row(c, i))}
+              <div className="em-colgrid">{cs.map((c, i) => card(c, i))}</div>
             </div>
           ))}
           {list.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>No collection with that name.</p>}

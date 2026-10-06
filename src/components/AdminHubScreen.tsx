@@ -127,7 +127,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
               </button>
             </div>
             <div className="em-metrics">
-              <button type="button" className="em-metric" style={{ textAlign: 'left' }} onClick={() => onNavigate('admin-insights')}>
+              <div className="em-metric" style={{ textAlign: 'left' }}>
                 <div className="em-row em-sb">
                   <span className="em-ey">kg booked</span>
                   <Icon n="trend" size={14} />
@@ -136,8 +136,8 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
                   <span className="em-ser">{analytics.bookedWeightKg.toFixed(3)}</span>
                   <b>{analytics.bookedOrders} {analytics.bookedOrders === 1 ? 'order' : 'orders'}</b>
                 </div>
-              </button>
-              <button type="button" className="em-metric dk" style={{ textAlign: 'left' }} onClick={() => onNavigate('admin-insights')}>
+              </div>
+              <div className="em-metric dk" style={{ textAlign: 'left' }}>
                 <div className="em-row em-sb">
                   <span className="em-ey">Views</span>
                   <Icon n="eye" size={14} />
@@ -146,7 +146,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
                   <span className="em-ser">{analytics.views.toLocaleString('en-IN')}</span>
                   <b>{analytics.inquiries} enq. · {analytics.viewsTrend}</b>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
         ) : (

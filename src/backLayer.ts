@@ -6,6 +6,9 @@ import { useEffect, useRef } from 'react';
  */
 const stack: Array<{ close: () => void }> = [];
 let wired = false;
+/** True while the app itself is removing a closed layer's history entry; that step must not change the screen. */
+let tidying = false;
+export const isTidying = () => tidying;
 
 const wire = () => {
   if (wired) return;
@@ -13,6 +16,7 @@ const wire = () => {
   window.addEventListener('popstate', (e) => {
     const depth = e.state && typeof e.state.ld === 'number' ? e.state.ld : 0;
     while (stack.length > depth) stack.pop()!.close();
+    tidying = false;
   });
 };
 
@@ -46,7 +50,10 @@ export function useBackLayer(open: boolean, close: () => void) {
       // Tidied on the next tick, once any layer opening in the same moment has registered.
       setTimeout(() => {
         const extra = (window.history.state?.ld ?? 0) - stack.length;
-        if (extra > 0) window.history.go(-extra);
+        if (extra > 0) {
+          tidying = true;
+          window.history.go(-extra);
+        }
       }, 0);
     };
   }, [open]);
