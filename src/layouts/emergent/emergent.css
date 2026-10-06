@@ -616,3 +616,5 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .em-card-t .em-ser { font-size: 14px; }
 [data-layout="emergent"] .em-grid-3 .em-card-t .em-wt { font-size: 13px; }
 [data-layout="emergent"] .em-grid-3 .em-card-t .em-ser { font-size: 11px; }
+/* Card grids fill the row (auto side margins would otherwise shrink them inside a flex column) */
+[data-layout="emergent"] .em-grid.em-grid-c2, [data-layout="emergent"] .em-grid.em-grid-2, [data-layout="emergent"] .em-grid.em-grid-3 { width: 100%; box-sizing: border-box; }
