@@ -623,9 +623,9 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
    compositor (transform), with long, soft easing; only the card's words cross-fade between steps. */
 [data-layout="emergent"] .em-tour { position: fixed; inset: 0; z-index: 90; --flow: cubic-bezier(0.22, 1, 0.36, 1); }
 [data-layout="emergent"] .em-tour-dim { position: absolute; inset: 0; background: transparent; }
-[data-layout="emergent"] .em-tour-hole { position: fixed; left: 0; top: 0; box-shadow: 0 0 0 200vmax rgba(26, 10, 20, 0.64); pointer-events: none; will-change: transform, width, height; transition: transform 0.75s var(--flow), width 0.75s var(--flow), height 0.75s var(--flow), border-radius 0.75s var(--flow); animation: em-tour-fade 0.5s ease both; }
+[data-layout="emergent"] .em-tour-hole { position: fixed; left: 0; top: 0; box-shadow: 0 0 0 200vmax rgba(26, 10, 20, 0.64); pointer-events: none; width: 0; height: 0; will-change: transform, width, height; animation: em-tour-fade 0.5s ease both; }
 [data-layout="emergent"] .em-tour-hole::after { content: ''; position: absolute; inset: -3px; border-radius: inherit; border: 2px solid var(--em-gold); opacity: 0.85; animation: em-tour-breathe 2.6s ease-in-out infinite; }
-[data-layout="emergent"] .em-tour-card { position: fixed; top: 0; left: 16px; right: 16px; max-width: 420px; margin-inline: auto; background: var(--em-card); color: var(--em-ink); border-radius: 22px; padding: 18px 18px 16px; box-shadow: 0 18px 50px rgba(26, 10, 20, 0.35); border: 1px solid color-mix(in srgb, var(--em-gold) 45%, transparent); will-change: transform; transition: transform 0.75s var(--flow); animation: em-tour-fade 0.6s ease both; }
+[data-layout="emergent"] .em-tour-card { position: fixed; top: 0; left: 16px; right: 16px; max-width: 420px; margin-inline: auto; background: var(--em-card); color: var(--em-ink); border-radius: 22px; padding: 18px 18px 16px; box-shadow: 0 18px 50px rgba(26, 10, 20, 0.35); border: 1px solid color-mix(in srgb, var(--em-gold) 45%, transparent); will-change: transform; animation: em-tour-fade 0.6s ease both; }
 [data-layout="emergent"] .em-tour-card.centred { text-align: center; padding-top: 26px; }
 [data-layout="emergent"] .em-tour-body { animation: em-tour-words 0.55s var(--flow) both; }
 [data-layout="emergent"] .em-tour-head { gap: 10px; align-items: center; }
@@ -686,3 +686,24 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 }
 [data-layout="emergent"] .em-social-i.soon span { filter: saturate(0.55); opacity: 0.6; }
 [data-layout="emergent"] .em-social-i.soon em { font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; text-transform: uppercase; color: var(--em-mut); margin-top: -3px; }
+
+/* Shortlist and Orders get the same arrival as Home and the Catalogue: rows and order cards rise in one after another,
+   the summary dock slides up, and a placed order's page settles in. */
+[data-layout="emergent"] .em-page .em-li, [data-layout="emergent"] .em-ord { animation: em-card-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-page .em-li:nth-child(2), [data-layout="emergent"] .em-ord:nth-of-type(2) { animation-delay: 0.06s; }
+[data-layout="emergent"] .em-page .em-li:nth-child(3), [data-layout="emergent"] .em-ord:nth-of-type(3) { animation-delay: 0.12s; }
+[data-layout="emergent"] .em-page .em-li:nth-child(4), [data-layout="emergent"] .em-ord:nth-of-type(4) { animation-delay: 0.18s; }
+[data-layout="emergent"] .em-page .em-li:nth-child(5), [data-layout="emergent"] .em-ord:nth-of-type(5) { animation-delay: 0.24s; }
+[data-layout="emergent"] .em-page .em-li:nth-child(n+6), [data-layout="emergent"] .em-ord:nth-of-type(n+6) { animation-delay: 0.3s; }
+[data-layout="emergent"] .em-dock-in { animation: em-slide-up 0.55s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-center > * { animation: em-card-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] .em-center > :nth-child(2) { animation-delay: 0.15s; }
+[data-layout="emergent"] .em-center > :nth-child(3) { animation-delay: 0.22s; }
+[data-layout="emergent"] .em-center > :nth-child(4) { animation-delay: 0.29s; }
+[data-layout="emergent"] .em-center > :nth-child(n+5) { animation-delay: 0.36s; }
+[data-layout="emergent"] .em-empty > * { animation: em-card-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-layout="emergent"] [data-testid="past-orders"], [data-layout="emergent"] .em-qty em { animation: em-tour-fade 0.35s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  [data-layout="emergent"] .em-page .em-li, [data-layout="emergent"] .em-ord, [data-layout="emergent"] .em-dock-in, [data-layout="emergent"] .em-center > *, [data-layout="emergent"] .em-empty > *, [data-layout="emergent"] [data-testid="past-orders"] { animation: none; }
+}
+[data-layout="emergent"] .em-center > .em-ok { animation: em-land 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }

@@ -103,103 +103,125 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
   ).current;
 
   const [at, setAt] = useState(0);
-  const [box, setBox] = useState<Box>(centre);
-  // The card stays on screen between steps; only its words cross-fade while it glides to its new place.
+  // The card stays on screen between steps; only its words cross-fade while it flows to its new place.
   const [shown, setShown] = useState(0);
   const [placing, setPlacing] = useState(true);
+  // Whether the step being shown lights up an element (otherwise the card sits in the middle).
+  const [aimed, setAimed] = useState(false);
   const target = useRef<Element | null>(null);
+  const aimedRef = useRef(false);
+  const radius = useRef(28);
+  const holeRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const dir = useRef<1 | -1>(1);
-  const [cardH, setCardH] = useState(240);
   useBackLayer(true, finish);
   const step = all[shown];
 
-  const measure = useCallback(() => {
-    const el = target.current;
-    if (!el || !el.isConnected) return setBox(centre());
-    const r = el.getBoundingClientRect();
-    const radius = parseFloat(getComputedStyle(el).borderRadius) || 14;
-    setBox({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2, r: Math.min(radius + PAD, 28) });
-  }, []);
-
-  // Follow the element every frame for a moment after each step, so the window flows with the page as it scrolls instead of jumping after it.
-  const follow = useCallback((ms: number) => {
-    const until = performance.now() + ms;
+  /*
+   * One animation loop for the whole tour. Every frame it reads where the lit-up element really is and moves the window and the card a
+   * little way towards it on a spring that starts from rest and settles without overshoot, so it flows like water. Because it chases a live position rather than restarting a
+   * CSS transition, the motion stays continuous while the page scrolls, a new screen slides in, or designs load.
+   */
+  useEffect(() => {
     let raf = 0;
-    const tick = () => {
-      measure();
-      if (performance.now() < until) raf = requestAnimationFrame(tick);
+    let last = performance.now();
+    let cur: Box | null = null;
+    let curY: number | null = null;
+    let vY = 0;
+    let vel = { top: 0, left: 0, width: 0, height: 0, r: 0 };
+    let want: Box = centre();
+    const still = reduced();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const el = target.current;
+      if (aimedRef.current && el && el.isConnected) {
+        const r = el.getBoundingClientRect();
+        if (r.width || r.height) want = { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2, r: radius.current };
+      } else if (!aimedRef.current) want = centre();
+      // while the next screen is still arriving the window waits where it is, instead of darting to the middle and back.
+      // A critically damped spring: it starts from rest, gathers speed and settles without overshoot (about 0.6 s).
+      if (still || !cur) {
+        cur = { ...want };
+        vel = { top: 0, left: 0, width: 0, height: 0, r: 0 };
+      } else {
+        const K = 70, D = 2 * Math.sqrt(K);
+        for (const key of ['top', 'left', 'width', 'height', 'r'] as const) {
+          vel[key] += ((want[key] - cur[key]) * K - vel[key] * D) * dt;
+          cur[key] += vel[key] * dt;
+        }
+      }
+      const hole = holeRef.current;
+      if (hole) {
+        hole.style.transform = `translate3d(${cur.left}px, ${cur.top}px, 0)`;
+        hole.style.width = `${Math.max(0, cur.width)}px`;
+        hole.style.height = `${Math.max(0, cur.height)}px`;
+        hole.style.borderRadius = `${cur.r}px`;
+      }
+      const card = cardRef.current;
+      if (card) {
+        const h = card.offsetHeight;
+        const vh = window.innerHeight;
+        const centred = want.width === 0;
+        const wantY = centred ? (vh - h) / 2 : want.top + want.height + 14 + h < vh - 8 ? want.top + want.height + 14 : Math.max(8, want.top - 14 - h);
+        if (curY === null || still) curY = wantY;
+        else {
+          vY += ((wantY - curY) * 70 - vY * 2 * Math.sqrt(70)) * dt;
+          curY += vY * dt;
+        }
+        card.style.transform = `translate3d(0, ${curY}px, 0)`;
+      }
+      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [measure]);
+  }, []);
 
-  // Each step: do its action, go to its screen, wait for its element (designs load from the server), glide it into view, then light it up.
+  // Each step: do its action, go to its screen, wait for its element (designs load from the server), bring it into view, then light it up.
   useEffect(() => {
     let cancelled = false;
-    let stopFollow = () => {};
     const s = all[at];
     setPlacing(true);
     (async () => {
       if (s.enter) await s.enter();
       if (cancelled) return;
       if (s.screen) onNavigate(s.screen);
-      if (!s.target) {
+      const centreOn = () => {
         target.current = null;
-        setBox(centre());
+        aimedRef.current = false;
+        setAimed(false);
         setShown(at);
         setPlacing(false);
-        return;
-      }
+      };
+      if (!s.target) return centreOn();
       const started = Date.now();
       const look = () => {
         if (cancelled) return;
         const el = s.target!();
         if (el) {
-          target.current = el;
           const r = el.getBoundingClientRect();
           const fixed = !!el.closest('.em-tabs, .em-top, .em-dock, .em-sheet') || getComputedStyle(el).position === 'fixed';
-          const room = window.innerHeight - 280;
-          if (!fixed && (r.top < 90 || r.bottom > room)) el.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
-          stopFollow = follow(900);
+          if (!fixed && (r.top < 90 || r.bottom > window.innerHeight - 280)) el.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
+          radius.current = Math.min((parseFloat(getComputedStyle(el).borderRadius) || 14) + PAD, 28);
+          target.current = el;
+          aimedRef.current = true;
+          setAimed(true);
           setShown(at);
           setPlacing(false);
-        } else if (Date.now() - started < 2500) setTimeout(look, 90);
+        } else if (Date.now() - started < 2500) setTimeout(look, 80);
         else if (s.optional) setAt((i) => Math.min(all.length - 1, Math.max(0, i + dir.current)));
-        else {
-          target.current = null;
-          setBox(centre());
-          setShown(at);
-          setPlacing(false);
-        }
+        else centreOn();
       };
-      setTimeout(look, 60);
+      // give a new screen a moment to arrive before measuring it
+      setTimeout(look, s.screen && s.screen !== all[Math.max(0, at - dir.current)]?.screen ? 220 : 40);
     })();
     return () => {
       cancelled = true;
-      stopFollow();
     };
   }, [at]);
 
-  // Keep the light on the element while the page scrolls or the phone turns.
-  useEffect(() => {
-    let raf = 0;
-    const again = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(measure);
-    };
-    window.addEventListener('scroll', again, true);
-    window.addEventListener('resize', again);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', again, true);
-      window.removeEventListener('resize', again);
-    };
-  }, [measure]);
-
   useLayoutEffect(() => {
-    if (cardRef.current) setCardH(cardRef.current.offsetHeight);
     nextRef.current?.focus({ preventScroll: true });
   }, [shown]);
 
@@ -220,18 +242,16 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  // The card sits under the lit-up element when there is room, otherwise above it, otherwise in the middle. It moves with transform only.
-  const centred = box.width === 0;
-  const vh = window.innerHeight;
-  const y = centred ? (vh - cardH) / 2 : box.top + box.height + 14 + cardH < vh - 8 ? box.top + box.height + 14 : Math.max(8, box.top - 14 - cardH);
+  const centred = !aimed;
   const last = shown === all.length - 1;
+
 
   return (
     <div className="em-tour" role="dialog" aria-modal="true" aria-label={`App tour, step ${shown + 1} of ${all.length}`} data-testid="buyer-tour">
       {/* Catches every tap outside the card: the tour leads, the buyer follows. */}
       <div className="em-tour-dim" />
-      <div className="em-tour-hole" style={{ transform: `translate3d(${box.left}px, ${box.top}px, 0)`, width: box.width, height: box.height, borderRadius: box.r }} aria-hidden="true" />
-      <div ref={cardRef} className={`em-tour-card${centred ? ' centred' : ''}`} style={{ transform: `translate3d(0, ${y}px, 0)` }} data-step={step.id}>
+      <div ref={holeRef} className="em-tour-hole" aria-hidden="true" />
+      <div ref={cardRef} className={`em-tour-card${centred ? ' centred' : ''}`} data-step={step.id}>
         <div key={step.id} className="em-tour-body">
           {centred && (
             <div className={`em-tour-mark${last ? ' done' : ''}`} aria-hidden="true">
