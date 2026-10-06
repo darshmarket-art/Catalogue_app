@@ -9,7 +9,7 @@ import { noteCollection } from './recent';
 import { setTagList } from './tagList';
 import { isTidying } from './backLayer';
 import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
-import { t, useLang } from './i18n';
+import { getLang, hn, pur, t, tErr, ts, useLang } from './i18n';
 import { merchant } from './merchant';
 import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
@@ -414,7 +414,13 @@ export default function App() {
   // Confirm Order (Pure Gram Settlement Allocation)
   const handleConfirmOrder = async (note?: string): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null> => {
     try {
+      const placing = orders;
       const result = await api.confirmOrder(note);
+      // In Hindi the WhatsApp message is written in Hindi too.
+      if (getLang() === 'hi')
+        result.whatsappMessage =
+          sector.orderMessageHi({ brandName: ts(merchant.brand.name), store: currentMerchant?.storeName ?? '', poId: result.poId, orders: placing.map((o) => ({ name: hn(o.title, o.titleHi), sku: o.sku, purity: pur(o.purity), batchQty: o.batchQty, totalNetGold: o.totalNetGold })) }) +
+          (note?.trim() ? `\n\n*नोट:* ${note.trim()}` : '');
       // The server has turned the batch into an order; the next batch starts empty.
       setOrders([]);
       return result;
@@ -424,7 +430,7 @@ export default function App() {
           alert(t('Please sign in to your wholesale account to confirm this order.'));
           handleNavigate('retailer-auth');
         } else {
-          alert(err.message);
+          alert(tErr(err.message));
         }
       }
       return null;
@@ -445,7 +451,10 @@ export default function App() {
 
     if (currentMerchant) void api.recordEnquiry({ kind: 'order', count: orders.length });
 
-    const msg = sector.orderManifest({ brandName: merchant.brand.name, store, orders }) + (note?.trim() ? `\n\n*Note:* ${note.trim()}` : '');
+    const msg =
+      getLang() === 'hi'
+        ? sector.orderMessageHi({ brandName: ts(merchant.brand.name), store, orders: orders.map((o) => ({ name: hn(o.title, o.titleHi), sku: o.sku, purity: pur(o.purity), batchQty: o.batchQty, totalNetGold: o.totalNetGold })) }) + (note?.trim() ? `\n\n*नोट:* ${note.trim()}` : '')
+        : sector.orderManifest({ brandName: merchant.brand.name, store, orders }) + (note?.trim() ? `\n\n*Note:* ${note.trim()}` : '');
 
     window.open(`https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
   };

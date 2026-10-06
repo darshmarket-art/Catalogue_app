@@ -4,7 +4,7 @@ import { api } from '../../api';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
 import { Icon, OrderStatusPill, Ph, Pill, Title, fmtG, type KitProps } from './ui';
-import { getLang, t, tn, useLang } from '../../i18n';
+import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
 
 const when = (iso: string) => new Date(iso).toLocaleString(getLang() === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -107,7 +107,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                     {rows.map((item) => (
                       <div key={item.id} className="li">
                         <span>
-                          {item.title} <span className="em-mut">× {item.batchQty}</span>
+                          {hn(item.title, item.titleHi)} <span className="em-mut">× {item.batchQty}</span>
                         </span>
                         <span className="em-mut">{fmtG(item.totalNetGold)}</span>
                       </div>
@@ -194,7 +194,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
       return null;
     } catch (err) {
       api.getOrderHistory().then(setHistory);
-      return err instanceof Error ? err.message : t('Could not cancel the order.');
+      return err instanceof Error ? tErr(err.message) : t('Could not cancel the order.');
     }
   };
 
@@ -225,7 +225,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
             {t(sector.copy.orders.bookedBanner)}
           </h1>
           <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 320 }}>
-            {t('{w} net.', { w: fmtG(bookedGrams) })} {merchant.orders.bookedNote ? `${t('Your order is booked,')} ${merchant.orders.bookedNote}` : t('We will confirm on WhatsApp shortly.')}
+            {t('{w} net.', { w: fmtG(bookedGrams) })} {tl(merchant.orders.bookedNote) ? `${t('Your order is booked,')} ${tl(merchant.orders.bookedNote)}` : t('We will confirm on WhatsApp shortly.')}
           </p>
           <a href={waLink} target="_blank" rel="noreferrer" className="em-btn wa">
             <Icon n="wa" />
@@ -257,7 +257,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
           title={t('Orders')}
           right={
             <span style={{ marginBottom: 8 }}>
-              <Pill tone="gold">Pro</Pill>
+              <Pill tone="gold">{t('Pro')}</Pill>
             </span>
           }
         />
@@ -311,27 +311,27 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                   <Ph src={item.image} tone={i} className="em-thumb" style={{ width: 76, height: 76 }} />
                   <div className="em-grow">
                     <div className="em-ser" style={{ fontSize: 16 }}>
-                      {item.title}
+                      {hn(item.title, item.titleHi)}
                     </div>
                     <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
-                      {item.sku} · {item.purity.split(' ')[0]} · {fmtG(item.unitWt)} × {item.batchQty}
+                      {item.sku} · {pur(item.purity.split(' ')[0])} · {fmtG(item.unitWt)} × {item.batchQty}
                     </div>
                     <div className="em-row em-sb" style={{ marginTop: 6 }}>
                       <span className="em-ser" style={{ color: 'var(--em-primary)', fontSize: 15 }}>
                         {fmtG(item.totalNetGold)}
                       </span>
                       <div className="em-qty sm">
-                        <button type="button" aria-label={t('Decrease {name}', { name: item.title })} disabled={item.batchQty <= 1} onClick={() => onChangeQty(item.id, item.batchQty - 1)}>
+                        <button type="button" aria-label={t('Decrease {name}', { name: hn(item.title, item.titleHi) })} disabled={item.batchQty <= 1} onClick={() => onChangeQty(item.id, item.batchQty - 1)}>
                           <Icon n="minus" size={16} />
                         </button>
                         <em>{item.batchQty}</em>
-                        <button type="button" aria-label={t('Increase {name}', { name: item.title })} onClick={() => onChangeQty(item.id, item.batchQty + 1)}>
+                        <button type="button" aria-label={t('Increase {name}', { name: hn(item.title, item.titleHi) })} onClick={() => onChangeQty(item.id, item.batchQty + 1)}>
                           <Icon n="plus" size={16} />
                         </button>
                       </div>
                     </div>
                   </div>
-                  <button type="button" className="em-circ" data-testid="order-line-remove" aria-label={t('Remove {name}', { name: item.title })} onClick={() => onRemoveItem(item.id)}>
+                  <button type="button" className="em-circ" data-testid="order-line-remove" aria-label={t('Remove {name}', { name: hn(item.title, item.titleHi) })} onClick={() => onRemoveItem(item.id)}>
                     <Icon n="x" size={16} />
                   </button>
                 </div>
@@ -339,14 +339,14 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
             </div>
             <div className="em-rule" style={{ width: 40, marginTop: 18 }} />
             <label htmlFor="em-order-note" className="em-ey" style={{ display: 'block' }}>
-              {t('Note for {name}', { name: merchant.brand.name })}
+              {t('Note for {name}', { name: ts(merchant.brand.name) })}
             </label>
             <textarea id="em-order-note" data-testid="order-note-input" className="em-note" maxLength={300} placeholder={t('Delivery date, finish, size changes…')} value={note} onChange={(e) => setNote(e.target.value)} />
             <div className="em-row" style={{ gap: 8, marginTop: 14, alignItems: 'flex-start' }}>
               <span style={{ color: 'var(--em-gold-ink)' }}>
                 <Icon n="shield" size={14} />
               </span>
-              <span className="em-hint">{merchant.orders.guaranteeLine ? t(merchant.orders.guaranteeLine) : t(sector.copy.orders.guaranteeFallback)}</span>
+              <span className="em-hint">{tl(merchant.orders.guaranteeLine) || t(sector.copy.orders.guaranteeFallback)}</span>
             </div>
           </div>
 

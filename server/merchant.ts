@@ -186,7 +186,10 @@ export const merchantSchema = z.object({
   onboarding: z.object({
     defaultMarketHub: text(120),
     marketHubPlaceholder: text(120)
-  })
+  }),
+
+  /** Hindi for this store's own wording above (brand line, banners, welcome points…), keyed by the English text. Buyers who pick Hindi see these. */
+  hindi: z.record(z.string().max(400), z.string().max(600)).optional()
 });
 
 export type MerchantConfig = z.infer<typeof merchantSchema>;

@@ -268,6 +268,26 @@ export const HI: Record<string, string> = {
   'Please sign in to your wholesale account to add items to your order.': 'ऑर्डर में आइटम जोड़ने के लिए अपने होलसेल अकाउंट में साइन इन करें।',
   'Please sign in to your wholesale account to confirm this order.': 'यह ऑर्डर कन्फ़र्म करने के लिए अपने होलसेल अकाउंट में साइन इन करें।',
 
+
+  // Brand names and server messages
+  Pro: 'प्रो',
+  'Powered by': 'प्लैटफ़ॉर्म',
+  WhatsApp: 'वॉट्सऐप',
+  Instagram: 'इंस्टाग्राम',
+  Facebook: 'फ़ेसबुक',
+  'Too many codes requested for this number. Please try again later.': 'इस नंबर के लिए बहुत सारे कोड माँगे गए हैं। कृपया थोड़ी देर बाद कोशिश करें।',
+  'Too many codes requested. Please try again later.': 'बहुत सारे कोड माँगे गए हैं। कृपया थोड़ी देर बाद कोशिश करें।',
+  'Sign-in codes are temporarily unavailable. Please try again tomorrow.': 'साइन इन कोड अभी उपलब्ध नहीं हैं। कृपया कल कोशिश करें।',
+  'That code has expired. Please request a new one.': 'यह कोड पुराना हो गया है। कृपया नया कोड माँगें।',
+  'Too many wrong codes. Please request a new one.': 'बहुत बार ग़लत कोड डाला गया। कृपया नया कोड माँगें।',
+  'That code is not valid. Please check it or request a new one.': 'यह कोड सही नहीं है। जाँच लें या नया कोड माँगें।',
+  'Please wait {n} seconds before asking for another code.': 'नया कोड माँगने से पहले {n} सेकंड रुकिए।',
+  'Order not found.': 'ऑर्डर नहीं मिला।',
+  'This order is already {status}. Please call the store to change it.': 'यह ऑर्डर पहले ही {status} हो चुका है। बदलाव के लिए स्टोर को कॉल करें।',
+  'Your batch order is empty. Add items before confirming.': 'आपका ऑर्डर ख़ाली है। कन्फ़र्म करने से पहले आइटम जोड़ें।',
+  'Item not found in order': 'यह आइटम ऑर्डर में नहीं मिला',
+  'Your session has ended. Please sign in again.': 'आपका सेशन ख़त्म हो गया। कृपया फिर से साइन इन करें।',
+
   // App tour
   'App tour, step {n} of {total}': 'ऐप टूर, स्टेप {n} / {total}',
   'Quick tour · 2 minutes': 'छोटा सा टूर · 2 मिनट',

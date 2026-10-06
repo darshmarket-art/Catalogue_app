@@ -1,7 +1,7 @@
 import React from 'react';
 import type { LayoutKit } from '../props';
 import { useBackLayer } from '../../backLayer';
-import { t } from '../../i18n';
+import { getLang, t } from '../../i18n';
 
 /** The props of a Gilded screen are the contract: an Emergent screen takes exactly the same. */
 export type KitProps<K extends keyof LayoutKit> = React.ComponentProps<LayoutKit[K]>;
@@ -121,4 +121,4 @@ export const Sheet: React.FC<{ label: string; onClose: () => void; children: Rea
 };
 
 /** Weights are shown to the milligram, as in every other screen. */
-export const fmtG = (n: number) => `${n.toFixed(3)} g`;
+export const fmtG = (n: number) => `${n.toFixed(3)} ${getLang() === 'hi' ? 'ग्राम' : 'g'}`;

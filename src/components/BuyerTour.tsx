@@ -4,7 +4,7 @@ import { merchant } from '../merchant';
 import { usePlan } from '../plan';
 import { Icon } from '../layouts/emergent/ui';
 import { useBackLayer } from '../backLayer';
-import { setLang, t, useLang } from '../i18n';
+import { setLang, t, ts, useLang } from '../i18n';
 
 /** A design the tour borrows to show shortlisting and ordering; removed again when the tour ends. */
 export interface TourSample {
@@ -77,7 +77,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
       const first = buyerName.split(' ')[0] ?? '';
       const s = sample;
       const list: Step[] = [
-        { id: 'hello', screen: 'categories', icon: 'star', pickLang: true, title: first ? 'Welcome, {name}' : 'Welcome', body: 'This is your private showroom at {brand}. A short tour shows you how to find designs, save favourites and {action}. First, choose your language.', vars: () => ({ name: first, brand: merchant.brand.name, action: t(orders ? 'place an order' : 'ask about a design') }) },
+        { id: 'hello', screen: 'categories', icon: 'star', pickLang: true, title: first ? 'Welcome, {name}' : 'Welcome', body: 'This is your private showroom at {brand}. A short tour shows you how to find designs, save favourites and {action}. First, choose your language.', vars: () => ({ name: first, brand: ts(merchant.brand.name), action: t(orders ? 'place an order' : 'ask about a design') }) },
         { id: 'lang', screen: 'categories', target: $('[data-testid="lang-toggle"]'), optional: true, icon: 'globe', title: 'English or हिन्दी', body: 'Switch the app between English and Hindi here, any time. Your choice is remembered on this phone.' },
         { id: 'search', screen: 'categories', target: near('[data-testid="home-search"]', '.em-srch'), icon: 'search', title: 'Search anything', body: 'Type a design name, SKU or collection. Press enter to search every design in the catalogue.' },
         { id: 'featured', screen: 'categories', target: $('[data-testid="home-collections"]'), icon: 'grid', title: 'Featured collections', body: 'The store picks these for you. Tap one to see all of its designs.' },
@@ -104,7 +104,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
               { id: 'orders-past', screen: 'orders' as const, target: $('[data-testid="orders-tab-past"]'), icon: 'clock', title: 'Past orders', body: 'Sample removed. Every order you place appears under Past orders with its status: new, confirmed or dispatched. A new order can still be cancelled with two taps.', enter: async () => { if (s && made.current.line) { await s.removeFromCart(made.current.line); made.current.line = null; } } }
             ]
           : [{ id: 'orders-skip', screen: 'catalogue' as const, target: $('.em-heart'), optional: true, icon: 'chat', title: 'Ask on WhatsApp', body: 'Open a design and tap Enquire on WhatsApp to ask the store about price and availability.' }]),
-        { id: 'profile', screen: orders ? 'orders' : 'catalogue', target: $('[aria-label="Profile menu"]'), icon: 'user', title: 'Your profile', body: 'Your details, past orders, About {brand} and this tour again, whenever you want it.', vars: () => ({ brand: merchant.brand.name }), enter: () => { if (s && made.current.hearted) { s.unheart(); made.current.hearted = false; } } },
+        { id: 'profile', screen: orders ? 'orders' : 'catalogue', target: $('[aria-label="Profile menu"]'), icon: 'user', title: 'Your profile', body: 'Your details, past orders, About {brand} and this tour again, whenever you want it.', vars: () => ({ brand: ts(merchant.brand.name) }), enter: () => { if (s && made.current.hearted) { s.unheart(); made.current.hearted = false; } } },
         { id: 'done', screen: 'categories', icon: 'check', title: 'You are all set', body: 'The sample is gone and nothing was sent to the store. Use your phone’s Back button to step back at any time. Happy browsing!' }
       ];
       return list;

@@ -14,7 +14,7 @@ import { useHideOnScroll } from './useHideOnScroll';
 import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
-import { t, tn, useLang } from '../../i18n';
+import { grams, hn, pur, t, tErr, tn, ts, useLang } from '../../i18n';
 
 
 const PAGE = 24;
@@ -144,7 +144,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         setTotal(page.total);
         setHasMore(page.hasMore);
       })
-      .catch((err) => id === reqId.current && setError(err instanceof Error ? err.message : t('Could not load the catalogue.')))
+      .catch((err) => id === reqId.current && setError(err instanceof Error ? tErr(err.message) : t('Could not load the catalogue.')))
       .finally(() => id === reqId.current && setLoading(false));
   }, [query, retry]);
 
@@ -211,7 +211,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
 
   const handleAdd = (prod: Product, purity: string | undefined, qty: number) => {
     onAddToOrder(prod, qty, purity);
-    setAddedNotice(prod.title);
+    setAddedNotice(hn(prod.title, prod.titleHi));
     setAddedCount((n) => n + 1);
     setTimeout(() => setAddedNotice(null), 1800);
   };
@@ -256,11 +256,11 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const showCartBar = flags.orders && !isAdmin && !selecting && inOrder > 0;
 
   // The chips under the search that name every active filter, each removable on its own.
-  const purityTitle = (key: string) => purities.find((p) => p.key === key)?.title ?? key;
+  const purityTitle = (key: string) => pur(purities.find((p) => p.key === key)?.title ?? key);
   const active: Array<{ key: string; label: string; clear: () => void }> = [
     ...filters.purity.map((v) => ({ key: `purity:${v}`, label: purityTitle(v), clear: () => setFilters((f) => ({ ...f, purity: f.purity.filter((x) => x !== v) })) })),
     ...(filters.minWt || filters.maxWt
-      ? [{ key: 'weight', label: `${filters.minWt || '0'} – ${filters.maxWt || '∞'} g`, clear: () => setFilters((f) => ({ ...f, minWt: '', maxWt: '' })) }]
+      ? [{ key: 'weight', label: grams(`${filters.minWt || '0'} – ${filters.maxWt || '∞'} g`), clear: () => setFilters((f) => ({ ...f, minWt: '', maxWt: '' })) }]
       : []),
     ...filters.availability.map((v) => ({ key: `avail:${v}`, label: t(v), clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) }))
   ];
@@ -294,7 +294,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               title="Select designs"
               right={
                 <span className="em-row" style={{ gap: 10, marginBottom: 8 }}>
-                  <Pill tone="gold">Pro</Pill>
+                  <Pill tone="gold">{t('Pro')}</Pill>
                   <button type="button" className="em-link" onClick={stopSelecting}>
                     Cancel
                   </button>
@@ -303,7 +303,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             />
           ) : (
             <Title
-              eyebrow={<span data-testid="catalogue-count">{loading && items.length === 0 ? `${merchant.brand.name} · ${t('searching…')}` : `${merchant.brand.name} · ${tn(total, '{n} design', '{n} designs')}`}</span>}
+              eyebrow={<span data-testid="catalogue-count">{loading && items.length === 0 ? `${ts(merchant.brand.name)} · ${t('searching…')}` : `${ts(merchant.brand.name)} · ${tn(total, '{n} design', '{n} designs')}`}</span>}
               title={t('Catalogue')}
               right={
                 <span className="em-row" style={{ gap: 8, marginBottom: 8 }}>
@@ -341,7 +341,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             <button type="button" className={`em-colpick${categoryFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
               <Icon n="grid" size={16} />
               <span className="em-grow em-clip" data-testid="collection-current" style={{ textAlign: 'left' }}>
-                {categoryFilter ?? t('All collections')}
+                {categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : t('All collections')}
                 <i style={{ fontStyle: 'normal', opacity: 0.65 }}> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : collectionChips.length}</i>
               </span>
               <Icon n="right" size={14} />
@@ -392,20 +392,20 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             if (view === 'list' && !selecting) {
               return (
                 <div key={prod.id} data-sku={prod.sku} data-testid="product-row" className="em-lrow">
-                  <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={t('View {name}', { name: prod.title })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                  <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                     <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
-                      <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{prod.title}</span>
+                      <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{hn(prod.title, prod.titleHi)}</span>
                       <span className="em-wt" style={{ display: 'block', marginTop: 3 }}>{fmtG(prod.netWt)}</span>
                     </span>
                   </button>
                   {!isAdmin && (
-                    <button type="button" className={`em-circ${isHearted ? ' on' : ''}`} aria-pressed={isHearted} aria-label={t(isHearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name: prod.title })} onClick={() => toggleHeart(prod)} style={isHearted ? { color: 'var(--em-bad)' } : undefined}>
+                    <button type="button" className={`em-circ${isHearted ? ' on' : ''}`} aria-pressed={isHearted} aria-label={t(isHearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name: hn(prod.title, prod.titleHi) })} onClick={() => toggleHeart(prod)} style={isHearted ? { color: 'var(--em-bad)' } : undefined}>
                       <Icon n="heart" size={16} fill={isHearted} />
                     </button>
                   )}
                   {!isAdmin && flags.orders && (
-                    <button type="button" className="em-circ" data-testid="card-add-to-cart" style={{ background: 'var(--em-primary)', color: 'var(--em-on-primary)', borderColor: 'var(--em-primary)' }} aria-label={t('Add {name} to cart', { name: prod.title })} onClick={() => setCartFor(prod)}>
+                    <button type="button" className="em-circ" data-testid="card-add-to-cart" style={{ background: 'var(--em-primary)', color: 'var(--em-on-primary)', borderColor: 'var(--em-primary)' }} aria-label={t('Add {name} to cart', { name: hn(prod.title, prod.titleHi) })} onClick={() => setCartFor(prod)}>
                       <Icon n="bag" size={16} />
                     </button>
                   )}
@@ -416,17 +416,17 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               return (
                 <div key={prod.id} className="em-cardwrap em-tile">
                   <article data-sku={prod.sku} data-testid="product-card" className="em-sq">
-                    <button type="button" className="em-hit" aria-label={t('View {name}', { name: prod.title })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                    <button type="button" className="em-hit" aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                       <Ph src={prod.image} tone={i} className="em-fill" />
                     </button>
                     {!isAdmin && flags.orders && (
-                      <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: prod.title })} onClick={() => setCartFor(prod)}>
+                      <button type="button" className="em-tadd" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: hn(prod.title, prod.titleHi) })} onClick={() => setCartFor(prod)}>
                         <Icon n="plus" size={16} />
                       </button>
                     )}
                   </article>
                   <div className="em-card-t">
-                    <span className="em-ser em-clip">{prod.title}</span>
+                    <span className="em-ser em-clip">{hn(prod.title, prod.titleHi)}</span>
                     <span className="em-wt">{fmtG(prod.netWt)}</span>
                   </div>
                 </div>
@@ -435,7 +435,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             return (
               <div key={prod.id} className="em-cardwrap">
               <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
-                <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : t('View {name}', { name: prod.title })} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
+                <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : t('View {name}', { name: hn(prod.title, prod.titleHi) })} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" />
                 </button>
                 {selecting && (
@@ -449,18 +449,18 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                     className={`em-heart${isHearted ? ' on' : ''}`}
                     onClick={() => toggleHeart(prod)}
                     aria-pressed={isHearted}
-                    aria-label={t(isHearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name: prod.title })}
+                    aria-label={t(isHearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name: hn(prod.title, prod.titleHi) })}
                   >
                     <Icon n="heart" size={15} fill={isHearted} />
                   </button>
                 )}
               </article>
               <div className="em-card-t">
-                <span className="em-ser em-clip">{prod.title}</span>
+                <span className="em-ser em-clip">{hn(prod.title, prod.titleHi)}</span>
                 <span className="em-wt">{fmtG(prod.netWt)}</span>
               </div>
               {!isAdmin && !selecting && flags.orders && (
-                <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: prod.title })} onClick={() => setCartFor(prod)}>
+                <button type="button" className="em-addbar" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name: hn(prod.title, prod.titleHi) })} onClick={() => setCartFor(prod)}>
                   <Icon n="bag" size={16} />
                   {t('Add to cart')}
                 </button>
@@ -519,7 +519,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
               .filter((p) => p.enabled)
               .map((p) => (
                 <button key={p.key} type="button" className={`em-chip${draft.purity.includes(p.key) ? ' on' : ''}`} aria-pressed={draft.purity.includes(p.key)} onClick={() => setDraft({ ...draft, purity: toggle(draft.purity, p.key) })}>
-                  {p.title}
+                  {pur(p.title)}
                 </button>
               ))}
           </div>

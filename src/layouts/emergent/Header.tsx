@@ -5,7 +5,7 @@ import { BrandMark } from '../../components/BrandMark';
 import { ProfileMenu } from '../../components/ProfileMenu';
 import { Icon, type KitProps } from './ui';
 import { LangToggle } from '../../components/LangToggle';
-import { t, useLang } from '../../i18n';
+import { t, ts, useLang } from '../../i18n';
 
 // The owner's four tabs (plus Store, and the buyer pages they preview) carry the brand and profile bar; everything else is a sub-page with a back button.
 const ADMIN_TAB_SCREENS: ActiveScreen[] = ['admin-hub', 'orders', 'catalogue', 'admin-buyers', 'admin-store', 'categories'];
@@ -46,7 +46,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const isSub = isAdminSub || ['admin-login', 'retailer-auth', 'about'].includes(currentScreen);
   const overHero = currentScreen === 'about'; // the About hero runs under the bar
   const title =
-    currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : currentScreen === 'about' ? t('About {name}', { name: merchant.brand.name }) : isAdminLoggedIn ? TITLES[currentScreen] : TITLES[currentScreen] && t(TITLES[currentScreen] as string);
+    currentScreen === 'new-product' ? (isEditing ? 'Edit design' : 'New design') : currentScreen === 'add-category' ? (isEditing ? 'Edit collection' : 'New collection') : currentScreen === 'about' ? t('About {name}', { name: ts(merchant.brand.name) }) : isAdminLoggedIn ? TITLES[currentScreen] : TITLES[currentScreen] && t(TITLES[currentScreen] as string);
   const showTitle = Boolean(title) && !['admin-login', 'retailer-auth'].includes(currentScreen) && !overHero;
   const showProfile = (currentMerchant || isAdminLoggedIn) && (isTab || currentScreen === 'admin-hub');
   const showSignIn = isTab && !currentMerchant && !isAdminLoggedIn;
@@ -86,13 +86,13 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
     <header className={`em-top${overHero ? ' clear' : ''}`}>
       {isTab ? (
         <div className="em-top-in" style={{ maxWidth: width }}>
-          <button type="button" className="em-brand" aria-label={`${merchant.brand.name} home`} onClick={() => onNavigate(isAdminLoggedIn ? 'admin-hub' : 'welcome')}>
+          <button type="button" className="em-brand" aria-label={isAdminLoggedIn ? `${merchant.brand.name} home` : ts(merchant.brand.name)} onClick={() => onNavigate(isAdminLoggedIn ? 'admin-hub' : 'welcome')}>
             <span className="em-mark">
               <BrandMark className="w-6 h-6" textClassName="text-[18px]" />
             </span>
             <span style={{ minWidth: 0 }}>
-              <span className="em-ser em-clip">{merchant.brand.name}</span>
-              {isHome && <span className="em-ey em-clip">{merchant.brand.tagline}</span>}
+              <span className="em-ser em-clip">{isAdminLoggedIn ? merchant.brand.name : ts(merchant.brand.name)}</span>
+              {isHome && <span className="em-ey em-clip">{isAdminLoggedIn ? merchant.brand.tagline : ts(merchant.brand.tagline)}</span>}
             </span>
           </button>
           <span className="em-grow" />
@@ -111,7 +111,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
           <div className="em-top-c">
             {showTitle && (
               <>
-                <span className="em-ey">{eyebrow ?? (isAdminSub ? 'Admin' : merchant.brand.name)}</span>
+                <span className="em-ey">{eyebrow ?? (isAdminSub ? 'Admin' : isAdminLoggedIn ? merchant.brand.name : ts(merchant.brand.name))}</span>
                 <h1 className="em-ser">{title}</h1>
               </>
             )}

@@ -5,6 +5,7 @@ import { merchant } from '../merchant';
 import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, Notice } from './ui';
+import { toHindi } from '../../shared/hindi';
 
 interface NewProductScreenProps {
   categories: Category[];
@@ -30,6 +31,8 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [huid, setHuid] = useState(editing?.huid ?? '');
   const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
   const [description, setDescription] = useState(editing?.description ?? '');
+  const [titleHi, setTitleHi] = useState(editing?.titleHi ?? '');
+  const [descriptionHi, setDescriptionHi] = useState(editing?.descriptionHi ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
   const [extra, setExtra] = useState<Record<string, string>>(Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)])));
   const [uploading, setUploading] = useState(false);
@@ -74,6 +77,8 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         stoneWt: stone,
         ...(huid.trim() ? { huid: huid.trim() } : {}),
         ...(description.trim() ? { description: description.trim() } : {}),
+        ...(titleHi.trim() ? { titleHi: titleHi.trim() } : {}),
+        ...(descriptionHi.trim() ? { descriptionHi: descriptionHi.trim() } : {}),
         stockStatus,
         images: photos.map((p) => p.ref),
         extra: extraOut
@@ -110,6 +115,10 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
       <Field label="Design name" htmlFor="np-title">
         <input id="np-title" className="inp" style={{ height: 48 }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
+      </Field>
+
+      <Field label="Name in Hindi (optional)" htmlFor="np-title-hi" hint={title.trim() ? `Buyers using the app in Hindi see this. Left empty, they see: ${toHindi(title)}` : 'Buyers using the app in Hindi see this name.'}>
+        <input id="np-title-hi" data-testid="np-title-hi" lang="hi" className="inp" style={{ height: 48 }} value={titleHi} onChange={(e) => setTitleHi(e.target.value)} placeholder={title.trim() ? toHindi(title) : 'जैसे, एंटीक टेम्पल हार'} />
       </Field>
 
       <div className="grid2">
@@ -173,6 +182,10 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
       <Field label="Description (optional)" htmlFor="np-desc" hint="Searchable: a few words on the motif, finish or occasion help buyers find it.">
         <textarea id="np-desc" data-testid="np-description" className="inp" style={{ height: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Antique temple work with a matte finish, bridal set" />
+      </Field>
+
+      <Field label="Description in Hindi (optional)" htmlFor="np-desc-hi" hint="Buyers using the app in Hindi see this instead. Without it, they see no description.">
+        <textarea id="np-desc-hi" data-testid="np-description-hi" lang="hi" className="inp" style={{ height: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={descriptionHi} onChange={(e) => setDescriptionHi(e.target.value)} placeholder="जैसे, मैट फ़िनिश के साथ एंटीक टेम्पल काम, ब्राइडल सेट" />
       </Field>
 
       <Field label={editing ? 'SKU' : 'SKU (optional)'} htmlFor="np-sku">

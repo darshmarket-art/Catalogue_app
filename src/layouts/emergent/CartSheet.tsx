@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Category, Product, Purity } from '../../types';
 import { Icon, Sheet, fmtG } from './ui';
-import { t, tn, useLang } from '../../i18n';
+import { hn, pur, t, tn, useLang } from '../../i18n';
 
 /**
  * The purities a design is sold in: the ones its collection is set up with (Edit collection > Purities sold here), or every purity
@@ -36,11 +36,11 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
   };
 
   return (
-    <Sheet label={t('Add {name} to cart', { name: product.title })} onClose={onClose}>
+    <Sheet label={t('Add {name} to cart', { name: hn(product.title, product.titleHi) })} onClose={onClose}>
       <div className="em-row" style={{ alignItems: 'flex-start', gap: 12 }}>
         <div className="em-grow" style={{ minWidth: 0 }}>
           <div className="em-ser" style={{ fontSize: 22 }}>
-            {product.title}
+            {hn(product.title, product.titleHi)}
           </div>
           <p className="em-mut" style={{ fontSize: 13, margin: '4px 0 0' }}>
             {t('Choose how many pieces you want in each purity.')}
@@ -57,19 +57,19 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
           return (
             <div key={o.key} className="em-row em-sb" style={{ gap: 12, padding: '12px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600 }}>{o.title}</div>
+                <div style={{ fontWeight: 600 }}>{pur(o.title)}</div>
                 <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
                   {n > 0 ? t('{n} × {w} = {total} net', { n, w: fmtG(product.netWt), total: fmtG(product.netWt * n) }) : t('{w} net each', { w: fmtG(product.netWt) })}
                 </div>
               </div>
               <div className="em-qty">
-                <button type="button" aria-label={t('Decrease {name}', { name: o.title })} disabled={n === 0} onClick={() => setQty(o.key, n - 1)}>
+                <button type="button" aria-label={t('Decrease {name}', { name: pur(o.title) })} disabled={n === 0} onClick={() => setQty(o.key, n - 1)}>
                   <Icon n="minus" size={16} />
                 </button>
                 <em className="em-ser" aria-live="polite">
                   {n}
                 </em>
-                <button type="button" aria-label={t('Increase {name}', { name: o.title })} onClick={() => setQty(o.key, n + 1)}>
+                <button type="button" aria-label={t('Increase {name}', { name: pur(o.title) })} onClick={() => setQty(o.key, n + 1)}>
                   <Icon n="plus" size={16} />
                 </button>
               </div>

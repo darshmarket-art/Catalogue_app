@@ -3,7 +3,8 @@ import type { Category } from '../../types';
 import { Icon, Ph } from './ui';
 import { useBackLayer } from '../../backLayer';
 import { groupByTag, useTagList } from '../../tagList';
-import { t, tn, useLang } from '../../i18n';
+import { hn, t, tn, ts, useLang } from '../../i18n';
+import { toHindi } from '../../../shared/hindi';
 
 interface Props {
   categories: Category[];
@@ -25,7 +26,7 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
   const term = q.trim().toLowerCase();
   const order = useTagList();
   const tags = useMemo(() => groupByTag(categories, order).map(([t]) => t), [categories, order]);
-  const list = useMemo(() => categories.filter((c) => (!term || c.name.toLowerCase().includes(term)) && (!tag || c.tag === tag)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term, tag]);
+  const list = useMemo(() => categories.filter((c) => (!term || [c.name, c.nameHi, toHindi(c.name)].some((v) => v?.toLowerCase().includes(term))) && (!tag || c.tag === tag)).sort((a, b) => a.name.localeCompare(b.name)), [categories, term, tag]);
   // Collections grouped under their tag, in the fixed tag order.
   const groups = useMemo(() => groupByTag(list, order), [list, order]);
 
@@ -42,12 +43,12 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
 
   // One collection as a card: the photo, then its name and design count underneath.
   const card = (c: Category, i: number, key = c.id) => (
-    <button key={key} type="button" className="em-colcard" data-testid="collection-row" aria-label={t('Open {name}', { name: c.name })} onClick={() => onPick(c.name)}>
+    <button key={key} type="button" className="em-colcard" data-testid="collection-row" aria-label={t('Open {name}', { name: hn(c.name, c.nameHi) })} onClick={() => onPick(c.name)}>
       <span className="em-sq" style={current === c.name ? { outline: '2.5px solid var(--em-gold)', outlineOffset: -2.5 } : undefined}>
         <Ph src={c.image} tone={i} className="em-fill" />
         {current === c.name && <span className="em-pick" style={{ background: 'var(--em-primary)', borderColor: 'var(--em-primary)' }}><Icon n="check" size={15} /></span>}
       </span>
-      <span className="em-ser em-colcard-n">{c.name}</span>
+      <span className="em-ser em-colcard-n">{hn(c.name, c.nameHi)}</span>
       <span className="em-mut" style={{ fontSize: 11 }}>{tn(c.designCount, '{n} design', '{n} designs')}</span>
     </button>
   );
@@ -72,7 +73,7 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
         <div className="em-chips" role="group" aria-label={t('Collection tags')} data-testid="tag-chips" style={{ paddingTop: 8, paddingBottom: 6 }}>
           <button type="button" className={`em-chip${tag ? '' : ' on'}`} aria-pressed={!tag} onClick={() => setTag(null)}>{t('All')}</button>
           {tags.map((tg) => (
-            <button key={tg} type="button" className={`em-chip${tag === tg ? ' on' : ''}`} aria-pressed={tag === tg} onClick={() => setTag(tag === tg ? null : tg)}>{t(tg)}</button>
+            <button key={tg} type="button" className={`em-chip${tag === tg ? ' on' : ''}`} aria-pressed={tag === tg} onClick={() => setTag(tag === tg ? null : tg)}>{ts(tg)}</button>
           ))}
         </div>
       )}
@@ -87,7 +88,7 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
           )}
           {groups.map(([tg, cs]) => (
             <div key={tg} data-testid="tag-group">
-              <div className="em-letter em-letter-in em-tag-h">{t(tg)} <span>{cs.length}</span></div>
+              <div className="em-letter em-letter-in em-tag-h">{ts(tg)} <span>{cs.length}</span></div>
               <div className="em-colgrid">{cs.map((c, i) => card(c, i))}</div>
             </div>
           ))}

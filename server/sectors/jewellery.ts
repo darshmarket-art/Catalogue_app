@@ -3,6 +3,7 @@ import { SORT_KEYS, STOCK_STATUSES, lineWeight, netWeight } from '../../shared/j
 import type { Doc } from '../store';
 import { photoRef } from '../media';
 import { trimmed } from '../schemas';
+import { toHindi } from '../../shared/hindi';
 
 /**
  * The jewellery sector: which fields a product has, how weights are derived, how the catalogue is searched, and how an order is worded.
@@ -20,6 +21,9 @@ const productSchema = z
     stoneWt: z.coerce.number().min(0).max(100000).default(0),
     huid: trimmed(40).optional(),
     description: trimmed(600).optional(),
+    /** The name and description in Hindi, for buyers who use the app in Hindi (optional: the name is written in Hindi automatically otherwise). */
+    titleHi: trimmed(200).optional(),
+    descriptionHi: trimmed(600).optional(),
     stockStatus: z.enum(STOCK_STATUSES).default('Ready in Vault'),
     /** One to three photos: uploaded ("media:...") or, for imports, an http(s) link. */
     images: z.array(photoRef).min(1, 'Add at least one photo.').max(3, 'A product can have at most 3 photos.')
@@ -64,6 +68,8 @@ export const jewelleryPack = {
       stoneWt: input.stoneWt,
       ...(input.huid ? { huid: input.huid } : {}),
       ...(input.description ? { description: input.description } : {}),
+      ...(input.titleHi ? { titleHi: input.titleHi } : {}),
+      ...(input.descriptionHi ? { descriptionHi: input.descriptionHi } : {}),
       images: input.images,
       image: input.images[0],
       stockStatus: input.stockStatus,
@@ -74,7 +80,9 @@ export const jewelleryPack = {
   /** Everything a search term is matched against: name, SKU, collection, purity, hallmark, description and the store's extra details. */
   searchText(p: Doc): string {
     const extra = p.extra && typeof p.extra === 'object' ? Object.values(p.extra as Record<string, unknown>) : [];
-    return [p.title, p.sku, p.category, p.purity, p.huid, p.description, ...extra].filter(Boolean).join(' ').toLowerCase();
+    // Hindi too, so a buyer can search in Hindi: the owner's own Hindi, else the automatic Hindi of the name and collection.
+    const hi = [p.titleHi || toHindi(p.title), toHindi(p.category), p.descriptionHi];
+    return [p.title, p.sku, p.category, p.purity, p.huid, p.description, ...extra, ...hi].filter(Boolean).join(' ').toLowerCase();
   },
 
   /** Applies a query to the full product list: every word of the search must appear; filters narrow further; then sort. */

@@ -104,6 +104,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
         id,
         ownerId: user(res).id,
         title: product.title,
+        ...(product.titleHi ? { titleHi: product.titleHi } : {}),
         sku: product.sku,
         purity,
         totalNetGold: line.totalNetGold,
@@ -197,7 +198,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
             poId,
             firmName: owner.name,
             totalNet,
-            items: items.map((i) => ({ title: i.title, sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
+            items: items.map((i) => ({ title: i.title, ...(i.titleHi ? { titleHi: i.titleHi } : {}), sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
           }) + (note ? `\n\n*Note:* ${note}` : '')
       });
     })

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import React, { useId } from 'react';
 
 /** The Antarixs mark (from the Emergent atlas): a lambda "A" in sky-blue to purple, a yellow swoosh and a spark. Shared with the share card in storeQrCard.ts. */
@@ -47,7 +48,7 @@ export const AntarixsWordmark: React.FC<{ dark?: boolean; caption?: string }> = 
 
 export const PoweredByAntarixs: React.FC = () => (
   <span style={{ alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999, border: '1px solid var(--em-line)', background: 'var(--em-tint)' }}>
-    <span className="em-mut" style={{ fontSize: 10, letterSpacing: '0.04em' }}>Powered by</span>
+    <span className="em-mut" style={{ fontSize: 10, letterSpacing: '0.04em' }}>{t('Powered by')}</span>
     <AntarixsMark size={16} />
     <span className="em-ser" style={{ fontSize: 13 }}>Antarixs</span>
   </span>

@@ -16,6 +16,11 @@ export const aboutSchema = z.object({
   email: field(120).refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Enter a valid email address.'),
   openingHours: field(160),
   gstin: field(15),
+  /** Hindi versions for buyers who use the app in Hindi. */
+  ownerRoleHi: field(80),
+  storyHi: field(2000),
+  addressHi: field(300),
+  openingHoursHi: field(160),
   website: field(200).refine((v) => !v || (/^https?:\/\//i.test(v) && URL.canParse(v)), 'The website must start with http:// or https://')
 });
 

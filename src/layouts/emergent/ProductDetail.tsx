@@ -7,7 +7,7 @@ import { PhotoViewer } from '../../components/PhotoViewer';
 import { CartSheet, soldPurities } from './CartSheet';
 import { Icon, Ph, Pill, StockPill, fmtG } from './ui';
 import { useBackLayer } from '../../backLayer';
-import { t, useLang } from '../../i18n';
+import { getLang, hl, hn, pur, t, ts, useLang } from '../../i18n';
 
 interface ProductDetailProps {
   product: Product | null;
@@ -31,7 +31,7 @@ const specRows = (p: Product) => [
   { key: 'gross', label: t('Gross weight'), value: fmtG(p.grossWt), net: false },
   ...(p.stoneWt ? [{ key: 'stone', label: t('Stone / tare'), value: fmtG(p.stoneWt), net: false }] : []),
   { key: 'net', label: t('Net weight'), value: fmtG(p.netWt), net: true },
-  ...merchant.productFields.filter((f) => p.extra?.[f.key] !== undefined).map((f) => ({ key: `x-${f.key}`, label: f.label, value: `${p.extra?.[f.key]}${f.unit ? ` ${f.unit}` : ''}`, net: false }))
+  ...merchant.productFields.filter((f) => p.extra?.[f.key] !== undefined).map((f) => ({ key: `x-${f.key}`, label: ts(f.label), value: `${p.extra?.[f.key]}${f.unit ? ` ${f.unit}` : ''}`, net: false }))
 ];
 
 /**
@@ -168,7 +168,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
   const slides = product.images.length ? product.images : [product.image ?? ''];
   // Purities are plain text here: the ones this design's collection is sold in. The buyer picks quantities per purity in Add to cart.
   const sold = soldPurities(product, purities, categories);
-  const askText = `Hello ${merchant.brand.name}, I'm interested in ${product.title} (${product.sku}), ${product.purity}, net ${product.netWt.toFixed(2)} g.`;
+  const name = hn(product.title, product.titleHi);
+  const askText =
+    getLang() === 'hi'
+      ? `नमस्ते ${ts(merchant.brand.name)}, मुझे ${name} (${product.sku}), ${pur(product.purity)}, नेट ${product.netWt.toFixed(2)} ग्राम के बारे में जानना है।`
+      : `Hello ${merchant.brand.name}, I'm interested in ${product.title} (${product.sku}), ${product.purity}, net ${product.netWt.toFixed(2)} g.`;
+  const catHi = categories.find((c) => c.name === product.category)?.nameHi;
+  const description = hl(product.description, product.descriptionHi);
   const waHref = `https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(askText)}`;
   // Tapping a WhatsApp button tells the owner's Enquiries inbox (the chat opens either way).
   const noteEnquiry = () => {
@@ -177,15 +183,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
   const goTo = (i: number) => scroller.current?.scrollTo({ left: i * scroller.current.clientWidth, behavior: 'smooth' });
 
   return (
-    <div className="em-pd-wrap" role="dialog" aria-modal="true" aria-label={product.title}>
-      {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={product.title} onClose={() => setZoomFrom(null)} />}
+    <div className="em-pd-wrap" role="dialog" aria-modal="true" aria-label={name}>
+      {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={name} onClose={() => setZoomFrom(null)} />}
       <button type="button" aria-label={t('Close')} tabIndex={-1} className="em-scrim" onClick={onClose} />
       <div className="em-pd">
         <div ref={pageRef} className="em-pd-scroll em-pd-swipe">
           <div className="em-hero-g">
             <div ref={scroller} data-testid="product-gallery" className="em-gal" onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
               {slides.map((src, i) => (
-                <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={t('Zoom photo {n} of {name}', { n: i + 1, name: product.title })}>
+                <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={t('Zoom photo {n} of {name}', { n: i + 1, name })}>
                   <Ph src={src} tone={i} style={i === 0 ? { viewTransitionName: 'product-photo' } as React.CSSProperties : undefined} />
                 </button>
               ))}
@@ -232,22 +238,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
             )}
             <div className="em-row em-sb" style={{ gap: 12 }}>
               <span className="em-ey em-clip">
-                {product.category} · {product.sku}
+                {hn(product.category, catHi)} · {product.sku}
               </span>
               <span className="em-mut" style={{ fontSize: 10, whiteSpace: 'nowrap' }}>
                 {t('Tap a photo to zoom')}
               </span>
             </div>
-            <h2 className="em-ser em-h2">{product.title}</h2>
+            <h2 className="em-ser em-h2">{name}</h2>
 
             <div className="em-row" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <StockPill status={product.stockStatus} />
               {product.huid && <Pill tone="gold">HUID {product.huid}</Pill>}
             </div>
 
-            {product.description && (
+            {description && (
               <p className="em-mut" style={{ marginTop: 14, fontSize: 14, lineHeight: 1.5 }} data-testid="product-description">
-                {product.description}
+                {description}
               </p>
             )}
 

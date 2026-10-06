@@ -4,7 +4,7 @@ import { BrandMark } from '../../components/BrandMark';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
 import { LangToggle } from '../../components/LangToggle';
-import { t, useLang } from '../../i18n';
+import { t, tl, ts, useLang } from '../../i18n';
 
 /** The store's first screen (atlas Welcome): the brand on a deep panel, then the way in as role-style cards, what the store offers, and the legal footer. */
 export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
@@ -19,11 +19,11 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
           <BrandMark className="w-8 h-8" textClassName="text-[26px]" />
         </span>
         <div>
-          <div className="em-ey g">{merchant.brand.tagline}</div>
+          <div className="em-ey g">{ts(merchant.brand.tagline)}</div>
           <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.12, marginTop: 10, color: 'var(--em-on-primary)', letterSpacing: '-0.5px' }}>
-            {merchant.brand.name}
+            {ts(merchant.brand.name)}
           </h1>
-          <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{merchant.brand.description}</p>
+          <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{tl(merchant.brand.description)}</p>
         </div>
       </section>
 
@@ -50,9 +50,9 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
                   <span className="material-symbols-outlined">{f.icon}</span>
                 </span>
                 <div className="em-grow">
-                  <b style={{ fontWeight: 600 }}>{f.title}</b>
+                  <b style={{ fontWeight: 600 }}>{ts(f.title)}</b>
                   <p className="em-mut" style={{ fontSize: 13, margin: '2px 0 0', lineHeight: 1.45 }}>
-                    {f.description}
+                    {tl(f.description)}
                   </p>
                 </div>
               </div>
@@ -62,8 +62,8 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
 
         <div style={{ textAlign: 'center', marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <PoweredByAntarixs />
-          {merchant.welcome.footerLine && <span className="em-hint">{merchant.welcome.footerLine}</span>}
-          {merchant.legal.registrationLine && <span className="em-hint">{merchant.legal.registrationLine}</span>}
+          {tl(merchant.welcome.footerLine) && <span className="em-hint">{tl(merchant.welcome.footerLine)}</span>}
+          {tl(merchant.legal.registrationLine) && <span className="em-hint">{tl(merchant.legal.registrationLine)}</span>}
         </div>
       </div>
     </div>

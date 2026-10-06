@@ -41,6 +41,8 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       name: body.name,
       tag: body.tag,
       subtitle: body.subtitle || 'Curated wholesale collection',
+      ...(body.nameHi ? { nameHi: body.nameHi } : {}),
+      ...(body.subtitleHi ? { subtitleHi: body.subtitleHi } : {}),
       avgNetWt: `${min}g – ${max}g`,
       image: body.image,
       eligibleKarats: body.eligibleKarats ?? [],

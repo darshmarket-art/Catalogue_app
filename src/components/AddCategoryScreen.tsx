@@ -5,6 +5,7 @@ import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, I, Notice } from './ui';
 import { api } from '../api';
 import { setTagList, useTagList } from '../tagList';
+import { toHindi } from '../../shared/hindi';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -39,6 +40,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
     }
   };
   const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');
+  const [nameHi, setNameHi] = useState(editing?.nameHi ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? [{ ref: editing.image, url: editing.image }] : []);
   const [uploading, setUploading] = useState(false);
   const [minWt, setMinWt] = useState(editing ? String(editing.minTargetWt) : '');
@@ -73,6 +75,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
         name: name.trim(),
         tag,
         ...(subtitle.trim() ? { subtitle: subtitle.trim() } : {}),
+        ...(nameHi.trim() ? { nameHi: nameHi.trim() } : {}),
         image: photos[0].ref,
         ...(Number.isFinite(min) ? { minTargetWt: min } : {}),
         ...(Number.isFinite(max) ? { maxTargetWt: max } : {}),
@@ -146,6 +149,10 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
       <Field label="Collection name" htmlFor="ac-name">
         <input id="ac-name" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Temple Antique Haar" />
+      </Field>
+
+      <Field label="Name in Hindi (optional)" htmlFor="ac-name-hi" hint={name.trim() ? `Buyers using the app in Hindi see this. Left empty, they see: ${toHindi(name)}` : 'Buyers using the app in Hindi see this name.'}>
+        <input id="ac-name-hi" data-testid="ac-name-hi" lang="hi" className="inp" value={nameHi} onChange={(e) => setNameHi(e.target.value)} placeholder={name.trim() ? toHindi(name) : 'जैसे, टेम्पल एंटीक हार'} />
       </Field>
 
       <div>

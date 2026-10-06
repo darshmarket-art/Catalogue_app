@@ -43,6 +43,9 @@ export const categorySchema = z.object({
   tag: z.string({ required_error: 'Choose a tag for the collection.' }).trim().min(1, 'Choose a tag for the collection.').max(30),
   slug: trimmed(100).optional(),
   subtitle: trimmed(200).optional(),
+  /** Name and line in Hindi (optional; written in Hindi automatically otherwise). */
+  nameHi: trimmed(100).optional(),
+  subtitleHi: trimmed(200).optional(),
   minTargetWt: z.coerce.number().min(0).max(100000).optional(),
   maxTargetWt: z.coerce.number().min(0).max(100000).optional(),
   eligibleKarats: z.array(trimmed(30)).max(10).optional(),

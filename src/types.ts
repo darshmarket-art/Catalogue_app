@@ -17,6 +17,9 @@ export interface Product {
   leadDays?: number;
   huid?: string;
   description?: string;
+  /** Hindi name and description (optional; the name is shown in automatic Hindi otherwise). */
+  titleHi?: string;
+  descriptionHi?: string;
   /** How the design is priced; absent on older records means "by-weight". */
 }
 
@@ -37,6 +40,8 @@ export interface Category {
   /** What the collection is filed under (Rings, Pendants, …). Always set on collections the API returns. */
   tag: string;
   subtitle: string;
+  nameHi?: string;
+  subtitleHi?: string;
   designCount: number;
   avgNetWt: string;
   image: string;
@@ -64,6 +69,10 @@ export interface About {
   openingHours?: string;
   gstin?: string;
   website?: string;
+  ownerRoleHi?: string;
+  storyHi?: string;
+  addressHi?: string;
+  openingHoursHi?: string;
 }
 
 export interface Banner {
@@ -77,6 +86,7 @@ export interface OrderItem {
   id: string;
   productId?: string;
   title: string;
+  titleHi?: string;
   sku: string;
   purity: string;
   totalNetGold: number;
@@ -111,7 +121,7 @@ export interface PastOrder {
   status: OrderStatus;
   totalNetGrams: number;
   itemCount: number;
-  items: Array<Pick<OrderItem, 'id' | 'title' | 'sku' | 'purity' | 'totalNetGold' | 'batchQty' | 'qtyUnit' | 'image'>>;
+  items: Array<Pick<OrderItem, 'id' | 'title' | 'titleHi' | 'sku' | 'purity' | 'totalNetGold' | 'batchQty' | 'qtyUnit' | 'image'>>;
   /** The buyer's note to the store, if they left one when placing the order. */
   note?: string;
   timestamp: string;

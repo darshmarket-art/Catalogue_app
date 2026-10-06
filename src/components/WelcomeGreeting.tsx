@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { merchant } from '../merchant';
 import { BrandMark } from './BrandMark';
+import { ts } from '../i18n';
 
 interface WelcomeGreetingProps {
   /** The line shown big, e.g. "Welcome back, Ramesh". */
@@ -24,7 +25,7 @@ export const WelcomeGreeting: React.FC<WelcomeGreetingProps> = ({ title, subtitl
           <BrandMark className="w-12 h-12" textClassName="text-[34px]" />
         </div>
         <div className="welcome-rise">
-          <div className="em-ey">{merchant.brand.name}</div>
+          <div className="em-ey">{ts(merchant.brand.name)}</div>
           <h1 className="em-ser" style={{ fontSize: 32, lineHeight: 1.2, marginTop: 8 }}>
             {title}
           </h1>

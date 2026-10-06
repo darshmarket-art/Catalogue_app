@@ -286,6 +286,21 @@ describe('catalogue', () => {
     expect(ok.status).toBe(201);
     expect(ok.body.data.netWt).toBe(45);
   });
+
+  it('keeps a Hindi name and finds designs when a buyer searches in Hindi', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const admin = { Authorization: `Bearer ${token}` };
+    const made = await request(app).post('/api/products').set(admin).send({ title: 'Sunrise Haar', titleHi: 'सूर्योदय हार', descriptionHi: 'शादी के लिए', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5', images: ['https://example.com/haar.jpg'] });
+    expect(made.status).toBe(201);
+    expect(made.body.data.titleHi).toBe('सूर्योदय हार');
+    const buyer = { Authorization: `Bearer ${(await signupRetailer(app)).token}` };
+    const own = await request(app).get(`/api/products?search=${encodeURIComponent('सूर्योदय')}`).set(buyer);
+    expect(own.body.data.map((p: { title: string }) => p.title)).toEqual(['Sunrise Haar']);
+    // No Hindi typed by the owner: the automatic Hindi of the name is searchable too.
+    const auto = await request(app).get(`/api/products?search=${encodeURIComponent('कुंदन')}`).set(buyer);
+    expect(auto.body.data.map((p: { title: string }) => p.title)).toContain('Royal Kundan Choker');
+  });
 });
 
 describe('analytics', () => {

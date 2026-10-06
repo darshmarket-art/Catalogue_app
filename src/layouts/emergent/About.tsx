@@ -2,31 +2,32 @@ import React from 'react';
 import { merchant } from '../../merchant';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
-import { t, useLang } from '../../i18n';
+import { hl, hn, t, tl, ts, useLang } from '../../i18n';
 
 /** "About us" (atlas About): a hero under the top bar, then the store's details as icon rows. Anything the owner leaves empty falls back to the merchant's own details, or is hidden. */
 export const About: React.FC<KitProps<'About'>> = ({ about }) => {
   useLang();
   const phone = about.phone || merchant.contact.deskPhone;
-  const address = about.address || merchant.contact.address;
+  const mapAddress = about.address || merchant.contact.address;
+  const address = about.address ? hl(about.address, about.addressHi) || ts(about.address) : ts(merchant.contact.address);
   const digits = phone.replace(/[^0-9+]/g, '');
-  const story = about.story || merchant.brand.description;
+  const story = about.story ? hl(about.story, about.storyHi) : tl(merchant.brand.description);
 
   const actions = [
     { label: t('Call'), href: `tel:${digits}`, icon: 'phone' },
     ...(about.email ? [{ label: t('Email'), href: `mailto:${about.email}`, icon: 'mail' }] : []),
-    ...(address ? [{ label: t('Map'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, icon: 'pin' }] : []),
+    ...(mapAddress ? [{ label: t('Map'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`, icon: 'pin' }] : []),
     ...(about.website ? [{ label: t('Website'), href: about.website, icon: 'globe' }] : [])
   ];
 
   const details: Array<[string, string, string | undefined]> = [
-    ['user', t('Owner'), about.ownerName ? `${about.ownerName}${about.ownerRole ? `, ${about.ownerRole}` : ''}` : undefined],
+    ['user', t('Owner'), about.ownerName ? `${ts(about.ownerName)}${about.ownerRole ? `, ${hn(about.ownerRole, about.ownerRoleHi)}` : ''}` : undefined],
     ['phone', t('Phone'), phone],
     ['mail', t('Email'), about.email],
-    ['clock', t('Hours'), about.openingHours],
+    ['clock', t('Hours'), about.openingHours ? hl(about.openingHours, about.openingHoursHi) || ts(about.openingHours) : undefined],
     ['pin', t('Address'), address],
     ['file', t('GST'), about.gstin || undefined],
-    ['shield', t('Registration'), merchant.legal.registrationLine]
+    ['shield', t('Registration'), tl(merchant.legal.registrationLine) || undefined]
   ];
 
   return (
@@ -34,9 +35,9 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
       <section className="em-hero about">
         <div className="em-ey g">{t('About the house')}</div>
         <h1 className="em-ser" style={{ fontSize: 33, lineHeight: 1.2, marginTop: 8, color: 'var(--em-on-primary)' }}>
-          {merchant.brand.name}
+          {ts(merchant.brand.name)}
         </h1>
-        <p style={{ fontSize: 13, opacity: 0.75, margin: '6px 0 0' }}>{merchant.brand.tagline}</p>
+        <p style={{ fontSize: 13, opacity: 0.75, margin: '6px 0 0' }}>{ts(merchant.brand.tagline)}</p>
       </section>
 
       <div className="em-pad" style={{ paddingTop: 20 }}>

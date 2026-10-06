@@ -4,7 +4,7 @@ import type { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { currentStoreUrl } from '../storeLink';
 import { StoreShareSheet } from './StoreShareSheet';
-import { t, useLang } from '../i18n';
+import { t, ts, useLang } from '../i18n';
 
 export interface ProfileUser {
   storeName: string;
@@ -141,7 +141,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
 
           {!isAdmin && (
             <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
-              {t('About {name}', { name: merchant.brand.name })}
+              {t('About {name}', { name: ts(merchant.brand.name) })}
             </button>
           )}
 

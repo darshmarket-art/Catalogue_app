@@ -8,7 +8,8 @@ import { Icon, Ph, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { useHideOnScroll } from './useHideOnScroll';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { recentCollections, recentSkus } from '../../recent';
-import { t, tn, useLang } from '../../i18n';
+import { grams, hn, pur, t, tl, tn, ts, useLang } from '../../i18n';
+import { toHindi } from '../../../shared/hindi';
 
 /** Up to this many collections are all shown on Home; more than this and Home features four (the owner's hero collections) plus a Browse all page. */
 const FEW = 6;
@@ -73,12 +74,12 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const { contact } = merchant;
   // Where buyers can reach the store: only the pages the owner has set (WhatsApp and the showroom map are always offered when known).
   // Instagram and Facebook always show; until the owner adds their pages in merchant.json they read "Coming soon" and do nothing.
-  const socialLinks: Array<{ label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
-    { label: 'Instagram', href: contact.instagramUrl ?? '', style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> },
-    { label: 'Facebook', href: contact.facebookUrl ?? '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
-    ...(contact.whatsapp ? [{ label: 'WhatsApp', href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
+  const socialLinks: Array<{ id: string; label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
+    { id: 'instagram', label: ts('Instagram'), href: contact.instagramUrl ?? '', style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> },
+    { id: 'facebook', label: ts('Facebook'), href: contact.facebookUrl ?? '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
+    ...(contact.whatsapp ? [{ id: 'whatsapp', label: ts('WhatsApp'), href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
     ...(contact.address
-      ? [{ label: contact.showroomLabel ?? t('Location'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
+      ? [{ id: 'location', label: contact.showroomLabel ? ts(contact.showroomLabel) : t('Location'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
       : [])
   ];
 
@@ -90,11 +91,12 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     const rest = categories.filter((c) => typeof c.heroOrder !== 'number').sort((a, b) => b.designCount - a.designCount);
     return [...chosen, ...rest].slice(0, 4);
   }, [categories]);
-  const matches = categories.filter((c) => c.name.toLowerCase().includes(q) || c.subtitle.toLowerCase().includes(q));
+  const matches = categories.filter((c) => [c.name, c.subtitle, c.nameHi, toHindi(c.name)].some((v) => v?.toLowerCase().includes(q)));
   const shown = q ? matches : many ? heroes : categories;
   const jumpBack = q || !many ? [] : recentCollections().map((n) => categories.find((c) => c.name === n)).filter((c): c is Category => Boolean(c));
   const viewed = q ? [] : recentSkus().map((sku) => products.find((p) => p.sku === sku)).filter((p): p is NonNullable<typeof p> => Boolean(p)).slice(0, 8);
-  const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => k.split(' ')[0]).join(' · ') : t('avg {w}', { w: cat.avgNetWt }));
+  const purityOf = (cat: Category) => (cat.eligibleKarats?.length ? cat.eligibleKarats.map((k) => pur(k.split(' ')[0])).join(' · ') : t('avg {w}', { w: grams(cat.avgNetWt) }));
+  const catName = (name: string) => { const c = categories.find((x) => x.name === name); return hn(name, c?.nameHi); };
   const searchDesigns = () => onSearchDesigns?.(searchQuery.trim());
 
   return (
@@ -123,14 +125,14 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             >
               {banners.length > 0
                 ? banners.map((b, i) => (
-                    <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? t('Open {name}', { name: b.category }) : t('Banner {n}', { n: i + 1 })}>
+                    <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? t('Open {name}', { name: catName(b.category) }) : t('Banner {n}', { n: i + 1 })}>
                       <Ph src={b.image} tone={i} className="em-fill" />
                       {b.category && (
                         <>
                           <span className="em-sc" />
                           <span className="em-ov">
                             <span className="em-ey g">{t('Collection')}</span>
-                            <span className="em-ser">{b.category}</span>
+                            <span className="em-ser">{catName(b.category)}</span>
                           </span>
                         </>
                       )}
@@ -141,11 +143,11 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
                       <Ph tone={i} className="em-fill" />
                       <span className="em-sc l" />
                       <div className="em-ov">
-                        <span className="em-ey g">{promo.tag}</span>
-                        <span className="em-ser">{promo.title}</span>
-                        <p>{promo.subtitle}</p>
+                        <span className="em-ey g">{ts(promo.tag)}</span>
+                        <span className="em-ser">{ts(promo.title)}</span>
+                        {tl(promo.subtitle) && <p>{tl(promo.subtitle)}</p>}
                         <button type="button" className="em-link" onClick={() => onFilterCategoryInCatalogue(promo.title)}>
-                          {promo.actionLabel}
+                          {ts(promo.actionLabel)}
                           <Icon n="right" size={14} />
                         </button>
                       </div>
@@ -191,7 +193,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <div className="em-chips" style={{ paddingTop: 8, paddingBottom: 0 }}>
             {jumpBack.map((c) => (
               <button key={c.id} type="button" className="em-chip" onClick={() => onFilterCategoryInCatalogue(c.name)}>
-                {c.name}
+                {hn(c.name, c.nameHi)}
               </button>
             ))}
           </div>
@@ -224,12 +226,12 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         <div className="em-grid em-grid-2" data-testid="home-collections" style={{ marginTop: 14 }}>
           {shown.map((cat, i) => (
             <div key={cat.id} className="em-sq" data-testid="home-collection">
-              <button type="button" className="em-hit" aria-label={t('Open {name}', { name: cat.name })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
+              <button type="button" className="em-hit" aria-label={t('Open {name}', { name: hn(cat.name, cat.nameHi) })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
                 <Ph src={cat.image} tone={i} className="em-fill" />
                 <span className="em-sc" />
                 <span className="em-col-ov">
                   <span className="em-ey g">{purityOf(cat)}</span>
-                  <span className="em-ser">{cat.name}</span>
+                  <span className="em-ser">{hn(cat.name, cat.nameHi)}</span>
                   <small>
                     {tn(cat.designCount, '{n} design', '{n} designs')}
                   </small>
@@ -261,9 +263,9 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <div className="em-ey em-pad">{t('Recently viewed')}</div>
           <div className="em-chips em-strip" style={{ paddingTop: 10, paddingBottom: 0 }}>
             {viewed.map((p, i) => (
-              <button key={p.id} type="button" className="em-strip-i" aria-label={t('Open {name}', { name: p.title })} onClick={() => onOpenDesign?.(p.sku)}>
+              <button key={p.id} type="button" className="em-strip-i" aria-label={t('Open {name}', { name: hn(p.title, p.titleHi) })} onClick={() => onOpenDesign?.(p.sku)}>
                 <Ph src={p.image} tone={i} className="em-strip-ph" />
-                <span>{p.title}</span>
+                <span>{hn(p.title, p.titleHi)}</span>
               </button>
             ))}
           </div>
@@ -274,7 +276,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         <div className="em-pad" style={{ marginTop: 28 }}>
           <div className="em-card em-social" data-testid="social-links">
             <div className="em-ey g">{t('Find us')}</div>
-            <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: merchant.brand.name })}</p>
+            <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: ts(merchant.brand.name) })}</p>
             <div className="em-social-row">
               {socialLinks.map((link) =>
                 link.href ? (
@@ -283,7 +285,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
                     <small>{link.label}</small>
                   </a>
                 ) : (
-                  <div key={link.label} className="em-social-i soon" aria-label={`${link.label}, ${t('Coming soon')}`} data-testid={`social-soon-${link.label.toLowerCase()}`}>
+                  <div key={link.label} className="em-social-i soon" aria-label={`${link.label}, ${t('Coming soon')}`} data-testid={`social-soon-${link.id}`}>
                     <span style={link.style}>{link.icon}</span>
                     <small>{link.label}</small>
                     <em>{t('Coming soon')}</em>

@@ -5,7 +5,7 @@ import type { Product } from '../../types';
 import { merchant } from '../../merchant';
 import { ProductDetail } from './ProductDetail';
 import { Icon, Ph, Title, fmtG, stockTone, type KitProps } from './ui';
-import { t, tn, useLang } from '../../i18n';
+import { getLang, hn, pur, t, tn, ts, useLang } from '../../i18n';
 
 /** Shortlist (atlas Shortlist): hearted designs as a divided list, with the total net weight and the order and WhatsApp actions in a bar at the foot. */
 export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, purities, categories, onAddToOrder, onRemove, onAddAllToOrder, onBrowse }) => {
@@ -22,7 +22,11 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
 
   const sendOnWhatsApp = () => {
     void api.recordEnquiry({ kind: 'shortlist', count: items.length });
-    const text =
+    const text = getLang() === 'hi'
+      ? `*${ts(merchant.brand.name)} — शॉर्टलिस्ट*\n*स्टोर:* ${storeName}\n*डिज़ाइन:* ${items.length} · ${totalNet.toFixed(3)} ग्राम नेट\n\n` +
+        items.map((p) => `• ${hn(p.title, p.titleHi)} (${p.sku}) · ${pur(p.purity)} · ${p.netWt.toFixed(2)} ग्राम`).join('\n') +
+        '\n\nकृपया उपलब्धता बताइए।'
+      :
       `*${merchant.brand.name.toUpperCase()} SHORTLIST*\n*From:* ${storeName}\n*Designs:* ${items.length} · ${totalNet.toFixed(3)} g net\n\n` +
       items.map((p) => `• ${p.title} (${p.sku}) · ${p.purity} · ${p.netWt.toFixed(2)} g`).join('\n') +
       '\n\nPlease share availability.';
@@ -68,16 +72,16 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
         <div style={{ marginTop: 6 }}>
           {items.map((p, i) => (
             <div key={p.sku} className="em-li">
-              <button type="button" className="em-li-open" aria-label={t('View {name}', { name: p.title })} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+              <button type="button" className="em-li-open" aria-label={t('View {name}', { name: hn(p.title, p.titleHi) })} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
               <Ph src={p.image} tone={i} className="em-thumb" />
               <div className="em-grow">
-                <div className="em-ser">{p.title}</div>
+                <div className="em-ser">{hn(p.title, p.titleHi)}</div>
                 <div className="em-wt" style={{ marginTop: 3 }}>
                   {fmtG(p.netWt)}
                 </div>
               </div>
               </button>
-              <button type="button" className="em-circ" style={{ border: 0, background: 'none' }} aria-label={t('Remove {name} from shortlist', { name: p.title })} onClick={() => onRemove(p)}>
+              <button type="button" className="em-circ" style={{ border: 0, background: 'none' }} aria-label={t('Remove {name} from shortlist', { name: hn(p.title, p.titleHi) })} onClick={() => onRemove(p)}>
                 <Icon n="heart" size={20} fill />
               </button>
             </div>

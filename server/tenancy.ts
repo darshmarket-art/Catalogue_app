@@ -147,6 +147,8 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
       rec = newStoreRecord(config.merchant);
       if (!(await root.create('stores', id, rec as unknown as Doc))) rec = await root.get<StoreRecord>('stores', id);
     }
+    // The default store's Hindi wording comes from its merchant.json, so it reaches a store record saved before that wording existed.
+    if (rec && id === config.defaultStore && !rec.merchant.hindi && config.merchant.hindi) rec = { ...rec, merchant: { ...rec.merchant, hindi: config.merchant.hindi } };
     return rec;
   }
 

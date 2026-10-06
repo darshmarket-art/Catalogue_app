@@ -9,7 +9,7 @@ import { CatalogueFullScreen } from './CatalogueFullScreen';
 import { WelcomeGreeting } from './WelcomeGreeting';
 import { DeliveryPill, FAILURE_TEXT, useOtpDelivery } from './DeliveryStatus';
 import type { ProfileUser } from './ProfileMenu';
-import { t, useLang } from '../i18n';
+import { t, tErr, ts, useLang } from '../i18n';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -104,7 +104,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       setWait(30);
     } catch (err: any) {
       if (err.code === 'CATALOGUE_FULL') setFull(true);
-      else setErrorMessage(err.message || t('Could not send the code.'));
+      else setErrorMessage(err.message ? tErr(err.message) : t('Could not send the code.'));
     } finally {
       setLoading(false);
     }
@@ -120,7 +120,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       if (res.status === 'needs-name') setNeedsName(true);
       else setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
     } catch (err: any) {
-      setErrorMessage(err.message || t('That code did not work.'));
+      setErrorMessage(err.message ? tErr(err.message) : t('That code did not work.'));
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     <div className="em-page notabs" style={{ maxWidth: 480 }}>
       <div className="em-pad" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
-          <div className="em-ey">{merchant.brand.name}</div>
+          <div className="em-ey">{ts(merchant.brand.name)}</div>
           <div className="em-rule" style={{ width: 48 }} />
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
             {t(needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Login')}
