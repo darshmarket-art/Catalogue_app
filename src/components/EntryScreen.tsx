@@ -3,10 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
 import '../layouts/emergent/emergent.css';
+import './orbit.css';
 import { Notice } from './ui';
 import { Icon } from '../layouts/emergent/ui';
 import { AntarixsWordmark, PoweredByAntarixs } from './AntarixsBrand';
 import { PlansCompare } from './PlansCompare';
+import { OrbitSystem } from './OrbitSystem';
 
 /** Where "Sign in to your store" goes: [store].<platform domain>, or ?store= on localhost. */
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
@@ -17,21 +19,39 @@ export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostna
   return `https://${s}.${base}`;
 }
 
-const DEEP = 'linear-gradient(150deg, #4b1fc0 0%, #2B0A7A 100%)';
+/** One way in: a role row (Orbit theme). */
+const Role: React.FC<{ dashed?: boolean; icon: string; title: string; text: string; onClick?: () => void; href?: string }> = ({ dashed, icon, title, text, onClick, href }) => {
+  const inner = (
+    <>
+      <span className="ico">
+        <Icon n={icon} size={20} />
+      </span>
+      <span className="em-grow">
+        <b>{title}</b>
+        <small>{text}</small>
+      </span>
+      <span className="go">
+        <Icon n="right" size={18} />
+      </span>
+    </>
+  );
+  const cls = `orb-role${dashed ? ' dashed' : ''}`;
+  return href ? (
+    <a className={cls} href={href}>
+      {inner}
+    </a>
+  ) : (
+    <button type="button" className={cls} onClick={onClick}>
+      {inner}
+    </button>
+  );
+};
 
-/** One way in, as on the Emergent welcome screen: a role card. */
-const Role: React.FC<{ pri?: boolean; icon: string; title: string; text: string; onClick: () => void }> = ({ pri, icon, title, text, onClick }) => (
-  <button type="button" className={`em-role${pri ? ' pri' : ''}`} onClick={onClick}>
-    <span className="ico">
-      <Icon n={icon} size={22} />
-    </span>
-    <span className="em-grow">
-      <span className="em-ser">{title}</span>
-      <small>{text}</small>
-    </span>
-    <Icon n="right" size={20} />
-  </button>
-);
+const STEPS: Array<[string, string, string]> = [
+  ['1', 'Name your store', 'Pick your business name and your own address. We check it is free as you type.'],
+  ['2', 'Verify on WhatsApp', 'We send a 6-digit code to your WhatsApp number. It expires in 5 minutes.'],
+  ['3', 'Share the link or QR', 'Buyers sign in with their WhatsApp number and browse. Orders reach you on WhatsApp.']
+];
 
 const SubTop: React.FC<{ onBack: () => void; title: string }> = ({ onBack, title }) => (
   <div className="em-row" style={{ gap: 12, padding: '18px 0 6px' }}>
@@ -45,7 +65,7 @@ const SubTop: React.FC<{ onBack: () => void; title: string }> = ({ onBack, title
 );
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div data-layout="emergent" className="min-h-screen bg-surface text-on-surface">
+  <div data-layout="emergent" data-theme="orbit" className="min-h-screen bg-surface text-on-surface">
     {children}
   </div>
 );
@@ -74,7 +94,7 @@ export const EntryScreen: React.FC = () => {
   if (view === 'plans') {
     return (
       <Shell>
-        <main className="scroll no-tabs" style={{ gap: 12, maxWidth: 480, margin: '0 auto' }}>
+        <main className="orb-narrow">
           <SubTop onBack={() => setView('home')} title="Basic and Pro" />
           <PlansCompare />
           <a className="btn" href="/signup">
@@ -88,10 +108,9 @@ export const EntryScreen: React.FC = () => {
   if (view === 'store') {
     return (
       <Shell>
-        <main className="scroll no-tabs" style={{ gap: 16, maxWidth: 480, margin: '0 auto' }}>
+        <main className="orb-narrow">
           <SubTop onBack={() => setView('home')} title={who === 'buyer' ? 'Login' : 'Store admin'} />
           <div>
-            <div className="em-rule" style={{ width: 48 }} />
             <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
               {who === 'buyer' ? 'Which showroom?' : 'Sign in to your store'}
             </h1>
@@ -133,53 +152,90 @@ export const EntryScreen: React.FC = () => {
 
   return (
     <Shell>
-      <main className="em-welcome">
-        <section className="em-hero lg" style={{ background: DEEP }}>
-          <AntarixsWordmark dark caption="Store" />
-          <div>
-            <div className="em-ey" style={{ color: '#F3E35A' }}>
-              Storefronts for jewellery wholesalers
+      <main>
+        <header style={{ position: 'relative' }}>
+          <span className="orb-glow" style={{ width: 700, height: 700, right: -160, top: -40 }} />
+          <div className="orb-wrap" style={{ position: 'relative' }}>
+            <div className="orb-nav">
+              <AntarixsWordmark dark />
+              <nav className="links" aria-label="Main">
+                <a className="hide-s" href="#how">
+                  How it works
+                </a>
+                <button type="button" className="hide-s" onClick={() => setView('plans')}>
+                  Basic &amp; Pro
+                </button>
+                <a className="hide-s" href="#experience">
+                  Sign in
+                </a>
+                <a className="btn sm" href="/signup">
+                  Create your store
+                </a>
+              </nav>
             </div>
-            <h1 className="em-ser" style={{ fontSize: 40, lineHeight: 1.12, marginTop: 10, color: '#f7f3ff', letterSpacing: '-0.5px' }}>
-              Your jewellery, on an elegant canvas.
-            </h1>
-            <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>Upload designs, share one link, let dealers browse and enquire on WhatsApp.</p>
+            <div className="orb-hero">
+              <div className="orb-copy">
+                <span className="em-ey">Storefronts for jewellery wholesalers</span>
+                <h1>Your jewellery, on an elegant canvas.</h1>
+                <p>Upload designs, share one link, let dealers browse and enquire on WhatsApp.</p>
+                <div className="orb-cta">
+                  <a className="btn" href="/signup">
+                    Create your store
+                    <Icon n="right" size={18} />
+                  </a>
+                  <a className="btn alt" href="#experience">
+                    Sign in to a store
+                  </a>
+                </div>
+                <p className="hint" style={{ fontSize: 14 }}>
+                  3 steps · WhatsApp verified · QR to share · {TRIAL_DAYS} days free
+                </p>
+              </div>
+              <OrbitSystem />
+            </div>
+          </div>
+        </header>
+
+        <section id="how" className="orb-wrap orb-sec" aria-labelledby="orb-how">
+          <span className="em-ey">How it works</span>
+          <h2 id="orb-how">Three steps to a store your dealers can open</h2>
+          <p className="em-mut" style={{ margin: '12px 0 0' }}>
+            Free for {TRIAL_DAYS} days. No card needed.
+          </p>
+          <div className="orb-steps">
+            {STEPS.map(([n, title, text]) => (
+              <article key={n} className="orb-step">
+                <span className="n">{n}</span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
-        <div className="em-pad" style={{ paddingTop: 28 }}>
-          <div className="em-rule" style={{ width: 56 }} />
-          <h2 className="em-ser" style={{ fontSize: 28, lineHeight: 1.2 }}>
-            Choose your experience
-          </h2>
-          <p className="em-mut" style={{ fontSize: 13, marginTop: 6 }}>
-            Open a showroom as a buyer, or step behind the counter.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
-            <Role pri icon="bag" title="Login" text="Browse the full catalogue, shortlist, and track orders." onClick={() => pick('buyer')} />
-            <Role icon="grid" title="Store admin" text="Dashboard, orders desk, add designs, manage buyers." onClick={() => pick('admin')} />
-            <a href="/signup" className="em-row" style={{ gap: 12, padding: 16, borderRadius: 20, border: '1px dashed var(--em-gold)', color: 'inherit', textDecoration: 'none', marginTop: 4 }}>
-              <span style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--em-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--em-primary)', flex: 'none' }}>
-                <Icon n="plus" size={18} />
-              </span>
-              <span className="em-grow">
-                <b style={{ color: 'var(--em-primary)', fontSize: 14 }}>New merchant? Create your store</b>
-                <small className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>
-                  3 steps · WhatsApp verified · QR to share · {TRIAL_DAYS} days free
-                </small>
-              </span>
-              <Icon n="right" size={18} />
-            </a>
+        <section id="experience" className="orb-wrap orb-sec" aria-labelledby="orb-exp">
+          <div className="orb-exp">
+            <div>
+              <span className="em-ey">Welcome</span>
+              <h2 id="orb-exp">Choose your experience</h2>
+              <p className="em-mut" style={{ margin: '12px 0 0' }}>
+                Open a showroom as a buyer, or step behind the counter.
+              </p>
+            </div>
+            <div className="orb-roles">
+              <Role icon="bag" title="Login" text="Browse the full catalogue, shortlist, and track orders." onClick={() => pick('buyer')} />
+              <Role icon="grid" title="Store admin" text="Dashboard, orders desk, add designs, manage buyers." onClick={() => pick('admin')} />
+              <Role dashed icon="plus" title="New merchant? Create your store" text={`3 steps · WhatsApp verified · QR to share · ${TRIAL_DAYS} days free`} href="/signup" />
+            </div>
           </div>
+        </section>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 20 }}>
-            <button type="button" className="em-link" onClick={() => setView('plans')}>
-              Compare Basic &amp; Pro
-            </button>
-            <PoweredByAntarixs />
-            <LegalLinks platform />
-          </div>
+        <div className="orb-wrap orb-foot">
+          <button type="button" className="em-link" onClick={() => setView('plans')}>
+            Compare Basic &amp; Pro
+          </button>
+          <PoweredByAntarixs />
+          <LegalLinks platform />
         </div>
       </main>
     </Shell>

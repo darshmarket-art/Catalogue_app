@@ -9,15 +9,16 @@ export const MARK_PATHS = {
 };
 export const AX = { blue: '#7CC4FF', purple: '#6100F0', deep: '#2B0A7A', spark: '#F3E35A' };
 
-export const AntarixsMark: React.FC<{ size?: number }> = ({ size = 28 }) => {
+/** `dark`: the lambda ends in lavender instead of deep indigo, so it stays visible on a near-black ground (the Orbit theme). */
+export const AntarixsMark: React.FC<{ size?: number; dark?: boolean }> = ({ size = 28, dark }) => {
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
       <defs>
         <linearGradient id={`l${id}`} x1="0.1" y1="0" x2="0.95" y2="1">
           <stop offset="0" stopColor={AX.blue} />
-          <stop offset="0.55" stopColor={AX.purple} />
-          <stop offset="1" stopColor={AX.deep} />
+          <stop offset="0.55" stopColor={dark ? '#8a4dff' : AX.purple} />
+          <stop offset="1" stopColor={dark ? '#c9b2ff' : AX.deep} />
         </linearGradient>
         <linearGradient id={`s${id}`} x1="1" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={AX.spark} />
@@ -35,7 +36,7 @@ export const AntarixsMark: React.FC<{ size?: number }> = ({ size = 28 }) => {
 export const AntarixsWordmark: React.FC<{ dark?: boolean; caption?: string }> = ({ dark, caption }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
     <span style={{ width: 38, height: 38, borderRadius: 11, background: dark ? 'rgba(255,255,255,0.1)' : AX.deep, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <AntarixsMark size={26} />
+      <AntarixsMark size={26} dark={dark} />
     </span>
     <span>
       <span className="em-ser" style={{ display: 'block', fontSize: 20, lineHeight: 1.1, color: dark ? '#f7f3ff' : 'var(--em-ink)' }}>

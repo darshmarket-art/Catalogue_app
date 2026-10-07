@@ -3,12 +3,15 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { setAuthToken } from '../api';
 import '../layouts/emergent/emergent.css';
+import './orbit.css';
 import { Field, I, Notice } from './ui';
 import { DevOtpHint } from './DevOtpHint';
 import { Icon } from '../layouts/emergent/ui';
 import { AntarixsMark, AntarixsWordmark, PoweredByAntarixs } from './AntarixsBrand';
 import { shareStoreQr, storeQrBlob } from '../storeQrCard';
 import { saveFile } from '../saveFile';
+import { TRIAL_DAYS } from '../../shared/limits';
+import { OrbitSystem, type OrbitRing } from './OrbitSystem';
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
@@ -51,7 +54,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
 };
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div data-layout="emergent" className="min-h-screen bg-surface text-on-surface">
+  <div data-layout="emergent" data-theme="orbit" className="min-h-screen bg-surface text-on-surface">
     {children}
   </div>
 );
@@ -157,6 +160,11 @@ export const SignupScreen: React.FC = () => {
     else window.location.href = '/';
   };
 
+  const rings: OrbitRing[] = [
+    { radius: 'r1', speed: 20, planets: [{ label: `${f.storeName || 'your-store'}.antarixs.com`, icon: 'qr' }, { label: 'WhatsApp code', icon: 'wa' }] },
+    { radius: 'r2', speed: 34, planets: [{ label: `${TRIAL_DAYS} days of Pro`, icon: 'gift' }, { label: 'Your buyers', icon: 'users' }] }
+  ];
+
   const errorBox = err && (
     <Notice tone="error">
       {err}
@@ -176,8 +184,8 @@ export const SignupScreen: React.FC = () => {
     const host = result.storeUrl.replace(/^https?:\/\//, '');
     return (
       <Shell>
-        <main className="scroll no-tabs step-in" style={{ gap: 14, maxWidth: 480, margin: '0 auto', minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }} data-testid="store-ready">
-          <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--em-ok)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
+        <main className="orb-narrow step-in" style={{ gap: 14, minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }} data-testid="store-ready">
+          <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--em-ok)', color: 'var(--em-on-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
             <Icon n="check" size={26} />
           </span>
           <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.2 }}>
@@ -228,7 +236,9 @@ export const SignupScreen: React.FC = () => {
 
   return (
     <Shell>
-    <main className="scroll no-tabs" style={{ gap: 16, maxWidth: 480, margin: '0 auto', minHeight: '100dvh' }}>
+    <span className="orb-glow" style={{ width: 700, height: 700, right: -160, top: 60 }} />
+    <div className="orb-split">
+    <main className="orb-narrow orb-tall">
       <div className="em-row em-sb" style={{ padding: '18px 0 10px' }}>
         <button type="button" className="ib" aria-label="Back" onClick={back}>
           <I n="back" />
@@ -361,6 +371,8 @@ export const SignupScreen: React.FC = () => {
         </form>
       )}
     </main>
+    <OrbitSystem className="compact-on-phone" rings={rings} core={(f.brandName.trim()[0] || 'S').toUpperCase()} label="Live preview: your store is the core, its address and extras orbit it" />
+    </div>
     </Shell>
   );
 };
