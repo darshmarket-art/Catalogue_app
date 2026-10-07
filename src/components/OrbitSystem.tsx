@@ -12,6 +12,10 @@ const PATHS: Record<string, string> = {
   users: 'M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 21a7 7 0 0 1 14 0M17 4.5a3.5 3.5 0 0 1 0 7M22 21a7 7 0 0 0-4-6',
   img: 'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM21 17l-5-5-9 8',
   lang: 'M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M12 5c0 4-3 7-7 8M14 21l4-10 4 10M15.5 17h5',
+  erp: 'M12 3 3 7.5 12 12l9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5',
+  lighthouse: 'M9 21h6M10 21l1-12h2l1 12M9 9h6l-1-4h-4zM12 2v1.5M3 6l3.5 1.5M21 6l-3.5 1.5',
+  funnel: 'M3 4h18l-7 8v6l-4 2v-8z',
+  eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
   gift: 'M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z'
 };
 export type OrbitIcon = keyof typeof PATHS;
@@ -19,6 +23,8 @@ export type OrbitIcon = keyof typeof PATHS;
 export interface OrbitPlanet {
   label: string;
   icon: OrbitIcon;
+  /** One of the Antarixs pillars: its pill keeps a blue edge. */
+  pillar?: boolean;
 }
 export interface OrbitRing {
   /** Which radius variable (set in orbit.css and shrunk on small screens). */
@@ -28,11 +34,20 @@ export interface OrbitRing {
   planets: OrbitPlanet[];
 }
 
-/** What Antarixs gives a store, one ring per group. */
+/** What Antarixs gives a store: the four pillars on the middle ring, the everyday tools on the rings either side. */
 export const FEATURE_RINGS: OrbitRing[] = [
-  { radius: 'r1', speed: 20, planets: [{ label: 'Collections', icon: 'grid' }, { label: 'Orders', icon: 'bag' }, { label: 'Store QR', icon: 'qr' }] },
-  { radius: 'r2', speed: 32, planets: [{ label: 'WhatsApp', icon: 'wa' }, { label: 'Insights', icon: 'chart' }, { label: 'PDF catalogue', icon: 'pdf' }] },
-  { radius: 'r3', speed: 48, planets: [{ label: 'Buyers', icon: 'users' }, { label: 'Banners', icon: 'img' }, { label: 'English + Hindi', icon: 'lang' }] }
+  { radius: 'r1', speed: 20, planets: [{ label: 'Orders desk', icon: 'bag' }, { label: 'Live visitors', icon: 'eye' }, { label: 'Store QR', icon: 'qr' }] },
+  {
+    radius: 'r2',
+    speed: 34,
+    planets: [
+      { label: 'Catalogue', icon: 'grid', pillar: true },
+      { label: 'ERP system', icon: 'erp', pillar: true },
+      { label: 'WhatsApp lighthouse', icon: 'lighthouse', pillar: true },
+      { label: 'Lead insights', icon: 'funnel', pillar: true }
+    ]
+  },
+  { radius: 'r3', speed: 48, planets: [{ label: 'Buyer engagement', icon: 'users' }, { label: 'PDF catalogue', icon: 'pdf' }, { label: 'English + Hindi', icon: 'lang' }] }
 ];
 
 const DUST: Array<[string, OrbitRing['radius']]> = [['-4s', 'r1'], ['-11s', 'r2'], ['-19s', 'r3'], ['-7s', 'r1'], ['-15s', 'r2']];
@@ -45,7 +60,7 @@ const DUST: Array<[string, OrbitRing['radius']]> = [['-4s', 'r1'], ['-11s', 'r2'
 export const OrbitSystem: React.FC<{ rings?: OrbitRing[]; core?: React.ReactNode; label?: string; className?: string }> = ({
   rings = FEATURE_RINGS,
   core,
-  label = 'Antarixs at the centre, with collections, orders, QR, WhatsApp, insights, PDF, buyers, banners and Hindi support orbiting it',
+  label = 'Antarixs at the centre, with its four pillars, Catalogue, ERP system, WhatsApp lighthouse and Lead insights, and its everyday tools orbiting it',
   className
 }) => (
   <div className={`orb-sys${className ? ` ${className}` : ''}`} role="img" aria-label={label}>
@@ -70,7 +85,7 @@ export const OrbitSystem: React.FC<{ rings?: OrbitRing[]; core?: React.ReactNode
             return (
               <div key={p.label} className="orb-orbit" style={{ ['--r' as string]: `var(--${ring.radius})`, ['--d' as string]: `${ring.speed}s`, animationDelay: delay }}>
                 <span className="orb-beam" />
-                <div className="orb-card" style={{ animationDelay: delay }}>
+                <div className={`orb-card${p.pillar ? ' pillar' : ''}`} style={{ animationDelay: delay }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d={PATHS[p.icon]} />
                   </svg>
