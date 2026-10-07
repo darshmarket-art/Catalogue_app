@@ -121,12 +121,16 @@ export interface ProductQuery {
   sort?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
+  cursorAfter?: string;
 }
 
 export interface ProductPage {
   items: Product[];
   total: number;
   hasMore: boolean;
+  cursor?: string;
+  cursorAfter?: string;
 }
 
 export interface AlertSettings {
@@ -433,7 +437,7 @@ export const api = {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== null && String(v) !== '') params.set(k, String(v));
     const json = await request(`/api/v1/products?${params.toString()}`);
-    return { items: json.data, total: json.total ?? json.count ?? json.data.length, hasMore: Boolean(json.hasMore) };
+    return { items: json.data, total: json.total ?? json.count ?? json.data.length, hasMore: Boolean(json.hasMore), cursor: json.cursor, cursorAfter: json.cursorAfter };
   },
 
   async createProduct(prod: Partial<Product>): Promise<Product> {

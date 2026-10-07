@@ -87,6 +87,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const [items, setItems] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [cursorAfter, setCursorAfter] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +141,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     const id = ++reqId.current;
     setLoading(true);
     setError(null);
+    setCursor(undefined);
+    setCursorAfter(undefined);
     api
       .queryProducts({ ...query, limit: PAGE, offset: 0 })
       .then((page) => {
@@ -146,22 +150,26 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         setItems(page.items);
         setTotal(page.total);
         setHasMore(page.hasMore);
+        setCursor(page.cursor);
+        setCursorAfter(page.cursorAfter);
       })
       .catch((err) => id === reqId.current && setError(err instanceof Error ? tErr(err.message) : t('Could not load the catalogue.')))
       .finally(() => id === reqId.current && setLoading(false));
   }, [query, retry]);
 
   const loadMore = () => {
-    if (loadingMore || loading || !hasMore) return;
+    if (loadingMore || loading || !hasMore || !cursor || !cursorAfter) return;
     const id = reqId.current;
     setLoadingMore(true);
     api
-      .queryProducts({ ...query, limit: PAGE, offset: items.length })
+      .queryProducts({ ...query, limit: PAGE, cursor, cursorAfter })
       .then((page) => {
         if (id !== reqId.current) return;
         setItems((prev) => [...prev, ...page.items.filter((p) => !prev.some((q) => q.id === p.id))]);
         setTotal(page.total);
         setHasMore(page.hasMore);
+        setCursor(page.cursor);
+        setCursorAfter(page.cursorAfter);
       })
       .catch(() => {})
       .finally(() => setLoadingMore(false));

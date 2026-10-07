@@ -225,16 +225,31 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     '/products',
     readGuard,
     handler(async (req, res) => {
-      const q = parse(pack.querySchema, req.query);
+      const { limit, offset } = parse(paginationSchema, req.query);
+      const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+      const cursorAfter = typeof req.query.cursorAfter === 'string' ? req.query.cursorAfter : undefined;
+      // Strip cursor params before the standard query schema validation.
+      const { cursor: _c, cursorAfter: _ca, ...rest } = req.query;
+      const q = parse(pack.querySchema, rest);
       const list = pack.applyQuery(await store.list('products'), q);
-      const page = list.slice(q.offset, q.offset + q.limit);
+
+      let page: Doc[];
+      if (cursor && cursorAfter) {
+        const startIdx = list.findIndex((p) => p.createdAt === cursor && p.id === cursorAfter);
+        page = list.slice(startIdx >= 0 ? startIdx + 1 : 0, (startIdx >= 0 ? startIdx + 1 : 0) + limit);
+      } else {
+        page = list.slice(offset, offset + limit);
+      }
+      const lastItem = page[page.length - 1];
       res.json({
         status: 'success',
         count: list.length,
         total: list.length,
-        offset: q.offset,
-        limit: q.limit,
-        hasMore: q.offset + page.length < list.length,
+        offset,
+        limit,
+        hasMore: offset + page.length < list.length,
+        cursor: lastItem?.createdAt,
+        cursorAfter: lastItem?.id,
         data: page.map((p) => media.present(p))
       });
     })
