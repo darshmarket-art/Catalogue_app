@@ -40,6 +40,8 @@ async function startServer() {
     });
     app.get('*', async (req, res, next) => {
       try {
+        // Signed photo links (/media/:file) must reach the store resolver, not be served as the app shell.
+        if (req.path.startsWith('/media/')) return void next();
         const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         const html = renderIndexHtml(await vite.transformIndexHtml(req.originalUrl, template), res.locals.merchant);
         res.status(200).type('html').send(html);
@@ -56,9 +58,13 @@ async function startServer() {
     app.get('/sw.js', (_req, res) => {
       res.set('Cache-Control', 'no-cache').type('js').sendFile(path.join(distPath, 'sw.js'));
     });
-    app.use(express.static(distPath, { index: false }));
-    app.get('*', (_req, res) => {
-      res.type('html').send(renderIndexHtml(template, res.locals.merchant));
+    // Built files have a hash in their name, so they can be kept for a year; anything else is re-checked.
+    app.use('/assets', express.static(path.join(distPath, 'assets'), { index: false, maxAge: '1y', immutable: true, fallthrough: true }));
+    app.use(express.static(distPath, { index: false, maxAge: '1h', fallthrough: true }));
+    app.get('*', (req, res, next) => {
+      // Signed photo links (/media/:file) must reach the store resolver, not be served as the app shell.
+      if (req.path.startsWith('/media/')) return void next();
+      res.set('Cache-Control', 'no-cache').type('html').send(renderIndexHtml(template, res.locals.merchant));
     });
   }
 
