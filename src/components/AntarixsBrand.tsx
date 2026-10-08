@@ -54,3 +54,14 @@ export const PoweredByAntarixs: React.FC = () => (
     <span className="em-ser" style={{ fontSize: 13 }}>Antarixs</span>
   </span>
 );
+
+/** The platform pages' wordmark: the mark, then the name in spaced serif capitals with a small caption (the cream theme). */
+export const PlatformWord: React.FC<{ caption?: string; size?: number; href?: string }> = ({ caption = 'Store', size = 34, href = '/welcome-antarixs' }) => (
+  <a className="ax-word" href={href} aria-label="Antarixs home">
+    <AntarixsMark size={size} />
+    <span>
+      Antarixs
+      {caption && <small>{caption}</small>}
+    </span>
+  </a>
+);

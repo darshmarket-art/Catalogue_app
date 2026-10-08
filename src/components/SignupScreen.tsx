@@ -3,15 +3,13 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { setAuthToken } from '../api';
 import '../layouts/emergent/emergent.css';
-import './orbit.css';
+import './platform.css';
 import { Field, I, Notice } from './ui';
 import { DevOtpHint } from './DevOtpHint';
 import { Icon } from '../layouts/emergent/ui';
-import { AntarixsMark, AntarixsWordmark, PoweredByAntarixs } from './AntarixsBrand';
+import { AntarixsMark, PlatformWord } from './AntarixsBrand';
 import { shareStoreQr, storeQrBlob } from '../storeQrCard';
 import { saveFile } from '../saveFile';
-import { TRIAL_DAYS } from '../../shared/limits';
-import { OrbitSystem, type OrbitRing } from './OrbitSystem';
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
@@ -54,7 +52,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
 };
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div data-layout="emergent" data-theme="orbit" className="min-h-screen bg-surface text-on-surface">
+  <div data-layout="emergent" className="ax">
     {children}
   </div>
 );
@@ -160,11 +158,6 @@ export const SignupScreen: React.FC = () => {
     else window.location.href = '/';
   };
 
-  const rings: OrbitRing[] = [
-    { radius: 'r1', speed: 20, planets: [{ label: `${f.storeName || 'your-store'}.antarixs.com`, icon: 'qr' }, { label: 'WhatsApp code', icon: 'wa' }] },
-    { radius: 'r2', speed: 34, planets: [{ label: `${TRIAL_DAYS} days of Pro`, icon: 'gift' }, { label: 'Your buyers', icon: 'users' }] }
-  ];
-
   const errorBox = err && (
     <Notice tone="error">
       {err}
@@ -184,11 +177,11 @@ export const SignupScreen: React.FC = () => {
     const host = result.storeUrl.replace(/^https?:\/\//, '');
     return (
       <Shell>
-        <main className="orb-narrow step-in" style={{ gap: 14, minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }} data-testid="store-ready">
-          <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--em-ok)', color: 'var(--em-on-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
+        <main className="ax-narrow step-in" style={{ gap: 14, minHeight: '100dvh', alignItems: 'center', textAlign: 'center' }} data-testid="store-ready">
+          <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--ok)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
             <Icon n="check" size={26} />
           </span>
-          <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.2 }}>
+          <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.1 }}>
             {f.brandName.trim() || 'Your store'} is ready
           </h1>
           <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.5 }}>
@@ -210,7 +203,6 @@ export const SignupScreen: React.FC = () => {
                 Download QR
               </button>
             </div>
-            <PoweredByAntarixs />
           </div>
           <button type="button" className="btn wa" style={{ width: '100%' }} disabled={sharing} onClick={() => { setSharing(true); void shareStoreQr(f.brandName.trim() || host, result.storeUrl).finally(() => setSharing(false)); }}>
             <I n="whats" />
@@ -236,17 +228,24 @@ export const SignupScreen: React.FC = () => {
 
   return (
     <Shell>
-    <span className="orb-glow" style={{ width: 700, height: 700, right: -160, top: 60 }} />
-    <div className="orb-split">
-    <main className="orb-narrow orb-tall">
-      <div className="em-row em-sb" style={{ padding: '18px 0 10px' }}>
+    <div className="ax-wrap" style={{ paddingBottom: 0 }}>
+      <div className="ax-nav">
+        <PlatformWord />
+        <nav className="links" aria-label="Main">
+          <a href="/welcome-antarixs">Back to welcome</a>
+        </nav>
+      </div>
+    </div>
+    <main className="ax-split">
+    <div className="ax-formcol">
+    <div className="ax-card ax-formcard">
+      <div className="em-row em-sb" style={{ gap: 12 }}>
         <button type="button" className="ib" aria-label="Back" onClick={back}>
           <I n="back" />
         </button>
-        <AntarixsWordmark />
-        <span className="em-ey">Step {STEP_NO[step]} of 3</span>
+        <span className="ax-ey">Step {STEP_NO[step]} of 3</span>
       </div>
-      <div className="meter">
+      <div className="meter" style={{ marginTop: 14 }}>
         <i style={{ width: `${Math.round((STEP_NO[step] / 3) * 100)}%` }} />
       </div>
 
@@ -370,9 +369,30 @@ export const SignupScreen: React.FC = () => {
           <LegalLinks platform lead="By creating your store you agree to:" />
         </form>
       )}
-    </main>
-    <OrbitSystem className="compact-on-phone" rings={rings} core={(f.brandName.trim()[0] || 'S').toUpperCase()} label="Live preview: your store is the core, its address and extras orbit it" />
     </div>
+    </div>
+    <aside className="ax-side" aria-label="Your store preview">
+      <div className="ax-photo">
+        <img src="/platform/signup.jpg" alt="Nakshi Lakshmi Set" />
+        <span style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 55%, rgb(30 26 43 / 0.55))' }} />
+      </div>
+      <div className="ax-card store">
+        <span style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--dark)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontSize: 26, flex: 'none' }}>
+          {(f.brandName.trim()[0] || 'S').toUpperCase()}
+        </span>
+        <span style={{ minWidth: 0 }}>
+          <b style={{ display: 'block', fontFamily: 'var(--serif)', fontWeight: 500, fontSize: 22, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.brandName.trim() || 'Your store'}</b>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <i style={{ width: 8, height: 8, borderRadius: '50%', background: avail && avail.name === f.storeName ? (avail.ok ? 'var(--ok)' : 'var(--bad)') : '#b9ad9c', flex: 'none' }} />
+            <span className="ax-mut" style={{ wordBreak: 'break-all' }}>
+              {f.storeName || 'your-store'}.antarixs.com
+            </span>
+          </span>
+        </span>
+      </div>
+      <div className="ax-card ax-badge">14 days of Pro, free</div>
+    </aside>
+    </main>
     </Shell>
   );
 };
