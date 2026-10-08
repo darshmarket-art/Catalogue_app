@@ -26,15 +26,19 @@ const MAX_SIDE = 2400;
 /**
  * Shrinks an upload before it is stored: turned upright by its camera orientation, no larger than MAX_SIDE, re-saved at a good quality with
  * its hidden camera and location details removed. If that fails or does not make the file smaller, the original is kept as it was sent.
+ * Returns the buffer and the actual output format (sharp may not preserve the input format).
  */
-export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/png' | 'image/webp'): Promise<Buffer> {
+export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/png' | 'image/webp'): Promise<{ buffer: Buffer; type: 'image/jpeg' | 'image/png' | 'image/webp' }> {
   try {
     const img = sharp(data, { failOn: 'none' }).rotate().resize({ width: MAX_SIDE, height: MAX_SIDE, fit: 'inside', withoutEnlargement: true });
     const out = await (type === 'image/jpeg' ? img.jpeg({ quality: 85, mozjpeg: true }) : type === 'image/webp' ? img.webp({ quality: 85 }) : img.png({ compressionLevel: 9 })).toBuffer();
-    return out.length < data.length ? out : data;
+    if (out.length >= data.length) return { buffer: data, type };
+    // Detect the actual output format in case sharp changed it
+    const detected = sniff(out) ?? type;
+    return { buffer: out, type: detected };
   } catch (err) {
     logger.warn('Photo could not be optimised; storing it as sent', { error: err instanceof Error ? err.message : String(err) });
-    return data;
+    return { buffer: data, type };
   }
 }
 
@@ -55,10 +59,10 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const type = sniff(body);
       if (!type) throw new HttpError(415, 'That file is not a valid JPEG, PNG or WebP image.');
 
-      const stored = await optimisePhoto(body, type);
-      const file = newPhotoFile(TYPES[type]);
-      await blobs.put(objectName(file), stored, type);
-      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: stored.length } });
+      const result = await optimisePhoto(body, type);
+      const file = newPhotoFile(TYPES[result.type]);
+      await blobs.put(objectName(file), result.buffer, result.type);
+      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: result.buffer.length } });
     })
   );
 
