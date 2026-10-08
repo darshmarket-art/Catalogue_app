@@ -41,6 +41,9 @@ async function startServer() {
     });
     app.get('*', async (req, res, next) => {
       try {
+        // Signed photo links (/media/:file) must reach the store resolver, not be served as the app shell.
+        if (req.path.startsWith('/media/')) return void next();
+        // Non-app paths (robots, favicon, etc.) get a proper 404 instead of the SPA.
         if (!isAppPath(req.path) && !/^\/(@|src\/|node_modules\/)/.test(req.path)) return void res.status(404).type('html').send(res.locals.platform ? platformNotFoundPage(config) : notFoundPage(res.locals.merchant));
         const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         const html = renderIndexHtml(await vite.transformIndexHtml(req.originalUrl, template), res.locals.merchant);
@@ -58,10 +61,12 @@ async function startServer() {
     app.get('/sw.js', (_req, res) => {
       res.set('Cache-Control', 'no-cache').type('js').sendFile(path.join(distPath, 'sw.js'));
     });
-    // Built files have a hash in their name, so they can be kept for a year; everything else is re-checked.
-    app.use('/assets', express.static(path.join(distPath, 'assets'), { index: false, maxAge: '1y', immutable: true, fallthrough: false }));
-    app.use(express.static(distPath, { index: false, maxAge: '1h' }));
-    app.get('*', (req, res) => {
+    // Built files have a hash in their name, so they can be kept for a year; anything else is re-checked.
+    app.use('/assets', express.static(path.join(distPath, 'assets'), { index: false, maxAge: '1y', immutable: true, fallthrough: true }));
+    app.use(express.static(distPath, { index: false, maxAge: '1h', fallthrough: true }));
+    app.get('*', (req, res, next) => {
+      // Signed photo links (/media/:file) must reach the store resolver, not be served as the app shell.
+      if (req.path.startsWith('/media/')) return void next();
       // Only the app's own addresses open the app; anything else is a real "page not found".
       if (!isAppPath(req.path)) return void res.status(404).set('Cache-Control', 'no-store').type('html').send(res.locals.platform ? platformNotFoundPage(config) : notFoundPage(res.locals.merchant));
       res.set('Cache-Control', 'no-cache').type('html').send(renderIndexHtml(template, res.locals.merchant));
