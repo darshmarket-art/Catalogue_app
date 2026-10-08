@@ -111,6 +111,35 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Cloud health and cost from Cloud Monitoring and billing data.
 - [ ] Limit what staff can see of buyers' personal data; mention it in the privacy text.
 
+#### Phase 8 console: exact status (checked in code 2026-10-04, read only, nothing run)
+Mockup for reference: Antarixs Screen Atlas artifact, "Antarixs Console" section (https://claude.ai/artifact/VFnzY2ugfU5ozNXRhX4nNJ). Its figures are examples.
+
+Built (`server/routes/console.ts`, `src/console/Console.tsx`):
+- [x] Stores list: name, subdomain, plan, effective plan, status, trial end, buyers, photos, own app. Search plus plan and status filters.
+- [x] Store detail with category count and per-store audit.
+- [x] Actions: set Basic / Pro, extend trial 14 days, suspend and resume. Founder plan cannot be changed. Every write goes to `consoleAudit`.
+- [x] Auth: Google IAP JWT checked against `CONSOLE_ADMINS`; dev open mode only outside production.
+- [x] Summary counts on the page: stores, on a Pro trial, paid Pro.
+
+Data exists, UI missing:
+- [ ] Show the owner (the API already returns `owner`).
+- [ ] Tile for trials ending within 3 days and a plan mix, derived from `trialEndsAt`.
+- [ ] Total buyers tile (sum of the store rows).
+
+New work (needs a cross-store summary endpoint; per-store data is in `stores/<id>/*`):
+- [ ] Orders this week, visits chart, online now, from each store's `dailyStats` and `visitors`.
+- [ ] Live activity feed across stores, from each store's `activityEvents`.
+- [ ] Cross-store Owners, Buyers and Orders pages.
+- [ ] Growth numbers such as "+6 stores this week" (needs snapshots or history).
+- [ ] Confirm a refused 51st Basic buyer is logged as an event, then show "buyer limit reached" in the feed.
+- [ ] Cloud cards: storage GB, Firestore reads, certificate status (Cloud Monitoring, bucket and load balancer; not in the app).
+- [ ] Scale: `/stores` reads every store on each call (ponytail comment in the code). Add cached counters or paging past a few hundred stores.
+
+Owner, before the console opens in production:
+- [ ] Set `CONSOLE_ADMINS` and `IAP_AUDIENCE`, put the console host behind IAP (see `console-setup.sh`).
+
+Suggested order: owner setup, then owner column and trial tiles, then the summary endpoint, then cloud cards.
+
 ### Phase 9: Notifications
 - [x] WhatsApp message to the store's admin number for every new order (utility template).
 - [ ] Push notifications to admins on new orders (Firebase, per-store `google-services.json`).

@@ -81,7 +81,7 @@ describe('photo optimising', () => {
     const raw = Buffer.alloc(3200 * 2400 * 3);
     for (let i = 0; i < raw.length; i++) raw[i] = (i * 7 + (i >> 5)) & 255;
     const big = await sharp(raw, { raw: { width: 3200, height: 2400, channels: 3 } }).jpeg({ quality: 100 }).toBuffer();
-    const out = await optimisePhoto(big, 'image/jpeg');
+    const out = (await optimisePhoto(big, 'image/jpeg')).buffer;
     const meta = await sharp(out).metadata();
     expect(out.length).toBeLessThan(big.length);
     expect(meta.format).toBe('jpeg');
@@ -89,7 +89,7 @@ describe('photo optimising', () => {
   });
   it('keeps the original when it cannot be read or is not made smaller', async () => {
     const fake = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(40, 1)]);
-    expect(await optimisePhoto(fake, 'image/jpeg')).toBe(fake);
+    expect((await optimisePhoto(fake, 'image/jpeg')).buffer).toBe(fake);
   });
 });
 

@@ -11,18 +11,8 @@ import { isTidying } from './backLayer';
 import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
 import { getLang, hn, pur, t, tErr, ts, useLang } from './i18n';
 import { merchant } from './merchant';
-import { LAYOUTS, type LayoutId } from './layouts/registry';
+import { emergent as K } from './layouts/emergent';
 import { DEFAULT_LAYOUT } from '../shared/layouts';
-
-// Get the current layout based on merchant configuration
-const getLayout = (): typeof LAYOUTS[keyof typeof LAYOUTS] => {
-  // For now, use DEFAULT_LAYOUT from shared/layouts.ts
-  // In production, this would read from merchant.layout
-  const layoutId = DEFAULT_LAYOUT as LayoutId;
-  return LAYOUTS[layoutId];
-};
-
-const K = getLayout();
 import { sector } from './sector';
 import { RetailerAuthScreen } from './components/RetailerAuthScreen';
 import { AdminLoginScreen } from './components/AdminLoginScreen';

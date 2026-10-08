@@ -7,7 +7,7 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema } from '../schemas';
+import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema, paginationSchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
 import { MAX_TAGS, loadTags, resolveTag, sameTag, saveTags, tagNameSchema } from '../tags';
@@ -233,13 +233,12 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const q = parse(pack.querySchema, rest);
       const list = pack.applyQuery(await store.list('products'), q);
 
-      let page: Doc[];
+      let start = offset;
       if (cursor && cursorAfter) {
-        const startIdx = list.findIndex((p) => p.createdAt === cursor && p.id === cursorAfter);
-        page = list.slice(startIdx >= 0 ? startIdx + 1 : 0, (startIdx >= 0 ? startIdx + 1 : 0) + limit);
-      } else {
-        page = list.slice(offset, offset + limit);
+        const idx = list.findIndex((p) => p.createdAt === cursor && p.id === cursorAfter);
+        start = idx >= 0 ? idx + 1 : 0;
       }
+      const page = list.slice(start, start + limit);
       const lastItem = page[page.length - 1];
       res.json({
         status: 'success',
@@ -247,7 +246,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
         total: list.length,
         offset,
         limit,
-        hasMore: offset + page.length < list.length,
+        hasMore: start + page.length < list.length,
         cursor: lastItem?.createdAt,
         cursorAfter: lastItem?.id,
         data: page.map((p) => media.present(p))

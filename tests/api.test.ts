@@ -277,9 +277,9 @@ describe('catalogue', () => {
     const second = await request(app).get(`/api/products?limit=2&cursor=${first.body.cursor}&cursorAfter=${first.body.cursorAfter}`).set(auth);
     expect(second.body.data).toHaveLength(2);
     // Products from different pages should not overlap.
-    const ids1 = new Set(first.body.data.map((p: any) => p.id));
-    const ids2 = new Set(second.body.data.map((p: any) => p.id));
-    expect([...ids1].some((id: string) => ids2.has(id))).toBe(false);
+    const ids1 = new Set<string>(first.body.data.map((p: any) => p.id));
+    const ids2 = new Set<string>(second.body.data.map((p: any) => p.id));
+    expect([...ids1].some((id) => ids2.has(id))).toBe(false);
   });
 
   it('lets admins add products, rejecting non-http photo links', async () => {
