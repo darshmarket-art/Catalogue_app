@@ -1,22 +1,14 @@
-import React, { useState } from 'react';
-import { LIMITS, TRIAL_DAYS } from '../../shared/limits';
-import { SALES_EMAIL } from '../../shared/sales';
+import { LegalLinks } from './LegalLinks';
+import React, { useEffect, useState } from 'react';
+import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
-import { I, Notice } from './ui';
-
-const n = (v: number | null) => (v === null ? 'Unlimited' : v.toLocaleString('en-IN'));
-const rows: Array<[string, string]> = [
-  ['Collections', `${n(LIMITS.basic.categories)} · ${n(LIMITS.pro.categories)}`],
-  ['Photos', `${n(LIMITS.basic.photos)} · ${n(LIMITS.pro.photos)}`],
-  ['Photos per design', `${n(LIMITS.basic.photosPerDesign)} · ${n(LIMITS.pro.photosPerDesign)}`],
-  ['Buyers', `${n(LIMITS.basic.users)} · ${n(LIMITS.pro.users)}`],
-  ['Enquire on WhatsApp', 'Both'],
-  ['Home banners, purity options', 'Both'],
-  ['Orders and orders desk', 'Pro'],
-  ['Insights, live visitors', 'Pro'],
-  ['Order alerts, audit log', 'Pro'],
-  ['PDF catalogue, staff roles', 'Pro']
-];
+import '../layouts/emergent/emergent.css';
+import './orbit.css';
+import { Notice } from './ui';
+import { Icon } from '../layouts/emergent/ui';
+import { AntarixsWordmark, PoweredByAntarixs } from './AntarixsBrand';
+import { PlansCompare } from './PlansCompare';
+import { OrbitSystem } from './OrbitSystem';
 
 /** Where "Sign in to your store" goes: [store].<platform domain>, or ?store= on localhost. */
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
@@ -27,181 +19,225 @@ export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostna
   return `https://${s}.${base}`;
 }
 
-const Top: React.FC<{ onBack?: () => void; right?: React.ReactNode }> = ({ onBack, right }) => (
-  <div className="top" style={{ padding: '18px 0 10px', minHeight: 0 }}>
-    {onBack ? (
-      <button type="button" className="ib" aria-label="Back" onClick={onBack}>
-        <I n="back" />
-      </button>
-    ) : (
-      <>
-        <div className="mark" style={{ width: 36, height: 36, borderRadius: 11 }}>
-          <I n="gem" size="s" />
-        </div>
-        <span className="serif" style={{ fontSize: 22, color: 'var(--plum)' }}>
-          Antarixs
-        </span>
-      </>
-    )}
-    <span className="grow" />
-    {right}
+/** One way in: a role row (Orbit theme). */
+const Role: React.FC<{ dashed?: boolean; icon: string; title: string; text: string; onClick?: () => void; href?: string }> = ({ dashed, icon, title, text, onClick, href }) => {
+  const inner = (
+    <>
+      <span className="ico">
+        <Icon n={icon} size={20} />
+      </span>
+      <span className="em-grow">
+        <b>{title}</b>
+        <small>{text}</small>
+      </span>
+      <span className="go">
+        <Icon n="right" size={18} />
+      </span>
+    </>
+  );
+  const cls = `orb-role${dashed ? ' dashed' : ''}`;
+  return href ? (
+    <a className={cls} href={href}>
+      {inner}
+    </a>
+  ) : (
+    <button type="button" className={cls} onClick={onClick}>
+      {inner}
+    </button>
+  );
+};
+
+const STEPS: Array<[string, string, string]> = [
+  ['1', 'Name your store', 'Pick your business name and your own address. We check it is free as you type.'],
+  ['2', 'Verify on WhatsApp', 'We send a 6-digit code to your WhatsApp number. It expires in 5 minutes.'],
+  ['3', 'Share the link or QR', 'Buyers sign in with their WhatsApp number and browse. Orders reach you on WhatsApp.']
+];
+
+const SubTop: React.FC<{ onBack: () => void; title: string }> = ({ onBack, title }) => (
+  <div className="em-row" style={{ gap: 12, padding: '18px 0 6px' }}>
+    <button type="button" className="ib" aria-label="Back" onClick={onBack}>
+      <Icon n="back" />
+    </button>
+    <span className="em-ser" style={{ fontSize: 20 }}>
+      {title}
+    </span>
   </div>
 );
 
-/** Antarixs entry page (artboard 1.1), with Basic and Pro (1.2) and store sign-in (1.7) on the platform host. */
+const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div data-layout="emergent" data-theme="orbit" className="min-h-screen bg-surface text-on-surface">
+    {children}
+  </div>
+);
+
+/** Antarixs welcome page (the Emergent atlas Welcome): buyer showroom, store admin, new merchant; plus Basic and Pro and the store address step. */
 export const EntryScreen: React.FC = () => {
-  const [view, setView] = useState<'home' | 'plans' | 'signin'>('home');
+  const [view, setView] = useState<'home' | 'plans' | 'store'>('home');
+  const [who, setWho] = useState<'buyer' | 'admin'>('buyer');
   const [name, setName] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    document.title = 'Antarixs · Storefronts for jewellery wholesalers';
+  }, []);
   const go = (e: React.FormEvent) => {
     e.preventDefault();
     const u = storeUrl(name);
-    if (u) window.location.href = u;
+    if (u) window.location.replace(u);
     else setErr('Enter your store address, for example sharma-jewellers.');
+  };
+  const pick = (w: 'buyer' | 'admin') => {
+    setWho(w);
+    setErr(null);
+    setView('store');
   };
 
   if (view === 'plans') {
     return (
-      <main className="scroll no-tabs" style={{ gap: 12, paddingTop: 'var(--sat)', maxWidth: 480 }}>
-        <Top onBack={() => setView('home')} right={<h1 style={{ fontSize: 26, flex: 'none' }}>Basic and Pro</h1>} />
-        <div className="note trial">
-          <b>Every new store starts with Pro for {TRIAL_DAYS} days.</b> Then it moves to Basic unless you upgrade. Nothing is deleted.
-        </div>
-        <div className="grid2">
-          <div className="card col" style={{ gap: 6 }}>
-            <span className="tag mut" style={{ alignSelf: 'flex-start' }}>
-              Basic
-            </span>
-            <span className="stat" style={{ fontSize: 30 }}>
-              Free
-            </span>
-            <p className="sub">To get started</p>
-          </div>
-          <div className="card col" style={{ gap: 6, borderColor: 'var(--plum)' }}>
-            <span className="pro dark" style={{ alignSelf: 'flex-start' }}>
-              Pro
-            </span>
-            <span className="stat" style={{ fontSize: 30 }}>
-              Contact us
-            </span>
-            <p className="sub">To grow</p>
-          </div>
-        </div>
-        <section aria-label="Plans" className="card kvs" style={{ padding: '4px 14px' }}>
-          {rows.map(([k, v]) => (
-            <div key={k} className="kv">
-              <span>{k}</span>
-              <b>{v}</b>
-            </div>
-          ))}
-        </section>
-        <p className="hint">Columns read Basic · Pro. Payments are handled by our sales team for now: {SALES_EMAIL}.</p>
-        <a className="btn" href="/signup">
-          Start free trial
-        </a>
-      </main>
+      <Shell>
+        <main className="orb-narrow">
+          <SubTop onBack={() => setView('home')} title="Basic and Pro" />
+          <PlansCompare />
+          <a className="btn" href="/signup">
+            Start free trial
+          </a>
+        </main>
+      </Shell>
     );
   }
 
-  if (view === 'signin') {
+  if (view === 'store') {
     return (
-      <main className="scroll no-tabs" style={{ gap: 16, paddingTop: 'var(--sat)', maxWidth: 480 }}>
-        <Top onBack={() => setView('home')} />
-        <div>
-          <h1 style={{ fontSize: 32, lineHeight: 1.05 }}>Sign in to your store</h1>
-          <p className="sub" style={{ marginTop: 6 }}>
-            Owners and staff sign in with email and password on their store.
-          </p>
-        </div>
-        <form onSubmit={go} className="col" style={{ gap: 16 }}>
+      <Shell>
+        <main className="orb-narrow">
+          <SubTop onBack={() => setView('home')} title={who === 'buyer' ? 'Login' : 'Store admin'} />
           <div>
-            <label className="lab" htmlFor="store">
-              Store address
-            </label>
-            <div className="inp" style={{ padding: 0 }}>
-              <input
-                id="store"
-                autoFocus
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setErr(null);
-                }}
-                placeholder="your-name"
-                style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 0, background: 'transparent', padding: '0 0 0 15px', font: 'inherit', color: 'inherit' }}
-              />
-              <span style={{ color: 'var(--mut)', paddingRight: 15 }}>.antarixs.com</span>
-            </div>
+            <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
+              {who === 'buyer' ? 'Which showroom?' : 'Sign in to your store'}
+            </h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
+              {who === 'buyer' ? 'Enter the store address you were sent. You sign in there with a WhatsApp code.' : 'The store administrator signs in with email and password on their store.'}
+            </p>
           </div>
-          {err && <Notice tone="error">{err}</Notice>}
-          <button type="submit" className="btn">
-            Go to my store
-          </button>
-        </form>
-        <div className="note">
-          <b>Staff accounts</b> <span className="pro" style={{ marginLeft: 4 }}>Pro</span>
-          <br />
-          Owners can add staff who help run the catalogue. On Basic, only the owner signs in.
-        </div>
-        <p className="hint" style={{ textAlign: 'center' }}>
-          Buyers do not use this page. They sign in with a WhatsApp code on the store.
-        </p>
-      </main>
+          <form onSubmit={go} className="col" style={{ gap: 16 }}>
+            <div>
+              <label className="lab" htmlFor="store">
+                Store address
+              </label>
+              <div className="inp" style={{ padding: 0 }}>
+                <input
+                  id="store"
+                  autoFocus
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setErr(null);
+                  }}
+                  placeholder="your-name"
+                  style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 0, background: 'transparent', padding: '0 0 0 15px', font: 'inherit', color: 'inherit' }}
+                />
+                <span className="em-mut" style={{ paddingRight: 15 }}>
+                  .antarixs.com
+                </span>
+              </div>
+            </div>
+            {err && <Notice tone="error">{err}</Notice>}
+            <button type="submit" className="btn">
+              {who === 'buyer' ? 'Open the showroom' : 'Go to my store'}
+            </button>
+          </form>
+        </main>
+      </Shell>
     );
   }
 
   return (
-    <main className="scroll no-tabs" style={{ gap: 16, paddingTop: 'var(--sat)', maxWidth: 480 }}>
-      <Top
-        right={
-          <button type="button" className="lnk" onClick={() => setView('signin')}>
-            Sign in
-          </button>
-        }
-      />
-      <section className="hero col" style={{ gap: 12, padding: '24px 20px 50px' }}>
-        <span className="eyebrow">Free for {TRIAL_DAYS} days · no card</span>
-        <h1 style={{ fontSize: 40, lineHeight: 1.02 }}>Your jewellery catalogue, online.</h1>
-        <p className="sub" style={{ fontSize: 15.5, maxWidth: 270 }}>
-          Upload designs, share one link, and let buyers browse and enquire on WhatsApp. Ready in about two minutes.
-        </p>
-      </section>
-      <div className="card" style={{ padding: '14px 16px', margin: '-46px 14px 0', position: 'relative', zIndex: 2, boxShadow: 'var(--sh-2)' }}>
-        <span className="lab">Your store address</span>
-        <div className="inp ph-t" style={{ height: 46 }}>
-          <span>your-name</span>
-          <span style={{ color: 'var(--ink)', fontWeight: 700 }}>.antarixs.com</span>
-        </div>
-      </div>
-      <a className="btn" href="/signup">
-        Create your store
-        <I n="chev" />
-      </a>
-      <button type="button" className="btn alt" onClick={() => setView('signin')}>
-        Go to my store
-      </button>
-      <div className="card" style={{ padding: '2px 16px' }}>
-        {[
-          { icon: 'image', tone: 'gold', title: 'Photo catalogue', text: 'Collections, weights, purity and availability.' },
-          { icon: 'whats', tone: 'ok', title: 'WhatsApp sign-in and enquiries', text: 'Buyers log in with a code on WhatsApp.' },
-          { icon: 'qr', tone: '', title: 'One link, one QR', text: 'Share your store with every buyer.' }
-        ].map((f, i) => (
-          <div key={f.title} className="row" style={{ padding: '12px 0', borderBottom: i < 2 ? '1px solid var(--line-s)' : 0 }}>
-            <span className={`tag ${f.tone}`} style={{ width: 36, height: 36, justifyContent: 'center', padding: 0, borderRadius: 11, flex: 'none' }}>
-              <I n={f.icon} size="s" />
-            </span>
-            <div className="grow">
-              <b>{f.title}</b>
-              <p className="sub" style={{ fontSize: 13.5 }}>
-                {f.text}
-              </p>
+    <Shell>
+      <main>
+        <header style={{ position: 'relative' }}>
+          <span className="orb-glow" style={{ width: 700, height: 700, right: -160, top: -40 }} />
+          <div className="orb-wrap" style={{ position: 'relative' }}>
+            <div className="orb-nav">
+              <AntarixsWordmark dark />
+              <nav className="links" aria-label="Main">
+                <a className="hide-s" href="#how">
+                  How it works
+                </a>
+                <button type="button" className="hide-s" onClick={() => setView('plans')}>
+                  Basic &amp; Pro
+                </button>
+                <a className="hide-s" href="#experience">
+                  Sign in
+                </a>
+                <a className="btn sm" href="/signup">
+                  Create your store
+                </a>
+              </nav>
+            </div>
+            <div className="orb-hero">
+              <div className="orb-copy">
+                <span className="em-ey">Storefronts for jewellery wholesalers</span>
+                <h1>Your jewellery, on an elegant canvas.</h1>
+                <p>Upload designs, share one link, let dealers browse and enquire on WhatsApp.</p>
+                <div className="orb-cta">
+                  <a className="btn" href="/signup">
+                    Create your store
+                    <Icon n="right" size={18} />
+                  </a>
+                  <a className="btn alt" href="#experience">
+                    Sign in to a store
+                  </a>
+                </div>
+                <p className="hint" style={{ fontSize: 14 }}>
+                  3 steps · WhatsApp verified · QR to share · {TRIAL_DAYS} days free
+                </p>
+              </div>
+              <OrbitSystem />
             </div>
           </div>
-        ))}
-      </div>
-      <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={() => setView('plans')}>
-        Compare Basic and Pro
-      </button>
-    </main>
+        </header>
+
+        <section id="how" className="orb-wrap orb-sec" aria-labelledby="orb-how">
+          <span className="em-ey">How it works</span>
+          <h2 id="orb-how">Three steps to a store your dealers can open</h2>
+          <p className="em-mut" style={{ margin: '12px 0 0' }}>
+            Free for {TRIAL_DAYS} days. No card needed.
+          </p>
+          <div className="orb-steps">
+            {STEPS.map(([n, title, text]) => (
+              <article key={n} className="orb-step">
+                <span className="n">{n}</span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="experience" className="orb-wrap orb-sec" aria-labelledby="orb-exp">
+          <div className="orb-exp">
+            <div>
+              <span className="em-ey">Welcome</span>
+              <h2 id="orb-exp">Choose your experience</h2>
+              <p className="em-mut" style={{ margin: '12px 0 0' }}>
+                Open a showroom as a buyer, or step behind the counter.
+              </p>
+            </div>
+            <div className="orb-roles">
+              <Role icon="bag" title="Login" text="Browse the full catalogue, shortlist, and track orders." onClick={() => pick('buyer')} />
+              <Role icon="grid" title="Store admin" text="Dashboard, orders desk, add designs, manage buyers." onClick={() => pick('admin')} />
+              <Role dashed icon="plus" title="New merchant? Create your store" text={`3 steps · WhatsApp verified · QR to share · ${TRIAL_DAYS} days free`} href="/signup" />
+            </div>
+          </div>
+        </section>
+
+        <div className="orb-wrap orb-foot">
+          <button type="button" className="em-link" onClick={() => setView('plans')}>
+            Compare Basic &amp; Pro
+          </button>
+          <PoweredByAntarixs />
+          <LegalLinks platform />
+        </div>
+      </main>
+    </Shell>
   );
 };

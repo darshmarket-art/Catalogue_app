@@ -38,10 +38,10 @@ describe('Basic plan enforcement', () => {
   it('caps categories at 5 and exposes entitlements', async () => {
     const { app, auth, photo } = await basicStore();
     for (let i = 0; i < 5; i++) {
-      const res = await request(app).post('/api/categories').set(auth).send({ name: `C${i}`, image: await photo() });
+      const res = await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: `C${i}`, image: await photo() });
       expect(res.status).toBe(201);
     }
-    const res = await request(app).post('/api/categories').set(auth).send({ name: 'C6', image: await photo() });
+    const res = await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'C6', image: await photo() });
     expect(res.status).toBe(402);
     const e = await request(app).get('/api/entitlements');
     expect(e.body.data).toMatchObject({ effectivePlan: 'basic', usage: { categories: 5 } });
@@ -49,11 +49,23 @@ describe('Basic plan enforcement', () => {
 
   it('allows 1 photo per design and blocks uploads at the photo cap', async () => {
     const { app, auth, store, photo, up } = await basicStore();
-    await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: await photo() });
+    await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings', image: await photo() });
     const body = { title: 'R', category: 'Rings', purity: '22K 916', grossWt: 10, images: [await photo(), await photo()] };
     expect((await request(app).post('/api/products').set(auth).send(body)).status).toBe(402);
     for (let i = 0; i < 199; i++) await store.set('banners', `b${i}`, { id: `b${i}`, image: `media:${String(i).padStart(32, '0')}.jpg` });
     expect((await up()).status).toBe(402);
+  });
+});
+
+describe('Buyers list lastSeen', () => {
+  it('carries the visitor lastSeen of a verified buyer, null when never seen', async () => {
+    const { app, auth, store } = await basicStore();
+    await store.set('buyers', '9820000001', { id: 'b1', phone: '9820000001', firmName: 'A', createdAt: '2026-01-01' });
+    await store.set('buyers', '9820000002', { id: 'b2', phone: '9820000002', firmName: 'B', createdAt: '2026-01-02' });
+    await store.set('visitors', '9820000001', { actorId: '9820000001', kind: 'verified', name: 'A', lastSeen: 1760000000000 });
+    const rows = (await request(app).get('/api/admin/buyers').set(auth)).body.data;
+    expect(rows.find((r: any) => r.phone === '9820000001').lastSeen).toBe(new Date(1760000000000).toISOString());
+    expect(rows.find((r: any) => r.phone === '9820000002').lastSeen).toBeNull();
   });
 });
 
@@ -80,13 +92,11 @@ describe('Pro feature gating', () => {
       expect((await get(path)).status, path).toBe(402);
     }
     const staff = { email: 's@example.com', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: KEY };
-    expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(402);
     // Free features still work, and so does tracking.
     expect((await get('/api/admin/buyers')).status).toBe(200);
     // A running trial is Pro.
     await root.update('stores', 'bhakti', { trialEndsAt: trialEnd() });
     expect((await get('/api/admin/orders')).status).toBe(200);
     expect((await get('/api/analytics')).status).toBe(200);
-    expect((await request(app).post('/api/auth/admin/register').send(staff)).status).toBe(201);
   });
 });

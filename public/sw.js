@@ -1,4 +1,4 @@
-// Service worker: makes the site installable and shows a friendly page when there is no connection.
+// Service worker: order push notifications and a friendly page when there is no connection. It does not make the site installable.
 // It never stores anything private: API calls and signed photo links always go to the network.
 const VERSION = 'v2';
 const SHELL = 'shell-' + VERSION;

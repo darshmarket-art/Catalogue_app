@@ -1,0 +1,89 @@
+import React from 'react';
+import { merchant } from '../../merchant';
+import { BrandMark } from '../../components/BrandMark';
+import { PoweredByAntarixs } from '../../components/AntarixsBrand';
+import { Icon, type KitProps } from './ui';
+import { LangToggle } from '../../components/LangToggle';
+import { LegalLinks } from '../../components/LegalLinks';
+import { t, tl, ts, useLang } from '../../i18n';
+
+/** The store's first screen (atlas Welcome): the brand on a deep panel, then the way in as role-style cards, what the store offers, and the legal footer. */
+export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
+  useLang();
+  return (
+    <div className="em-welcome">
+      <section className="em-hero lg" style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 'calc(14px + var(--sat))', right: 16 }}>
+          <LangToggle onDark />
+        </div>
+        <span className="em-mark lg" style={{ alignSelf: 'flex-start' }}>
+          <BrandMark className="w-8 h-8" textClassName="text-[26px]" />
+        </span>
+        <div>
+          <div className="em-ey g">{ts(merchant.brand.tagline)}</div>
+          <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.12, marginTop: 10, color: 'var(--em-on-primary)', letterSpacing: '-0.5px' }}>
+            {ts(merchant.brand.name)}
+          </h1>
+          <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{tl(merchant.brand.description)}</p>
+          {merchant.welcome.features.length > 0 && (
+            <ul className="em-dk em-hero-feats">
+              {merchant.welcome.features.map((f) => (
+                <li key={f.title}>
+                  <span className="em-ico">
+                    <span className="material-symbols-outlined">{f.icon}</span>
+                  </span>
+                  <span>
+                    <b>{ts(f.title)}</b>
+                    <span>{tl(f.description)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {tl(merchant.legal.registrationLine) && <p className="em-dk em-hero-legal">{tl(merchant.legal.registrationLine)}</p>}
+        </div>
+      </section>
+
+      <div className="em-pad" style={{ paddingTop: 28 }}>
+        <div className="em-rule" style={{ width: 56 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 18 }}>
+          <button type="button" className="em-role pri" onClick={() => onNavigate('retailer-auth')}>
+            <span className="ico">
+              <Icon n="bag" size={22} />
+            </span>
+            <span className="em-grow">
+              <span className="em-ser">{t('Enter the portal')}</span>
+              <small>{t('For registered buyers. Sign in with your WhatsApp number.')}</small>
+            </span>
+            <Icon n="right" size={20} />
+          </button>
+        </div>
+
+        {merchant.welcome.features.length > 0 && (
+          <div className="em-card em-mb" style={{ padding: '2px 16px', marginTop: 22 }}>
+            {merchant.welcome.features.map((f) => (
+              <div key={f.title} className="em-feature">
+                <span className="em-ico">
+                  <span className="material-symbols-outlined">{f.icon}</span>
+                </span>
+                <div className="em-grow">
+                  <b style={{ fontWeight: 600 }}>{ts(f.title)}</b>
+                  <p className="em-mut" style={{ fontSize: 13, margin: '2px 0 0', lineHeight: 1.45 }}>
+                    {tl(f.description)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <PoweredByAntarixs />
+          {tl(merchant.welcome.footerLine) && <span className="em-hint">{tl(merchant.welcome.footerLine)}</span>}
+          {tl(merchant.legal.registrationLine) && <span className="em-hint">{tl(merchant.legal.registrationLine)}</span>}
+          <LegalLinks />
+        </div>
+      </div>
+    </div>
+  );
+};

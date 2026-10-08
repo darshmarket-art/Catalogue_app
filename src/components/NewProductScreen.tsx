@@ -5,6 +5,7 @@ import { merchant } from '../merchant';
 import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, Notice } from './ui';
+import { toHindi } from '../../shared/hindi';
 
 interface NewProductScreenProps {
   categories: Category[];
@@ -29,6 +30,9 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [purity, setPurity] = useState(editing?.purity ?? '');
   const [huid, setHuid] = useState(editing?.huid ?? '');
   const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
+  const [description, setDescription] = useState(editing?.description ?? '');
+  const [titleHi, setTitleHi] = useState(editing?.titleHi ?? '');
+  const [descriptionHi, setDescriptionHi] = useState(editing?.descriptionHi ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
   const [extra, setExtra] = useState<Record<string, string>>(Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)])));
   const [uploading, setUploading] = useState(false);
@@ -72,6 +76,9 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         grossWt: gross,
         stoneWt: stone,
         ...(huid.trim() ? { huid: huid.trim() } : {}),
+        ...(description.trim() ? { description: description.trim() } : {}),
+        ...(titleHi.trim() ? { titleHi: titleHi.trim() } : {}),
+        ...(descriptionHi.trim() ? { descriptionHi: descriptionHi.trim() } : {}),
         stockStatus,
         images: photos.map((p) => p.ref),
         extra: extraOut
@@ -102,12 +109,16 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         <span className="lab">
           Photos {limits.photosPerDesign > 1 && <span className="pro" style={{ marginLeft: 4 }}>Up to {limits.photosPerDesign}</span>}
         </span>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={maxPhotos} onBusyChange={setUploading} locked={Math.max(0, 3 - maxPhotos)} onLocked={() => upgradeNotice('Extra photos per design')} />
+        <PhotoPicker photos={photos} onChange={setPhotos} max={maxPhotos} kind="design" onBusyChange={setUploading} locked={Math.max(0, 3 - maxPhotos)} onLocked={() => upgradeNotice('Extra photos per design')} />
         {limits.photosPerDesign < 3 && <p className="hint">Basic allows {limits.photosPerDesign} photo per design. Pro allows 3.</p>}
       </div>
 
       <Field label="Design name" htmlFor="np-title">
         <input id="np-title" className="inp" style={{ height: 48 }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
+      </Field>
+
+      <Field label="Name in Hindi (optional)" htmlFor="np-title-hi" hint={title.trim() ? `Buyers using the app in Hindi see this. Left empty, they see: ${toHindi(title)}` : 'Buyers using the app in Hindi see this name.'}>
+        <input id="np-title-hi" data-testid="np-title-hi" lang="hi" className="inp" style={{ height: 48 }} value={titleHi} onChange={(e) => setTitleHi(e.target.value)} placeholder={title.trim() ? toHindi(title) : 'जैसे, एंटीक टेम्पल हार'} />
       </Field>
 
       <div className="grid2">
@@ -146,26 +157,35 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           <input id="np-stone" className="inp" style={{ height: 48 }} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
         </Field>
       </div>
-      <div className="card row" style={{ padding: '10px 16px' }}>
-        <span className="grow sub">Net weight</span>
-        <b style={{ fontSize: 20 }} className="serif">
-          {net === null ? '—' : `${net.toFixed(3)} g`}
-        </b>
+      <div className="em-netbanner" data-testid="np-net">
+        <div>
+          <div className="em-ey g">Net weight</div>
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Auto-calculated</div>
+        </div>
+        <div className="em-ser">{net === null ? '—' : `${net.toFixed(3)} g`}</div>
       </div>
 
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <span className="lab" style={{ margin: 0 }}>
-          Availability
-        </span>
-        {sector.stockStatuses.map((st) => (
-          <button key={st.key} type="button" className={`chip${stockStatus === st.key ? ' on' : ''}`} aria-pressed={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
-            {st.key}
-          </button>
-        ))}
+      <div>
+        <span className="lab">Availability</span>
+        <div className="em-seg">
+          {sector.stockStatuses.map((st) => (
+            <button key={st.key} type="button" className={`chip${stockStatus === st.key ? ' on' : ''}`} aria-pressed={stockStatus === st.key} onClick={() => setStockStatus(st.key)}>
+              {st.key}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
         <input id="np-huid" className="inp" style={{ height: 48 }} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
+      </Field>
+
+      <Field label="Description (optional)" htmlFor="np-desc" hint="Searchable: a few words on the motif, finish or occasion help buyers find it.">
+        <textarea id="np-desc" data-testid="np-description" className="inp" style={{ height: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Antique temple work with a matte finish, bridal set" />
+      </Field>
+
+      <Field label="Description in Hindi (optional)" htmlFor="np-desc-hi" hint="Buyers using the app in Hindi see this instead. Without it, they see no description.">
+        <textarea id="np-desc-hi" data-testid="np-description-hi" lang="hi" className="inp" style={{ height: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={descriptionHi} onChange={(e) => setDescriptionHi(e.target.value)} placeholder="जैसे, मैट फ़िनिश के साथ एंटीक टेम्पल काम, ब्राइडल सेट" />
       </Field>
 
       <Field label={editing ? 'SKU' : 'SKU (optional)'} htmlFor="np-sku">
@@ -198,10 +218,11 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         </div>
       )}
 
-      <p className="hint" style={{ margin: '4px 0 0', color: problem ? 'var(--mut)' : 'var(--ok)', fontWeight: 700 }}>
+      <div className="em-savebar">
+      <p className="hint" style={{ margin: 0, textAlign: 'center', color: problem ? 'var(--mut)' : 'var(--ok)', fontWeight: 700 }}>
         {problem ?? (editing ? 'Ready to save' : 'Ready to publish')}
       </p>
-      <button type="button" className="btn" onClick={handleSave} disabled={isSaving || problem !== null}>
+      <button type="button" className="btn" data-testid="np-save" onClick={handleSave} disabled={isSaving || problem !== null}>
         {isSaving ? 'Saving…' : editing ? 'Save changes' : 'Save design'}
       </button>
       {editing && (
@@ -209,6 +230,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           Delete this design
         </button>
       )}
+      </div>
     </div>
   );
 };

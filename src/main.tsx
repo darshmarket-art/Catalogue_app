@@ -3,7 +3,6 @@ import {Capacitor, SystemBars, SystemBarsStyle} from '@capacitor/core';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import './install';
 import {PlanProvider} from './plan';
 import {EntryScreen} from './components/EntryScreen';
 import {SignupScreen} from './components/SignupScreen';

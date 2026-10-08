@@ -4,14 +4,12 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import type { Config } from '../config';
 import type { Store } from '../store';
-import { ADMIN_TOKEN_TTL, RETAILER_TOKEN_TTL, safeEqual, signToken, tokenTtl, user, verifyPassword } from '../auth';
+import { ADMIN_REMEMBER_TTL, ADMIN_TOKEN_TTL, safeEqual, signToken, tokenTtl, user, verifyPassword } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import {
+  adminChangePasswordSchema,
   adminLoginSchema,
-  adminRegisterSchema,
-  changePasswordSchema,
-  retailerLoginSchema,
-  retailerSignupSchema
+  adminRegisterSchema
 } from '../schemas';
 
 const BCRYPT_ROUNDS = 12;
@@ -19,7 +17,7 @@ const HOUR = 60 * 60 * 1000;
 
 const limited = (message: string) => ({ status: 'error', message });
 
-export function authRoutes(config: Config, store: Store, requireRetailer: RequestHandler) {
+export function authRoutes(config: Config, store: Store, requireRetailer: RequestHandler, requireAdmin: RequestHandler) {
   const router = Router();
 
   const loginLimiter = rateLimit({
@@ -29,13 +27,6 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
     standardHeaders: true,
     legacyHeaders: false,
     message: limited('Too many failed attempts. Please wait a few minutes and try again.')
-  });
-  const signupLimiter = rateLimit({
-    windowMs: HOUR,
-    limit: config.rateLimit.auth,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: limited('Too many sign-ups from this network. Please try again later.')
   });
   const adminRegisterLimiter = rateLimit({
     windowMs: HOUR,
@@ -57,89 +48,6 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
   });
 
   router.post(
-    '/retailer/signup',
-    signupLimiter,
-    handler(async (req, res) => {
-      const body = parse(retailerSignupSchema, req.body);
-      const gstin = body.gstin || 'PENDING-VERIFY';
-
-      if (gstin !== 'PENDING-VERIFY') {
-        const dup = await store.list('buyers', { where: [{ field: 'gstin', op: '==', value: gstin }], limit: 1 });
-        if (dup.length > 0) {
-          throw new HttpError(409, 'A wholesale account with this Phone or GSTIN is already registered. Please sign in.');
-        }
-      }
-
-      const buyer = {
-        id: newId('merch'),
-        firmName: body.firmName,
-        gstin,
-        ownerName: body.ownerName || 'Authorized Signatory',
-        phone: body.phone,
-        password: await bcrypt.hash(body.password, BCRYPT_ROUNDS),
-        marketHub: body.marketHub || config.merchant.onboarding.defaultMarketHub,
-        verified: true,
-        createdAt: new Date().toISOString()
-      };
-
-      if (!(await store.create('buyers', buyer.phone, buyer))) {
-        throw new HttpError(409, 'A wholesale account with this Phone or GSTIN is already registered. Please sign in.');
-      }
-      await audit(store, req, 'RETAILER_SIGNUP_SUCCESS', `Firm registered: ${buyer.firmName} (Phone: ${buyer.phone})`);
-
-      res.status(201).json({
-        status: 'success',
-        token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
-        message: 'Wholesale account created successfully! You are now authenticated.',
-        user: buyerView(buyer)
-      });
-    })
-  );
-
-  router.post(
-    '/retailer/login',
-    loginLimiter,
-    handler(async (req, res) => {
-      const body = parse(retailerLoginSchema, req.body);
-      if (body.authMode === 'wa') {
-        throw new HttpError(501, 'WhatsApp OTP sign-in is not available yet. Please sign in with your password.');
-      }
-
-      const buyer = await store.get('buyers', body.phone);
-      const ok = await verifyPassword(body.password, buyer?.password);
-      if (!buyer || !ok) {
-        await audit(store, req, 'RETAILER_LOGIN_FAILED', `Failed login attempt for phone ${body.phone}.`);
-        throw new HttpError(401, 'Access Denied: Incorrect phone number or password.');
-      }
-
-      await audit(store, req, 'RETAILER_LOGIN_SUCCESS', `Firm authenticated: ${buyer.firmName} (Phone: ${buyer.phone})`);
-      res.json({
-        status: 'success',
-        token: signToken(config, { type: 'retailer', sub: buyer.phone }, tokenTtl(req, RETAILER_TOKEN_TTL)),
-        user: buyerView(buyer)
-      });
-    })
-  );
-
-  router.post(
-    '/retailer/change-password',
-    loginLimiter,
-    requireRetailer,
-    handler(async (req, res) => {
-      const body = parse(changePasswordSchema, req.body);
-      const buyer = await store.get('buyers', user(res).id);
-      if (!buyer || !(await verifyPassword(body.currentPassword, buyer.password))) {
-        throw new HttpError(401, 'Your current password is not correct.');
-      }
-      if (body.newPassword === body.currentPassword) throw new HttpError(400, 'Choose a password different from the current one.');
-
-      await store.update('buyers', buyer.phone, { password: await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS), mustChangePassword: false });
-      await audit(store, req, 'RETAILER_PASSWORD_CHANGED', `Password changed by ${buyer.firmName} (${buyer.phone}).`);
-      res.json({ status: 'success', message: 'Password updated.' });
-    })
-  );
-
-  router.post(
     '/admin/register',
     adminRegisterLimiter,
     handler(async (req, res) => {
@@ -153,12 +61,17 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
         throw new HttpError(403, 'Access Denied: Invalid provisioning key. Unauthorized admin account creation is prohibited and logged.');
       }
 
+      // One administrator per store, on every plan. Extra accounts are refused.
+      if ((await store.list('admins')).length > 0) {
+        throw new HttpError(409, 'This store already has its administrator account.');
+      }
+
       const admin = {
         id: newId('adm'),
-        name: body.name || 'Staff Administrator',
+        name: body.name || 'Administrator',
         email: body.email,
         password: await bcrypt.hash(body.password, BCRYPT_ROUNDS),
-        role: body.role,
+        role: 'owner' as const,
         createdAt: new Date().toISOString()
       };
 
@@ -187,15 +100,34 @@ export function authRoutes(config: Config, store: Store, requireRetailer: Reques
       const ok = await verifyPassword(body.password, admin?.password);
       if (!admin || !ok) {
         await audit(store, req, 'ADMIN_LOGIN_FAILED', `Failed admin login for identifier ${email}.`);
-        throw new HttpError(401, 'Access Denied: Invalid admin identifier or security key.');
+        throw new HttpError(401, 'That email or password is not right. Check both and try again, or use "Forgot password".');
       }
 
-      await audit(store, req, 'ADMIN_LOGIN_SUCCESS', `Admin session authenticated for ${admin.name} (${admin.email}) [Role: ${admin.role}]`);
+      // "Keep me signed in" gives a month that renews on use (see /api/auth/me); otherwise the session ends after 8 hours.
+      const remember = Boolean(body.remember);
+      await audit(store, req, 'ADMIN_LOGIN_SUCCESS', `Admin session authenticated for ${admin.name} (${admin.email}) [Role: ${admin.role}]${remember ? ' (kept signed in)' : ''}`);
       res.json({
         status: 'success',
-        sessionToken: signToken(config, { type: 'admin', sub: admin.email }, tokenTtl(req, ADMIN_TOKEN_TTL)),
-        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
+        sessionToken: signToken(config, { type: 'admin', sub: admin.email, ...(remember ? { remember: true } : {}) }, tokenTtl(req, remember ? ADMIN_REMEMBER_TTL : ADMIN_TOKEN_TTL)),
+        admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role, mustChangePassword: Boolean(admin.mustChangePassword) }
       });
+    })
+  );
+
+  // An admin sets their own password: after a temporary one from another admin (forced change), or whenever they like.
+  router.post(
+    '/admin/change-password',
+    requireAdmin,
+    handler(async (req, res) => {
+      const body = parse(adminChangePasswordSchema, req.body);
+      const me = user(res);
+      const admin = await store.get('admins', me.id);
+      if (!admin || !(await verifyPassword(body.currentPassword, admin.password))) {
+        throw new HttpError(401, 'Your current password is not right.');
+      }
+      await store.update('admins', me.id, { password: await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS), mustChangePassword: false, passwordChangedAt: new Date().toISOString() });
+      await audit(store, req, 'ADMIN_PASSWORD_CHANGED', `${admin.name} (${admin.email}) changed their password.`);
+      res.json({ status: 'success', message: 'Password updated.' });
     })
   );
 

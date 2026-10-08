@@ -92,7 +92,7 @@ export const AdminBannersScreen: React.FC<Props> = ({ banners, categories, onLin
       ))}
 
       <div className="card col" style={{ gap: 10 }}>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
+        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" kind="banner" />
         {photos.length > 0 && (
           <>
             {collectionSelect('banner-new-link', newLink, setNewLink)}

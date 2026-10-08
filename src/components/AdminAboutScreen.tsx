@@ -67,6 +67,21 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
           <input id="ab-gst" className="inp uppercase" style={h} value={form.gstin ?? ''} onChange={set('gstin')} maxLength={15} />
         </Field>
       </div>
+      <p className="sub" style={{ marginTop: 10 }}>For buyers who use the app in Hindi (optional). Left empty, the story is not shown in Hindi and the rest is written in Hindi automatically.</p>
+      <Field label="About the business, in Hindi" htmlFor="ab-story-hi">
+        <textarea id="ab-story-hi" lang="hi" className="inp" value={form.storyHi ?? ''} onChange={set('storyHi')} maxLength={2000} placeholder="… से होलसेल सोने की ज्वेलरी" />
+      </Field>
+      <div className="grid2">
+        <Field label="Role, in Hindi" htmlFor="ab-role-hi">
+          <input id="ab-role-hi" lang="hi" className="inp" style={h} value={form.ownerRoleHi ?? ''} onChange={set('ownerRoleHi')} placeholder="संस्थापक" maxLength={80} />
+        </Field>
+        <Field label="Opening hours, in Hindi" htmlFor="ab-hours-hi">
+          <input id="ab-hours-hi" lang="hi" className="inp" style={{ ...h, fontSize: 14 }} value={form.openingHoursHi ?? ''} onChange={set('openingHoursHi')} placeholder="सोम से शनि, 10 से 7" maxLength={160} />
+        </Field>
+      </div>
+      <Field label="Address, in Hindi" htmlFor="ab-address-hi">
+        <textarea id="ab-address-hi" lang="hi" className="inp" style={{ minHeight: 72 }} value={form.addressHi ?? ''} onChange={set('addressHi')} maxLength={300} />
+      </Field>
       {error && <Notice tone="error">{error}</Notice>}
       {saved && <Notice tone="ok">Saved. Buyers can see it now.</Notice>}
       <button type="submit" disabled={busy} className="btn" style={{ marginTop: 6 }}>

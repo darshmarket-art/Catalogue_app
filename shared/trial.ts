@@ -16,7 +16,7 @@ export const trialMessage = (days: number | null) =>
 /** What changes when the trial ends (plan.md downgrade rules). */
 export const DOWNGRADE_CHANGES = [
   'Orders, order history and the orders desk are locked (visitors use Enquire on WhatsApp)',
-  'Insights, live visitors, buyer engagement, audit log, PDF catalogue and staff roles are locked',
+  'Insights, live visitors, buyer engagement, audit log and PDF catalogue are locked',
   'Limits drop to 5 categories, 200 photos, 1 photo per design and 50 buyers',
   'Nothing is deleted or hidden: you only cannot add more beyond Basic limits'
 ];

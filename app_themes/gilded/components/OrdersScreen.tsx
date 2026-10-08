@@ -8,8 +8,9 @@ import { I, Notice, Photo, Segmented, StatusTag } from './ui';
 interface OrdersScreenProps {
   orders: OrderItem[];
   onRemoveItem: (id: string) => void;
-  onConfirmOrder: () => Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null>;
-  onGenerateWhatsAppPO: () => void;
+  /** Both take the buyer's optional note to the store. */
+  onConfirmOrder: (note?: string) => Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string } | null>;
+  onGenerateWhatsAppPO: (note?: string) => void;
   onNavigateCatalogue: () => void;
   /** Which tab to open first (the profile menu links straight to past orders). */
   initialTab?: 'current' | 'past';
@@ -64,6 +65,11 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
             <p className="sub">
               {order.itemCount} {order.itemCount === 1 ? 'design' : 'designs'} · {order.totalNetGrams.toFixed(3)} g net · {when(order.timestamp)}
             </p>
+            {order.note && (
+              <p className="hint" data-testid="past-order-note">
+                <b>Your note:</b> {order.note}
+              </p>
+            )}
             {isOpen && (
               <>
                 <hr className="sep" />
@@ -103,6 +109,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ orders, onRemoveItem
   const [bookedMessage, setBookedMessage] = useState('');
   const [tab, setTab] = useState<'current' | 'past'>(initialTab);
   const [history, setHistory] = useState<PastOrder[] | null>(null);
+  const [note, setNote] = useState('');
 
   // Past orders are fetched when the tab is opened, and again after a new order is booked.
   useEffect(() => {
@@ -125,8 +132,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ orders, onRemoveItem
   };
 
   const handleConfirm = async () => {
-    const result = await onConfirmOrder();
+    const result = await onConfirmOrder(note.trim() || undefined);
     if (!result) return;
+    setNote('');
     setIsBooked(true);
     setBookedGrams(result.totalNetGrams);
     setBookedMessage(result.whatsappMessage);
@@ -213,6 +221,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ orders, onRemoveItem
               </button>
             </div>
           ))}
+          <label className="col" style={{ gap: 6 }}>
+            <span className="eyebrow">Note for {merchant.brand.name}</span>
+            <textarea data-testid="order-note-input" className="inp" style={{ height: 84, padding: 12, resize: 'none' }} maxLength={300} placeholder="Delivery date, finish, size changes…" value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
           <p className="hint" style={{ textAlign: 'center' }}>
             {merchant.orders.guaranteeLine ?? sector.copy.orders.guaranteeFallback}
           </p>
@@ -230,7 +242,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ orders, onRemoveItem
               <button type="button" className="btn" onClick={handleConfirm} disabled={isBooked}>
                 {isBooked ? sector.copy.orders.bookedCta : sector.copy.orders.confirmCta}
               </button>
-              <button type="button" className="btn alt" onClick={onGenerateWhatsAppPO}>
+              <button type="button" className="btn alt" onClick={() => onGenerateWhatsAppPO(note.trim() || undefined)}>
                 <I n="whats" />
                 {sector.copy.orders.whatsappCta.title}
               </button>

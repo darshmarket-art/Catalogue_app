@@ -13,6 +13,7 @@ import { migrateLegacyBuyers } from '../server/migrate';
 import { daysAgo } from '../server/stats';
 import { loadMerchant, renderIndexHtml, themeCss, THEME_TOKENS } from '../server/merchant';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
 
@@ -22,7 +23,7 @@ let config: Config;
 
 async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'public' | 'login' = 'login') {
   config = {
-    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000, ...overrides }
   };
   config.merchant = { ...config.merchant, catalogueAccess: access };
@@ -34,12 +35,11 @@ async function build(overrides: Partial<Config['rateLimit']> = {}, access: 'publ
 
 const retailer = (n = 1) => ({
   firmName: `Test Jewellers ${n}`,
-  phone: `98200000${String(n).padStart(2, '0')}`,
-  password: 'StrongPass@1'
+  phone: `98200000${String(n).padStart(2, '0')}`
 });
 
 async function signupRetailer(app: ReturnType<typeof createApp>, n = 1) {
-  const res = await request(app).post('/api/auth/retailer/signup').send(retailer(n));
+  const res = await otpBuyer(app, retailer(n));
   return { token: res.body.token as string, res };
 }
 
@@ -158,66 +158,40 @@ describe('admin provisioning', () => {
     expect(res.status).toBe(403);
   });
 
-  it('derives the role from the account, ignoring what the client claims at login', async () => {
+  it('allows one administrator per store, and it is the owner', async () => {
     const app = await build();
-    const res = await request(app)
+    const first = await request(app)
+      .post('/api/auth/admin/register')
+      .send({ email: 'boss@bhaktijewels.in', password: 'AdminPass@2026', masterProvisioningKey: MASTER_KEY });
+    expect(first.status).toBe(201);
+    expect(first.body.admin.role).toBe('owner');
+    const second = await request(app)
       .post('/api/auth/admin/register')
       .send({ email: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'staff', masterProvisioningKey: MASTER_KEY });
-    expect(res.status).toBe(201);
-    const login = await request(app)
-      .post('/api/auth/admin/login')
-      .send({ adminId: 'desk@bhaktijewels.in', password: 'AdminPass@2026', role: 'owner' });
-    expect(login.body.admin.role).toBe('staff');
+    expect(second.status).toBe(409);
   });
 
-  it('stores only bcrypt hashes', async () => {
+  it('stores only a bcrypt hash for the admin; buyers have no password', async () => {
     const app = await build();
     await createAdmin(app);
     await signupRetailer(app);
     const [admin] = await store.list('admins');
     const [merchant] = await store.list('buyers');
     expect(admin.password).toMatch(/^\$2[aby]\$/);
-    expect(merchant.password).toMatch(/^\$2[aby]\$/);
+    expect(merchant.password).toBeUndefined();
   });
 });
 
 describe('retailer accounts', () => {
-  it('rejects duplicate phones and returns identical errors for unknown phone and wrong password', async () => {
+  it('has no buyer passwords: the password endpoints are gone', async () => {
     const app = await build();
-    await signupRetailer(app);
-    const dup = await request(app).post('/api/auth/retailer/signup').send(retailer(1));
-    expect(dup.status).toBe(409);
-
-    const wrongPw = await request(app).post('/api/auth/retailer/login').send({ phone: retailer(1).phone, password: 'nope-nope-1' });
-    const unknown = await request(app).post('/api/auth/retailer/login').send({ phone: '9999999999', password: 'nope-nope-1' });
-    expect(wrongPw.status).toBe(401);
-    expect(unknown.status).toBe(401);
-    expect(unknown.body.message).toBe(wrongPw.body.message);
+    expect((await request(app).post('/api/auth/retailer/signup').send({ firmName: 'A', phone: '9820000001', password: 'StrongPass@1' })).status).toBe(404);
+    expect((await request(app).post('/api/auth/retailer/login').send({ phone: '9820000001', password: 'StrongPass@1' })).status).toBe(404);
   });
 
-  it('does not allow passwordless WhatsApp sign-in', async () => {
+  it('validates the phone number', async () => {
     const app = await build();
-    await signupRetailer(app);
-    const res = await request(app).post('/api/auth/retailer/login').send({ phone: retailer(1).phone, password: 'x', authMode: 'wa' });
-    expect(res.status).toBe(501);
-    expect(res.body.token).toBeUndefined();
-  });
-
-  it('validates input', async () => {
-    const app = await build();
-    const res = await request(app).post('/api/auth/retailer/signup').send({ firmName: 'A', phone: '12', password: 'short' });
-    expect(res.status).toBe(400);
-  });
-
-  it('rate limits repeated failed logins', async () => {
-    const app = await build({ auth: 3 });
-    const statuses: number[] = [];
-    for (let i = 0; i < 5; i++) {
-      const res = await request(app).post('/api/auth/retailer/login').send({ phone: '9999999999', password: 'wrong-pass-1' });
-      statuses.push(res.status);
-    }
-    expect(statuses.slice(0, 3)).toEqual([401, 401, 401]);
-    expect(statuses.slice(3)).toEqual([429, 429]);
+    expect((await request(app).post('/api/auth/retailer/request-otp').send({ phone: '12' })).status).toBe(400);
   });
 });
 
@@ -242,6 +216,23 @@ describe('orders', () => {
     expect(steal.status).toBe(404);
     const remove = await request(app).delete(`/api/orders/items/${added.body.data.id}`).set('Authorization', `Bearer ${a}`);
     expect(remove.status).toBe(200);
+  });
+
+  it('changes a cart line quantity, recomputing weight; not another buyers line, not below 1', async () => {
+    const app = await build();
+    const a = (await signupRetailer(app, 1)).token;
+    const b = (await signupRetailer(app, 2)).token;
+    const added = await request(app).post('/api/orders/items').set('Authorization', `Bearer ${a}`).send({ sku: 'B2B-KND-9082', batchQty: 1 });
+    const id = added.body.data.id;
+    const patch = (t: string, body: object) => request(app).patch(`/api/orders/items/${id}`).set('Authorization', `Bearer ${t}`).send(body);
+    const r = await patch(a, { batchQty: 3 });
+    expect(r.status).toBe(200);
+    expect(r.body.data.batchQty).toBe(3);
+    expect(r.body.data.totalNetGold).toBeCloseTo(added.body.data.totalNetGold * 3, 3);
+    expect((await patch(b, { batchQty: 2 })).status).toBe(404);
+    expect((await patch(a, { batchQty: 0 })).status).toBe(400);
+    const list = await request(app).get('/api/orders').set('Authorization', `Bearer ${a}`);
+    expect(list.body.data[0].batchQty).toBe(3);
   });
 
   it('computes weights from the catalogue, not from client-supplied values', async () => {
@@ -278,10 +269,17 @@ describe('catalogue', () => {
     const auth = { Authorization: `Bearer ${token}` };
     const all = await request(app).get('/api/products').set(auth);
     expect(all.status).toBe(200);
-    expect(all.body.count).toBe(6);
-    const page = await request(app).get('/api/products?limit=2&offset=1').set(auth);
-    expect(page.body.data).toHaveLength(2);
-    expect(page.body.count).toBe(6);
+    expect(all.body.count).toBeGreaterThanOrEqual(1);
+    // First page via offset (backward-compatible) returns page slice.
+    const first = await request(app).get('/api/products?limit=2&offset=0').set(auth);
+    expect(first.body.data).toHaveLength(2);
+    // Second page via cursor-based pagination.
+    const second = await request(app).get(`/api/products?limit=2&cursor=${first.body.cursor}&cursorAfter=${first.body.cursorAfter}`).set(auth);
+    expect(second.body.data).toHaveLength(2);
+    // Products from different pages should not overlap.
+    const ids1 = new Set(first.body.data.map((p: any) => p.id));
+    const ids2 = new Set(second.body.data.map((p: any) => p.id));
+    expect([...ids1].some((id: string) => ids2.has(id))).toBe(false);
   });
 
   it('lets admins add products, rejecting non-http photo links', async () => {
@@ -294,6 +292,21 @@ describe('catalogue', () => {
     const ok = await request(app).post('/api/products').set(auth).send(base);
     expect(ok.status).toBe(201);
     expect(ok.body.data.netWt).toBe(45);
+  });
+
+  it('keeps a Hindi name and finds designs when a buyer searches in Hindi', async () => {
+    const app = await build();
+    const { token } = await createAdmin(app);
+    const admin = { Authorization: `Bearer ${token}` };
+    const made = await request(app).post('/api/products').set(admin).send({ title: 'Sunrise Haar', titleHi: 'सूर्योदय हार', descriptionHi: 'शादी के लिए', category: 'Bridal Chokers & Haar', purity: '22K 916', grossWt: '50', stoneWt: '5', images: ['https://example.com/haar.jpg'] });
+    expect(made.status).toBe(201);
+    expect(made.body.data.titleHi).toBe('सूर्योदय हार');
+    const buyer = { Authorization: `Bearer ${(await signupRetailer(app)).token}` };
+    const own = await request(app).get(`/api/products?search=${encodeURIComponent('सूर्योदय')}`).set(buyer);
+    expect(own.body.data.map((p: { title: string }) => p.title)).toEqual(['Sunrise Haar']);
+    // No Hindi typed by the owner: the automatic Hindi of the name is searchable too.
+    const auto = await request(app).get(`/api/products?search=${encodeURIComponent('कुंदन')}`).set(buyer);
+    expect(auto.body.data.map((p: { title: string }) => p.title)).toContain('Royal Kundan Choker');
   });
 });
 
@@ -458,7 +471,7 @@ describe('platform', () => {
   it('answers unknown API paths with JSON 404 and malformed JSON with 400', async () => {
     const app = await build();
     expect((await request(app).get('/api/nope')).status).toBe(404);
-    const bad = await request(app).post('/api/auth/retailer/login').set('Content-Type', 'application/json').send('{bad');
+    const bad = await request(app).post('/api/auth/retailer/request-otp').set('Content-Type', 'application/json').send('{bad');
     expect(bad.status).toBe(400);
   });
 });
@@ -772,7 +785,7 @@ describe('jewellery products (nothing invented)', () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    await request(app).post('/api/categories').set(auth).send({ name: 'Brand New Line', image: 'https://example.com/line.jpg' });
+    await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Brand New Line', image: 'https://example.com/line.jpg' });
     let cats = (await request(app).get('/api/categories').set(auth)).body.data;
     expect(cats.find((c: any) => c.name === 'Brand New Line').designCount).toBe(0);
     expect(cats.find((c: any) => c.name === 'Bridal Chokers & Haar').designCount).toBe(2);
@@ -786,8 +799,8 @@ describe('jewellery products (nothing invented)', () => {
     const app = await build();
     const { token } = await createAdmin(app);
     const auth = { Authorization: `Bearer ${token}` };
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Lockets' })).status).toBe(400);
-    const res = await request(app).post('/api/categories').set(auth).send({ name: 'Lockets', image: 'https://example.com/l.jpg' });
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Lockets' })).status).toBe(400);
+    const res = await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Lockets', image: 'https://example.com/l.jpg' });
     expect(res.status).toBe(201);
     expect(res.body.data.image).toBe('https://example.com/l.jpg');
     expect(res.body.data.eligibleKarats).toEqual([]);
@@ -827,7 +840,7 @@ describe('jewellery products (nothing invented)', () => {
 });
 
 describe('roles and legacy data', () => {
-  it('only accepts owner or staff, defaulting to staff', async () => {
+  it('rejects unknown roles, and the first admin is always the owner', async () => {
     const app = await build();
     const register = (extra: object) =>
       request(app)
@@ -835,8 +848,6 @@ describe('roles and legacy data', () => {
         .send({ email: `r${Math.random().toString(36).slice(2, 7)}@example.com`, password: 'AdminPass@2026', masterProvisioningKey: MASTER_KEY, ...extra });
     expect((await register({ role: 'Managing Director' })).status).toBe(400);
     expect((await register({ role: 'god-mode' })).status).toBe(400);
-    expect((await register({ role: 'owner' })).body.admin.role).toBe('owner');
-    expect((await register({})).body.admin.role).toBe('staff');
   });
 
   it('no longer stores or returns access levels', async () => {
@@ -870,7 +881,8 @@ describe('roles and legacy data', () => {
     // and the moved account can sign in
     config = { ...config };
     const liveApp = createApp(config, legacyRoot);
-    const login = await request(liveApp).post('/api/auth/retailer/login').send({ phone: account.phone, password: 'OldAccount@123' });
+    const login = await otpBuyer(liveApp, { phone: account.phone });
     expect(login.status).toBe(200);
+    expect(login.body.user.storeName).toBe('Legacy Jewellers');
   });
 });

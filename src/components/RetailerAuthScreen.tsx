@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActiveScreen } from '../types';
 import { api } from '../api';
 import { merchant } from '../merchant';
-import { BrandMark } from './BrandMark';
-import { I, Notice } from './ui';
+import { LegalLinks } from './LegalLinks';
+import { Icon } from '../layouts/emergent/ui';
+import { Notice } from './ui';
+import { DevOtpHint } from './DevOtpHint';
+import { CatalogueFullScreen } from './CatalogueFullScreen';
+import { WelcomeGreeting } from './WelcomeGreeting';
+import { DeliveryPill, FAILURE_TEXT, useOtpDelivery } from './DeliveryStatus';
 import type { ProfileUser } from './ProfileMenu';
+import { t, tErr, ts, useLang } from '../i18n';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onLoginSuccess: (user: ProfileUser, mustChangePassword: boolean) => void;
+  /** isNew: the number signed up just now (the buyer gets the app tour). */
+  onLoginSuccess: (user: ProfileUser, isNew: boolean) => void;
 }
 
 /** The buyer details the profile menu shows. */
@@ -20,117 +27,224 @@ const profileOf = (u: any): ProfileUser => ({
   marketHub: u.marketHub
 });
 
-/** Buyer sign-in (artboard 2.1): number first, then the code sent on WhatsApp. New numbers get an account. */
+/** Six code boxes over one real input (paste and one-time-code autofill work). */
+const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className="relative em-row" style={{ gap: 8 }}>
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i} className="inp" style={{ flex: 1, justifyContent: 'center', height: 56, fontSize: 22, fontWeight: 600, padding: 0, borderColor: focused && i === Math.min(value.length, 5) ? 'var(--em-primary)' : undefined }}>
+          {value[i] ?? ' '}
+        </div>
+      ))}
+      <input
+        aria-label={t('6-digit code')}
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        required
+        value={value}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        className="absolute inset-0 w-full h-full opacity-0"
+        autoFocus
+      />
+    </div>
+  );
+};
+
+/** Buyer showroom sign-in (atlas): the number first, then the 6-digit code sent on WhatsApp. A new number is asked for a name after the code; returning buyers go straight in. */
 export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNavigate, onLoginSuccess }) => {
+  useLang();
+  const [name, setName] = useState('');
+  const [needsName, setNeedsName] = useState(false); // a new number: asked for a name after the code checks out
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [firmName, setFirmName] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [wait, setWait] = useState(0);
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const [channel, setChannel] = useState<string | null>(null);
+  const [full, setFull] = useState(false);
+  const [messageId, setMessageId] = useState<string | null>(null);
+  const [receipts, setReceipts] = useState(false);
+  // The 30 s resend wait is lifted as soon as WhatsApp reports the code as undeliverable.
+  const delivery = useOtpDelivery(messageId, codeSent && channel === 'whatsapp' && receipts, () => setWait(0));
+  // The form shows a fixed +91; the server and WhatsApp need the country code in the number.
+  const fullPhone = () => `91${phone.replace(/\D/g, '')}`;
+
+  // After a good code, hold a 2 s greeting before entering the showroom.
+  // The sixth digit signs in on its own; a code that failed is not sent again until it is changed.
+  const tried = useRef('');
+  useEffect(() => {
+    if (codeSent && !needsName && !loading && code.length === 6 && code !== tried.current) void verify();
+  }, [code]);
+
+  const [welcome, setWelcome] = useState<{ user: ProfileUser; isNew: boolean } | null>(null);
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const timer = setTimeout(() => setWait(wait - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [wait]);
 
   const sendCode = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLoading(true);
     setErrorMessage(null);
     try {
-      const res = await api.requestOtp(phone.trim());
-      setSuccessMessage(res.message);
+      const r = await api.requestOtp(fullPhone());
+      setDevCode(r.devCode ?? null);
+      setChannel(r.channel ?? null);
+      setMessageId(r.messageId ?? null);
+      setReceipts(Boolean(r.receipts));
       setCodeSent(true);
+      setCode('');
+      setWait(30);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Could not send the code.');
+      if (err.code === 'CATALOGUE_FULL') setFull(true);
+      else setErrorMessage(err.message ? tErr(err.message) : t('Could not send the code.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const verify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const verify = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    tried.current = code;
     setLoading(true);
     setErrorMessage(null);
     try {
-      const res = await api.verifyOtp({ phone: phone.trim(), code: code.trim(), firmName: firmName.trim() || undefined });
-      onLoginSuccess(profileOf(res.user), false);
+      const res = await api.verifyOtp({ phone: fullPhone(), code: code.trim(), ...(needsName ? { firmName: name.trim(), ownerName: name.trim() } : {}) });
+      if (res.status === 'needs-name') setNeedsName(true);
+      else setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
     } catch (err: any) {
-      setErrorMessage(err.message || 'That code did not work.');
+      setErrorMessage(err.message ? tErr(err.message) : t('That code did not work.'));
     } finally {
       setLoading(false);
     }
   };
 
+  if (welcome) {
+    return (
+      <WelcomeGreeting
+        title={t(welcome.isNew ? 'Welcome, {name}' : 'Welcome back, {name}', { name: welcome.user.ownerName || welcome.user.storeName })}
+        subtitle={t('Opening your showroom…')}
+        onDone={() => onLoginSuccess(welcome.user, welcome.isNew)}
+      />
+    );
+  }
+
+  if (full) {
+    return (
+      <CatalogueFullScreen
+        name={name.trim()}
+        phone={phone.trim()}
+        onBack={() => {
+          setFull(false);
+          setPhone('');
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="scroll no-tabs" style={{ gap: 16, maxWidth: 480 }}>
-      <div className="col" style={{ alignItems: 'center', gap: 10, textAlign: 'center' }}>
-        <div className="mark lg">
-          <BrandMark className="w-12 h-12" textClassName="text-[36px]" />
-        </div>
-        <h1 style={{ fontSize: 28 }}>{merchant.brand.name}</h1>
-        <p className="sub">{merchant.brand.tagline}</p>
-      </div>
-
-      {errorMessage && <Notice tone="error">{errorMessage}</Notice>}
-
-      <form onSubmit={sendCode} className="card col" style={{ gap: 14, padding: 18 }}>
-        <h2 style={{ fontSize: 22 }}>Sign in</h2>
-        <p className="sub">We will send a code to your WhatsApp to see the catalogue.</p>
+    <div className="em-page notabs em-signin" style={{ maxWidth: 480 }}>
+      <div className="em-pad em-signin-card" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
-          <label className="lab" htmlFor="login-firm">
-            Shop name
-          </label>
-          <input id="login-firm" className="inp" value={firmName} onChange={(e) => setFirmName(e.target.value)} placeholder="e.g. Shree Jewellers" disabled={codeSent} />
-          <p className="hint">Only if you are new here.</p>
-        </div>
-        <div>
-          <label className="lab" htmlFor="login-phone">
-            Mobile number (WhatsApp)
-          </label>
-          <input id="login-phone" className="inp" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile number" type="tel" autoComplete="tel" required disabled={codeSent} />
-        </div>
-        {codeSent ? (
-          <button
-            type="button"
-            className="lnk"
-            style={{ alignSelf: 'flex-start' }}
-            onClick={() => {
-              setCodeSent(false);
-              setCode('');
-              setSuccessMessage(null);
-            }}
-          >
-            Change number
-          </button>
-        ) : (
-          <button type="submit" className="btn" disabled={loading}>
-            <I n="whats" />
-            {loading ? 'Sending…' : 'Send code'}
-          </button>
-        )}
-      </form>
-
-      {codeSent && (
-        <form onSubmit={verify} className="card col" style={{ gap: 10, padding: 18 }}>
-          {successMessage && <p className="note ok">{successMessage}</p>}
-          <label className="lab" htmlFor="login-code" style={{ margin: 0 }}>
-            6-digit code
-          </label>
-          <input id="login-code" className="inp" style={{ letterSpacing: '0.3em' }} value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus />
-          <button type="submit" className="btn alt" disabled={loading}>
-            {loading ? 'Checking…' : 'Sign in'}
-          </button>
-          <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={() => sendCode()} disabled={loading}>
-            Send a new code
-          </button>
-          <p className="hint" style={{ margin: 0 }}>
-            New number? You are added automatically while the store has room.
+          <div className="em-ey">{ts(merchant.brand.name)}</div>
+          <div className="em-rule" style={{ width: 48 }} />
+          <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
+            {t(needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Login')}
+          </h1>
+          <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
+            {needsName ? (
+              t('Your number is verified. Tell us your name to finish signing in.')
+            ) : codeSent ? (
+              <>
+                {t('Sent to +91 {phone} on WhatsApp.', { phone: phone.trim() })}
+                {delivery.status && <> <DeliveryPill status={delivery.status} testId="otp-delivery-status" /></>}
+              </>
+            ) : (
+              t('Sign in with your WhatsApp number to browse the catalogue, shortlist and place orders.')
+            )}
           </p>
-        </form>
-      )}
+        </div>
 
-      {/* Staff entry: deliberately quiet, so buyers are not shown admin tools */}
-      <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={() => onNavigate('admin-login')}>
-        Staff sign-in
-      </button>
+        {errorMessage && <Notice tone="error">{errorMessage}</Notice>}
+        {codeSent && delivery.status === 'failed' && (
+          <Notice tone="error">
+            <span data-testid="otp-delivery-failed">{t(FAILURE_TEXT[delivery.failure ?? 'other'])}</span>
+          </Notice>
+        )}
+
+        {!codeSent ? (
+          <form onSubmit={sendCode} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label className="lab" htmlFor="login-phone">
+                {t('WhatsApp number')}
+              </label>
+              <div className="em-row" style={{ gap: 10 }}>
+                <span className="inp" style={{ width: 64, justifyContent: 'center', fontWeight: 600, padding: 0, background: 'var(--em-tint)' }}>
+                  +91
+                </span>
+                <input id="login-phone" data-testid="buyer-phone-input" className="inp" style={{ flex: 1, minWidth: 0 }} value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d ]/g, '').slice(0, 11))} placeholder="98765 43210" type="tel" inputMode="numeric" autoComplete="tel-national" required />
+              </div>
+            </div>
+            <button type="submit" className="btn wa" data-testid="buyer-send-code" disabled={loading || phone.replace(/\D/g, '').length < 10}>
+              <Icon n="wa" />
+              {t(loading ? 'Sending…' : 'Send code on WhatsApp')}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={verify} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <DevOtpHint code={devCode} channel={channel} />
+            {needsName ? (
+              <div>
+                <label className="lab" htmlFor="login-name">
+                  {t('Welcome! What should we call you?')}
+                </label>
+                <input id="login-name" data-testid="buyer-name-input" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Ramesh Shah')} autoComplete="name" required minLength={2} maxLength={100} autoFocus />
+              </div>
+            ) : (
+              <CodeBoxes value={code} onChange={setCode} />
+            )}
+            <div className="em-row em-sb">
+              <button
+                type="button"
+                className="em-link"
+                data-testid="buyer-change-number"
+                onClick={() => {
+                  setCodeSent(false);
+                  setCode('');
+                  setNeedsName(false);
+                }}
+              >
+                {t('Change number')}
+              </button>
+              <button type="button" className="em-link" data-testid="buyer-resend-code" onClick={() => sendCode()} disabled={loading || wait > 0}>
+                {wait > 0 ? t('Resend in {n}s', { n: wait }) : t('Resend code')}
+              </button>
+            </div>
+            <button type="submit" className="btn" data-testid="buyer-verify" disabled={loading || code.length !== 6 || (needsName && name.trim().length < 2)}>
+              {t(loading ? 'Checking…' : needsName ? 'Continue' : 'Verify and enter')}
+              <Icon n="right" size={18} />
+            </button>
+            <p className="em-hint" style={{ textAlign: 'center' }}>
+              {t('New number? You are added automatically while the store has room.')}
+            </p>
+          </form>
+        )}
+
+        <LegalLinks lead="By continuing you agree to:" />
+
+        {/* Admin entry: deliberately quiet, so buyers are not shown admin tools */}
+        <button type="button" className="em-link" style={{ alignSelf: 'center' }} data-testid="buyer-admin-signin-link" onClick={() => onNavigate('admin-login')}>
+          {t('Admin sign-in')}
+        </button>
+      </div>
     </div>
   );
 };

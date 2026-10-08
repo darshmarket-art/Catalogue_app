@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { usePlan } from '../plan';
-import { I, Notice, Switch } from './ui';
+import { usePlan, upgradeNotice } from '../plan';
+import { Notice, Switch } from './ui';
 
 const b64 = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
@@ -24,10 +24,10 @@ export const OrderNotificationsToggle: React.FC = () => {
       .catch(() => {});
   }, [supported, flags.alerts]);
 
-  if (!key) return null;
-
   const toggle = async () => {
     setError(null);
+    if (!flags.alerts) return void upgradeNotice('Order alerts');
+    if (!key) return;
     try {
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
@@ -48,9 +48,13 @@ export const OrderNotificationsToggle: React.FC = () => {
 
   return (
     <>
-      <div className="card row" style={{ padding: '0 12px', height: 54, gap: 8, flex: 'none' }}>
-        <I n="bell" size="s" style={{ color: 'var(--plum)' }} />
-        <span style={{ fontSize: 13, fontWeight: 700 }}>Alerts</span>
+      <div className="card em-row em-sb" style={{ gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 500 }}>Order alerts</div>
+          <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
+            {!flags.alerts ? 'Pro feature' : key ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser'}
+          </div>
+        </div>
         <Switch on={on} onChange={toggle} label="Order alerts on this device" />
       </div>
       {error && <Notice tone="error">{error}</Notice>}

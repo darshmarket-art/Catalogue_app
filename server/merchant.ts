@@ -186,7 +186,10 @@ export const merchantSchema = z.object({
   onboarding: z.object({
     defaultMarketHub: text(120),
     marketHubPlaceholder: text(120)
-  })
+  }),
+
+  /** Hindi for this store's own wording above (brand line, banners, welcome points…), keyed by the English text. Buyers who pick Hindi see these. */
+  hindi: z.record(z.string().max(400), z.string().max(600)).optional()
 });
 
 export type MerchantConfig = z.infer<typeof merchantSchema>;
@@ -235,6 +238,7 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
     '{{SEO_TITLE}}': escapeHtml(merchant.brand.seoTitle),
     '{{SEO_DESCRIPTION}}': escapeHtml(merchant.brand.seoDescription),
     '{{OG_IMAGE}}': escapeHtml(merchant.brand.logoUrl),
+    '{{SITE_NAME}}': escapeHtml(merchant.brand.name),
     '{{THEME_COLOR}}': themeColor,
     '{{THEME_STYLE}}':
       (merchant.theme.fonts.url ? `<link rel="stylesheet" href="${escapeHtml(merchant.theme.fonts.url)}">` : '') +
@@ -243,5 +247,7 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
   };
   let out = html;
   for (const [key, value] of Object.entries(replacements)) out = out.split(key).join(value);
+  // A site with no preview image (the Antarixs entry page) says so, rather than sending an empty address to Facebook, WhatsApp and X.
+  if (!merchant.brand.logoUrl) out = out.replace(/^[ \t]*<meta (?:property="og:image(?::alt)?"|name="twitter:image") content="[^"]*" \/>\r?\n/gm, '').replace('content="summary_large_image"', 'content="summary"');
   return out;
 }

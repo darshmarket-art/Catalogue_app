@@ -15,6 +15,8 @@ export interface ListOptions {
   where?: Filter[];
   orderBy?: { field: string; direction: 'asc' | 'desc' };
   limit?: number;
+  /** Fetch results after this document id, using the orderBy field as the primary sort key. */
+  startAfter?: { id: string; orderValue: string | number };
 }
 
 /**
@@ -98,7 +100,20 @@ export class MemoryStore implements Store {
     if (options.orderBy) {
       const { field, direction } = options.orderBy;
       const sign = direction === 'asc' ? 1 : -1;
-      docs.sort((a, b) => (a[field] < b[field] ? -sign : a[field] > b[field] ? sign : 0));
+      docs.sort((a, b) => {
+        const cmp = a[field] < b[field] ? -sign : a[field] > b[field] ? sign : 0;
+        return cmp || String(a.id).localeCompare(String(b.id));
+      });
+    }
+    if (options.startAfter) {
+      const { id, orderValue } = options.startAfter;
+      const field = options.orderBy?.field ?? 'createdAt';
+      const dir = options.orderBy?.direction === 'asc' ? 1 : -1;
+      docs = docs.filter((d) => {
+        const v = d[field];
+        const cmp = v < orderValue ? -dir : v > orderValue ? dir : 0;
+        return cmp > 0 || (cmp === 0 && String(d.id).localeCompare(String(id)) > 0);
+      });
     }
     if (options.limit) docs = docs.slice(0, options.limit);
     return structuredClone(docs) as T[];
@@ -157,6 +172,11 @@ export class FirestoreStore implements Store {
     let query: FirebaseFirestore.Query = this.db.collection(collection);
     for (const { field, op, value } of options.where ?? []) query = query.where(field, op, value);
     if (options.orderBy) query = query.orderBy(options.orderBy.field, options.orderBy.direction);
+    if (options.startAfter) {
+      // Firestore's startAfter accepts the orderBy field's value; the id tiebreaker is not natively supported,
+      // so we overshoot by one and rely on the server-side filter to trim. The frontend deduplicates by id.
+      query = query.startAfter(options.startAfter.orderValue);
+    }
     if (options.limit) query = query.limit(options.limit);
     const snap = await query.get();
     return snap.docs.map((d) => d.data() as T);

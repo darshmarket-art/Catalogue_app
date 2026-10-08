@@ -7,9 +7,10 @@ import type { SectorPack } from '../sectors';
 import { assertPhotosExist, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, paginationSchema } from '../schemas';
+import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
+import { MAX_TAGS, loadTags, resolveTag, sameTag, saveTags, tagNameSchema } from '../tags';
 
 const byPosition = (a: any, b: any) =>
   (a.position ?? Infinity) - (b.position ?? Infinity) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
@@ -38,7 +39,10 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       ...base,
       slug: body.slug || `CAT-${body.name.replace(/[^A-Z0-9]/gi, '-').toUpperCase()}`,
       name: body.name,
+      tag: body.tag,
       subtitle: body.subtitle || 'Curated wholesale collection',
+      ...(body.nameHi ? { nameHi: body.nameHi } : {}),
+      ...(body.subtitleHi ? { subtitleHi: body.subtitleHi } : {}),
       avgNetWt: `${min}g – ${max}g`,
       image: body.image,
       eligibleKarats: body.eligibleKarats ?? [],
@@ -52,10 +56,10 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     '/categories',
     readGuard,
     handler(async (_req, res) => {
-      const [categories, products] = await Promise.all([store.list('categories'), store.list('products')]);
+      const [categories, products, tags] = await Promise.all([store.list('categories'), store.list('products'), loadTags(store)]);
       const counts = new Map<string, number>();
       for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), designCount: counts.get(c.name) ?? 0 }));
+      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), tag: resolveTag(c as { name: string; tag?: string }, tags), designCount: counts.get(c.name) ?? 0 }));
       res.json({ status: 'success', count: data.length, data });
     })
   );
@@ -65,6 +69,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     requireAdmin,
     handler(async (req, res) => {
       const body = parse(categorySchema, req.body);
+      if (!(await loadTags(store)).includes(body.tag)) throw new HttpError(400, 'Choose one of the store\'s tags for the collection.');
       await assertPhotosExist(blobs, [body.image]);
       if ((await store.list('categories', { where: [{ field: 'name', op: '==', value: body.name }], limit: 1 })).length > 0) {
         throw new HttpError(409, `A category named "${body.name}" already exists.`);
@@ -78,6 +83,28 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // Which collections the buyers' Home shows as its hero tiles. Stored on the collection (heroOrder), so a rename keeps it.
+  router.put(
+    '/hero-collections',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { ids } = parse(heroCollectionsSchema, req.body);
+      if (new Set(ids).size !== ids.length) throw new HttpError(400, 'A collection can only be chosen once.');
+      const all = await store.list('categories');
+      const known = new Set(all.map((c) => c.id));
+      const missing = ids.find((id) => !known.has(id));
+      if (missing) throw new HttpError(404, 'One of those collections no longer exists.');
+      await Promise.all(
+        all.map((c) => {
+          const at = ids.indexOf(c.id);
+          return at >= 0 ? store.update('categories', c.id, { heroOrder: at }) : typeof c.heroOrder === 'number' ? store.update('categories', c.id, { heroOrder: null }) : Promise.resolve();
+        })
+      );
+      await audit(store, req, 'HERO_COLLECTIONS_UPDATED', `Home hero collections set to ${ids.length === 0 ? 'none (the busiest four)' : ids.map((id) => all.find((c) => c.id === id)!.name).join(', ')}.`);
+      res.json({ status: 'success', data: { ids } });
+    })
+  );
+
   router.put(
     '/categories/:id',
     requireAdmin,
@@ -85,13 +112,14 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const existing = await store.get('categories', req.params.id);
       if (!existing) throw new HttpError(404, 'Category not found.');
       const body = parse(categorySchema, req.body);
+      if (!(await loadTags(store)).includes(body.tag)) throw new HttpError(400, 'Choose one of the store\'s tags for the collection.');
       await assertPhotosExist(blobs, [body.image]);
 
       const clash = await store.list('categories', { where: [{ field: 'name', op: '==', value: body.name }], limit: 2 });
       if (clash.some((c) => c.id !== existing.id)) throw new HttpError(409, `A category named "${body.name}" already exists.`);
       await ent.assertPhotos([body.image]);
 
-      const category = categoryDoc(body, { id: existing.id, createdAt: existing.createdAt });
+      const category = { ...categoryDoc(body, { id: existing.id, createdAt: existing.createdAt }), ...(typeof existing.heroOrder === 'number' ? { heroOrder: existing.heroOrder } : {}) };
       await store.set('categories', existing.id, category);
 
       // Products point at their category by name, so a rename carries them along.
@@ -110,12 +138,11 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const existing = await store.get('categories', req.params.id);
       if (!existing) throw new HttpError(404, 'Category not found.');
-      const products = await store.list('products', { where: [{ field: 'category', op: '==', value: existing.name }], limit: 1 });
-      if (products.length > 0) {
-        throw new HttpError(409, 'This category still has designs. Move or delete them first.');
-      }
+      // Deleting a collection takes its designs with it (photos stay in storage: past orders still show them).
+      const products = await store.list('products', { where: [{ field: 'category', op: '==', value: existing.name }] });
+      await Promise.all(products.map((p) => store.delete('products', p.id)));
       await store.delete('categories', existing.id);
-      await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted.`);
+      await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted with ${products.length} design${products.length === 1 ? '' : 's'}.`);
       res.json({ status: 'success', message: 'Category deleted' });
     })
   );
@@ -193,34 +220,99 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // Search, filters, sort and paging all happen here, so the app only ever downloads the page it shows.
   router.get(
     '/products',
     readGuard,
     handler(async (req, res) => {
       const { limit, offset } = parse(paginationSchema, req.query);
-      const { search, category, purity } = req.query;
-      let list = (await store.list('products')).sort(byCreatedAt(-1));
+      const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+      const cursorAfter = typeof req.query.cursorAfter === 'string' ? req.query.cursorAfter : undefined;
+      // Strip cursor params before the standard query schema validation.
+      const { cursor: _c, cursorAfter: _ca, ...rest } = req.query;
+      const q = parse(pack.querySchema, rest);
+      const list = pack.applyQuery(await store.list('products'), q);
 
-      if (typeof search === 'string' && search) {
-        const q = search.toLowerCase();
-        list = list.filter(
-          (p) => p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
-        );
+      let page: Doc[];
+      if (cursor && cursorAfter) {
+        const startIdx = list.findIndex((p) => p.createdAt === cursor && p.id === cursorAfter);
+        page = list.slice(startIdx >= 0 ? startIdx + 1 : 0, (startIdx >= 0 ? startIdx + 1 : 0) + limit);
+      } else {
+        page = list.slice(offset, offset + limit);
       }
-      if (typeof category === 'string' && category && category !== 'all') {
-        list = list.filter((p) => p.category.toLowerCase().includes(category.toLowerCase()));
-      }
-      if (typeof purity === 'string' && purity && purity !== 'all') {
-        list = list.filter((p) => p.purity.toLowerCase().includes(purity.toLowerCase()));
-      }
-
+      const lastItem = page[page.length - 1];
       res.json({
         status: 'success',
         count: list.length,
+        total: list.length,
         offset,
         limit,
-        data: list.slice(offset, offset + limit).map((p) => media.present(p))
+        hasMore: offset + page.length < list.length,
+        cursor: lastItem?.createdAt,
+        cursorAfter: lastItem?.id,
+        data: page.map((p) => media.present(p))
       });
+    })
+  );
+
+  // Collection tags: the owner's own list. Every collection carries exactly one, so a tag in use can only be deleted by moving its collections.
+  router.get(
+    '/tags',
+    readGuard,
+    handler(async (_req, res) => {
+      res.json({ status: 'success', data: await loadTags(store) });
+    })
+  );
+
+  router.post(
+    '/tags',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { name } = parse(tagNameSchema, req.body);
+      const list = await loadTags(store);
+      if (list.some((t) => sameTag(t, name))) throw new HttpError(409, `A tag named "${name}" already exists.`);
+      if (list.length >= MAX_TAGS) throw new HttpError(400, `A store can have up to ${MAX_TAGS} tags.`);
+      await saveTags(store, [...list, name]);
+      await audit(store, req, 'TAG_CREATED', `Tag "${name}" created.`);
+      res.status(201).json({ status: 'success', data: [...list, name] });
+    })
+  );
+
+  router.put(
+    '/tags/:name',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { name } = parse(tagNameSchema, req.body);
+      const list = await loadTags(store);
+      const old = req.params.name;
+      if (!list.includes(old)) throw new HttpError(404, 'Tag not found.');
+      if (list.some((t) => t !== old && sameTag(t, name))) throw new HttpError(409, `A tag named "${name}" already exists.`);
+      await saveTags(store, list.map((t) => (t === old ? name : t)));
+      const cats = await store.list('categories');
+      await Promise.all(cats.filter((c) => resolveTag(c as { name: string; tag?: string }, list) === old).map((c) => store.update('categories', c.id, { tag: name })));
+      await audit(store, req, 'TAG_RENAMED', `Tag "${old}" renamed to "${name}".`);
+      res.json({ status: 'success', data: list.map((t) => (t === old ? name : t)) });
+    })
+  );
+
+  router.delete(
+    '/tags/:name',
+    requireAdmin,
+    handler(async (req, res) => {
+      const list = await loadTags(store);
+      const old = req.params.name;
+      if (!list.includes(old)) throw new HttpError(404, 'Tag not found.');
+      if (list.length === 1) throw new HttpError(400, 'Keep at least one tag.');
+      const cats = (await store.list('categories')).filter((c) => resolveTag(c as { name: string; tag?: string }, list) === old);
+      const moveTo = typeof req.query.moveTo === 'string' ? req.query.moveTo : '';
+      if (cats.length > 0) {
+        if (!moveTo || moveTo === old || !list.includes(moveTo)) throw new HttpError(409, `${cats.length} ${cats.length === 1 ? 'collection uses' : 'collections use'} "${old}". Choose a tag to move ${cats.length === 1 ? 'it' : 'them'} to.`);
+        await Promise.all(cats.map((c) => store.update('categories', c.id, { tag: moveTo })));
+      }
+      const next = list.filter((t) => t !== old);
+      await saveTags(store, next);
+      await audit(store, req, 'TAG_DELETED', `Tag "${old}" deleted${cats.length ? `; ${cats.length} collection(s) moved to "${moveTo}"` : ''}.`);
+      res.json({ status: 'success', data: next });
     })
   );
 

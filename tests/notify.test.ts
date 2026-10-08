@@ -9,6 +9,7 @@ import { loadMerchant } from '../server/merchant';
 import { newStoreRecord, scopeStore } from '../server/tenancy';
 import { createNotify, type Notifiers, type PushSub } from '../server/notify';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const KEY = 'test-master-provisioning-key';
 const A = { 'X-Store': 'bhakti' };
 const B = { 'X-Store': 'example' };
@@ -39,7 +40,7 @@ const notifiers: Notifiers = {
 
 async function build(cap = 200) {
   const config = {
-    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: KEY }),
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 },
     alertDailyCap: cap
   };
@@ -60,7 +61,7 @@ const admin = async (h: Record<string, string>) => ({
   Authorization: `Bearer ${(await request(app).post('/api/auth/admin/register').set(h).send({ email: 'boss@example.com', password: 'AdminPass@2026', role: 'owner', masterProvisioningKey: KEY })).body.sessionToken}`
 });
 const buyer = async (h: Record<string, string>) => ({
-  Authorization: `Bearer ${(await request(app).post('/api/auth/retailer/signup').set(h).send({ firmName: 'Test Jewellers', ownerName: 'O', phone: '9820000001', password: 'StrongPass@1', gstin: '27ABCDE1234F1Z5', marketHub: 'X' })).body.token}`
+  Authorization: `Bearer ${(await otpBuyer(app, { firmName: 'Test Jewellers', ownerName: 'O', phone: '9820000001', marketHub: 'X' }, h)).body.token}`
 });
 const order = async (h: Record<string, string>, auth: Record<string, string>) => {
   await request(app).post('/api/orders/items').set(h).set(auth).send({ sku: 'B2B-COIN-0010', batchQty: 1 });

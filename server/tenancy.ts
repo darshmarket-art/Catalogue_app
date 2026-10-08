@@ -4,7 +4,7 @@ import type { Config } from './config';
 import type { Blobs } from './blobs';
 import type { Store, Doc } from './store';
 import type { MerchantConfig } from './merchant';
-import type { PlanDoc } from './entitlements';
+import { effectivePlan, type PlanDoc } from './entitlements';
 import { isReservedStoreName, isValidStoreName } from '../shared/storeName';
 
 /** One document per store in the top-level "stores" collection (the only data not inside a store's namespace). */
@@ -31,6 +31,7 @@ export const newStoreRecord = (merchant: MerchantConfig, patch: Partial<StoreRec
 });
 
 export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice });
+
 
 const COLLECTION = /^[A-Za-z0-9_]+$/;
 const nsOf = (storeId: string) => {
@@ -146,6 +147,8 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
       rec = newStoreRecord(config.merchant);
       if (!(await root.create('stores', id, rec as unknown as Doc))) rec = await root.get<StoreRecord>('stores', id);
     }
+    // The default store's Hindi wording comes from its merchant.json, so it reaches a store record saved before that wording existed.
+    if (rec && id === config.defaultStore && !rec.merchant.hindi && config.merchant.hindi) rec = { ...rec, merchant: { ...rec.merchant, hindi: config.merchant.hindi } };
     return rec;
   }
 
@@ -175,7 +178,8 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
         if (req.path.startsWith('/api') || req.path.startsWith('/media')) return void res.status(404).json({ status: 'error', message: 'Store not found.' });
         if (req.path === '/') return void res.redirect(302, '/welcome-antarixs');
         const b = config.merchant.brand;
-        res.locals.merchant = { ...config.merchant, brand: { ...b, seoTitle: 'Antarixs: your jewellery catalogue store', seoDescription: 'Create your own catalogue store with Antarixs. Free for 14 days.', logoUrl: '' } };
+        res.locals.platform = true;
+        res.locals.merchant = { ...config.merchant, brand: { ...b, name: 'Antarixs', seoTitle: 'Antarixs: your jewellery catalogue store', seoDescription: 'Create your own catalogue store with Antarixs. Free for 14 days.', logoUrl: '' } };
         return void next();
       }
       const id = storeIdOf(req, config);
@@ -192,5 +196,6 @@ export function createStoreResolver<A>(config: Config, root: Store, build: (id: 
       next(e);
     }
   };
-  return { middleware, resolve };
+  // Drops a cached store record, so a change made through this process (a plan or status change) shows on the next load.
+  return { middleware, resolve, invalidate: (id: string) => cache.delete(id) };
 }

@@ -17,19 +17,39 @@ export interface Product {
   leadDays?: number;
   huid?: string;
   description?: string;
+  /** Hindi name and description (optional; the name is shown in automatic Hindi otherwise). */
+  titleHi?: string;
+  descriptionHi?: string;
+  /** How the design is priced; absent on older records means "by-weight". */
+}
+
+/** One admin account of the store, as the Admins screen lists them. */
+export interface AdminRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  mustChangePassword: boolean;
 }
 
 export interface Category {
   id: string;
   slug: string;
   name: string;
+  /** What the collection is filed under (Rings, Pendants, …). Always set on collections the API returns. */
+  tag: string;
   subtitle: string;
+  nameHi?: string;
+  subtitleHi?: string;
   designCount: number;
   avgNetWt: string;
   image: string;
   eligibleKarats: string[];
   minTargetWt: number;
   maxTargetWt: number;
+  /** 0 to 3 when the owner picked this collection as a hero tile on Home; null or missing otherwise. */
+  heroOrder?: number | null;
 }
 
 export interface Purity {
@@ -49,6 +69,10 @@ export interface About {
   openingHours?: string;
   gstin?: string;
   website?: string;
+  ownerRoleHi?: string;
+  storyHi?: string;
+  addressHi?: string;
+  openingHoursHi?: string;
 }
 
 export interface Banner {
@@ -62,6 +86,7 @@ export interface OrderItem {
   id: string;
   productId?: string;
   title: string;
+  titleHi?: string;
   sku: string;
   purity: string;
   totalNetGold: number;
@@ -96,7 +121,9 @@ export interface PastOrder {
   status: OrderStatus;
   totalNetGrams: number;
   itemCount: number;
-  items: Array<Pick<OrderItem, 'id' | 'title' | 'sku' | 'purity' | 'totalNetGold' | 'batchQty' | 'qtyUnit' | 'image'>>;
+  items: Array<Pick<OrderItem, 'id' | 'title' | 'titleHi' | 'sku' | 'purity' | 'totalNetGold' | 'batchQty' | 'qtyUnit' | 'image'>>;
+  /** The buyer's note to the store, if they left one when placing the order. */
+  note?: string;
   timestamp: string;
 }
 
@@ -122,6 +149,29 @@ export interface VisitorDetail extends VisitorSummary {
 
 export type VisitorKind = 'all' | 'verified' | 'guest';
 
+/** A WhatsApp enquiry a buyer sent: about one design, their shortlist, or a whole order. */
+export interface EnquiryRow {
+  id: string;
+  kind: 'design' | 'shortlist' | 'order';
+  buyerPhone: string;
+  firmName: string;
+  ownerName: string;
+  sku: string | null;
+  title: string | null;
+  purity: string | null;
+  count: number | null;
+  createdAt: string;
+  /** Set once the owner tapped Reply. */
+  repliedAt?: string | null;
+}
+
+/** What is waiting for the owner (the Today list and the tab badges). */
+export interface AdminSummary {
+  newOrders: number;
+  enquiriesWaiting: number;
+  messagesFailed: number;
+}
+
 export interface BuyerRow {
   phone: string;
   firmName: string;
@@ -130,6 +180,8 @@ export interface BuyerRow {
   marketHub: string;
   createdAt: string;
   mustChangePassword: boolean;
+  /** ISO time the buyer was last active, null if never seen. */
+  lastSeen: string | null;
 }
 
 export interface AdminOrder {
@@ -141,6 +193,7 @@ export interface AdminOrder {
   totalNetGrams: number;
   itemCount: number;
   items: Array<{ id: string; title: string; sku: string; purity: string; totalNetGold: number; batchQty: number; qtyUnit: string }>;
+  note?: string;
   timestamp: string;
 }
 
@@ -155,6 +208,8 @@ export type ActiveScreen =
   | 'add-category'
   | 'admin-orders'
   | 'admin-visitors'
+  | 'admin-enquiries'
+  | 'admin-store'
   | 'admin-buyers'
   | 'admin-banners'
   | 'admin-purities'
@@ -163,4 +218,10 @@ export type ActiveScreen =
   | 'shortlist'
   | 'change-password'
   | 'retailer-auth'
-  | 'admin-plan';
+  | 'admin-plan'
+  | 'admin-pdf'
+  | 'admin-alerts'
+  | 'admin-messages'
+  | 'admin-insights'
+  | 'admin-password'
+  | 'plans';

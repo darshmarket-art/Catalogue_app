@@ -4,48 +4,22 @@ import { photoRef } from './media';
 
 export const trimmed = (max: number, min = 1) => z.string().trim().min(min).max(max);
 
-const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-
-const phone = z
-  .string()
-  .transform((v) => v.replace(/[^0-9]/g, ''))
-  .refine((v) => v.length >= 10 && v.length <= 15, 'Please provide a valid mobile number.');
-
-export const retailerSignupSchema = z.object({
-  firmName: trimmed(120, 2),
-  gstin: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .refine((v) => v === '' || GSTIN.test(v), 'Please provide a valid 15-character GSTIN.')
-    .optional(),
-  ownerName: trimmed(100).optional(),
-  phone,
-  password: trimmed(128, 8),
-  marketHub: trimmed(120).optional()
-});
-
-export const retailerLoginSchema = z.object({
-  phone,
-  password: z.string().trim().min(1).max(128),
-  authMode: z.string().optional()
-});
-
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().trim().min(1).max(128),
-  newPassword: trimmed(128, 8)
-});
-
 export const adminLoginSchema = z.object({
   adminId: trimmed(254),
-  password: z.string().trim().min(1).max(128)
+  password: z.string().trim().min(1).max(128),
+  remember: z.boolean().optional()
+});
+
+export const adminChangePasswordSchema = z.object({
+  currentPassword: z.string().trim().min(1).max(128),
+  newPassword: trimmed(128, 10)
 });
 
 export const adminRegisterSchema = z.object({
   name: trimmed(100).optional(),
   email: z.string().trim().toLowerCase().email().max(254),
   password: trimmed(128, 10),
-  role: z.enum(ADMIN_ROLES).default('staff'),
+  role: z.enum(ADMIN_ROLES).default('owner'),
   masterProvisioningKey: z.string().trim().min(1).max(256)
 });
 
@@ -65,14 +39,22 @@ export const bannerOrderSchema = z.object({ ids: z.array(trimmed(80)).max(50) })
 
 export const categorySchema = z.object({
   name: trimmed(100),
+  /** Required: every collection is filed under one tag. */
+  tag: z.string({ required_error: 'Choose a tag for the collection.' }).trim().min(1, 'Choose a tag for the collection.').max(30),
   slug: trimmed(100).optional(),
   subtitle: trimmed(200).optional(),
+  /** Name and line in Hindi (optional; written in Hindi automatically otherwise). */
+  nameHi: trimmed(100).optional(),
+  subtitleHi: trimmed(200).optional(),
   minTargetWt: z.coerce.number().min(0).max(100000).optional(),
   maxTargetWt: z.coerce.number().min(0).max(100000).optional(),
   eligibleKarats: z.array(trimmed(30)).max(10).optional(),
   /** Exactly one photo per category. */
   image: photoRef.refine((v) => v !== '', 'Add a photo for the category.')
 });
+
+/** The collections shown as the hero tiles on the buyers' Home: up to four, in this order. */
+export const heroCollectionsSchema = z.object({ ids: z.array(trimmed(80)).max(4) });
 
 export const cartItemSchema = z.object({
   sku: trimmed(60),
@@ -82,6 +64,9 @@ export const cartItemSchema = z.object({
   purity: trimmed(30).optional(),
   note: trimmed(300).optional()
 });
+
+/** The buyer's optional note to the store, sent with the order (delivery date, finish, size changes). */
+export const orderConfirmSchema = z.object({ note: trimmed(300).optional() });
 
 export const inquirySchema = z.object({
   clientFirm: trimmed(120).optional(),
@@ -117,5 +102,7 @@ export const orderListSchema = z.object({
 
 export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(200),
-  offset: z.coerce.number().int().min(0).default(0)
+  offset: z.coerce.number().int().min(0).default(0),
+  cursor: z.string().optional(),
+  cursorAfter: z.string().optional()
 });

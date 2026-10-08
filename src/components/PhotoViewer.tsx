@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useBackLayer } from '../backLayer';
 
 interface PhotoViewerProps {
   images: string[];
@@ -17,6 +18,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * When zoomed in, drag to look around. With several photos, the arrows (or arrow keys) move between them.
  */
 export const PhotoViewer: React.FC<PhotoViewerProps> = ({ images, start = 0, title, onClose }) => {
+  useBackLayer(true, onClose); // Back closes the photo
   const [index, setIndex] = useState(start);
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const pointers = useRef(new Map<number, { x: number; y: number }>());

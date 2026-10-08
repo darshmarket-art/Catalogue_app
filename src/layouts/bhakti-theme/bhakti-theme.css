@@ -1,0 +1,513 @@
+/* Bhakti Theme - Based on test_design WhatsApp layout */
+:root {
+  /* Cream/neutral palette from test design */
+  --bt-cream: #F5F0EB;
+  --bt-cream-dk: #EDE7DF;
+  --bt-warm: #FAF8F5;
+  --bt-charcoal: #1C1917;
+  --bt-ink: #292524;
+  --bt-muted: #78716C;
+  --bt-line: #E7E0D8;
+  --bt-accent: #B8860B;
+  --bt-accent-lt: #D4A843;
+  --bt-card: #FFFFFF;
+  --bt-pill: #F0EBE4;
+
+  /* Radii */
+  --bt-r-sm: 10px;
+  --bt-r-md: 16px;
+  --bt-r-lg: 20px;
+  --bt-r-round: 999px;
+
+  /* Shadows */
+  --bt-sh: 0 1px 3px rgba(28,25,23,0.06),0 6px 16px rgba(28,25,23,0.04);
+
+  /* Spacing */
+  --bt-px: 20px;
+  --bt-top-h: 64px;
+  --bt-nav-h: 62px;
+}
+
+/* Scope all styles to data-layout=bhakti */
+[data-layout="bhakti"] {
+  overflow-x: clip;
+  color: var(--bt-ink);
+}
+
+/* Reset & Base */
+[data-layout="bhakti"] * { box-sizing: border-box; margin: 0; padding: 0; }
+[data-layout="bhakti"] html, [data-layout="bhakti"] body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--bt-cream);
+}
+
+/* Type Utilities */
+[data-layout="bhakti"] .bt-serif { font-family: 'DM Serif Display', Georgia, serif; }
+[data-layout="bhakti"] .bt-ey { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bt-muted); }
+[data-layout="bhakti"] .bt-ey-g { color: var(--bt-accent); }
+[data-layout="bhakti"] .bt-h1 { font-family: 'DM Serif Display', serif; font-size: 30px; line-height: 1.15; letter-spacing: -0.02em; }
+[data-layout="bhakti"] .bt-h2 { font-family: 'DM Serif Display', serif; font-size: 22px; line-height: 1.2; }
+[data-layout="bhakti"] .bt-h3 { font-family: 'DM Serif Display', serif; font-size: 17px; line-height: 1.25; }
+[data-layout="bhakti"] .bt-mut { color: var(--bt-muted); }
+[data-layout="bhakti"] .bt-sm { font-size: 13px; }
+[data-layout="bhakti"] .bt-xs { font-size: 11px; }
+
+/* Layout Container */
+[data-layout="bhakti"] .bt-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page Frame */
+[data-layout="bhakti"] .bt-page {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 0 calc(var(--bt-nav-h) + var(--sab) + 28px);
+}
+
+[data-layout="bhakti"] .bt-page.wide {
+  max-width: 1100px;
+}
+
+[data-layout="bhakti"] .bt-pad {
+  padding-inline: var(--bt-px);
+}
+
+/* Top Bar - Glassmorphism style like test design */
+[data-layout="bhakti"] .bt-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding-top: var(--sat);
+  background: rgba(245, 240, 235, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-layout="bhakti"] .bt-top-in {
+  height: var(--bt-top-h);
+  max-width: var(--bt-w, 640px);
+  margin-inline: auto;
+  padding-inline: var(--bt-px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Brand Mark */
+[data-layout="bhakti"] .bt-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--bt-charcoal);
+  cursor: pointer;
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+[data-layout="bhakti"] .bt-mark {
+  width: 32px;
+  height: 32px;
+  background: var(--bt-charcoal);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bt-accent-lt);
+  font-family: 'DM Serif Display', serif;
+  font-size: 15px;
+}
+
+/* Header Actions */
+[data-layout="bhakti"] .bt-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+[data-layout="bhakti"] .bt-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--bt-ink);
+  transition: background 0.2s;
+}
+
+[data-layout="bhakti"] .bt-btn:hover {
+  background: var(--bt-pill);
+}
+
+[data-layout="bhakti"] .bt-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Search Bar */
+[data-layout="bhakti"] .bt-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bt-pill);
+  border-radius: 14px;
+  padding: 0 16px;
+  height: 44px;
+  margin: 0 20px 16px;
+}
+
+[data-layout="bhakti"] .bt-search svg {
+  width: 18px;
+  height: 18px;
+  color: var(--bt-muted);
+  flex-shrink: 0;
+}
+
+[data-layout="bhakti"] .bt-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--bt-ink);
+  outline: none;
+}
+
+[data-layout="bhakti"] .bt-search input::placeholder {
+  color: #A8A29E;
+}
+
+/* Hero Section */
+[data-layout="bhakti"] .bt-hero {
+  margin: 0 20px 20px;
+  border-radius: var(--bt-r-lg);
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 16/10;
+  background: linear-gradient(135deg, #D5C8B8, #C4B5A2, #A89882);
+}
+
+[data-layout="bhakti"] .bt-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(28,25,23,0.55));
+}
+
+[data-layout="bhakti"] .bt-hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  z-index: 2;
+  color: #fff;
+}
+
+[data-layout="bhakti"] .bt-hero-content .bt-ey {
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 4px;
+}
+
+[data-layout="bhakti"] .bt-hero-content h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  line-height: 1.2;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+[data-layout="bhakti"] .bt-hero-content p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.45;
+}
+
+/* Hero Dots */
+[data-layout="bhakti"] .bt-hero-dots {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+}
+
+[data-layout="bhakti"] .bt-hero-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.4);
+}
+
+[data-layout="bhakti"] .bt-hero-dot.on {
+  background: #fff;
+}
+
+/* Section Header */
+[data-layout="bhakti"] .bt-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 20px;
+  margin-bottom: 12px;
+}
+
+[data-layout="bhakti"] .bt-section-header .bt-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bt-muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Collection Pills */
+[data-layout="bhakti"] .bt-pills {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 14px;
+}
+
+[data-layout="bhakti"] .bt-pills::-webkit-scrollbar { display: none; }
+
+[data-layout="bhakti"] .bt-pill {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border-radius: var(--bt-r-round);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--bt-pill);
+  color: var(--bt-ink);
+  transition: all 0.2s;
+}
+
+[data-layout="bhakti"] .bt-pill.on {
+  background: var(--bt-charcoal);
+  color: var(--bt-warm);
+}
+
+/* Product Grid */
+[data-layout="bhakti"] .bt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+@media (min-width: 560px) {
+  [data-layout="bhakti"] .bt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 900px) {
+  [data-layout="bhakti"] .bt-page.wide .bt-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Product Card */
+[data-layout="bhakti"] .bt-card {
+  background: var(--bt-card);
+  border-radius: var(--bt-r-md);
+  overflow: hidden;
+  box-shadow: var(--bt-sh);
+  position: relative;
+}
+
+[data-layout="bhakti"] .bt-card-image {
+  aspect-ratio: 3/4;
+  background: var(--bt-cream-dk);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  opacity: 0.25;
+}
+
+[data-layout="bhakti"] .bt-card-image > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-layout="bhakti"] .bt-card-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--bt-charcoal);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: var(--bt-r-round);
+  z-index: 2;
+}
+
+[data-layout="bhakti"] .bt-card-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  color: var(--bt-muted);
+  transition: all 0.2s;
+}
+
+[data-layout="bhakti"] .bt-card-fav:hover { background: #fff; }
+[data-layout="bhakti"] .bt-card-fav.bt-fav-on { color: #DC2626; }
+
+[data-layout="bhakti"] .bt-card-content {
+  padding: 10px 12px 12px;
+}
+
+[data-layout="bhakti"] .bt-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-layout="bhakti"] .bt-card-weight {
+  font-size: 11px;
+  color: var(--bt-muted);
+}
+
+[data-layout="bhakti"] .bt-card-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bt-charcoal);
+}
+
+/* Bottom Navigation */
+[data-layout="bhakti"] .bt-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--bt-card);
+  border-top: 1px solid var(--bt-line);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  height: var(--bt-nav-h);
+}
+
+[data-layout="bhakti"] .bt-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--bt-muted);
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+[data-layout="bhakti"] .bt-tab svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+[data-layout="bhakti"] .bt-tab:hover { color: var(--bt-accent); }
+
+[data-layout="bhakti"] .bt-tab.bt-active {
+  color: var(--bt-accent);
+}
+
+[data-layout="bhakti"] .bt-tab-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--bt-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Empty State */
+[data-layout="bhakti"] .bt-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--bt-muted);
+}
+
+[data-layout="bhakti"] .bt-empty svg {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+[data-layout="bhakti"] .bt-empty h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--bt-ink);
+}
+
+/* Utility Classes */
+[data-layout="bhakti"] .bt-flex { display: flex; }
+[data-layout="bhakti"] .bt-flex-center { display: flex; align-items: center; justify-content: center; }
+[data-layout="bhakti"] .bt-flex-between { display: flex; align-items: center; justify-content: space-between; }
+[data-layout="bhakti"] .bt-flex-col { display: flex; flex-direction: column; }
+[data-layout="bhakti"] .bt-gap-1 { gap: 4px; }
+[data-layout="bhakti"] .bt-gap-2 { gap: 8px; }
+[data-layout="bhakti"] .bt-gap-3 { gap: 12px; }
+[data-layout="bhakti"] .bt-gap-4 { gap: 16px; }
+[data-layout="bhakti"] .bt-grow { flex: 1; min-width: 0; }
+[data-layout="bhakti"] .bt-hidden { display: none; }
+[data-layout="bhakti"] .bt-mb-1 { margin-bottom: 4px; }
+[data-layout="bhakti"] .bt-mb-2 { margin-bottom: 8px; }
+[data-layout="bhakti"] .bt-mb-3 { margin-bottom: 12px; }
+[data-layout="bhakti"] .bt-mb-4 { margin-bottom: 16px; }
+[data-layout="bhakti"] .bt-mb-5 { margin-bottom: 20px; }
+[data-layout="bhakti"] .bt-mb-6 { margin-bottom: 24px; }

@@ -14,6 +14,13 @@ export const jewelleryPack = {
     { key: 'Ready in Vault', icon: 'verified' },
     { key: 'Made-to-Order', icon: 'hourglass_empty' }
   ],
+  /** Wording of the catalogue filters: a second sector names its own facets (e.g. size and fabric instead of purity and weight). */
+  filters: {
+    purity: 'Purity',
+    weight: 'Net weight (g)',
+    availability: 'Availability',
+    searchPlaceholder: 'Search name, SKU, collection or purity'
+  },
 
   copy: {
     tradingModel: 'Pure Gram Basis',
@@ -35,6 +42,21 @@ export const jewelleryPack = {
       bookedCta: 'Order placed',
       guaranteeFallback: 'Pure Gram Weight Guarantee'
     }
+  },
+
+  /** The same order as a plain Hindi WhatsApp message, for buyers who use the app in Hindi (names in their Hindi form). */
+  orderMessageHi(args: { brandName: string; store: string; poId?: string; orders: Array<{ name: string; sku: string; purity: string; batchQty: number; totalNetGold: number }> }): string {
+    const { brandName, store, poId, orders } = args;
+    const total = orders.reduce((s, o) => s + (o.totalNetGold || 0), 0);
+    const pcs = orders.reduce((s, o) => s + o.batchQty, 0);
+    return (
+      `*${brandName} — ऑर्डर${poId ? ` ${poId}` : ''}*\n` +
+      `*स्टोर:* ${store}\n` +
+      `*डिज़ाइन:* ${orders.length} (${pcs} पीस)\n` +
+      `*कुल नेट वज़न:* ${total.toFixed(3)} ग्राम\n\n` +
+      orders.map((o) => `• ${o.name} (${o.sku}) · ${o.purity} × ${o.batchQty} — ${o.totalNetGold.toFixed(3)} ग्राम`).join('\n') +
+      `\n\n${poId ? 'ऑर्डर बुक हो गया है।' : 'कृपया ऑर्डर कन्फ़र्म करें।'}`
+    );
   },
 
   /** WhatsApp text for the buyer's current batch. */

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { AdminOrder, OrderStatus } from '../types';
-import { I, Notice, StatusTag } from './ui';
+import { Notice } from './ui';
+import { Icon, OrderStatusPill, Title } from '../layouts/emergent/ui';
 
 const STATUSES: OrderStatus[] = ['new', 'confirmed', 'dispatched', 'cancelled'];
 const label = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
@@ -12,9 +13,14 @@ const ago = (iso: string) => {
 };
 
 /** Orders desk (artboard 3.2): every buyer's orders, moved along with one tap. */
-export const AdminOrdersScreen: React.FC = () => {
+/** Orders with more designs than this show a short preview and a drop-down for the rest. */
+const BIG_ORDER = 8;
+const PREVIEW_ROWS = 3;
+
+export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; onChanged?: () => void }> = ({ initialFilter = 'all', onChanged }) => {
   const [orders, setOrders] = useState<AdminOrder[] | null>(null);
-  const [filter, setFilter] = useState<OrderStatus | 'all'>('all');
+  const [filter, setFilter] = useState<OrderStatus | 'all'>(initialFilter);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   // Cancelling takes two taps, so a stray tap cannot cancel an order.
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -49,6 +55,7 @@ export const AdminOrdersScreen: React.FC = () => {
     setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status } : o)) ?? null);
     try {
       await api.setOrderStatus(order.poId, status);
+      onChanged?.();
     } catch (err: any) {
       setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status: previous } : o)) ?? null);
       if (!err.handled) setError(err.message || 'Could not update the order.');
@@ -65,11 +72,14 @@ export const AdminOrdersScreen: React.FC = () => {
   const count = (s: OrderStatus) => (orders ?? []).filter((o) => o.status === s).length;
 
   return (
-    <div className="scroll" style={{ gap: 12 }}>
+    <div className="scroll" style={{ gap: 14 }}>
+      <div data-testid="orders-count">
+        <Title eyebrow={`${count('new')} waiting for you · ${orders?.length ?? 0} ${orders?.length === 1 ? 'order' : 'orders'}`} title="Orders" />
+      </div>
       <div className="chips">
         {(['all', ...STATUSES] as const).map((st) => (
           <button key={st} type="button" className={`chip${filter === st ? ' on' : ''}`} aria-pressed={filter === st} onClick={() => setFilter(st)}>
-            {st === 'all' ? `All ${orders?.length ?? 0}` : `${label(st)} ${count(st)}`}
+            {st === 'all' ? 'All' : label(st)} <i>{st === 'all' ? (orders?.length ?? 0) : count(st)}</i>
           </button>
         ))}
       </div>
@@ -78,11 +88,13 @@ export const AdminOrdersScreen: React.FC = () => {
       {orders === null && !error && <p className="hint">Loading orders…</p>}
 
       {orders !== null && visible.length === 0 && (
-        <div className="col" style={{ alignItems: 'center', textAlign: 'center', paddingTop: 32, gap: 8 }}>
-          <span className="tag gold" style={{ width: 56, height: 56, borderRadius: 18, justifyContent: 'center', padding: 0 }}>
-            <I n="receipt" />
+        <div className="em-empty" style={{ paddingTop: 24 }}>
+          <span className="em-badge">
+            <Icon n="package" size={24} />
           </span>
-          <h2 style={{ fontSize: 24 }}>No orders here yet</h2>
+          <h2 className="em-ser" style={{ fontSize: 24 }}>
+            No orders here yet
+          </h2>
           <p className="sub">{filter === 'all' ? 'Orders placed by your buyers will appear here.' : `There are no ${filter} orders.`}</p>
         </div>
       )}
@@ -90,62 +102,103 @@ export const AdminOrdersScreen: React.FC = () => {
       {visible.map((order) => {
         const buyer = order.buyer;
         const wa = buyer?.phone ? `https://wa.me/${buyer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${order.firmName}, about your order ${order.poId}.`)}` : null;
+        const waCircle = wa && (
+          <a className="em-wacirc" href={wa} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp the buyer">
+            <Icon n="wa" size={18} />
+          </a>
+        );
         return (
-          <article key={order.poId} className="card col" style={{ gap: 8, opacity: order.status === 'cancelled' ? 0.7 : 1 }}>
-            <div className="row">
-              <div className="grow">
-                <b>{order.firmName}</b>
-                <p className="sub" style={{ fontSize: 13 }}>
-                  {buyer?.phone ? `${buyer.phone} · ` : ''}
-                  {order.poId} · {ago(order.timestamp)}
-                </p>
-              </div>
-              <StatusTag status={order.status} />
-            </div>
-            {order.items.map((item) => (
-              <div key={item.id} className="kv">
-                <span>
-                  {item.title} × {item.batchQty}
-                </span>
-                <b>{item.totalNetGold.toFixed(3)} g</b>
-              </div>
-            ))}
-            {order.items.length > 1 && (
-              <>
-                <hr className="sep" />
-                <div className="kv">
-                  <span>Total net weight</span>
-                  <b>{order.totalNetGrams.toFixed(3)} g</b>
+          <article key={order.poId} className="em-ordcard" style={{ opacity: order.status === 'cancelled' ? 0.7 : 1 }}>
+            <div className="in">
+              <div className="em-row em-sb" style={{ alignItems: 'flex-start', gap: 10 }}>
+                <div className="em-grow">
+                  <div className="em-ser" style={{ fontSize: 19 }}>
+                    {order.firmName}
+                  </div>
+                  <div className="em-mut" style={{ fontSize: 12, marginTop: 4 }}>
+                    {buyer?.phone ? `${buyer.phone} · ` : ''}
+                    {order.poId} · {ago(order.timestamp)}
+                  </div>
                 </div>
-              </>
-            )}
+                <OrderStatusPill status={order.status} />
+              </div>
+              <hr className="em-line" />
+              {(order.items.length > BIG_ORDER && !expanded.has(order.poId) ? order.items.slice(0, PREVIEW_ROWS) : order.items).map((item) => (
+                <div key={item.id} className="li">
+                  <span>
+                    {item.title} <span className="em-mut">× {item.batchQty}</span>
+                  </span>
+                  <span className="em-mut">{item.totalNetGold.toFixed(3)} g</span>
+                </div>
+              ))}
+              {order.items.length > BIG_ORDER && (
+                <button
+                  type="button"
+                  className="em-link"
+                  data-testid="order-items-toggle"
+                  style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  aria-expanded={expanded.has(order.poId)}
+                  onClick={() => setExpanded((prev) => { const next = new Set(prev); if (next.has(order.poId)) next.delete(order.poId); else next.add(order.poId); return next; })}
+                >
+                  {expanded.has(order.poId) ? 'Show fewer' : `Show all ${order.items.length} designs`}
+                  <Icon n={expanded.has(order.poId) ? 'up' : 'chev'} size={14} />
+                </button>
+              )}
+              {order.note && (
+                <p className="note" data-testid="order-note" style={{ marginTop: 8 }}>
+                  <b>Note:</b> {order.note}
+                </p>
+              )}
+              <div className="em-row em-sb" style={{ marginTop: 12 }}>
+                <span className="em-ey">Net total</span>
+                <span className="em-ser" style={{ fontSize: 19, color: 'var(--em-primary)' }}>
+                  {order.totalNetGrams.toFixed(3)} g
+                </span>
+              </div>
+            </div>
             {order.status === 'new' && (
-              <div className="row">
-                <button type="button" className="btn sm" style={{ flex: 1 }} onClick={() => changeStatus(order, 'confirmed')}>
+              <div className="ft">
+                <button type="button" className="em-btn" onClick={() => changeStatus(order, 'confirmed')}>
+                  <Icon n="check" size={18} />
                   Confirm order
                 </button>
-                {wa && (
-                  <a className="btn sm alt" href={wa} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp the buyer">
-                    <I n="whats" />
-                  </a>
-                )}
+                {waCircle}
+              </div>
+            )}
+            {order.status === 'new' && buyer?.phone && (
+              <div className="ft" style={{ paddingTop: 0 }}>
+                <a className="em-btn sec fl" data-testid="order-call-buyer" href={`tel:+${buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`}>
+                  <Icon n="phone" size={18} />
+                  Call {buyer.ownerName || order.firmName || 'buyer'} to confirm
+                </a>
               </div>
             )}
             {order.status === 'confirmed' && (
-              <div className="row">
-                <button type="button" className="btn sm soft" style={{ flex: 1 }} onClick={() => changeStatus(order, 'dispatched')}>
+              <div className="ft">
+                <button type="button" className="em-btn" onClick={() => changeStatus(order, 'dispatched')}>
+                  <Icon n="truck" size={18} />
                   Mark dispatched
                 </button>
-                <button type="button" className="btn sm alt danger" onClick={() => askCancel(order)}>
+                {buyer?.phone && (
+                  <a className="em-wacirc" href={`tel:+${buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`} aria-label={`Call ${buyer.ownerName || order.firmName}`} style={{ color: 'var(--em-primary)' }}>
+                    <Icon n="phone" size={18} />
+                  </a>
+                )}
+                {waCircle}
+                <button type="button" className="em-rm" onClick={() => askCancel(order)}>
                   {confirming === order.poId ? 'Tap again' : 'Cancel'}
                 </button>
               </div>
             )}
             {(order.status === 'dispatched' || order.status === 'cancelled') && buyer?.phone && (
-              <a className="lnk" style={{ minHeight: 32 }} href={`tel:${buyer.phone}`}>
-                <I n="phone" size="s" />
-                Call {buyer.ownerName || 'buyer'}
-              </a>
+              <div className="ft">
+                <a className="em-link" href={`tel:${buyer.phone}`}>
+                  <Icon n="phone" size={16} />
+                  Call {buyer.ownerName || 'buyer'}
+                </a>
+                <span className="em-grow" />
+                {waCircle}
+              </div>
             )}
           </article>
         );

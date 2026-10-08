@@ -49,7 +49,7 @@ export const AdminPuritiesScreen: React.FC<AdminPuritiesScreenProps> = ({ puriti
       {list.map((p) => {
         const [k, f] = p.key.split(' ');
         return (
-          <div key={p.key} className="card row" style={{ opacity: p.enabled ? 1 : 0.6 }}>
+          <div key={p.key} className={`card row ${p.enabled ? 'pur-on' : 'pur-off'}`} style={{ opacity: p.enabled ? 1 : 0.6 }}>
             <b className="grow">{k}</b>
             <span className="tag mut">{f}</span>
             <Switch on={p.enabled} onChange={() => toggle(p.key)} label={`${p.key} in use`} />

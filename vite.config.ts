@@ -19,6 +19,8 @@ export default defineConfig(() => {
     },
     build: { rollupOptions: { input: { main: path.resolve(__dirname, 'index.html'), console: path.resolve(__dirname, 'console.html') } } },
     server: {
+      // Dev behind a tunnel or preview proxy: VITE_ALLOW_ANY_HOST=true lets Vite answer for any Host header (default: localhost only).
+      allowedHosts: process.env.VITE_ALLOW_ANY_HOST === 'true' ? (true as const) : undefined,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

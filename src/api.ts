@@ -7,12 +7,15 @@ import {
   OrderItem,
   AnalyticsData,
   AdminOrder,
+  AdminRow,
   OrderStatus,
   PastOrder,
   VisitorSummary,
   VisitorDetail,
   VisitorKind,
-  BuyerRow
+  BuyerRow,
+  EnquiryRow,
+  AdminSummary
 } from './types';
 import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
@@ -28,8 +31,8 @@ const STORE: string = (() => {
   const built = import.meta.env.VITE_STORE ?? '';
   try {
     const q = new URLSearchParams(location.search).get('store');
-    if (q) sessionStorage.setItem('store', q);
-    return sessionStorage.getItem('store') || built;
+    if (q) localStorage.setItem('store', q);
+    return localStorage.getItem('store') || built;
   } catch {
     return built;
   }
@@ -56,7 +59,9 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     /** True when the app has already told the user (e.g. the session expired), so callers should stay quiet. */
-    public handled = false
+    public handled = false,
+    /** Machine-readable reason from the server, e.g. CATALOGUE_FULL or TRIAL_USED. */
+    public code?: string
   ) {
     super(message);
   }
@@ -69,13 +74,13 @@ export const setUnauthorizedHandler = (fn: (() => void) | null) => {
   onUnauthorized = fn;
 };
 
-// Kept in sessionStorage: it survives reloads and back/forward navigation, and disappears when the tab or
-// browser is closed. (Not localStorage, so it never outlives the visit; tokens also expire on the server.)
+// Kept in localStorage so people stay signed in after closing the browser. The server token lasts a month for buyers and for admins
+// who ticked "Keep me signed in" (renewed on every visit), or 8 hours for admins who did not.
 const SESSION_KEY = 'catalogue_session';
 
 const readStoredToken = (): string | null => {
   try {
-    return sessionStorage.getItem(SESSION_KEY);
+    return localStorage.getItem(SESSION_KEY);
   } catch {
     return null;
   }
@@ -90,8 +95,8 @@ export const setAuthToken = (token: string | null) => {
     return;
   }
   try {
-    if (token) sessionStorage.setItem(SESSION_KEY, token);
-    else sessionStorage.removeItem(SESSION_KEY);
+    if (token) localStorage.setItem(SESSION_KEY, token);
+    else localStorage.removeItem(SESSION_KEY);
   } catch {
     // storage unavailable (private mode): the session then lasts until the page is reloaded
   }
@@ -102,8 +107,83 @@ export const hasStoredSession = () => native || authToken !== null;
 
 export type RestoredSession =
   | { type: 'retailer'; user: { storeName: string; phone: string; ownerName?: string; gstin?: string; marketHub?: string }; mustChangePassword: boolean }
-  | { type: 'admin' }
+  | { type: 'admin'; mustChangePassword: boolean; email: string }
   | null;
+
+/** What the catalogue may be asked for; every field is optional and they combine. Lists are comma-separated. */
+export interface ProductQuery {
+  search?: string;
+  category?: string;
+  purity?: string;
+  minWt?: string | number;
+  maxWt?: string | number;
+  availability?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+  cursor?: string;
+  cursorAfter?: string;
+}
+
+export interface ProductPage {
+  items: Product[];
+  total: number;
+  hasMore: boolean;
+  cursor?: string;
+  cursorAfter?: string;
+}
+
+export interface AlertSettings {
+  numbers: string[];
+  maxNumbers: number;
+  defaultNumber: string;
+  whatsappConfigured: boolean;
+  storeFullConfigured: boolean;
+  pushConfigured: boolean;
+  receiptsConnected: boolean;
+  wording: { placed: string; cancelled: string; storeFull: string };
+}
+
+export interface AlertTestResult {
+  results: { to: string; ok: boolean; error?: string; messageId?: string | null }[];
+  pushed: number;
+  whatsappConfigured: boolean;
+}
+
+export type MessageStatus = 'accepted' | 'sent' | 'delivered' | 'read' | 'failed';
+export type FailureKind = 'not-on-whatsapp' | 'undeliverable' | 'other';
+export type MessageKind = 'otp' | 'signup-otp' | 'admin-reset' | 'order' | 'store-full' | 'test' | 'trial';
+
+export interface MessageRow {
+  id: string;
+  kind: MessageKind;
+  to: string;
+  buyer: string | null;
+  status: MessageStatus;
+  failure: FailureKind | null;
+  errorCode: number | null;
+  errorTitle: string | null;
+  createdAt: string;
+  updatedAt: string;
+  receiptAt: string | null;
+}
+
+export interface MessagesPage {
+  receipts: { connected: boolean; lastAt: string | null };
+  counts: { today: number; failed: number; week: { total: number; delivered: number; failed: number; deliveredRate: number | null } };
+  total: number;
+  data: MessageRow[];
+}
+
+export interface Insights {
+  periodLabel: string;
+  summary: string;
+  kpis: { views7: number; views7Prev: number; orders7: number; orders7Prev: number; activeBuyers7: number; activeBuyers30: number; newBuyers7: number; buyers: number; shortlisters: number; shortlistedDesigns: number };
+  weeks: Array<{ label: string; views: number; orders: number; visitors: number }>;
+  topDesigns: Array<{ sku: string; name: string; category: string; views: number }>;
+  collections: Array<{ name: string; views: number; designs: number }>;
+  whatsapp: { total: number; delivered: number; failed: number; deliveredRate: number | null; receiptsConnected: boolean } | null;
+}
 
 async function request<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
@@ -120,7 +200,7 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
     onUnauthorized?.();
   }
   if (!res.ok || json.status === 'error') {
-    throw new ApiError(res.status, json.message || `Request failed (${res.status})`, sessionExpired);
+    throw new ApiError(res.status, json.message || `Request failed (${res.status})`, sessionExpired, typeof json.code === 'string' ? json.code : undefined);
   }
   return json as T;
 }
@@ -133,10 +213,10 @@ let memorySessionId: string | null = null;
 /** Anonymous per-tab visitor id used for presence and unique-view counting. */
 export function getSessionId(): string {
   try {
-    let sid = sessionStorage.getItem('catalogue_session_id');
+    let sid = localStorage.getItem('catalogue_session_id');
     if (!sid) {
       sid = `sess-${crypto.randomUUID()}`;
-      sessionStorage.setItem('catalogue_session_id', sid);
+      localStorage.setItem('catalogue_session_id', sid);
     }
     return sid;
   } catch {
@@ -162,7 +242,7 @@ async function flushProductViews() {
   }
 }
 
-/** Records that a product card was seen; batched, and sent at most once per SKU per page load. */
+/** Records that a design's details page was opened; batched, and sent at most once per SKU per page load. */
 export function trackProductView(sku: string) {
   if (seenSkus.has(sku)) return;
   seenSkus.add(sku);
@@ -210,9 +290,10 @@ export const api = {
       if (res.status === 401) setAuthToken(null);
       if (!res.ok) return null;
       const json = await res.json();
-      if (native && typeof json.token === 'string') setAuthToken(json.token); // renewed: the session slides forward on every app start
+      // Renewed by the server (sliding session): keep the newest token so the session never lapses while in use.
+      if (typeof json.token === 'string') setAuthToken(json.token);
       return json.type === 'admin'
-        ? { type: 'admin' }
+        ? { type: 'admin', mustChangePassword: Boolean(json.mustChangePassword), email: json.admin?.email ?? '' }
         : { type: 'retailer', user: json.user, mustChangePassword: Boolean(json.mustChangePassword) };
     } catch {
       return null;
@@ -233,6 +314,11 @@ export const api = {
 
   async updateCategory(id: string, cat: Partial<Category>): Promise<Category> {
     return (await request(`/api/v1/categories/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(cat) })).data;
+  },
+
+  /** The owner's hero collections on the buyers' Home: up to four collection ids, in order. */
+  async setHeroCollections(ids: string[]): Promise<void> {
+    await request('/api/v1/hero-collections', { method: 'PUT', body: JSON.stringify({ ids }) });
   },
 
   async deleteCategory(id: string): Promise<void> {
@@ -273,6 +359,23 @@ export const api = {
 
   async cancelOrder(poId: string): Promise<void> {
     await request(`/api/v1/orders/${encodeURIComponent(poId)}/cancel`, { method: 'POST' });
+  },
+
+  async getTags(): Promise<string[] | null> {
+    try {
+      return (await request('/api/v1/tags')).data;
+    } catch {
+      return null;
+    }
+  },
+  async createTag(name: string): Promise<string[]> {
+    return (await post('/api/v1/tags', { name })).data;
+  },
+  async renameTag(old: string, name: string): Promise<string[]> {
+    return (await request(`/api/v1/tags/${encodeURIComponent(old)}`, { method: 'PUT', body: JSON.stringify({ name }) })).data;
+  },
+  async deleteTag(name: string, moveTo?: string): Promise<string[]> {
+    return (await request(`/api/v1/tags/${encodeURIComponent(name)}${moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : ''}`, { method: 'DELETE' })).data;
   },
 
   async getPurities(): Promise<Purity[] | null> {
@@ -329,6 +432,14 @@ export const api = {
     }
   },
 
+  /** One page of the catalogue for a search, filters and sort. Unlike getProducts this reports failures, so the screen can say so. */
+  async queryProducts(q: ProductQuery): Promise<ProductPage> {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== null && String(v) !== '') params.set(k, String(v));
+    const json = await request(`/api/v1/products?${params.toString()}`);
+    return { items: json.data, total: json.total ?? json.count ?? json.data.length, hasMore: Boolean(json.hasMore), cursor: json.cursor, cursorAfter: json.cursorAfter };
+  },
+
   async createProduct(prod: Partial<Product>): Promise<Product> {
     return (await post('/api/v1/products', prod)).data;
   },
@@ -357,16 +468,37 @@ export const api = {
     return (await request(`/api/v1/admin/visitors/${encodeURIComponent(id)}`)).data;
   },
 
+  /** A buyer tapped a WhatsApp button; the owner's Enquiries inbox lists it. Never breaks the UI. */
+  async recordEnquiry(payload: { kind: 'design' | 'shortlist' | 'order'; sku?: string; title?: string; purity?: string; count?: number }): Promise<void> {
+    try {
+      await post('/api/v1/enquiries', payload);
+    } catch {
+      // the WhatsApp chat opens regardless
+    }
+  },
+
+  async markEnquiryReplied(id: string): Promise<void> {
+    try {
+      await post(`/api/v1/admin/enquiries/${encodeURIComponent(id)}/replied`);
+    } catch {
+      // the WhatsApp chat opens regardless
+    }
+  },
+
+  async getAdminSummary(): Promise<AdminSummary> {
+    return (await request('/api/v1/admin/summary')).data;
+  },
+
+  async getEnquiries(): Promise<EnquiryRow[]> {
+    return (await request('/api/v1/admin/enquiries')).data;
+  },
+
   async getBuyers(): Promise<BuyerRow[]> {
     return (await request('/api/v1/admin/buyers')).data;
   },
 
-  async resetBuyerPassword(phone: string): Promise<{ firmName: string; temporaryPassword: string }> {
-    return (await post(`/api/v1/admin/buyers/${encodeURIComponent(phone)}/reset-password`)).data;
-  },
-
-  async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
-    await post('/api/v1/auth/retailer/change-password', payload);
+  async removeBuyer(phone: string): Promise<void> {
+    await request(`/api/v1/admin/buyers/${encodeURIComponent(phone)}`, { method: 'DELETE' });
   },
 
   async getOrders(): Promise<{ items: OrderItem[]; totalWeight: number; totalPieces: number }> {
@@ -382,12 +514,17 @@ export const api = {
     return (await post('/api/v1/orders/items', item)).data;
   },
 
+  async setOrderItemQty(id: string, batchQty: number): Promise<OrderItem> {
+    return (await request(`/api/v1/orders/items/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ batchQty }) })).data;
+  },
+
   async removeOrderItem(id: string): Promise<void> {
     await request(`/api/v1/orders/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
-  async confirmOrder(): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
-    return post('/api/v1/orders/confirm');
+  /** Books the current batch as an order; the optional note goes to the store with it (and into the WhatsApp text). */
+  async confirmOrder(note?: string): Promise<{ poId: string; totalNetGrams: number; whatsappMessage: string }> {
+    return post('/api/v1/orders/confirm', note?.trim() ? { note: note.trim() } : undefined);
   },
 
   async getAdminOrders(): Promise<AdminOrder[]> {
@@ -422,39 +559,56 @@ export const api = {
     }
   },
 
-  async signupRetailer(payload: {
-    firmName: string;
-    gstin: string;
-    ownerName: string;
-    phone: string;
-    password: string;
-    marketHub: string;
-  }) {
-    const json = await post('/api/v1/auth/retailer/signup', payload);
-    setAuthToken(json.token);
-    return json;
-  },
-
-  async requestOtp(phone: string) {
+  async requestOtp(phone: string): Promise<{ message: string; devCode?: string; channel?: 'whatsapp' | 'dev'; messageId?: string | null; receipts?: boolean }> {
     return post('/api/v1/auth/retailer/request-otp', { phone });
   },
 
-  async verifyOtp(payload: { phone: string; code: string; firmName?: string }) {
+  /** Delivery stage of a sign-in code, for the "Delivered ✓" hint on the code screen. */
+  async otpStatus(id: string): Promise<{ status: MessageStatus; failure: FailureKind | null; receipts: boolean }> {
+    return (await request(`/api/v1/auth/otp-status/${encodeURIComponent(id)}`)).data;
+  },
+
+  async verifyOtp(payload: { phone: string; code: string; firmName?: string; ownerName?: string }) {
     const json = await post('/api/v1/auth/retailer/verify-otp', payload);
-    setAuthToken(json.token);
+    if (json.token) setAuthToken(json.token);
     return json;
   },
 
-  async loginRetailer(payload: { phone: string; password: string }) {
-    const json = await post('/api/v1/auth/retailer/login', payload);
-    setAuthToken(json.token);
-    return json;
+  async adminForgotRequest(email: string): Promise<{ message: string; devCode?: string }> {
+    return post('/api/v1/auth/admin/forgot/request-otp', { email });
+  },
+  async adminForgotReset(payload: { email: string; code: string; newPassword: string }): Promise<void> {
+    await post('/api/v1/auth/admin/forgot/reset', payload);
   },
 
-  async loginAdmin(payload: { adminId: string; password: string }) {
+  async loginAdmin(payload: { adminId: string; password: string; remember?: boolean }) {
     const json = await post('/api/v1/auth/admin/login', payload);
     setAuthToken(json.sessionToken);
     return json;
+  },
+
+  async adminChangePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
+    await post('/api/v1/auth/admin/change-password', payload);
+  },
+
+  async getAlerts(): Promise<AlertSettings> {
+    return (await request('/api/v1/admin/alerts')).data;
+  },
+  async saveAlerts(numbers: string[]): Promise<AlertSettings> {
+    return (await request('/api/v1/admin/alerts', { method: 'PUT', body: JSON.stringify({ numbers }) })).data;
+  },
+  async testAlert(): Promise<AlertTestResult> {
+    return (await post('/api/v1/admin/alerts/test')).data;
+  },
+
+  async getMessages(filter?: 'failed'): Promise<MessagesPage> {
+    return (await request(`/api/v1/admin/messages${filter ? `?filter=${filter}` : ''}`)).data;
+  },
+  async getMessage(id: string): Promise<MessageRow> {
+    return (await request(`/api/v1/admin/messages/${encodeURIComponent(id)}`)).data;
+  },
+  async getInsights(): Promise<Insights> {
+    return (await request('/api/v1/analytics/insights')).data;
   },
 
   async registerAdmin(payload: {

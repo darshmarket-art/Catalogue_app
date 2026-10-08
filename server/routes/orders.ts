@@ -5,7 +5,7 @@ import type { MerchantConfig } from '../merchant';
 import type { SectorPack } from '../sectors';
 import { user } from '../auth';
 import { HttpError, audit, handler, newId, parse } from '../http';
-import { cartItemSchema } from '../schemas';
+import { cartItemSchema, orderConfirmSchema } from '../schemas';
 import { recordDaily } from '../stats';
 import type { Media } from '../media';
 import { enabledKeys, loadPurities } from '../purities';
@@ -90,10 +90,21 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
       const line = pack.cartLine(product, body.batchQty);
       // A purity the buyer asks for is used only if the owner offers it; anything else falls back to the design's own.
       const purity = body.purity && enabledKeys(await loadPurities(store)).includes(body.purity) ? body.purity : line.purity;
+      // The same design (and purity) already in the buyer's order: add to that line instead of making a second one.
+      const same = (await loadCart(user(res).id)).find((i) => i.sku === product.sku && i.purity === purity);
+      if (same) {
+        const batchQty = Math.min(10000, same.batchQty + body.batchQty);
+        const next = { totalNetGold: pack.cartLine(product, batchQty).totalNetGold, batchQty, qtyUnit: batchQty > 1 ? 'Pcs' : 'Set' };
+        await store.update('cartItems', same.id, next);
+        const me = user(res);
+        await logActivity(store, { id: me.id, kind: 'verified' as const, name: me.name }, { type: 'cart', sku: product.sku });
+        return res.status(200).json({ status: 'success', message: 'Quantity updated', data: shown({ ...same, ...next }) });
+      }
       const item: CartItem = {
         id,
         ownerId: user(res).id,
         title: product.title,
+        ...(product.titleHi ? { titleHi: product.titleHi } : {}),
         sku: product.sku,
         purity,
         totalNetGold: line.totalNetGold,
@@ -113,6 +124,22 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
     })
   );
 
+  // The stepper in the buyer's cart: same line, new quantity, weights recomputed from the catalogue.
+  router.patch(
+    '/items/:id',
+    handler(async (req, res) => {
+      const { batchQty } = parse(cartItemSchema.pick({ batchQty: true }), req.body);
+      const item = await store.get<CartItem>('cartItems', req.params.id);
+      if (!item || item.ownerId !== user(res).id) throw new HttpError(404, 'Item not found in order');
+      const [product] = await store.list('products', { where: [{ field: 'sku', op: '==', value: item.sku }], limit: 1 });
+      if (!product) throw new HttpError(404, `No catalogue item found for SKU ${item.sku}.`);
+      const line = pack.cartLine(product, batchQty);
+      const next = { totalNetGold: line.totalNetGold, batchQty, qtyUnit: batchQty > 1 ? 'Pcs' : 'Set' };
+      await store.update('cartItems', item.id, next);
+      res.json({ status: 'success', data: shown({ ...item, ...next }) });
+    })
+  );
+
   router.delete(
     '/items/:id',
     handler(async (req, res) => {
@@ -125,7 +152,8 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
 
   router.post(
     '/confirm',
-    handler(async (_req, res) => {
+    handler(async (req, res) => {
+      const { note } = parse(orderConfirmSchema, req.body);
       const owner = user(res);
       const items = await loadCart(owner.id);
       if (items.length === 0) throw new HttpError(400, 'Your batch order is empty. Add items before confirming.');
@@ -148,6 +176,7 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
         totalNetGrams: totalNet,
         itemCount: items.length,
         items: items.map(publicItem),
+        ...(note ? { note } : {}),
         timestamp: bookedAt
       });
       // The batch is now an order; the next batch starts empty instead of re-ordering these items.
@@ -163,13 +192,14 @@ export function orderRoutes(store: Store, merchant: MerchantConfig, pack: Sector
         settlementBasis: 'GRAM_WEIGHT',
         totalNetGrams: totalNet,
         itemCount: items.length,
-        whatsappMessage: pack.confirmationMessage({
-          brandName: merchant.brand.name,
-          poId,
-          firmName: owner.name,
-          totalNet,
-          items: items.map((i) => ({ title: i.title, sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
-        })
+        whatsappMessage:
+          pack.confirmationMessage({
+            brandName: merchant.brand.name,
+            poId,
+            firmName: owner.name,
+            totalNet,
+            items: items.map((i) => ({ title: i.title, ...(i.titleHi ? { titleHi: i.titleHi } : {}), sku: i.sku, purity: i.purity, batchQty: i.batchQty, qtyUnit: i.qtyUnit, totalNetGold: i.totalNetGold }))
+          }) + (note ? `\n\n*Note:* ${note}` : '')
       });
     })
   );

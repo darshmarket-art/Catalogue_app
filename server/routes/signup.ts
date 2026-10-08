@@ -6,11 +6,11 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import type { Config } from '../config';
 import type { Doc, Store } from '../store';
-import type { OtpSender } from '../whatsapp';
-import { ADMIN_TOKEN_TTL, safeEqual, signToken } from '../auth';
+import type { OtpDelivery } from '../whatsapp';
+import { ADMIN_REMEMBER_TTL, safeEqual, signToken } from '../auth';
 import { HttpError, errorHandler, handler, newId, parse } from '../http';
-import { logger } from '../logger';
 import { parseMerchant } from '../merchant';
+import { devCode } from './otp';
 import { hostOf, newStoreRecord, scopeStore, secretFor, type StoreRecord } from '../tenancy';
 import { isAvailableStoreName, isReservedStoreName, isValidStoreName } from '../../shared/storeName';
 import { trimmed } from '../schemas';
@@ -25,7 +25,9 @@ const phone = z
   .transform((v) => v.replace(/[^0-9]/g, ''))
   .refine((v) => v.length >= 10 && v.length <= 15, 'Please provide a valid mobile number.');
 const storeName = z.string().trim().toLowerCase();
-const requestSchema = z.object({ phone });
+/** Honeypot: a field people never see. Bots that fill every input give themselves away. */
+const website = z.string().max(200).optional();
+const requestSchema = z.object({ phone, website });
 const signupSchema = z.object({
   storeName,
   brandName: trimmed(60, 2),
@@ -35,8 +37,11 @@ const signupSchema = z.object({
   phone,
   email: z.string().trim().toLowerCase().email().max(254),
   password: trimmed(128, 10),
-  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.')
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.'),
+  website
 });
+
+const ALREADY_USED = 'This phone number or email has already been used to start a free trial. Please sign in to your store instead.';
 
 /** The starting point for every new store: core-app theme (no colour overrides), editable later by the owner. */
 function defaultMerchant(id: string, brandName: string, ownerPhone: string, brandColor?: string) {
@@ -45,7 +50,7 @@ function defaultMerchant(id: string, brandName: string, ownerPhone: string, bran
     {
       id,
       sector: 'jewellery',
-      catalogueAccess: 'public',
+      catalogueAccess: 'login',
       brand: {
         name: brandName,
         tagline: 'Trade Catalogue',
@@ -76,13 +81,16 @@ export function storeUrlFor(req: Request, config: Config, id: string) {
 }
 
 /** Self-serve store creation. Global layer: no store is resolved, so everything here lives in the root store. */
-export function signupRoutes(config: Config, root: Store, sender: OtpSender, now: () => number = Date.now) {
+export function signupRoutes(config: Config, root: Store, delivery: OtpDelivery, now: () => number = Date.now) {
   const router = Router();
   const limit = (windowMs: number, n: number, message: string) =>
     rateLimit({ windowMs, limit: n, standardHeaders: true, legacyHeaders: false, message: { status: 'error', message } });
-  // Abuse limits: per IP. TODO(CAPTCHA): verify a Turnstile/reCAPTCHA token here before sending a code or creating a store.
+  // Abuse limits: per IP. The honeypot field below catches simple bots; a CAPTCHA (Turnstile) can be added here later.
   const perIp = limit(60 * 60 * 1000, config.rateLimit.auth * 3, 'Too many attempts from this network. Please try again later.');
+  // The name check runs live while the owner types, so it gets its own, roomier limit.
+  const checkLimit = limit(15 * 60 * 1000, config.rateLimit.auth * 30, 'Too many checks from this network. Please try again in a few minutes.');
   const createLimit = limit(24 * 60 * 60 * 1000, config.rateLimit.auth, 'Too many stores created from this network today.');
+  const isBot = (b: { website?: string }) => Boolean(b.website && b.website.trim());
 
   const hash = (ph: string, code: string) => crypto.createHmac('sha256', config.jwtSecret).update(`signup:${ph}:${code}`).digest('hex');
   const taken = async (id: string) => id === config.defaultStore || (await root.get('stores', id)) !== null; // the default store's record is seeded lazily
@@ -98,7 +106,7 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
 
   router.get(
     '/check',
-    perIp,
+    checkLimit,
     handler(async (req, res) => {
       const name = String(req.query.name ?? '').trim().toLowerCase();
       let reason: string | undefined;
@@ -113,9 +121,12 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
     '/request-otp',
     perIp,
     handler(async (req, res) => {
-      const { phone: ph } = parse(requestSchema, req.body);
+      const body = parse(requestSchema, req.body);
+      const ph = body.phone;
+      // A bot gets the normal answer and nothing is sent or stored.
+      if (isBot(body)) return void res.json({ status: 'success', message: 'We sent a 6-digit code to your WhatsApp.', expiresInSeconds: OTP_TTL_MS / 1000 });
       if (await root.get('trialClaims', `phone-${ph}`)) {
-        throw new HttpError(409, 'This phone number has already been used to start a free trial. Please sign in to your store.');
+        throw new HttpError(409, 'This phone number has already been used to start a free trial. Please sign in to your store instead.', 'TRIAL_USED');
       }
       const t = now();
       const prev = await root.get<{ sentAt: number }>('signupOtps', ph);
@@ -123,14 +134,9 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
         throw new HttpError(429, `Please wait ${Math.ceil((OTP_RESEND_MS - (t - prev.sentAt)) / 1000)} seconds before asking for another code.`);
       }
       const code = config.staticOtp ?? String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
-      try {
-        if (!config.staticOtp) await sender.sendOtp(ph, code);
-      } catch (err) {
-        logger.error('Signup OTP send failed', { error: String(err) });
-        throw new HttpError(503, 'Could not send the code on WhatsApp. Please try again shortly.');
-      }
+      const { channel, messageId } = await delivery(ph, code, 'signup-otp');
       await root.set('signupOtps', ph, { hash: hash(ph, code), expiresAt: t + OTP_TTL_MS, attempts: 0, sentAt: t });
-      res.json({ status: 'success', message: 'We sent a 6-digit code to your WhatsApp.', expiresInSeconds: OTP_TTL_MS / 1000 });
+      res.json({ status: 'success', message: 'We sent a 6-digit code to your WhatsApp.', expiresInSeconds: OTP_TTL_MS / 1000, channel, messageId, ...devCode(config, ph, code) });
     })
   );
 
@@ -140,6 +146,7 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
     createLimit,
     handler(async (req, res) => {
       const b = parse(signupSchema, req.body);
+      if (isBot(b)) throw new HttpError(400, 'Could not create the store. Please try again.');
       if (!isValidStoreName(b.storeName)) throw new HttpError(400, 'storeName: Use 3 to 30 letters, digits or hyphens.');
       if (isReservedStoreName(b.storeName)) throw new HttpError(409, 'That store name is reserved. Please choose another.');
 
@@ -154,7 +161,7 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
 
       // One trial per phone and email. Claims are atomic creates, so concurrent signups cannot both win.
       if ((await root.get('trialClaims', `phone-${b.phone}`)) || (await root.get('trialClaims', `email-${b.email}`))) {
-        throw new HttpError(409, 'This phone number or email has already been used to start a free trial. Please sign in to your store.');
+        throw new HttpError(409, ALREADY_USED, 'TRIAL_USED');
       }
 
       const merchant = defaultMerchant(b.storeName, b.brandName, b.phone, b.brandColor);
@@ -174,7 +181,7 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
       if (!gotEmail) {
         await root.delete('stores', b.storeName);
         if (gotPhone) await root.delete('trialClaims', `phone-${b.phone}`);
-        throw new HttpError(409, 'This phone number or email has already been used to start a free trial. Please sign in to your store.');
+        throw new HttpError(409, ALREADY_USED, 'TRIAL_USED');
       }
       await root.delete('signupOtps', b.phone); // single use
 
@@ -198,7 +205,7 @@ export function signupRoutes(config: Config, root: Store, sender: OtpSender, now
         storeId: b.storeName,
         storeUrl,
         trialEndsAt: (rec as StoreRecord).trialEndsAt,
-        sessionToken: signToken(storeConfig, { type: 'admin', sub: admin.email }, ADMIN_TOKEN_TTL),
+        sessionToken: signToken(storeConfig, { type: 'admin', sub: admin.email, remember: true }, ADMIN_REMEMBER_TTL),
         admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role }
       });
     })

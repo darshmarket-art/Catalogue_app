@@ -12,3 +12,4 @@ tests
 *.md
 npm-debug.log*
 .DS_Store
+app_themes

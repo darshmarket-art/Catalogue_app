@@ -3,6 +3,9 @@ import { ActiveScreen, Category, Purity } from '../types';
 import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, I, Notice } from './ui';
+import { api } from '../api';
+import { setTagList, useTagList } from '../tagList';
+import { toHindi } from '../../shared/hindi';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -18,7 +21,26 @@ interface AddCategoryScreenProps {
 export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOptions, editing, onNavigate, onSave, onDelete }) => {
   const { limits, usage } = usePlan();
   const [name, setName] = useState(editing?.name ?? '');
+  // New collections must be filed under a tag (no default); an older one opens on its own or guessed tag.
+  const [tag, setTag] = useState(editing?.tag ?? '');
+  const tagList = useTagList();
+  const [newTag, setNewTag] = useState<string | null>(null);
+  const [tagProblem, setTagProblem] = useState<string | null>(null);
+  const addTag = async () => {
+    const name = (newTag ?? '').trim();
+    if (!name) return;
+    try {
+      const next = await api.createTag(name);
+      setTagList(next);
+      setTag(next.find((t) => t.toLowerCase() === name.toLowerCase()) ?? name);
+      setNewTag(null);
+      setTagProblem(null);
+    } catch (err) {
+      setTagProblem(err instanceof Error ? err.message : 'Could not add the tag.');
+    }
+  };
   const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');
+  const [nameHi, setNameHi] = useState(editing?.nameHi ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? [{ ref: editing.image, url: editing.image }] : []);
   const [uploading, setUploading] = useState(false);
   const [minWt, setMinWt] = useState(editing ? String(editing.minTargetWt) : '');
@@ -37,6 +59,8 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
       ? 'Add a photo for the collection'
       : !name.trim()
         ? 'Enter a collection name'
+        : !tag
+          ? 'Choose a tag for the collection'
         : minWt && maxWt && min > max
           ? 'The lightest piece cannot weigh more than the heaviest'
           : null;
@@ -49,7 +73,9 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
     const ok = await onSave(
       {
         name: name.trim(),
+        tag,
         ...(subtitle.trim() ? { subtitle: subtitle.trim() } : {}),
+        ...(nameHi.trim() ? { nameHi: nameHi.trim() } : {}),
         image: photos[0].ref,
         ...(Number.isFinite(min) ? { minTargetWt: min } : {}),
         ...(Number.isFinite(max) ? { maxTargetWt: max } : {}),
@@ -67,7 +93,8 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
   const handleDelete = async () => {
     if (!editing) return;
-    if (!window.confirm(`Delete the collection "${editing.name}"? This cannot be undone.`)) return;
+    const n = editing.designCount;
+    if (!window.confirm(`Delete the collection "${editing.name}"${n > 0 ? ` and its ${n} ${n === 1 ? 'design' : 'designs'}` : ''}? This cannot be undone.`)) return;
     setSubmitting(true);
     if (await onDelete(editing)) onNavigate('categories');
     else setSubmitting(false);
@@ -117,12 +144,40 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
       <div>
         <span className="lab">Cover photo</span>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="banner" />
+        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="square" kind="collection" />
       </div>
 
       <Field label="Collection name" htmlFor="ac-name">
         <input id="ac-name" className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Temple Antique Haar" />
       </Field>
+
+      <Field label="Name in Hindi (optional)" htmlFor="ac-name-hi" hint={name.trim() ? `Buyers using the app in Hindi see this. Left empty, they see: ${toHindi(name)}` : 'Buyers using the app in Hindi see this name.'}>
+        <input id="ac-name-hi" data-testid="ac-name-hi" lang="hi" className="inp" value={nameHi} onChange={(e) => setNameHi(e.target.value)} placeholder={name.trim() ? toHindi(name) : 'जैसे, टेम्पल एंटीक हार'} />
+      </Field>
+
+      <div>
+        <span className="lab" id="ac-tag-l">Tag (required)</span>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }} role="radiogroup" aria-labelledby="ac-tag-l" data-testid="collection-tag">
+          {tagList.map((t) => (
+            <button key={t} type="button" role="radio" aria-checked={tag === t} className={`chip${tag === t ? ' on' : ''}`} onClick={() => setTag(t)}>
+              {t}
+            </button>
+          ))}
+          {newTag === null && (
+            <button type="button" className="chip" data-testid="tag-new" onClick={() => setNewTag('')}>
+              + New tag
+            </button>
+          )}
+        </div>
+        {newTag !== null && (
+          <div className="row" style={{ gap: 8, marginTop: 8 }}>
+            <input className="inp" style={{ flex: 1, minWidth: 0 }} aria-label="New tag name" data-testid="tag-new-name" value={newTag} maxLength={30} autoFocus placeholder="e.g. Anklets" onChange={(e) => setNewTag(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), void addTag())} />
+            <button type="button" className="btn" style={{ width: 'auto', padding: '0 18px' }} disabled={!newTag.trim()} onClick={() => void addTag()}>Add</button>
+          </div>
+        )}
+        {tagProblem && <p className="hint" role="alert" style={{ margin: '6px 0 0', color: 'var(--bad, #b3261e)' }}>{tagProblem}</p>}
+        <p className="hint" style={{ margin: '6px 0 0' }}>Buyers browse collections by tag, so all rings sit together and all pendants sit together.</p>
+      </div>
 
       <Field label="Short description (optional)" htmlFor="ac-sub">
         <input id="ac-sub" className="inp" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Nakshi work, Mayur motifs" />

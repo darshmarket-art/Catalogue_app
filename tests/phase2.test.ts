@@ -10,6 +10,7 @@ import { createMedia } from '../server/media';
 import { parseMerchant, themeCss, renderIndexHtml } from '../server/merchant';
 import type { ProductField } from '../server/merchant';
 
+import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const MASTER_KEY = 'test-master-provisioning-key';
 const JWT_SECRET = 'x'.repeat(48);
 
@@ -20,7 +21,7 @@ let config: Config;
 
 async function build(opts: { access?: 'public' | 'login'; productFields?: ProductField[] } = {}) {
   config = {
-    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
+    ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', OTP_STATIC_CODE: STATIC_CODE, JWT_SECRET, MASTER_PROVISIONING_KEY: MASTER_KEY }),
     rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 }
   };
   config.merchant = { ...config.merchant, catalogueAccess: opts.access ?? 'login', productFields: opts.productFields ?? [] };
@@ -45,7 +46,7 @@ async function admin(app: App, role: 'owner' | 'staff' = 'owner', email = `${rol
 
 async function buyer(app: App, n = 1) {
   const phone = `98200000${String(n).padStart(2, '0')}`;
-  const res = await request(app).post('/api/auth/retailer/signup').send({ firmName: `Shop ${n}`, phone, password: 'StrongPass@1' });
+  const res = await otpBuyer(app, { firmName: `Shop ${n}`, phone });
   return { Authorization: `Bearer ${res.body.token}`, phone };
 }
 
@@ -168,11 +169,11 @@ describe('products: photos, prices, extra fields, edit and delete', () => {
     const auth = await admin(app);
     const post = (body: object) => request(app).post('/api/products').set(auth).send(product(['https://example.com/x.jpg'], body));
 
-    const res = await post({ priceMode: 'fixed', fixedPrice: '9000', makingChargePerGram: '300', sku: 'F1' });
+    const res = await post({ priceMode: 'fixed', price: 9000, fixedPrice: 9000, makingChargePerGram: '300', sku: 'F1' });
     expect(res.status).toBe(201);
-    for (const price of ['priceMode', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[price]).toBeUndefined();
+    for (const price of ['priceMode', 'price', 'fixedPrice', 'makingChargePerGram']) expect(res.body.data[price]).toBeUndefined();
     const listed = await request(app).get('/api/products').set(auth);
-    expect(JSON.stringify(listed.body)).not.toMatch(/priceMode|fixedPrice|makingChargePerGram/);
+    expect(JSON.stringify(listed.body)).not.toMatch(/priceMode|fixedPrice|makingChargePerGram|"price"/);
   });
 
   it('checks merchant-defined extra fields against the merchant config', async () => {
@@ -276,31 +277,29 @@ describe('categories: one photo, rename, delete', () => {
     const app = await build();
     const auth = await admin(app);
     const ref = (await upload(app, auth)).body.data.ref;
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings' })).status).toBe(400);
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: ref })).status).toBe(201);
-    expect((await request(app).post('/api/categories').set(auth).send({ name: 'Rings', image: ref })).status).toBe(409);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings' })).status).toBe(400);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings', image: ref })).status).toBe(201);
+    expect((await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Rings', image: ref })).status).toBe(409);
   });
 
-  it('a rename carries its products along; a category with products cannot be deleted', async () => {
+  it('a rename carries its products along; deleting a category takes its products with it', async () => {
     const app = await build();
     const auth = await admin(app);
-    const cat = (await request(app).post('/api/categories').set(auth).send({ name: 'Chains', image: 'https://example.com/c.jpg' })).body.data;
+    const cat = (await request(app).post('/api/categories').set(auth).send({ tag: 'Rings', name: 'Chains', image: 'https://example.com/c.jpg' })).body.data;
     await request(app).post('/api/products').set(auth).send(product(['https://example.com/x.jpg'], { category: 'Chains', sku: 'CH-1' }));
 
-    expect((await request(app).delete(`/api/categories/${cat.id}`).set(auth)).status).toBe(409);
-
-    const renamed = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ name: 'Gold Chains', image: 'https://example.com/c.jpg' });
+    const renamed = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ tag: 'Rings', name: 'Gold Chains', image: 'https://example.com/c.jpg' });
     expect(renamed.status).toBe(200);
     expect(renamed.body.data.designCount).toBe(1);
     expect((await store.list('products')).find((p) => p.sku === 'CH-1')!.category).toBe('Gold Chains');
 
-    const clash = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ name: 'Bridal Chokers & Haar', image: 'https://example.com/c.jpg' });
+    const clash = await request(app).put(`/api/categories/${cat.id}`).set(auth).send({ tag: 'Rings', name: 'Bridal Chokers & Haar', image: 'https://example.com/c.jpg' });
     expect(clash.status).toBe(409);
 
-    const productId = (await store.list('products')).find((p) => p.sku === 'CH-1')!.id;
-    await request(app).delete(`/api/products/${productId}`).set(auth);
+    // deleting the collection deletes its designs too
     expect((await request(app).delete(`/api/categories/${cat.id}`).set(auth)).status).toBe(200);
-    expect((await request(app).put('/api/categories/none').set(auth).send({ name: 'X', image: 'https://example.com/c.jpg' })).status).toBe(404);
+    expect((await store.list('products')).some((p) => p.sku === 'CH-1')).toBe(false);
+    expect((await request(app).put('/api/categories/none').set(auth).send({ tag: 'Rings', name: 'X', image: 'https://example.com/c.jpg' })).status).toBe(404);
   });
 });
 
@@ -465,20 +464,10 @@ describe('cancelling an order, the order message, and About us', () => {
   });
 });
 
-describe('installable app: manifest, icons and the Android link file', () => {
-  it('serves a manifest built from the merchant, with working icons', async () => {
+describe('store icons and the Android link file (no web app manifest: install prompts are disabled by decision)', () => {
+  it('serves no manifest, so browsers never offer "add to home screen"', async () => {
     const app = await build();
-    const res = await request(app).get('/manifest.webmanifest');
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toContain('application/manifest+json');
-    expect(res.body).toMatchObject({ name: 'Bhakti Jewels', start_url: '/', display: 'standalone', scope: '/' });
-    const sizes = res.body.icons.map((i: any) => `${i.sizes}:${i.purpose}`);
-    expect(sizes).toEqual(expect.arrayContaining(['192x192:any', '512x512:any', '512x512:maskable']));
-    for (const icon of res.body.icons) {
-      const img = await request(app).get(icon.src);
-      expect(img.status, icon.src).toBe(200);
-      expect(img.headers['content-type']).toBe('image/png');
-    }
+    expect((await request(app).get('/manifest.webmanifest')).status).toBe(404);
   });
 
   it('only serves the icon files it knows about', async () => {
@@ -593,44 +582,6 @@ describe('buyer accounts for the owner', () => {
     expect((await request(app).get('/api/admin/buyers')).status).toBe(401);
   });
 
-  it('owner resets a forgotten password; the buyer must set a new one before carrying on', async () => {
-    const app = await build();
-    const owner = await admin(app, 'owner');
-    const shop = await buyer(app, 1);
-
-    const reset = await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(owner);
-    expect(reset.status).toBe(200);
-    const temp = reset.body.data.temporaryPassword;
-    expect(temp).toHaveLength(10);
-
-    expect((await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: 'StrongPass@1' })).status).toBe(401);
-    const login = await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: temp });
-    expect(login.status).toBe(200);
-    expect(login.body.user.mustChangePassword).toBe(true);
-    const tempAuth = { Authorization: `Bearer ${login.body.token}` };
-    expect((await request(app).get('/api/auth/me').set(tempAuth)).body.mustChangePassword).toBe(true);
-
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: 'wrong-one', newPassword: 'Brand-New-Pass1' })).status).toBe(401);
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: temp, newPassword: temp })).status).toBe(400);
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: temp, newPassword: 'short' })).status).toBe(400);
-    expect((await request(app).post('/api/auth/retailer/change-password').set(tempAuth).send({ currentPassword: temp, newPassword: 'Brand-New-Pass1' })).status).toBe(200);
-
-    expect((await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: temp })).status).toBe(401);
-    const again = await request(app).post('/api/auth/retailer/login').send({ phone: shop.phone, password: 'Brand-New-Pass1' });
-    expect(again.body.user.mustChangePassword).toBe(false);
-    const events = (await store.list('auditLogs')).map((l) => l.event);
-    expect(events).toContain('BUYER_PASSWORD_RESET');
-    expect(events).toContain('RETAILER_PASSWORD_CHANGED');
-  });
-
-  it('staff cannot reset passwords, and an unknown buyer is a 404', async () => {
-    const app = await build();
-    const shop = await buyer(app, 1);
-    const staff = await admin(app, 'staff');
-    expect((await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(staff)).status).toBe(403);
-    expect((await request(app).post('/api/admin/buyers/0000000000/reset-password').set(await admin(app, 'owner'))).status).toBe(404);
-    expect((await request(app).post(`/api/admin/buyers/${shop.phone}/reset-password`).set(shop)).status).toBe(403);
-  });
 });
 
 describe('visitor engagement', () => {

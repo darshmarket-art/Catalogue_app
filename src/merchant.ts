@@ -1,4 +1,5 @@
 import type { MerchantConfig } from '../server/merchant';
+import { addHindi } from './i18n';
 
 // The server embeds this merchant's config in index.html, so it is available synchronously on first paint.
 function loadEmbeddedConfig(): MerchantConfig {
@@ -8,3 +9,5 @@ function loadEmbeddedConfig(): MerchantConfig {
 }
 
 export const merchant: MerchantConfig = loadEmbeddedConfig();
+// Buyers who pick Hindi see the store's own Hindi for its wording.
+addHindi(merchant.hindi);

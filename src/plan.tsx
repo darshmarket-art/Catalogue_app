@@ -9,15 +9,17 @@ export interface Entitlements {
   trialEndsAt: string | null;
   trialNotice?: string | null;
   limits: { categories: number | null; photos: number | null; photosPerDesign: number; users: number | null };
-  flags: Record<'orders' | 'insights' | 'liveVisitors' | 'buyerEngagement' | 'alerts' | 'auditLog' | 'pdfCatalogue' | 'staffRoles' | 'banners' | 'purities', boolean>;
-  usage?: { categories: number; photos: number };
+  flags: Record<'orders' | 'insights' | 'liveVisitors' | 'buyerEngagement' | 'alerts' | 'enquiries' | 'auditLog' | 'pdfCatalogue' | 'banners' | 'purities', boolean>;
+  usage?: { categories: number; photos: number; users?: number };
+  /** Buyers a full store turned away (Basic buyer limit). */
+  turnedAway?: { today: number; total: number };
 }
 
 // Until the server answers (or if it cannot be reached) the app behaves as Pro, exactly as it did before plans existed. The server enforces the real limits.
 const PRO: Entitlements = {
   effectivePlan: 'pro', plan: 'pro', trialEndsAt: null,
   limits: { categories: null, photos: 3000, photosPerDesign: 3, users: null },
-  flags: { orders: true, insights: true, liveVisitors: true, buyerEngagement: true, alerts: true, auditLog: true, pdfCatalogue: true, staffRoles: true, banners: true, purities: true }
+  flags: { orders: true, insights: true, liveVisitors: true, buyerEngagement: true, alerts: true, enquiries: true, auditLog: true, pdfCatalogue: true, banners: true, purities: true }
 };
 
 const Ctx = createContext<Entitlements>(PRO);
@@ -48,7 +50,7 @@ const UpgradeModal: React.FC<{ feature: string; onClose: () => void }> = ({ feat
         <I n="lock" size="l" />
       </div>
       <h2 style={{ fontSize: 26 }}>{feature} is a Pro feature</h2>
-      <p className="sub" style={{ fontSize: 15.5 }}>Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues, staff roles and up to 3 photos per design.</p>
+      <p className="sub" style={{ fontSize: 15.5 }}>Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues and up to 3 photos per design.</p>
       <div className="card col" style={{ gap: 8, padding: '12px 16px' }}>
         {['Buyers place orders you confirm and dispatch', 'Kg booked, views and live visitors', 'Unlimited collections and buyers'].map((t) => (
           <div key={t} className="row"><I n="check" size="s" style={{ color: 'var(--ok)' }} /><span>{t}</span></div>

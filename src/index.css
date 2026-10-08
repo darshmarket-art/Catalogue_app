@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "./gilded.css";
 
+/* Bhakti Theme - Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @theme {
   /* "Gilded": ivory ground, aubergine ink, antique-gold accent. Same values as the Antarixs Store Screens canvas. */
   --color-primary: #4a1835;
@@ -67,8 +70,8 @@
   /* Cards are warm white, not paper white. */
   --color-white: #fffcf7;
 
-  --font-serif: "Bodoni Moda", Didot, Georgia, serif;
-  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Bodoni Moda", Didot, Georgia, "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif;
+  --font-sans: "Manrope", "Noto Sans Devanagari", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Shadows carry the aubergine hue instead of grey. */
@@ -148,7 +151,103 @@ html.native {
   }
 }
 
+/* Sign-up steps and the OTP block slide in from the right (Emergent onboarding). */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.step-in {
+  animation: step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Post-login welcome screen: the greeting rises in, a ring pulses, and a bar fills over the 2 s hold. */
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes welcome-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--em-primary) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 28px transparent;
+  }
+}
+@keyframes welcome-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.welcome-rise {
+  animation: welcome-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.welcome-ring {
+  animation: welcome-ring 1.2s ease-out infinite;
+}
+.welcome-bar {
+  transform-origin: left;
+  animation: welcome-fill 2s linear forwards;
+}
+
+/* Rows (orders, buyers, visitors) fade in; the live dot pulses once a second. */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes live-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok, #2f8f5b) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+.live-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--ok, #2f8f5b);
+  vertical-align: middle;
+  animation: live-ring 1.1s ease-out infinite;
+}
+
+/* The tapped design's photo grows into the detail screen, and shrinks back (browsers with View Transitions; others just fade). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+::view-transition-group(product-photo) {
+  animation-duration: 0.44s;
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .step-in,
+  .live-dot,
+  [data-layout="emergent"] .em-ordcard,
   .animate-fade-in,
   .animate-page-in,
   .animate-page-forward,

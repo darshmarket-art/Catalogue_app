@@ -1,6 +1,10 @@
 import { usePlan } from '../plan';
 import React, { useEffect, useRef, useState } from 'react';
-import { canInstall, onInstallChange, promptInstall } from '../install';
+import type { ActiveScreen } from '../types';
+import { merchant } from '../merchant';
+import { currentStoreUrl } from '../storeLink';
+import { StoreShareSheet } from './StoreShareSheet';
+import { t, ts, useLang } from '../i18n';
 
 export interface ProfileUser {
   storeName: string;
@@ -16,24 +20,25 @@ interface ProfileMenuProps {
   isAdmin: boolean;
   onOpenOrders: (tab: 'current' | 'past') => void;
   onOpenAdminConsole: () => void;
-  onChangePassword: () => void;
   onOpenAbout: () => void;
   onLogout: () => void;
+  /** Admin-only entries (share the store, admin accounts, change password) go through here. */
+  onNavigate?: (screen: ActiveScreen) => void;
 }
 
 const itemClass =
   'w-full flex items-center gap-3 px-5 min-h-[50px] text-left text-[15px] font-semibold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-[rgb(74_24_53/0.07)]';
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
-export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onChangePassword, onOpenAbout, onLogout }) => {
+export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout, onNavigate }) => {
   const orders = usePlan().flags.orders;
+  useLang();
   const [open, setOpen] = useState(false);
-  const [installable, setInstallable] = useState(canInstall());
-  useEffect(() => onInstallChange(() => setInstallable(canInstall())), []);
+  const [sharing, setSharing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const name = buyer?.storeName ?? 'Staff account';
+  const name = buyer?.storeName ?? 'Administrator';
 
   useEffect(() => {
     if (!open) return;
@@ -61,10 +66,9 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
   };
 
   const details: Array<[string, string | undefined]> = [
-    ['Owner', buyer?.ownerName],
-    ['Mobile', buyer?.phone],
-    ['GST', buyer?.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined],
-    ['City / market', buyer?.marketHub]
+    [t('Owner'), buyer?.ownerName],
+    [t('Mobile'), buyer?.phone],
+    [t('GST'), buyer?.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined]
   ];
 
   return (
@@ -76,6 +80,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Profile menu"
+        title={t('Profile')}
         className="ib"
       >
         <i aria-hidden="true" className="i i-user" />
@@ -83,14 +88,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
 
       {open && (
         <div
-          role="menu"
-          aria-label="Profile"
           className="card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50 animate-fade-in" style={{ boxShadow: "var(--sh-2)" }}
         >
           <div className="px-5 pt-4 pb-3">
             <p className="serif text-[21px] leading-tight truncate">{name}</p>
             {isAdmin ? (
-              <p className="sub mt-0.5">Staff</p>
+              <p className="sub mt-0.5">Administrator</p>
             ) : (
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                 {details.map(([label, value]) =>
@@ -105,14 +108,18 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
             )}
           </div>
 
+          <div role="menu" aria-label="Profile">
           {isAdmin ? (
             <>
-              <button role="menuitem" className={itemClass} onClick={choose(onOpenAdminConsole)} type="button">
-                Admin console
+              <button role="menuitem" className={itemClass} data-testid="menu-store" onClick={choose(onOpenAdminConsole)} type="button">
+                Store settings
               </button>
-              {orders && (
-                <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
-                  Placed orders
+              <button role="menuitem" className={itemClass} data-testid="menu-share-store" onClick={choose(() => setSharing(true))} type="button">
+                Share store link / QR
+              </button>
+              {onNavigate && (
+                <button role="menuitem" className={itemClass} data-testid="menu-change-password" onClick={choose(() => onNavigate('admin-password'))} type="button">
+                  Change password
                 </button>
               )}
             </>
@@ -121,34 +128,35 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
               {orders && (
                 <>
                   <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('current'))} type="button">
-                    My order
+                    {t('My order')}
                   </button>
                   <button role="menuitem" className={itemClass} onClick={choose(() => onOpenOrders('past'))} type="button">
-                    Past orders
+                    {t('Past orders')}
                   </button>
                 </>
               )}
-              <button role="menuitem" className={itemClass} onClick={choose(onChangePassword)} type="button">
-                Change password
-              </button>
             </>
           )}
 
-          {installable && (
-            <button role="menuitem" className={itemClass} onClick={choose(promptInstall)} type="button">
-              Install app
+          {!isAdmin && (
+            <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
+              {t('About {name}', { name: ts(merchant.brand.name) })}
             </button>
           )}
 
-          <button role="menuitem" className={itemClass} onClick={choose(onOpenAbout)} type="button">
-            About us
-          </button>
+          {!isAdmin && (
+            <button role="menuitem" className={itemClass} data-testid="menu-tour" onClick={choose(() => window.dispatchEvent(new Event('app-tour')))} type="button">
+              {t('Take the app tour')}
+            </button>
+          )}
 
           <button role="menuitem" className={`${itemClass} !text-error`} onClick={choose(onLogout)} type="button">
-            Log out
+            {isAdmin ? 'Log out' : t('Log out')}
           </button>
+          </div>
         </div>
       )}
+      {sharing && <StoreShareSheet name={merchant.brand.name} url={currentStoreUrl()} onClose={() => setSharing(false)} />}
     </div>
   );
 };

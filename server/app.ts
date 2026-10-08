@@ -1,5 +1,5 @@
 import { entitlements } from './entitlements';
-import { createStoreResolver, planOf, scopeBlobs, scopeStore, secretFor } from './tenancy';
+import { createStoreResolver, isPlatformRequest, planOf, scopeBlobs, scopeStore, secretFor, type StoreRecord } from './tenancy';
 import type { PlanDoc } from './entitlements';
 import express from 'express';
 import type { RequestHandler } from 'express';
@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import type { Config } from './config';
 import type { Store } from './store';
-import { createAuth, isNativeClient, NATIVE_TOKEN_TTL, signToken, user } from './auth';
+import { ADMIN_REMEMBER_TTL, claimsOf, createAuth, isNativeClient, NATIVE_TOKEN_TTL, RETAILER_TOKEN_TTL, signToken, user } from './auth';
 import { errorHandler, handler, notFoundApi, requestLogger } from './http';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
@@ -15,20 +15,29 @@ import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
 import { aboutRoutes } from './routes/about';
 import { pwaRoutes } from './routes/pwa';
+import { legalRoutes, platformRoutes } from './legal';
+import compression from 'compression';
 import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
+import { enquiryRoutes } from './routes/enquiries';
+import { adminSummaryRoutes } from './routes/adminSummary';
 import { adminBuyerRoutes } from './routes/adminBuyers';
 import { mediaRoute, photoUploadRoutes } from './routes/photos';
 import { createBlobs, type Blobs } from './blobs';
 import { createMedia } from './media';
-import { createOtpSender, type OtpSender } from './whatsapp';
+import { createOtpDelivery, createOtpSender, type OtpSender } from './whatsapp';
 import { otpRoutes } from './routes/otp';
 import { signupRoutes } from './routes/signup';
 import { sweepRoutes, createTrialSender, type TrialSender, type OidcKeys } from './trialSweep';
 import { consoleMount } from './routes/console';
-import { createNotify, createNotifiers, type Notifiers } from './notify';
+import { createNotify, createNotifiers, createStoreFullNotify, type Notifiers } from './notify';
 import { pushRoutes } from './routes/push';
+import { adminAlertRoutes } from './routes/adminAlerts';
+import { adminMessageRoutes } from './routes/adminMessages';
+import { whatsappWebhookRoutes, receiptsEnabled } from './routes/whatsappWebhook';
+import { createMessageLog, type MessageLog } from './messages';
+import { turnedAwayStats } from './storeFull';
 
 const cmpVersion = (a: string, b: string) => {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
@@ -47,6 +56,18 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   app.disable('x-powered-by');
   // Cloud Run terminates TLS in front of the container; trust exactly one proxy hop for client IPs.
   if (config.isProduction) app.set('trust proxy', 1);
+
+  // Plain-http requests that reach us through the load balancer are sent to https (the health check is exempt).
+  if (config.isProduction) {
+    app.use((req, res, next) => {
+      const host = req.headers.host ?? '';
+      if (req.headers['x-forwarded-proto'] === 'http' && req.path !== '/health' && /^[a-z0-9.-]+(:\d+)?$/i.test(host)) {
+        return void res.redirect(308, `https://${host}${req.originalUrl}`);
+      }
+      next();
+    });
+  }
+  app.use(compression());
 
   app.use(
     helmet({
@@ -104,26 +125,32 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
     next();
   });
   app.use(requestLogger);
+  // Meta's receipts are verified over the raw body, so this mounts before the JSON parser.
+  const log = createMessageLog(root);
+  app.use('/api/webhooks/whatsapp', whatsappWebhookRoutes(config, log));
   app.use(express.json({ limit: '100kb' }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
 
-  app.use('/api/signup', signupRoutes(config, root, sender));
+  app.use('/api/signup', signupRoutes(config, root, createOtpDelivery(config, sender, log, null)));
 
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers);
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log);
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
-  app.use(consoleMount(config, root));
+  app.use(consoleMount(config, root, undefined, log));
+  // Antarixs's own site (app.<domain>) has its own privacy, terms, robots, sitemap and icons; every other request carries on to the store.
+  const platform = platformRoutes(config);
+  app.use((req, res, next) => (isPlatformRequest(req, config) ? platform(req, res, next) : next()));
   app.use(resolver.middleware);
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -132,6 +159,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   if (config.isProduction) app.set('trust proxy', 1);
 
   app.use(pwaRoutes(config.merchant));
+  app.use(legalRoutes(config.merchant));
 
   app.use(
     '/api',
@@ -159,10 +187,13 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
     auth.requireUser,
     handler(async (req, res) => {
       const me = user(res);
-      // Sliding session for the phone app: a fresh 90-day token on every app start.
-      const token = isNativeClient(req) ? signToken(config, { type: me.type, sub: me.id }, NATIVE_TOKEN_TTL) : undefined;
+      const claims = claimsOf(res);
+      // Sliding sessions: the phone app gets a fresh 90-day token on every start; "keep me signed in" admins get a fresh month on every visit.
+      // Buyers on the web get a fresh month on every visit; a plain 8-hour admin session (box unticked) is not renewed.
+      const slide = isNativeClient(req) ? NATIVE_TOKEN_TTL : me.type === 'retailer' ? RETAILER_TOKEN_TTL : claims.remember ? ADMIN_REMEMBER_TTL : null;
+      const token = slide ? signToken(config, { type: me.type, sub: me.id, ...(claims.remember ? { remember: true } : {}) }, slide) : undefined;
       if (me.type === 'admin') {
-        res.json({ status: 'success', token, type: 'admin', admin: { name: me.name, email: me.id, role: me.role } });
+        res.json({ status: 'success', token, type: 'admin', admin: { name: me.name, email: me.id, role: me.role }, mustChangePassword: Boolean(me.mustChangePassword) });
         return;
       }
       // The profile menu shows the buyer's own business details (never the password hash).
@@ -180,7 +211,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   const ent = entitlements(store, plan);
   // Public: plan, limits and feature flags the app mirrors (the server enforces them). Usage is for the admin hub.
   app.get('/api/entitlements', handler(async (_req, res) => {
-    res.json({ status: 'success', data: { ...(await ent.load()), usage: await ent.usage() } });
+    res.json({ status: 'success', data: { ...(await ent.load()), usage: await ent.usage(), turnedAway: await turnedAwayStats(store) } });
   }));
 
   // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
@@ -189,22 +220,28 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   // Pro-only features: Basic gets 402 (the app mirrors this with locked tiles).
   app.use(['/api/orders', '/api/admin/orders'], ent.requireFlag('orders', 'Ordering'));
   app.use('/api/admin/visitors', ent.requireFlag('liveVisitors', 'Live visitors'));
-  app.get(['/api/analytics', '/api/analytics/export'], ent.requireFlag('insights', 'Insights'));
+  app.use('/api/admin/enquiries', ent.requireFlag('enquiries', 'WhatsApp enquiries'));
+  app.get(['/api/analytics', '/api/analytics/export', '/api/analytics/insights'], ent.requireFlag('insights', 'Insights'));
   app.get('/api/admin/audit-logs', ent.requireFlag('auditLog', 'The audit log'));
-  app.post('/api/auth/admin/register', ent.requireFlag('staffRoles', 'Staff roles', (req) => req.body?.role !== 'owner'));
 
-  const notify = createNotify(config, store, ent, notifiers);
+  const notify = createNotify(config, store, ent, notifiers, log);
   app.use('/api/admin/push', ent.requireFlag('alerts', 'Order notifications'), pushRoutes(store, notifiers, auth.requireAdmin));
-  app.use('/api/auth', otpRoutes(config, store, sender, ent));
-  app.use('/api/auth', authRoutes(config, store, auth.requireRetailer));
+  app.use('/api/admin/alerts', adminAlertRoutes(config, store, notifiers, auth.requireAdmin, ent, log));
+  app.use('/api/admin/messages', adminMessageRoutes(config, store, log, auth.requireAdmin));
+  app.use('/api/auth', otpRoutes(config, store, ent, { delivery: createOtpDelivery(config, sender, log, config.merchant.id), log, onStoreFull: createStoreFullNotify(config, store, notifiers, log) }));
+  app.use('/api/auth', authRoutes(config, store, auth.requireRetailer, auth.requireAdmin));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer, notify));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin, notify));
   app.use('/api/admin/buyers', adminBuyerRoutes(store, auth.requireAdmin));
+  const enquiries = enquiryRoutes(store, auth.requireRetailer, auth.requireAdmin, config.rateLimit.analytics);
+  app.use('/api/enquiries', enquiries.buyer);
+  app.use('/api/admin/enquiries', enquiries.admin);
+  app.use('/api/admin/summary', adminSummaryRoutes(config, store, log, ent, auth.requireAdmin));
   app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent));
-  app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth));
+  app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth, { log, receiptsConnected: receiptsEnabled(config) }));
 
   app.use('/api', notFoundApi);
   app.use(errorHandler);

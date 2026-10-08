@@ -162,6 +162,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
         </div>
         <div className="card">
           <span className="stat" style={{ fontSize: 30, color: 'var(--ok)' }}>
+            <i className="live-dot" aria-hidden="true" />
             {analytics.liveVisitors}
           </span>
           <span className="sub" style={{ display: 'block', fontSize: 13 }}>
