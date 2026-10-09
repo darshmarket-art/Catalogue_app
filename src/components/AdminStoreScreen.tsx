@@ -4,6 +4,7 @@ import { usePlan, upgradeNotice } from '../plan';
 import type { ActiveScreen, AdminSummary } from '../types';
 import { Icon, Title } from '../layouts/emergent/ui';
 import { Notice } from './ui';
+import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 
 interface Props {
   summary: AdminSummary;
@@ -58,12 +59,12 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
           <Row icon="share" title="Share store" note="Link and QR for buyers" testId="store-share" onClick={onShare} />
           <Row icon="eye" title="View as a buyer" note="See the catalogue the way buyers do" testId="store-view-buyer" onClick={onViewAsBuyer} />
         </Group>
-        <Group title="Notifications">
-          <Row icon="bell" title="Alerts and WhatsApp" note={flags.alerts ? 'Numbers, test alert, phone alerts' : 'Pro feature'} testId="store-alerts" onClick={() => onNavigate('admin-alerts')} extra={!flags.alerts ? <> <span className="pro">Pro</span></> : undefined} />
-          <Row icon="wa" title="Message log" note="What happened to each WhatsApp message" testId="store-messages" onClick={() => onNavigate('admin-messages')} extra={summary.messagesFailed > 0 ? <> <span className="pill conf" style={{ background: 'var(--em-bad)', color: '#fff' }}>{summary.messagesFailed}</span></> : undefined} />
+        <Group title="Alerts">
+          <OrderNotificationsToggle />
         </Group>
         <Group title="Reports">
           <Row icon="trend" title="Insights" note="Views, orders, active buyers, top designs" testId="store-insights" onClick={() => (flags.insights ? onNavigate('admin-insights') : upgradeNotice('Insights'))} extra={!flags.insights ? <> <span className="pro">Pro</span></> : undefined} />
+          <Row icon="wa" title="WA Lighthouse" note="WhatsApp numbers, test alert and message log" testId="store-wa-lighthouse" onClick={() => (flags.alerts ? onNavigate('admin-alerts') : upgradeNotice('WA Lighthouse'))} extra={!flags.alerts ? <> <span className="pro">Pro</span></> : summary.messagesFailed > 0 ? <> <span className="pill conf" style={{ background: 'var(--em-bad)', color: '#fff' }}>{summary.messagesFailed}</span></> : undefined} />
           <Row icon="file" title="Audit log" note={downloading ? 'Downloading…' : 'Export every change as CSV'} testId="store-audit" onClick={exportAudit} extra={!flags.auditLog ? <> <span className="pro">Pro</span></> : undefined} />
         </Group>
         <Group title="Plan">

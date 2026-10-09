@@ -50,12 +50,12 @@ export const OrderNotificationsToggle: React.FC = () => {
     <>
       <div className="card em-row em-sb" style={{ gap: 12 }}>
         <div>
-          <div style={{ fontWeight: 500 }}>Order alerts</div>
+          <div style={{ fontWeight: 500 }}>Alerts</div>
           <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
             {!flags.alerts ? 'Pro feature' : key ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser'}
           </div>
         </div>
-        <Switch on={on} onChange={toggle} label="Order alerts on this device" />
+        <Switch on={on} onChange={toggle} label="Alerts on this device" />
       </div>
       {error && <Notice tone="error">{error}</Notice>}
     </>

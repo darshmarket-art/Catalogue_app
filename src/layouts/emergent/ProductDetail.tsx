@@ -175,7 +175,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
       ? `नमस्ते ${ts(merchant.brand.name)}, मुझे ${name} (${product.sku}), ${pur(product.purity)}, नेट ${product.netWt.toFixed(2)} ग्राम के बारे में जानना है।`
       : `Hello ${merchant.brand.name}, I'm interested in ${product.title} (${product.sku}), ${product.purity}, net ${product.netWt.toFixed(2)} g.`;
   const catHi = categories.find((c) => c.name === product.category)?.nameHi;
-  const description = hl(product.description, product.descriptionHi);
+  const description = hn(product.description, product.descriptionHi);
   const waHref = `https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(askText)}`;
   // Tapping a WhatsApp button tells the owner's Enquiries inbox (the chat opens either way).
   const noteEnquiry = () => {

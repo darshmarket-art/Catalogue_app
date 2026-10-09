@@ -6,6 +6,7 @@ import { Field, I, Notice } from './ui';
 import { api } from '../api';
 import { setTagList, useTagList } from '../tagList';
 import { toHindi } from '../../shared/hindi';
+import { Icon } from '../layouts/emergent/ui';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -25,6 +26,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
   const [tag, setTag] = useState(editing?.tag ?? '');
   const tagList = useTagList();
   const [newTag, setNewTag] = useState<string | null>(null);
+  const [tagOpen, setTagOpen] = useState(false);
   const [tagProblem, setTagProblem] = useState<string | null>(null);
   const addTag = async () => {
     const name = (newTag ?? '').trim();
@@ -157,18 +159,34 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
       <div>
         <span className="lab" id="ac-tag-l">Tag (required)</span>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }} role="radiogroup" aria-labelledby="ac-tag-l" data-testid="collection-tag">
-          {tagList.map((t) => (
-            <button key={t} type="button" role="radio" aria-checked={tag === t} className={`chip${tag === t ? ' on' : ''}`} onClick={() => setTag(t)}>
-              {t}
-            </button>
-          ))}
-          {newTag === null && (
-            <button type="button" className="chip" data-testid="tag-new" onClick={() => setNewTag('')}>
-              + New tag
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          className="inp"
+          data-testid="collection-tag-button"
+          aria-haspopup="listbox"
+          aria-expanded={tagOpen}
+          aria-labelledby="ac-tag-l"
+          onClick={() => setTagOpen(!tagOpen)}
+          style={{ justifyContent: 'space-between', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}
+        >
+          <span style={{ color: tag ? 'inherit' : 'var(--placeholder)' }}>{tag || 'Choose a tag'}</span>
+          <Icon n={tagOpen ? 'up' : 'chev'} size={20} />
+        </button>
+        {tagOpen && (
+          <div role="listbox" aria-labelledby="ac-tag-l" data-testid="collection-tag" style={{ marginTop: 6, border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', background: 'var(--card)' }}>
+            {tagList.map((t, i) => (
+              <button key={t} type="button" role="option" aria-selected={tag === t} onClick={() => { setTag(t); setTagOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minHeight: 46, padding: '0 16px', border: 0, borderTop: i ? '1px solid var(--line)' : 0, background: tag === t ? 'var(--plum-l, #efe8dc)' : 'transparent', font: 'inherit', fontWeight: tag === t ? 600 : 400, textAlign: 'left', cursor: 'pointer', color: 'inherit' }}>
+                {t}
+                {tag === t && <Icon n="check" size={16} />}
+              </button>
+            ))}
+            {newTag === null && (
+              <button type="button" data-testid="tag-new" onClick={() => setNewTag('')} style={{ display: 'flex', alignItems: 'center', width: '100%', minHeight: 46, padding: '0 16px', border: 0, borderTop: tagList.length ? '1px solid var(--line)' : 0, background: 'transparent', font: 'inherit', fontWeight: 600, textAlign: 'left', cursor: 'pointer', color: 'var(--plum, inherit)' }}>
+                + New tag
+              </button>
+            )}
+          </div>
+        )}
         {newTag !== null && (
           <div className="row" style={{ gap: 8, marginTop: 8 }}>
             <input className="inp" style={{ flex: 1, minWidth: 0 }} aria-label="New tag name" data-testid="tag-new-name" value={newTag} maxLength={30} autoFocus placeholder="e.g. Anklets" onChange={(e) => setNewTag(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), void addTag())} />

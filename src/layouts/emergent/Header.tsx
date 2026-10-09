@@ -27,7 +27,7 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-purities': 'Purity options',
   'admin-about': 'About us',
   'admin-plan': 'Plan and usage',
-  'admin-alerts': 'Alerts and WhatsApp',
+  'admin-alerts': 'WA Lighthouse',
   'admin-messages': 'Message log',
   'admin-insights': 'Insights',
   'admin-password': 'Change password',
@@ -66,7 +66,12 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
     }
   };
 
-  const profile = showProfile ? (
+  // The owner has no profile: the three-bar button goes straight to the store settings.
+  const profile = showProfile && isAdminLoggedIn ? (
+    <button type="button" className="em-circ" aria-label={t('Store settings')} data-testid="admin-menu" onClick={() => onNavigate('admin-store')}>
+      <Icon n="menu" />
+    </button>
+  ) : showProfile ? (
     <ProfileMenu
       buyer={currentMerchant}
       isAdmin={isAdminLoggedIn}

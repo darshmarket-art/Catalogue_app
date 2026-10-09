@@ -3,7 +3,6 @@ import { api, type AlertSettings, type AlertTestResult } from '../api';
 import { usePlan, upgradeNotice } from '../plan';
 import { Field, Notice } from './ui';
 import { Icon } from '../layouts/emergent/ui';
-import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 import type { ActiveScreen } from '../types';
 
 const pretty = (n: string) => `+${n}`;
@@ -61,7 +60,6 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
           <span data-testid="alerts-pro-notice">WhatsApp alerts are a Pro feature. You can look around; saving and testing need Pro.</span>
         </Notice>
       )}
-      <OrderNotificationsToggle />
       {err && <Notice tone="error">{err}</Notice>}
       {ok && <Notice tone="ok">{ok}</Notice>}
 

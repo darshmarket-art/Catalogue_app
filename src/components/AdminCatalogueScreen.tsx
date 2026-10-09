@@ -322,7 +322,10 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
     <div className="em-card" data-testid="tag-manager">
       <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={open} onClick={() => setOpen(!open)}>
         <b style={{ fontWeight: 600 }}>Tags</b>
-        <span className="em-mut" style={{ fontSize: 12 }}>{tags.length} tags · {open ? 'Hide' : 'Manage'}</span>
+        <span className="em-row" style={{ gap: 10 }}>
+          <span className="em-mut" style={{ fontSize: 12 }}>{tags.length} tags</span>
+          <span className="em-circ" style={{ width: 32, height: 32 }} aria-hidden="true"><Icon n={open ? 'up' : 'chev'} size={18} /></span>
+        </span>
       </button>
       {open && (
         <div style={{ marginTop: 8 }}>
@@ -386,6 +389,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
   // The hero collections: the tiles the buyers' Home shows first. Up to four, in the order set here.
   const heroes = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
   const notice = (msg: string) => { setStatus(msg); setTimeout(() => setStatus(null), 3500); };
+  const [heroOpen, setHeroOpen] = useState(true);
   const saveHeroes = async (ids: string[]) => { if (!(await onHeroSave(ids))) notice('Could not save the hero collections. Try again.'); };
   const toggleHero = (c: Category) => {
     const ids = heroes.map((h) => h.id);
@@ -451,23 +455,30 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
     <>
       {status && <Toast>{status}</Toast>}
       <div className="em-card" data-testid="hero-collections">
-        <div className="em-row em-sb">
+        <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={heroOpen} onClick={() => setHeroOpen(!heroOpen)}>
           <b style={{ fontWeight: 600 }}>Hero collections on Home</b>
-          <span className="em-mut" style={{ fontSize: 12 }}>{heroes.length} of 4</span>
-        </div>
-        <p className="em-mut" style={{ fontSize: 12.5, margin: '4px 0 6px' }}>Buyers see these first. Tap the star on a collection to add it.</p>
-        {heroes.length === 0 ? (
-          <p className="em-hint" style={{ margin: 0 }}>None chosen yet, so Home shows your four busiest collections.</p>
-        ) : (
-          heroes.map((h, i) => (
-            <div key={h.id} className="em-row" data-testid="hero-row" style={{ gap: 10, padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
-              <span className="em-ser" style={{ width: 18, color: 'var(--em-gold-ink)' }}>{i + 1}</span>
-              <span className="em-grow em-clip" style={{ fontWeight: 500 }}>{h.name}</span>
-              <button type="button" className="em-circ" style={{ width: 32, height: 32 }} disabled={i === 0} aria-label={`Move ${h.name} earlier`} onClick={() => moveHero(i, -1)}><Icon n="up" size={14} /></button>
-              <button type="button" className="em-circ" style={{ width: 32, height: 32 }} disabled={i === heroes.length - 1} aria-label={`Move ${h.name} later`} onClick={() => moveHero(i, 1)}><Icon n="chev" size={14} /></button>
-              <button type="button" className="em-circ" style={{ width: 32, height: 32 }} aria-label={`Remove ${h.name} from the hero collections`} onClick={() => toggleHero(h)}><Icon n="x" size={14} /></button>
-            </div>
-          ))
+          <span className="em-row" style={{ gap: 10 }}>
+            <span className="em-mut" style={{ fontSize: 12 }}>{heroes.length} of 4</span>
+            <span className="em-circ" style={{ width: 32, height: 32 }} aria-hidden="true"><Icon n={heroOpen ? 'up' : 'chev'} size={18} /></span>
+          </span>
+        </button>
+        {heroOpen && (
+          <>
+            <p className="em-mut" style={{ fontSize: 12.5, margin: '8px 0 6px' }}>Buyers see these first. Tap the star on a collection to add it, then use the arrows to move it up or down.</p>
+            {heroes.length === 0 ? (
+              <p className="em-hint" style={{ margin: 0 }}>None chosen yet, so Home shows your four busiest collections.</p>
+            ) : (
+              heroes.map((h, i) => (
+                <div key={h.id} className="em-row" data-testid="hero-row" style={{ gap: 10, padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
+                  <span className="em-ser" style={{ width: 18, color: 'var(--em-gold-ink)' }}>{i + 1}</span>
+                  <span className="em-grow em-clip" style={{ fontWeight: 500 }}>{h.name}</span>
+                  <button type="button" className="em-circ" style={{ width: 36, height: 36 }} disabled={i === 0} aria-label={`Move ${h.name} up`} onClick={() => moveHero(i, -1)}><Icon n="up" size={18} /></button>
+                  <button type="button" className="em-circ" style={{ width: 36, height: 36 }} disabled={i === heroes.length - 1} aria-label={`Move ${h.name} down`} onClick={() => moveHero(i, 1)}><Icon n="chev" size={18} /></button>
+                  <button type="button" className="em-circ" style={{ width: 36, height: 36 }} aria-label={`Remove ${h.name} from the hero collections`} onClick={() => toggleHero(h)}><Icon n="x" size={16} /></button>
+                </div>
+              ))
+            )}
+          </>
         )}
       </div>
       <TagManager categories={categories} onChanged={onTagsChanged} />
