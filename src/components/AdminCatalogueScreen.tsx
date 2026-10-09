@@ -389,7 +389,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
   // The hero collections: the tiles the buyers' Home shows first. Up to four, in the order set here.
   const heroes = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
   const notice = (msg: string) => { setStatus(msg); setTimeout(() => setStatus(null), 3500); };
-  const [heroOpen, setHeroOpen] = useState(true);
+  const [heroOpen, setHeroOpen] = useState(false);
   const saveHeroes = async (ids: string[]) => { if (!(await onHeroSave(ids))) notice('Could not save the hero collections. Try again.'); };
   const toggleHero = (c: Category) => {
     const ids = heroes.map((h) => h.id);

@@ -60,7 +60,7 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
           <Row icon="eye" title="View as a buyer" note="See the catalogue the way buyers do" testId="store-view-buyer" onClick={onViewAsBuyer} />
         </Group>
         <Group title="Alerts">
-          <OrderNotificationsToggle />
+          <OrderNotificationsToggle row />
         </Group>
         <Group title="Reports">
           <Row icon="trend" title="Insights" note="Views, orders, active buyers, top designs" testId="store-insights" onClick={() => (flags.insights ? onNavigate('admin-insights') : upgradeNotice('Insights'))} extra={!flags.insights ? <> <span className="pro">Pro</span></> : undefined} />
