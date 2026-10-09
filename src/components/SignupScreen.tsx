@@ -230,7 +230,7 @@ export const SignupScreen: React.FC = () => {
     <Shell>
     <div className="ax-wrap" style={{ paddingBottom: 0 }}>
       <div className="ax-nav">
-        <PlatformWord />
+        <PlatformWord caption="Jewellers Solution" size={44} />
         <nav className="links" aria-label="Main">
           <a href="/welcome-antarixs">Back to welcome</a>
         </nav>
@@ -262,17 +262,18 @@ export const SignupScreen: React.FC = () => {
           </Field>
           <div>
             <label className="lab" htmlFor="sn">
-              Store address
+              Your store address
             </label>
             <div className="inp" style={{ padding: 0 }}>
               <input
                 id="sn"
                 data-testid="signup-store-name"
-                required
+                readOnly
+                tabIndex={-1}
+                aria-readonly="true"
                 value={f.storeName}
-                onChange={(e) => setF({ ...f, storeName: slug(e.target.value) })}
-                placeholder="your-name"
-                style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 0, background: 'transparent', padding: '0 0 0 15px', font: 'inherit', color: 'inherit' }}
+                placeholder="made from your business name"
+                style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 0, background: 'transparent', padding: '0 0 0 15px', font: 'inherit', color: 'inherit', cursor: 'default' }}
               />
               <span style={{ color: 'var(--mut)', paddingRight: 15 }}>.antarixs.com</span>
             </div>
