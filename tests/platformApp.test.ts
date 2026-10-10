@@ -17,6 +17,6 @@ describe('Antarixs onboarding app', () => {
     const svg = platformIconSvg();
     expect(svg).toContain('<svg');
     expect(svg).toContain('#1A0B4D'); // the kit's Deep icon tile
-    expect(svg).toContain('#7CC4FF');
+    expect(svg).toContain('#5AD4FF'); // the mark's sky-blue apex
   });
 });

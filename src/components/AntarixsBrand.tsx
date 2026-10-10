@@ -1,33 +1,28 @@
 import { t } from '../i18n';
 import React, { useId } from 'react';
+import { MARK_COLORS, MARK_PATHS, SWOOSH_GRADIENT, markGradient } from '../../shared/antarixsMark';
 
-/** The Antarixs mark (from the Emergent atlas): a lambda "A" in sky-blue to purple, a yellow swoosh and a spark. The spark sits on the A's centre line below its apex; the swoosh starts at the A's bottom-left foot and runs toward the spark's centre. Shared with the share card in storeQrCard.ts. */
-export const MARK_PATHS = {
-  lambda: 'M50 8 L92 90 L75 90 L50 40 L25 90 L8 90 Z',
-  swoosh: 'M37.5 60.2 Q22 70 8 91 Q26 82 43 67.6 Z',
-  spark: 'M50 42 C51.6 51 54.4 53.8 63 55.5 C54.4 57.2 51.6 60 50 69 C48.4 60 45.6 57.2 37 55.5 C45.6 53.8 48.4 51 50 42 Z'
-};
-export const AX = { blue: '#7CC4FF', purple: '#6100F0', deep: '#2B0A7A', spark: '#F3E35A' };
+/** The Antarixs mark lives in shared/antarixsMark.ts (also used by the server's favicon and the app-icon build); re-exported for the canvas renderers. */
+export { MARK_PATHS };
+export const AX = { blue: '#7CC4FF', purple: '#6100F0', deep: '#2B0A7A', spark: MARK_COLORS.spark };
 
-/** `dark`: the lambda ends in lavender instead of deep indigo, so it stays visible on a near-black ground (the Orbit theme). */
+/** The mark: a lambda "A" from sky-blue to purple, the spark on its centre line, and the yellow line from its bottom-left foot toward the spark. `dark`: the A ends in lavender, so it stays visible on a near-black ground (the Orbit theme). */
 export const AntarixsMark: React.FC<{ size?: number; dark?: boolean }> = ({ size = 28, dark }) => {
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const g = markGradient(dark);
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
       <defs>
-        <linearGradient id={`l${id}`} x1="0.1" y1="0" x2="0.95" y2="1">
-          <stop offset="0" stopColor={AX.blue} />
-          <stop offset="0.55" stopColor={dark ? '#8a4dff' : AX.purple} />
-          <stop offset="1" stopColor={dark ? '#c9b2ff' : AX.deep} />
+        <linearGradient id={`l${id}`} gradientUnits="userSpaceOnUse" x1="0" y1={g.y1} x2="0" y2={g.y2}>
+          {g.stops.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
         </linearGradient>
-        <linearGradient id={`s${id}`} x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={AX.spark} />
-          <stop offset="1" stopColor="#FFF6A8" />
+        <linearGradient id={`s${id}`} gradientUnits="userSpaceOnUse" x1={SWOOSH_GRADIENT.x1} y1={SWOOSH_GRADIENT.y1} x2={SWOOSH_GRADIENT.x2} y2={SWOOSH_GRADIENT.y2}>
+          {SWOOSH_GRADIENT.stops.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
         </linearGradient>
       </defs>
       <path d={MARK_PATHS.lambda} fill={`url(#l${id})`} />
       <path d={MARK_PATHS.swoosh} fill={`url(#s${id})`} />
-      <path d={MARK_PATHS.spark} fill={AX.spark} />
+      <path d={MARK_PATHS.spark} fill={MARK_COLORS.spark} />
     </svg>
   );
 };

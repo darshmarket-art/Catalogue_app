@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request } from 'express';
 import type { MerchantConfig } from './merchant';
 import type { Config } from './config';
+import { antarixsIconSvg } from '../shared/antarixsMark';
 
 /**
  * The pages a site needs before it is public, written per store from its own merchant record: Privacy, Terms, a proper "page not found",
@@ -357,12 +358,13 @@ export function platformNotFoundPage(c: Config) {
   );
 }
 
-/** The mark browsers show in the tab: Antarixs's purple tile with a white A. */
-const PLATFORM_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#2b0a7a"/><path d="M26 76 50 24l24 52h-11l-4.5-10.5H41.5L37 76Zm19-21h10L50 43Z" fill="#f7f3ff"/></svg>`;
+/** The mark browsers show in the tab: the Antarixs mark on its deep tile (shared/antarixsMark.ts). The PNG icons are square; Android and Apple apply their own mask. */
+const PLATFORM_ICON_SVG = antarixsIconSvg(true);
+const PLATFORM_ICON_PNG_SVG = antarixsIconSvg(false);
 const iconCache = new Map<number, Promise<Buffer>>();
 const iconPng = (px: number) => {
   let p = iconCache.get(px);
-  if (!p) iconCache.set(px, (p = import('sharp').then((m) => m.default(Buffer.from(PLATFORM_ICON_SVG)).resize(px, px).png().toBuffer())));
+  if (!p) iconCache.set(px, (p = import('sharp').then((m) => m.default(Buffer.from(PLATFORM_ICON_PNG_SVG)).resize(px, px).png().toBuffer())));
   return p;
 };
 

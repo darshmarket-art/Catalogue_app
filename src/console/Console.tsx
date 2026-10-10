@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { Activity, Award, FileText, Globe, HardDrive, LayoutDashboard, Package, RefreshCw, Search, Store, UserRound, Users } from 'lucide-react';
+import { markSvgInner } from '../../shared/antarixsMark';
 import { call, num, revisionNo, useApi, type Action, type Row, type Summary } from './api';
 import { ActivityPage, AuditPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, SubdomainsPage, StoresPage, type PageProps } from './pages';
 
@@ -107,7 +108,7 @@ export default function Console() {
       <aside className="cn-side">
         <div className="cn-brand">
           <span className="cn-mk" aria-hidden="true">
-            <svg viewBox="0 0 100 100" width="20" height="20"><path d="M50 8L92 90L75 90L50 40L25 90L8 90Z" fill="#7cc4ff" /><path d="M50 42C51.6 51 54.4 53.8 63 55.5C54.4 57.2 51.6 60 50 69C48.4 60 45.6 57.2 37 55.5C45.6 53.8 48.4 51 50 42Z" fill="#f3e35a" /></svg>
+            <svg viewBox="0 0 100 100" width="20" height="20" dangerouslySetInnerHTML={{ __html: markSvgInner('cn', true) }} />
           </span>
           <div><b className="ser">Antarixs</b><small>Console</small></div>
         </div>

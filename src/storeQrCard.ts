@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
-import { AX, MARK_PATHS } from './components/AntarixsBrand';
+import { AX } from './components/AntarixsBrand';
+import { drawAntarixsMark } from './antarixsLogo';
 
 /** The picture a new owner shares: the store's QR with its name and address, and "Powered by Antarixs" with the logo. A 1080x1350 PNG. */
 export async function storeQrBlob(name: string, url: string): Promise<Blob> {
@@ -60,15 +61,7 @@ export async function storeQrBlob(name: string, url: string): Promise<Blob> {
   g.save();
   g.translate(x0 + lw + 16, y - 48);
   g.scale(mark / 100, mark / 100);
-  const lam = g.createLinearGradient(10, 0, 95, 100);
-  lam.addColorStop(0, AX.blue);
-  lam.addColorStop(0.55, '#8a4dff');
-  lam.addColorStop(1, '#c9b2ff');
-  g.fillStyle = lam;
-  g.fill(new Path2D(MARK_PATHS.lambda));
-  g.fillStyle = AX.spark;
-  g.fill(new Path2D(MARK_PATHS.swoosh));
-  g.fill(new Path2D(MARK_PATHS.spark));
+  drawAntarixsMark(g, true);
   g.restore();
   g.fillStyle = '#fff';
   g.font = '500 40px Fraunces, Georgia, serif';

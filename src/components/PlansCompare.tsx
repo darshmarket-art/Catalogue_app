@@ -4,6 +4,7 @@ import { SALES_EMAIL } from '../../shared/sales';
 import { usePlan } from '../plan';
 import { I } from './ui';
 import { Icon } from '../layouts/emergent/ui';
+import { AntarixsMark } from './AntarixsBrand';
 
 type FlagName = keyof ReturnType<typeof flagsFor>;
 
@@ -52,18 +53,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
       <div className="em-antarixs" data-testid="plans-banner">
         <div className="em-row" style={{ gap: 10 }}>
           <span style={{ width: 40, height: 40, borderRadius: 12, background: 'rgb(255 255 255 / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true">
-              <defs>
-                <linearGradient id="plans-axg" x1=".1" y1="0" x2=".95" y2="1">
-                  <stop offset="0" stopColor="#7CC4FF" />
-                  <stop offset=".55" stopColor="#6100F0" />
-                  <stop offset="1" stopColor="#2B0A7A" />
-                </linearGradient>
-              </defs>
-              <path d="M50 8L92 90L75 90L50 40L25 90L8 90Z" fill="url(#plans-axg)" />
-              <path d="M37.5 60.2Q22 70 8 91Q26 82 43 67.6Z" fill="#F3E35A" />
-              <path d="M50 42C51.6 51 54.4 53.8 63 55.5C54.4 57.2 51.6 60 50 69C48.4 60 45.6 57.2 37 55.5C45.6 53.8 48.4 51 50 42Z" fill="#F3E35A" />
-            </svg>
+            <AntarixsMark size={24} dark />
           </span>
           <div>
             <div className="em-ser" style={{ fontSize: 19 }}>
