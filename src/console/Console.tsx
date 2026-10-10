@@ -107,7 +107,7 @@ export default function Console() {
       <aside className="cn-side">
         <div className="cn-brand">
           <span className="cn-mk" aria-hidden="true">
-            <svg viewBox="0 0 100 100" width="20" height="20"><path d="M50 8L92 90L75 90L50 40L25 90L8 90Z" fill="#7cc4ff" /><path d="M45 42C46.6 51 49.4 53.8 58 55.5C49.4 57.2 46.6 60 45 69C43.4 60 40.6 57.2 32 55.5C40.6 53.8 43.4 51 45 42Z" fill="#f3e35a" /></svg>
+            <svg viewBox="0 0 100 100" width="20" height="20"><path d="M50 8L92 90L75 90L50 40L25 90L8 90Z" fill="#7cc4ff" /><path d="M50 42C51.6 51 54.4 53.8 63 55.5C54.4 57.2 51.6 60 50 69C48.4 60 45.6 57.2 37 55.5C45.6 53.8 48.4 51 50 42Z" fill="#f3e35a" /></svg>
           </span>
           <div><b className="ser">Antarixs</b><small>Console</small></div>
         </div>

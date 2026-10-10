@@ -16,14 +16,14 @@ export function platformUrl(baseDomain: string): string {
 export const LOGO_KIT = { tile: '#1A0B4D', sky: '#7CC4FF', purple: '#6100F0', violet: '#2B0A7A', spark: '#F3E35A', sparkLight: '#FFF6A8' };
 
 /**
- * Launcher icon art, as in the kit: the mark (kit viewBox "-6 0 106 104") centred on the Deep tile.
- * It is scaled to about 60% so round and adaptive masks do not cut the comet tail.
+ * Launcher icon art, as in the kit: the mark centred on the Deep tile. The mark spans x 8..92, y 8..91 (centre 50, 49.5);
+ * scaled to about 59% of the tile so round and adaptive masks do not cut the comet tail.
  */
 export function platformIconSvg(): string {
   const k = LOGO_KIT;
-  const scale = 0.58;
-  const tx = (50 - 47 * scale).toFixed(2); // 47, 52 = centre of the kit's -6 0 106 104 box
-  const ty = (50 - 52 * scale).toFixed(2);
+  const scale = 0.7;
+  const tx = (50 - 50 * scale).toFixed(2);
+  const ty = (50 - 49.5 * scale).toFixed(2);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
 <defs>
 <linearGradient id="gl" x1="0.1" y1="0" x2="0.95" y2="1"><stop offset="0" stop-color="${k.sky}"/><stop offset="0.55" stop-color="${k.purple}"/><stop offset="1" stop-color="${k.violet}"/></linearGradient>

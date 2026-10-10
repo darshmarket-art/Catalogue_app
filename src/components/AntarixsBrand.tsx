@@ -1,11 +1,11 @@
 import { t } from '../i18n';
 import React, { useId } from 'react';
 
-/** The Antarixs mark (from the Emergent atlas): a lambda "A" in sky-blue to purple, a yellow swoosh and a spark. Shared with the share card in storeQrCard.ts. */
+/** The Antarixs mark (from the Emergent atlas): a lambda "A" in sky-blue to purple, a yellow swoosh and a spark. The spark sits on the A's centre line below its apex; the swoosh starts at the A's bottom-left foot and runs toward the spark's centre. Shared with the share card in storeQrCard.ts. */
 export const MARK_PATHS = {
   lambda: 'M50 8 L92 90 L75 90 L50 40 L25 90 L8 90 Z',
-  swoosh: 'M33 78 Q16 90 -4 101 Q17 94 37 86 Z',
-  spark: 'M45 42 C46.6 51 49.4 53.8 58 55.5 C49.4 57.2 46.6 60 45 69 C43.4 60 40.6 57.2 32 55.5 C40.6 53.8 43.4 51 45 42 Z'
+  swoosh: 'M37.5 60.2 Q22 70 8 91 Q26 82 43 67.6 Z',
+  spark: 'M50 42 C51.6 51 54.4 53.8 63 55.5 C54.4 57.2 51.6 60 50 69 C48.4 60 45.6 57.2 37 55.5 C45.6 53.8 48.4 51 50 42 Z'
 };
 export const AX = { blue: '#7CC4FF', purple: '#6100F0', deep: '#2B0A7A', spark: '#F3E35A' };
 
