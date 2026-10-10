@@ -1,26 +1,54 @@
-name: Android APK
+name: Store Android APK
 
-# Builds a debug APK for one merchant. Does not deploy anything.
-# Runs on pushes to android-pwa (defaults below) or manually from main.
+# Builds a debug APK for ONE store (any store on the platform, bhakti included). Does not deploy anything.
+# - Manual: Actions > Store Android APK > Run workflow, with the store id (its subdomain).
+# - Programmatic: other workflows or the platform call this with workflow_call or the dispatches API (same inputs).
+# - Push to android-pwa builds bhakti, the founder store, as before.
 on:
   push:
     branches: [android-pwa]
   workflow_dispatch:
     inputs:
       store_id:
-        description: Store id (the subdomain); bhakti uses its committed merchants/bhakti config
+        description: Store id (its subdomain, e.g. bhakti or acme)
+        required: true
         default: bhakti
       api_base:
         description: Server the app talks to; leave empty for the store's own address, https://<store_id>.antarixs.com
         default: ''
+  workflow_call:
+    inputs:
+      store_id:
+        required: true
+        type: string
+      api_base:
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+# One build per store at a time; a second request for the same store waits instead of overwriting its APK.
+concurrency:
+  group: store-apk-${{ inputs.store_id || 'bhakti' }}
+  cancel-in-progress: false
 
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       STORE_ID: ${{ inputs.store_id || 'bhakti' }}
       VITE_API_BASE: ${{ inputs.api_base || format('https://{0}.antarixs.com', inputs.store_id || 'bhakti') }}
     steps:
+      - name: Check the store id
+        # Read from env, never pasted into the script, so the input cannot inject shell.
+        run: |
+          if ! [[ "$STORE_ID" =~ ^[a-z0-9-]{2,40}$ ]]; then
+            echo "Invalid store id: '$STORE_ID' (lowercase letters, digits and dashes, 2 to 40 characters)"
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -32,12 +60,13 @@ jobs:
           java-version: 21
       - run: npm ci
       - run: npm test
-      # Writes merchants/<store>/merchant.json (app id, name, theme); exports MERCHANT, VITE_STORE, VITE_API_BASE, APP_ID.
+      # Reads the store's live config (GET /api/config?store=<id>), or the committed bhakti config, then writes
+      # merchants/<store>/merchant.json and exports MERCHANT, VITE_STORE, VITE_API_BASE, APP_ID for the later steps.
       - run: npx tsx scripts/build-store-app.ts
         env:
           API_BASE: ${{ env.VITE_API_BASE }}
       - run: npm run build:native
-      # ponytail: android/ is generated each run (app id/name change per merchant); commit it once we customise it.
+      # android/ is generated each run (app id and name differ per store); not committed.
       - run: '[ -d android ] || npx cap add android'
       - run: npx cap sync android
       - run: npx tsx scripts/build-store-app.ts --icons
@@ -48,7 +77,16 @@ jobs:
           V=$(node -p "require('./package.json').version")
           cp android/app/build/outputs/apk/debug/app-debug.apk "$STORE_ID-$V.apk"
           echo "APK=$STORE_ID-$V.apk" >> "$GITHUB_ENV"
+      - name: Summary
+        run: |
+          {
+            echo "### Store app built: $STORE_ID"
+            echo "- App id: \`$APP_ID\`"
+            echo "- API: $VITE_API_BASE"
+            echo "- APK: \`$APK\` (debug build, see the artifact)"
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.STORE_ID }}-debug-apk-${{ github.run_number }}
           path: ${{ env.APK }}
+          retention-days: 30
