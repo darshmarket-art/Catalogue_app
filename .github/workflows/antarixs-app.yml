@@ -1,0 +1,61 @@
+name: Antarixs onboarding app
+
+# Builds the Antarixs app for store owners: a native shell that opens app.<base domain>, where they create a store
+# and are handed the new store's address. Debug APK only; does not deploy anything.
+on:
+  workflow_dispatch:
+    inputs:
+      base_domain:
+        description: Platform domain (the app opens https://app.<base_domain>)
+        default: antarixs.com
+
+permissions:
+  contents: read
+
+concurrency:
+  group: antarixs-app
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE_DOMAIN: ${{ inputs.base_domain || 'antarixs.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test
+      # Exports PLATFORM_APP=1, APP_ID, APP_NAME and PLATFORM_URL for the later steps (capacitor.config.ts reads them).
+      - run: npx tsx scripts/build-platform-app.ts
+      # dist/ only supplies offline.html; the app itself loads the live site.
+      - run: npm run build:native
+      - run: '[ -d android ] || npx cap add android'
+      - run: npx cap sync android
+      - run: npx tsx scripts/build-platform-app.ts --icons
+      - run: ./gradlew assembleDebug
+        working-directory: android
+      - name: Name the APK
+        run: |
+          V=$(node -p "require('./package.json').version")
+          cp android/app/build/outputs/apk/debug/app-debug.apk "antarixs-$V.apk"
+          echo "APK=antarixs-$V.apk" >> "$GITHUB_ENV"
+          {
+            echo "### Antarixs onboarding app built"
+            echo "- App id: \`$APP_ID\`"
+            echo "- Opens: $PLATFORM_URL"
+            echo "- APK: \`antarixs-$V.apk\` (debug build, see the artifact)"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: antarixs-debug-apk-${{ github.run_number }}
+          path: ${{ env.APK }}
+          retention-days: 30
