@@ -34,6 +34,7 @@ import { consoleMount } from './routes/console';
 import { createNotify, createNotifiers, createStoreFullNotify, type Notifiers } from './notify';
 import { pushRoutes } from './routes/push';
 import { adminAlertRoutes } from './routes/adminAlerts';
+import { appBuildRoutes } from './appBuild';
 import { adminMessageRoutes } from './routes/adminMessages';
 import { whatsappWebhookRoutes, receiptsEnabled } from './routes/whatsappWebhook';
 import { createMessageLog, type MessageLog } from './messages';
@@ -227,6 +228,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   const notify = createNotify(config, store, ent, notifiers, log);
   app.use('/api/admin/push', ent.requireFlag('alerts', 'Order notifications'), pushRoutes(store, notifiers, auth.requireAdmin));
   app.use('/api/admin/alerts', adminAlertRoutes(config, store, notifiers, auth.requireAdmin, ent, log));
+  app.use('/api/admin/app-build', appBuildRoutes(config, store, auth.requireAdmin));
   app.use('/api/admin/messages', adminMessageRoutes(config, store, log, auth.requireAdmin));
   app.use('/api/auth', otpRoutes(config, store, ent, { delivery: createOtpDelivery(config, sender, log, config.merchant.id), log, onStoreFull: createStoreFullNotify(config, store, notifiers, log) }));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer, auth.requireAdmin));
