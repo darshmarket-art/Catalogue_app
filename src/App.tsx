@@ -642,11 +642,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isAdminLoggedIn) setMyStore(merchant.id);
-  }, [isAdminLoggedIn]);
+    if (isSignedIn) setMyStore(merchant.id);
+  }, [isSignedIn]);
 
   const handleLogout = () => {
-    if (isAdminLoggedIn) clearMyStore();
+    clearMyStore();
     setAuthToken(null);
     setOrders([]);
     setCurrentMerchant(null);

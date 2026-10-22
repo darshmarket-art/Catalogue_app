@@ -117,6 +117,18 @@ export function signupRoutes(config: Config, root: Store, delivery: OtpDelivery,
     })
   );
 
+  // The Antarixs app asks this before opening a store, so a store that is gone or suspended never leaves the app on a dead page.
+  router.get(
+    '/open',
+    checkLimit,
+    handler(async (req, res) => {
+      const name = String(req.query.name ?? '').trim().toLowerCase();
+      const rec = isValidStoreName(name) ? await root.get<{ status?: string }>('stores', name) : null;
+      const live = name === config.defaultStore || (rec !== null && rec.status === 'active');
+      res.status(live ? 200 : 404).json({ status: live ? 'success' : 'error', message: live ? undefined : 'Store not found.' });
+    })
+  );
+
   router.post(
     '/request-otp',
     perIp,

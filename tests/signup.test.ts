@@ -60,6 +60,8 @@ describe('self-serve signup', () => {
     expect(c.body.suggestions.length).toBeGreaterThan(0);
     expect((await request(app).get('/api/signup/check?name=fresh-name')).body.available).toBe(true);
     expect((await request(app).get('/api/signup/check?name=www')).body.available).toBe(false);
+    expect((await request(app).get('/api/signup/open?name=sparkle-gems')).status).toBe(200);
+    expect((await request(app).get('/api/signup/open?name=nobody-here')).status).toBe(404);
     const dup = await signup({ phone: '9822222222', email: 'x@y.com' });
     expect(dup.status).toBe(409);
     expect(dup.body.message).toContain('taken');

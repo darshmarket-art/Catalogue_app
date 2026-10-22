@@ -9,7 +9,7 @@ import { PlatformWord } from './AntarixsBrand';
 import { Reveal } from './Reveal';
 import { HowItWorks } from './HowItWorks';
 import { PlansCompare } from './PlansCompare';
-import { getMyStore } from '../myStore';
+import { checkStore, clearMyStore, getMyStore } from '../myStore';
 
 /** Where "Sign in to your store" goes: [store].<platform domain>, or ?store= on localhost. */
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
@@ -49,22 +49,44 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 /** Antarixs welcome page: hero, the four pillars, what buyers see, how it works, ways in (buyer, store admin, new merchant), plans. */
 export const EntryScreen: React.FC = () => {
-  // A store admin signed in on this browser goes straight to their store until they log out there.
-  const mineUrl = (() => {
-    const m = getMyStore();
-    return m && storeUrl(m);
-  })();
+  // Whoever is signed in to a store on this device (admin or buyer) goes straight to it until they log out there.
+  // The store is checked first: a store that is gone is forgotten, and no connection leaves a Retry instead of a dead page.
+  const [mine, setMine] = useState<string | null>(null);
+  const [mineState, setMineState] = useState<'checking' | 'offline' | 'none'>('checking');
+  const [tries, setTries] = useState(0);
   useEffect(() => {
-    if (mineUrl) window.location.replace(mineUrl);
-  }, [mineUrl]);
+    let live = true;
+    void (async () => {
+      const id = await getMyStore();
+      const url = id && storeUrl(id);
+      if (!id || !url) return void (live && setMineState('none'));
+      setMine(id);
+      setMineState('checking');
+      const r = await checkStore(id);
+      if (!live) return;
+      if (r === 'open') window.location.replace(url);
+      else if (r === 'missing') {
+        clearMyStore();
+        setMineState('none');
+      } else setMineState('offline');
+    })();
+    return () => {
+      live = false;
+    };
+  }, [tries]);
   const [view, setView] = useState<'home' | 'plans' | 'how' | 'login'>('home');
   const [name, setName] = useState('');
   const [err, setErr] = useState<string | null>(null);
-  const go = (e: React.FormEvent) => {
+  const [busy, setBusy] = useState(false);
+  const go = async (e: React.FormEvent) => {
     e.preventDefault();
     const u = storeUrl(name);
-    if (u) window.location.replace(u);
-    else setErr('Enter your store address, for example sharma-jewellers.');
+    if (!u) return setErr('Enter your store address, for example sharma-jewellers.');
+    setBusy(true);
+    const r = await checkStore(name.trim().toLowerCase().replace(/^https?:\/\//, '').split('.')[0]);
+    setBusy(false);
+    if (r === 'open') window.location.replace(u);
+    else setErr(r === 'missing' ? 'No store with that address. Check the spelling.' : 'No internet connection. Check it and try again.');
   };
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -73,6 +95,24 @@ export const EntryScreen: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
+
+  if (mine && mineState !== 'none') {
+    return (
+      <Shell>
+        <main className="ax-narrow" style={{ gap: 14, textAlign: 'center', paddingTop: 120 }}>
+          {mineState === 'checking' ? (
+            <p className="em-mut">Opening {mine}…</p>
+          ) : (
+            <>
+              <p role="alert">No internet connection. Your store, {mine}, is still saved on this device.</p>
+              <button type="button" className="btn" onClick={() => setTries(tries + 1)}>Try again</button>
+              <button type="button" className="ax-link" onClick={() => setMineState('none')}>Go to Antarixs</button>
+            </>
+          )}
+        </main>
+      </Shell>
+    );
+  }
 
   if (view === 'plans') {
     return (
@@ -100,7 +140,7 @@ export const EntryScreen: React.FC = () => {
               <span className="em-mut" style={{ paddingRight: 15 }}>.antarixs.com</span>
             </div>
             {err && <p role="alert" style={{ color: 'var(--em-error, #b3261e)', fontSize: 14 }}>{err}</p>}
-            <button type="submit" className="btn">Go to my store</button>
+            <button type="submit" className="btn" disabled={busy}>{busy ? 'Checking…' : 'Go to my store'}</button>
           </form>
         </main>
       </Shell>
