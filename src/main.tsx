@@ -12,6 +12,14 @@ if ('serviceWorker' in navigator && import.meta.env.PROD && !Capacitor.isNativeP
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
 
+// A page opened before a deploy asks for code files (the PDF maker) that the new release no longer has: reload once to get the new ones.
+// The guard stops a reload loop if the file is missing for another reason.
+window.addEventListener('vite:preloadError', () => {
+  if (Date.now() - Number(sessionStorage.getItem('chunk-reload') ?? 0) < 60_000) return;
+  sessionStorage.setItem('chunk-reload', String(Date.now()));
+  window.location.reload();
+});
+
 if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native');
   // The app is light, so use dark clock/battery/notification icons and dark navigation buttons.
