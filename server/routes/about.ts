@@ -2,7 +2,9 @@ import { Router } from 'express';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { Store } from '../store';
-import { audit, handler, parse } from '../http';
+import { HttpError, audit, handler, parse } from '../http';
+import { logger } from '../logger';
+import { googleToken } from '../cloudStats';
 
 const field = (max: number) => z.string().trim().max(max).optional();
 
@@ -34,8 +36,38 @@ export const whatsappOf = (phone?: string) => {
   return d.length >= 11 && d.length <= 15 ? d : null;
 };
 
-export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmin: RequestHandler, onSaved?: (about: About) => Promise<void>) {
+/** English to Hindi with Google Cloud Translation (the service account's own access; no key). */
+export type Translate = (texts: string[]) => Promise<string[]>;
+export const googleTranslate: Translate = async (texts) => {
+  const res = await fetch('https://translation.googleapis.com/language/translate/v2', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: texts, source: 'en', target: 'hi', format: 'text' }),
+    signal: AbortSignal.timeout(10_000)
+  });
+  const j: any = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Google Translate ${res.status}: ${j?.error?.message ?? ''}`);
+  return (j.data?.translations ?? []).map((t: { translatedText: string }) => t.translatedText);
+};
+const translateSchema = z.object({ texts: z.array(z.string().max(2000)).min(1).max(8) });
+
+export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmin: RequestHandler, onSaved?: (about: About) => Promise<void>, translate: Translate = googleTranslate) {
   const router = Router();
+
+  // The Hindi fields of About us, filled from the English ones (the admin can still edit them before saving).
+  router.post(
+    '/hindi',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { texts } = parse(translateSchema, req.body);
+      try {
+        res.json({ status: 'success', data: { texts: await translate(texts) } });
+      } catch (e) {
+        logger.warn('Hindi translation failed', { error: String(e) });
+        throw new HttpError(503, 'Hindi translation is not available right now. You can type the Hindi yourself.');
+      }
+    })
+  );
 
   router.get(
     '/',

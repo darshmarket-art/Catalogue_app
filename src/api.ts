@@ -361,6 +361,11 @@ export const api = {
     return json.data.logoUrl;
   },
 
+  /** English to Hindi (Google Translate on the server), in the same order. */
+  async translateHindi(texts: string[]): Promise<string[]> {
+    return (await post('/api/v1/about/hindi', { texts })).data.texts;
+  },
+
   async saveAbout(about: About): Promise<About> {
     return (await request('/api/v1/about', { method: 'PUT', body: JSON.stringify(about) })).data;
   },

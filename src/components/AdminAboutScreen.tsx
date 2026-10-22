@@ -3,8 +3,12 @@ import { About } from '../types';
 import { Field, Notice } from './ui';
 import { AddressPicker } from './AddressPicker';
 import { BrandMark } from './BrandMark';
+import { PhotoCropper } from './PhotoCropper';
+import type { PhotoSpec } from '../../shared/photoSpecs';
+
+const LOGO_SPEC: PhotoSpec = { label: 'Logo', ratio: 1, w: 512, h: 512, minW: 0, minH: 0, strict: true, tip: 'Drag to move it and use the slider to resize. What is inside the circle is your logo.' };
 import { api } from '../api';
-import { setLogo } from '../merchant';
+import { merchant, setLogo } from '../merchant';
 import { errorText } from '../bugReport';
 
 interface AdminAboutScreenProps {
@@ -25,11 +29,38 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
     setSaved(false);
   };
 
+  // Each English field and its Hindi twin.
+  const PAIRS: Array<[keyof About, keyof About]> = [['story', 'storyHi'], ['ownerRole', 'ownerRoleHi'], ['openingHours', 'openingHoursHi'], ['address', 'addressHi']];
+  const [translating, setTranslating] = useState(false);
+  /** Fills Hindi fields from the English ones: all of them (the button), or only the empty ones (on save). */
+  const toHindi = async (f: About, onlyEmpty: boolean): Promise<About> => {
+    const todo = PAIRS.filter(([en, hi]) => (f[en] ?? '').trim() && (!onlyEmpty || !(f[hi] ?? '').trim()));
+    if (todo.length === 0) return f;
+    const out = await api.translateHindi(todo.map(([en]) => String(f[en]).trim()));
+    const next = { ...f };
+    todo.forEach(([, hi], i) => out[i] && (next[hi] = out[i] as never));
+    return next;
+  };
+  const translateAll = async () => {
+    setTranslating(true);
+    setError(null);
+    try {
+      setForm(await toHindi(form, false));
+      setSaved(false);
+    } catch (err) {
+      setError(errorText(err, 'AdminAboutScreen hindi', 'Could not translate to Hindi.'));
+    }
+    setTranslating(false);
+  };
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const problem = await onSave(form);
+    // Hindi left empty is filled in from the English; if translation is down, the page is saved as it is.
+    const filled = await toHindi(form, true).catch(() => form);
+    setForm(filled);
+    const problem = await onSave(filled);
     setBusy(false);
     setError(problem);
     setSaved(problem === null);
@@ -37,10 +68,14 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
 
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoMsg, setLogoMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const pickLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
+    if (file) setLogoFile(file); // fitted in the round cropper first
+  };
+  const uploadLogo = async (file: File) => {
+    setLogoFile(null);
     setLogoBusy(true);
     setLogoMsg(null);
     try {
@@ -56,18 +91,20 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
   return (
     <form onSubmit={save} className="scroll no-tabs" style={{ gap: 10 }}>
       <p className="sub">Tell buyers who you are and how to reach you. Leave a field empty to hide it.</p>
-      <Field label="Store logo" htmlFor="ab-logo">
-        <div className="em-row" style={{ gap: 14, alignItems: 'center' }}>
-          <span style={{ width: 64, height: 64, borderRadius: 16, border: '1px solid var(--em-line)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, flex: 'none' }}>
-            <BrandMark className="w-full h-full" textClassName="text-[30px]" />
-          </span>
-          <label className="btn sec" style={{ cursor: logoBusy ? 'wait' : 'pointer', flex: 'none' }}>
-            {logoBusy ? 'Uploading…' : 'Upload logo'}
-            <input id="ab-logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadLogo} disabled={logoBusy} style={{ display: 'none' }} />
+      <div className="em-card" style={{ padding: 16, display: 'flex', gap: 16, alignItems: 'center' }}>
+        <span style={{ width: 84, height: 84, borderRadius: '50%', border: '2px solid var(--em-gold)', background: '#fff', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+          <BrandMark className="w-full h-full" textClassName="text-[36px]" />
+        </span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <b style={{ fontWeight: 600 }}>Store logo</b>
+          <small className="em-mut" style={{ lineHeight: 1.4 }}>Shown in your store and on PDFs.</small>
+          <label className="em-btn sec" style={{ minHeight: 42, padding: '8px 16px', fontSize: 14, cursor: logoBusy ? 'wait' : 'pointer', marginTop: 2 }}>
+            {logoBusy ? 'Uploading…' : merchant.brand.logoUrl.startsWith('/') ? 'Change logo' : 'Upload logo'}
+            <input id="ab-logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={pickLogo} disabled={logoBusy} style={{ display: 'none' }} />
           </label>
         </div>
-        <small className="em-mut">Square works best, on a white or clear background. Shown in your store's header and on PDFs.</small>
-      </Field>
+      </div>
+      {logoFile && <PhotoCropper round file={logoFile} spec={LOGO_SPEC} onDone={(f) => void uploadLogo(f)} onCancel={() => setLogoFile(null)} />}
       {logoMsg && <Notice tone={logoMsg.tone}>{logoMsg.text}</Notice>}
       <Field label="About the business" htmlFor="ab-story">
         <textarea id="ab-story" className="inp" value={form.story ?? ''} onChange={set('story')} maxLength={2000} placeholder="Wholesale gold jewellery since …" />
@@ -103,7 +140,12 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
           <input id="ab-gst" className="inp uppercase" style={h} value={form.gstin ?? ''} onChange={set('gstin')} maxLength={15} />
         </Field>
       </div>
-      <p className="sub" style={{ marginTop: 10 }}>For buyers who use the app in Hindi (optional). Left empty, the story is not shown in Hindi and the rest is written in Hindi automatically.</p>
+      <div className="em-row" style={{ marginTop: 10, gap: 12, alignItems: 'center' }}>
+        <p className="sub" style={{ flex: 1, margin: 0 }}>For buyers who use the app in Hindi. Filled in from your English when you save; check and edit if you like.</p>
+        <button type="button" className="em-btn sec" style={{ minHeight: 40, padding: '6px 14px', fontSize: 13, flex: 'none' }} disabled={translating} onClick={() => void translateAll()}>
+          {translating ? 'Translating…' : 'Translate to Hindi'}
+        </button>
+      </div>
       <Field label="About the business, in Hindi" htmlFor="ab-story-hi">
         <textarea id="ab-story-hi" lang="hi" className="inp" value={form.storyHi ?? ''} onChange={set('storyHi')} maxLength={2000} placeholder="… से होलसेल सोने की ज्वेलरी" />
       </Field>

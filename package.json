@@ -21,12 +21,11 @@
   "dependencies": {
     "@capacitor/android": "^8.5.2",
     "@capacitor/app": "^8.1.2",
-    "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
-    "@google-cloud/firestore": "^7.11.0",
+    "@google-cloud/firestore": "^9.3.1",
     "@google-cloud/storage": "^8.2.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.2",
@@ -41,6 +40,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.8.1",
@@ -64,6 +64,11 @@
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
-    "vitest": "^3.0.0"
+    "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    }
   }
 }

@@ -28,6 +28,8 @@ export const resetCloudCache = () => { cache.clear(); tok = null; };
 const timed = (url: string, init: RequestInit = {}, ms = GOOGLE_MS) => fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
 
 class Denied extends Error {}
+/** The Cloud Run service account's access token (also used for Google Translate in About us). */
+export const googleToken = () => token();
 let tok: { value: string; exp: number } | null = null;
 async function token(): Promise<string> {
   const env = process.env.GOOGLE_OAUTH_ACCESS_TOKEN;

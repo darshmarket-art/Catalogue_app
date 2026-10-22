@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { clampOffset, cropScale, sourceRect, type PhotoSpec } from '../../shared/photoSpecs';
 import { I } from './ui';
 
-/** Fixed-ratio crop: drag the photo and zoom until the frame shows what you want, then "Use photo". Saves a JPEG at the spec's size. */
-export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (cropped: File) => void; onCancel: () => void; onSkip?: () => void }> = ({ file, spec, onDone, onCancel, onSkip }) => {
+/**
+ * Fixed-ratio crop: drag the photo and zoom until the frame shows what you want, then "Use photo". Saves a JPEG at the spec's size.
+ * `round` (the store logo): a circular frame, the whole logo fits at the start and may be made smaller than the frame; saves a transparent PNG.
+ */
+export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (cropped: File) => void; onCancel: () => void; onSkip?: () => void; round?: boolean }> = ({ file, spec, onDone, onCancel, onSkip, round }) => {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [off, setOff] = useState({ ox: 0, oy: 0 });
@@ -18,9 +21,11 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
     const i = new Image();
     i.onload = () => {
       setImg(i);
-      // start centred
-      const s = Math.max(CW / i.naturalWidth, CH / i.naturalHeight);
-      setOff({ ox: (CW - i.naturalWidth * s) / 2, oy: (CH - i.naturalHeight * s) / 2 });
+      // start centred; a logo starts fully inside its circle (with a little room), a photo covering its frame
+      const cover = Math.max(CW / i.naturalWidth, CH / i.naturalHeight);
+      const z = round ? (Math.min(CW / i.naturalWidth, CH / i.naturalHeight) / cover) * 0.8 : 1;
+      setZoom(z);
+      setOff({ ox: (CW - i.naturalWidth * cover * z) / 2, oy: (CH - i.naturalHeight * cover * z) / 2 });
     };
     const reader = new FileReader();
     reader.onload = () => {
@@ -36,16 +41,27 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
   }, []);
 
   const view = img ? { nw: img.naturalWidth, nh: img.naturalHeight, cw: CW, ch: CH, zoom, ...off } : null;
-  const place = view ? clampOffset(view) : { ox: 0, oy: 0 };
+  const place = view ? (round ? { ox: view.ox, oy: view.oy } : clampOffset(view)) : { ox: 0, oy: 0 };
   const scale = view ? cropScale(view) : 1;
 
   const move = (e: React.PointerEvent) => {
     if (!drag.current || !view) return;
-    setOff(clampOffset({ ...view, ox: drag.current.ox + e.clientX - drag.current.x, oy: drag.current.oy + e.clientY - drag.current.y }));
+    const next = { ...view, ox: drag.current.ox + e.clientX - drag.current.x, oy: drag.current.oy + e.clientY - drag.current.y };
+    setOff(round ? { ox: next.ox, oy: next.oy } : clampOffset(next));
   };
 
   const use = () => {
     if (!img || !view) return;
+    if (round) {
+      // what is inside the frame, scaled to the output; outside the logo stays transparent
+      const k = spec.w / CW;
+      const c = document.createElement('canvas');
+      c.width = spec.w;
+      c.height = spec.h;
+      c.getContext('2d')!.drawImage(img, place.ox * k, place.oy * k, img.naturalWidth * scale * k, img.naturalHeight * scale * k);
+      c.toBlob((b) => b && onDone(new File([b], 'logo.png', { type: 'image/png' })), 'image/png');
+      return;
+    }
     const { sx, sy, sw, sh } = sourceRect({ ...view, ...place });
     const c = document.createElement('canvas');
     c.width = spec.w;
@@ -69,13 +85,13 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
           }}
           onPointerMove={move}
           onPointerUp={() => (drag.current = null)}
-          style={{ width: CW, height: CH, overflow: 'hidden', position: 'relative', borderRadius: 12, border: '1px solid var(--line)', touchAction: 'none', cursor: 'grab', background: '#222' }}
+          style={{ width: CW, height: CH, overflow: 'hidden', position: 'relative', borderRadius: round ? '50%' : 12, border: round ? '2px solid var(--em-gold, #c9a227)' : '1px solid var(--line)', touchAction: 'none', cursor: 'grab', background: round ? '#fff' : '#222' }}
         >
           {img && url && <img src={url} alt="" draggable={false} style={{ position: 'absolute', left: place.ox, top: place.oy, width: img.naturalWidth * scale, height: img.naturalHeight * scale, maxWidth: 'none', userSelect: 'none' }} />}
         </div>
         <label className="row" style={{ gap: 10, width: '100%' }}>
           <I n="minus" size="s" />
-          <input aria-label="Zoom" type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ flex: 1 }} />
+          <input aria-label="Zoom" type="range" min={round ? 0.2 : 1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ flex: 1 }} />
           <I n="plus" size="s" />
         </label>
         <div className="row" style={{ gap: 8, width: '100%', flexWrap: 'wrap' }}>
@@ -83,7 +99,7 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
             Cancel
           </button>
           <button type="button" className="btn" style={{ flex: 1 }} disabled={!img} onClick={use}>
-            Use photo
+            {round ? 'Use logo' : 'Use photo'}
           </button>
         </div>
         {onSkip && (
