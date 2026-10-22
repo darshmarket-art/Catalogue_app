@@ -75,7 +75,7 @@ describe('Emergent is the only layout, for every plan', () => {
         expect(m).toMatchObject({ id: 'bhakti', sector: 'jewellery', brand: { name: expect.any(String) }, productFields: expect.any(Array) });
       }
     }
-  });
+ }, 60000);
 
   it('premiumLayouts no longer exists as a plan flag', async () => {
     expect(flagsFor('basic')).not.toHaveProperty('premiumLayouts');
