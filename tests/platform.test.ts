@@ -4,7 +4,7 @@ import { loadConfig } from '../server/config';
 import { MemoryStore } from '../server/store';
 import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
-import { isPlatformRequest } from '../server/tenancy';
+import { isPlatformRequest, storeIdOf } from '../server/tenancy';
 import { CONTACT_SALES, SALES_EMAIL, UPGRADE_TO_PRO } from '../shared/sales';
 import { trialMessage } from '../shared/trial';
 
@@ -15,8 +15,15 @@ const req = (host: string, o: { store?: string; header?: string } = {}) =>
 describe('platform detection', () => {
   const off = loadConfig(env);
   const on = loadConfig({ ...env, PLATFORM_MODE: 'true' });
-  it('app.<base> is always the platform', () => {
+  it('app.<base> is the platform unless it names a store (the Antarixs app opens stores at app.<base>/?store=)', () => {
     expect(isPlatformRequest(req('app.antarixs.com'), off)).toBe(true);
+    expect(isPlatformRequest(req('app.antarixs.com', { store: 'sharma' }), off)).toBe(false);
+    expect(isPlatformRequest(req('app.antarixs.com', { header: 'sharma' }), off)).toBe(false);
+    const sid = (o: { store?: string; header?: string }) => storeIdOf({ ...req('app.antarixs.com', o), headers: { host: 'app.antarixs.com' } }, off);
+    expect(sid({ store: 'sharma' })).toBe('sharma');
+    expect(sid({ header: 'sharma' })).toBe('sharma');
+    expect(sid({})).toBeNull();
+    expect(sid({ store: 'www' })).toBeNull();
   });
   it('run.app keeps the default store unless PLATFORM_MODE=true', () => {
     expect(isPlatformRequest(req('x.run.app'), off)).toBe(false);

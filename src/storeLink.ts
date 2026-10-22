@@ -8,6 +8,8 @@ export function currentStoreUrl(loc: Pick<Location, 'origin' | 'hostname'> = win
   const parts = loc.hostname.split('.');
   // A [store].domain.tld host already is the store's address.
   if (parts.length >= 3 && parts[0] === merchant.id && parts[0] !== 'www') return loc.origin;
+  // Inside the Antarixs app the store runs at app.<domain>/?store=; buyers still get the store's own address.
+  if (parts.length >= 3 && parts[0] === 'app') return `https://${merchant.id}.${parts.slice(1).join('.')}`;
   return `${loc.origin}/?store=${encodeURIComponent(merchant.id)}`;
 }
 

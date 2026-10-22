@@ -293,5 +293,5 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   doc.link(pillX, pillY, pillW, pillH, { url: 'https://antarixs.com' });
 
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
+  await saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
 }

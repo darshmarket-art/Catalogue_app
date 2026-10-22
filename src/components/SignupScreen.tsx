@@ -11,6 +11,11 @@ import { AntarixsMark, PlatformWord } from './AntarixsBrand';
 import { shareStoreQr, storeQrBlob } from '../storeQrCard';
 import { saveFile } from '../saveFile';
 import { setMyStore } from '../myStore';
+import { Capacitor } from '@capacitor/core';
+import { storeUrl } from './EntryScreen';
+
+// In the Antarixs app the new store opens at app.<domain>/?store=, the same origin as this page, so the owner is signed in already.
+const inApp = Capacitor.isNativePlatform();
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
@@ -134,7 +139,7 @@ export const SignupScreen: React.FC = () => {
   const create = run(async () => {
     const r = await call('', f);
     // Same origin (localhost, run.app): the owner is signed in already. On [store].antarixs.com they sign in once.
-    if (new URL(r.storeUrl).origin === window.location.origin) setAuthToken(r.sessionToken);
+    if (inApp || new URL(r.storeUrl).origin === window.location.origin) setAuthToken(r.sessionToken);
     setMyStore(f.storeName);
     setResult(r);
     setStep('done');
@@ -149,9 +154,9 @@ export const SignupScreen: React.FC = () => {
   };
   const downloadQr = async () => {
     if (!result) return;
-    saveFile(await storeQrBlob(f.brandName.trim() || 'Your store', result.storeUrl), `${f.storeName}-qr.png`);
+    await saveFile(await storeQrBlob(f.brandName.trim() || 'Your store', result.storeUrl), `${f.storeName}-qr.png`);
   };
-  const open = (hash: string) => result && window.location.replace(`${result.storeUrl}${hash}`);
+  const open = (hash: string) => result && window.location.replace(`${(inApp && storeUrl(f.storeName)) || result.storeUrl}${hash}`);
 
   const back = () => {
     setErr(null);
@@ -175,7 +180,7 @@ export const SignupScreen: React.FC = () => {
   );
 
   if (step === 'done' && result) {
-    const sameOrigin = new URL(result.storeUrl).origin === window.location.origin;
+    const sameOrigin = inApp || new URL(result.storeUrl).origin === window.location.origin;
     const host = result.storeUrl.replace(/^https?:\/\//, '');
     return (
       <Shell>

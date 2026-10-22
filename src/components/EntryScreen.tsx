@@ -1,5 +1,6 @@
 import { LegalLinks } from './LegalLinks';
 import React, { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
 import '../layouts/emergent/emergent.css';
@@ -15,7 +16,8 @@ import { checkStore, clearMyStore, getMyStore } from '../myStore';
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
   const s = store.trim().toLowerCase().replace(/^https?:\/\//, '').split('.')[0];
   if (!isValidStoreName(s)) return null;
-  if (loc.hostname === 'localhost' || loc.hostname === '127.0.0.1') return `${loc.protocol}//${loc.host}/?store=${s}`;
+  // The Antarixs app keeps stores on its own origin (app.<domain>/?store=), where it has native storage and file saving.
+  if (loc.hostname === 'localhost' || loc.hostname === '127.0.0.1' || Capacitor.isNativePlatform()) return `${loc.protocol}//${loc.host}/?store=${s}`;
   const base = loc.hostname.startsWith('app.') ? loc.hostname.slice(4) : 'antarixs.com';
   return `https://${s}.${base}`;
 }

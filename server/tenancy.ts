@@ -99,6 +99,11 @@ export function storeIdOf(req: Request, config: Config): string | null {
   const host = hostOf(req);
   if (host === config.baseDomain) return null;
   const suffix = `.${config.baseDomain}`;
+  // The Antarixs app opens stores at app.<domain>/?store=<id>, so they get the app's native storage and file saving.
+  if (host === `app.${config.baseDomain}`) {
+    const picked = (req.header('x-store') ?? (typeof req.query.store === 'string' ? req.query.store : '')).trim().toLowerCase();
+    return isValidStoreName(picked) && !isReservedStoreName(picked) ? picked : null;
+  }
   if (host.endsWith(suffix)) {
     const sub = host.slice(0, -suffix.length);
     return isValidStoreName(sub) && !isReservedStoreName(sub) ? sub : null;
@@ -115,7 +120,7 @@ export function storeIdOf(req: Request, config: Config): string | null {
  */
 export function isPlatformRequest(req: Request, config: Config): boolean {
   const host = (req.hostname || '').toLowerCase();
-  if (host === `app.${config.baseDomain}`) return true;
+  if (host === `app.${config.baseDomain}`) return !(req.header('x-store') || typeof req.query.store === 'string');
   if (!config.platformMode || host.endsWith(`.${config.baseDomain}`)) return false;
   if (req.header('x-store') || typeof req.query.store === 'string') return false;
   return !fromStorelessApp(req);

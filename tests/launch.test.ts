@@ -104,6 +104,12 @@ describe('the Antarixs site (app.<domain>)', () => {
     }
     expect((await get('/privacy')).text).toContain('[company legal name]'); // until PLATFORM_LEGAL_NAME is set
   });
+  it('serves a store when one is named (the Antarixs app opens stores at app.<domain>/?store=)', async () => {
+    const cfg = await get('/api/config?store=bhakti');
+    expect(cfg.status).toBe(200);
+    expect(cfg.body.data.id).toBe('bhakti');
+    expect((await get('/api/config')).status).toBe(404);
+  });
   it('shows the operator once it is configured', async () => {
     const named = createApp(loadConfig({ NODE_ENV: 'test', ...env, PLATFORM_LEGAL_NAME: 'Antarixs Technologies Pvt Ltd', PLATFORM_CONTACT_EMAIL: 'hello@antarixs.com' }), new MemoryStore(), new MemoryBlobs());
     const res = await request(named).get('/terms').set('Host', 'app.antarixs.com');
