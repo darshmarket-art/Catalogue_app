@@ -60,7 +60,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
   };
 
   return (
-    <div className="scroll no-tabs" style={{ gap: 12, paddingBottom: 'calc(150px + var(--sab))' }}>
+    <div className="scroll no-tabs" style={{ gap: 12, paddingBottom: 'calc(150px + max(var(--sab), 48px))' }}>
       {status && (
         <Toast>{status}</Toast>
       )}

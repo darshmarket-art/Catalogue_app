@@ -488,7 +488,9 @@ html.native [data-layout="emergent"] { --header-h: 56px; }
 [data-layout="emergent"] .inp-icon > .em-ic { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--em-mut); pointer-events: none; z-index: 1; }
 [data-layout="emergent"] .dock.low { bottom: 0; padding: 0; }
 [data-layout="emergent"] .dock.low > div { max-width: none; }
-[data-layout="emergent"] .dock.low > .card { border-radius: 0; border-width: 1px 0 0; box-shadow: none; padding: 14px 16px calc(14px + var(--sab)); }
+[data-layout="emergent"] .dock.low > .card { border-radius: 0; border-width: 1px 0 0; box-shadow: none; padding: 14px 16px calc(14px + max(var(--sab), 20px)); }
+/* Android often reports no bottom inset to the app's web view while the Home/Back bar still covers the screen: keep the bar's height (48px) clear. */
+html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14px + max(var(--sab), 48px)); }
 [data-layout="emergent"] .dock.low > div > div { max-width: 640px; margin-inline: auto; width: 100%; }
 [data-layout="emergent"] .em-plan.hi .pro.dark, [data-layout="emergent"] .em-plan.hi .pro { background: var(--em-gold); color: var(--em-on-gold); }
 [data-layout="emergent"] .hero { border-radius: 20px; padding: 20px; box-shadow: none; background: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--em-gold) 38%, transparent) 0%, transparent 60%), linear-gradient(150deg, color-mix(in srgb, var(--em-primary) 82%, #fff) 0%, var(--em-primary) 45%, var(--em-deep) 100%); }
