@@ -145,6 +145,59 @@ export class WiseSenderOtpSender implements OtpSender {
   }
 }
 
+/**
+ * Renflair WhatsApp OTP gateway: GET {base}/V1.php?API=&PHONE=&OTP=&COUNTRY=. The gateway writes the message; we send our own code.
+ * The key travels in the query string (the gateway's design), so URLs are never logged. One retry on 5xx and network errors.
+ */
+export class RenflairOtpSender implements OtpSender {
+  constructor(
+    private c: NonNullable<Config['renflair']>,
+    private fetchFn: typeof fetch = fetch
+  ) {}
+
+  async sendOtp(phone: string, code: string): Promise<string> {
+    try {
+      return await this.get(phone, code);
+    } catch (e) {
+      if (!(e instanceof WhatsAppSendError) || !e.retryable) throw e;
+      return this.get(phone, code);
+    }
+  }
+
+  private async get(phone: string, code: string): Promise<string> {
+    // Our phones are digits with the country code (919820011111); Renflair wants the national number and the code apart.
+    const digits = phone.replace(/[^0-9]/g, '');
+    const q = new URLSearchParams({ API: this.c.apiKey, PHONE: digits.slice(-10), OTP: code, COUNTRY: digits.slice(0, -10) || '91' });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEND_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await this.fetchFn(`${this.c.baseUrl}/V1.php?${q}`, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+    } catch (e: any) {
+      const msg = e?.name === 'AbortError' ? `Renflair did not answer within ${SEND_TIMEOUT_MS / 1000}s` : `Renflair request failed: ${e?.name ?? 'error'}`;
+      throw new WhatsAppSendError(msg, 0, null, null, true);
+    } finally {
+      clearTimeout(timer);
+    }
+    const text = await res.text().catch(() => '');
+    let body: any = {};
+    try {
+      body = JSON.parse(text);
+    } catch {
+      // not JSON: judged on the HTTP status alone
+    }
+    const status = String(body?.status ?? '').toLowerCase();
+    const ok = res.ok && body?.success !== false && body?.error == null && !['false', 'failed', 'fail', 'error'].includes(status);
+    if (ok) {
+      const id = String(body?.id ?? body?.message_id ?? body?.messageId ?? '');
+      logger.info('Renflair OTP accepted', { to: maskPhone(phone), messageId: id || null });
+      return id;
+    }
+    const detail = `${res.status} ${String(body?.message ?? body?.msg ?? body?.error ?? text).slice(0, 300)}`.replaceAll(this.c.apiKey, '[key]').trim();
+    throw new WhatsAppSendError(`Renflair send failed: ${detail}`, res.status, null, null, res.status >= 500 || res.status === 429);
+  }
+}
+
 /** Development only: prints the code instead of sending it. */
 export class ConsoleOtpSender implements OtpSender {
   async sendOtp(phone: string, code: string) {
@@ -154,6 +207,8 @@ export class ConsoleOtpSender implements OtpSender {
 
 export function createOtpSender(config: Config): OtpSender {
   switch (config.otpProvider) {
+    case 'renflair':
+      return new RenflairOtpSender(config.renflair!);
     case 'wisesender':
       return new WiseSenderOtpSender(config.wisesender!);
     case 'whatsapp':
@@ -178,7 +233,7 @@ export function createOtpDelivery(config: Config, sender: OtpSender, log: Messag
     if (config.staticOtp) return { channel: 'dev', messageId: null };
     try {
       const wamid = (await sender.sendOtp(phone, code)) || null;
-      const live = config.otpProvider === 'whatsapp' || config.otpProvider === 'wisesender';
+      const live = config.otpProvider === 'whatsapp' || config.otpProvider === 'wisesender' || config.otpProvider === 'renflair';
       const rec = live && log ? await log.record({ storeId, kind, to: phone, wamid }) : null;
       return { channel: live ? 'whatsapp' : 'dev', messageId: rec?.id ?? null };
     } catch (err) {

@@ -2,9 +2,9 @@ import crypto from 'crypto';
 import { loadMerchant, type MerchantConfig } from './merchant';
 
 export type StoreKind = 'firestore' | 'file' | 'memory';
-/** wisesender: codes sent as a WhatsApp template through WiseSender. whatsapp: live Meta Cloud API sends. static: fixed OTP_STATIC_CODE, nothing sent. console: codes printed to the log (dev only). */
-export type OtpProvider = 'wisesender' | 'whatsapp' | 'static' | 'console';
-const OTP_PROVIDERS: OtpProvider[] = ['wisesender', 'whatsapp', 'static', 'console'];
+/** renflair: codes sent through the Renflair WhatsApp OTP gateway. wisesender: codes sent as a WhatsApp template through WiseSender. whatsapp: live Meta Cloud API sends. static: fixed OTP_STATIC_CODE, nothing sent. console: codes printed to the log (dev only). */
+export type OtpProvider = 'renflair' | 'wisesender' | 'whatsapp' | 'static' | 'console';
+const OTP_PROVIDERS: OtpProvider[] = ['renflair', 'wisesender', 'whatsapp', 'static', 'console'];
 
 export interface Config {
   port: number;
@@ -34,6 +34,7 @@ export interface Config {
   /** WhatsApp Cloud API settings; null when unset (dev logs codes, production refuses to send). */
   whatsapp: { token: string; phoneNumberId: string; template: string; language: string; apiVersion: string } | null;
   /** WiseSender (WhatsApp provider) settings for sign-in codes; null when unset. */
+  renflair: { apiKey: string; baseUrl: string } | null;
   wisesender: { baseUrl: string; vendorUid: string; token: string; template: string; language: string } | null;
   /** Meta utility template for owner order alerts; null = no WhatsApp alerts. */
   orderTemplate: string | null;
@@ -106,12 +107,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
           language: env.WISESENDER_OTP_LANGUAGE?.trim() || 'en_US'
         }
       : null;
+  // Renflair (https://whatsapp.renflair.in): one API key; the gateway sends its own OTP message with our code.
+  const renflair = env.RENFLAIR_API_KEY?.trim() ? { apiKey: env.RENFLAIR_API_KEY.trim(), baseUrl: (env.RENFLAIR_BASE_URL?.trim() || 'https://whatsapp.renflair.in').replace(/\/+$/, '') } : null;
   const staticCode = /^\d{6}$/.test(env.OTP_STATIC_CODE ?? '') ? env.OTP_STATIC_CODE! : null;
   const requestedOtp = env.OTP_PROVIDER?.trim().toLowerCase() as OtpProvider | undefined;
-  let otpProvider: OtpProvider = wisesender ? 'wisesender' : whatsapp ? 'whatsapp' : staticCode ? 'static' : 'console';
+  let otpProvider: OtpProvider = renflair ? 'renflair' : wisesender ? 'wisesender' : whatsapp ? 'whatsapp' : staticCode ? 'static' : 'console';
   if (requestedOtp) {
     otpProvider = requestedOtp;
     if (!OTP_PROVIDERS.includes(requestedOtp)) problems.push(`OTP_PROVIDER must be one of ${OTP_PROVIDERS.join(', ')} (got "${requestedOtp}")`);
+    else if (requestedOtp === 'renflair' && !renflair) problems.push('OTP_PROVIDER=renflair needs RENFLAIR_API_KEY');
     else if (requestedOtp === 'wisesender' && !wisesender) problems.push('OTP_PROVIDER=wisesender needs WISESENDER_VENDOR_UID, WISESENDER_TOKEN and WISESENDER_OTP_TEMPLATE');
     else if (requestedOtp === 'whatsapp' && !whatsapp) problems.push('OTP_PROVIDER=whatsapp needs WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_OTP_TEMPLATE');
     else if (requestedOtp === 'static' && !staticCode) problems.push('OTP_PROVIDER=static needs OTP_STATIC_CODE (exactly 6 digits)');
@@ -146,6 +150,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     storageBucket: env.STORAGE_BUCKET?.trim() || null,
     uploadsDir: env.UPLOADS_DIR || 'data/uploads',
     whatsapp,
+    renflair,
     wisesender,
     orderTemplate: env.WHATSAPP_ORDER_TEMPLATE?.trim() || null,
     storeFullTemplate: env.WHATSAPP_STORE_FULL_TEMPLATE?.trim() || null,
