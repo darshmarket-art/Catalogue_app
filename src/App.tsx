@@ -571,7 +571,11 @@ export default function App() {
 
   const handleAboutSaved = async (next: About): Promise<string | null> => {
     try {
-      setAbout(await api.saveAbout(next));
+      const saved = await api.saveAbout(next);
+      setAbout(saved);
+      // Same rule as the server (whatsappOf): the new number is used straight away, without a reload.
+      const wa = (saved.phone ?? '').replace(/[^0-9]/g, '').replace(/^0(?=\d{10}$)/, '').replace(/^(\d{10})$/, '91$1');
+      if (wa.length >= 11 && wa.length <= 15) merchant.contact = { ...merchant.contact, whatsapp: wa, deskPhone: `+${wa}` };
       return null;
     } catch (err) {
       return err instanceof Error ? err.message : 'Could not save.';

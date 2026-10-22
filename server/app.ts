@@ -140,7 +140,14 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log);
+    // The About us phone becomes the store's WhatsApp number (every WhatsApp button, order alerts' default, OTP fallback).
+    const setWhatsapp = async (wa: string) => {
+      const m = entry.rec.merchant;
+      if (m.contact.whatsapp === wa) return;
+      await root.update('stores', id, { merchant: { ...m, contact: { ...m.contact, whatsapp: wa, deskPhone: `+${wa}` } } });
+      resolver.invalidate(id);
+    };
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, setWhatsapp);
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root, undefined, log));
@@ -151,7 +158,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, setWhatsapp?: (wa: string) => Promise<void>) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -233,7 +240,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/auth', otpRoutes(config, store, ent, { delivery: createOtpDelivery(config, sender, log, config.merchant.id), log, onStoreFull: createStoreFullNotify(config, store, notifiers, log) }));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer, auth.requireAdmin));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
-  app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin));
+  app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin, setWhatsapp));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer, notify));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin, notify));

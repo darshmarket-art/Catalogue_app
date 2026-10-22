@@ -26,7 +26,13 @@ export const aboutSchema = z.object({
 
 export type About = z.infer<typeof aboutSchema>;
 
-export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmin: RequestHandler) {
+/** The About us phone is the store's WhatsApp number: digits only, a 10-digit Indian number gets 91. Null when it is not a phone number. */
+export const whatsappOf = (phone?: string) => {
+  const d = (phone ?? '').replace(/[^0-9]/g, '').replace(/^0(?=\d{10}$)/, '').replace(/^(\d{10})$/, '91$1');
+  return d.length >= 11 && d.length <= 15 ? d : null;
+};
+
+export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmin: RequestHandler, onWhatsapp?: (digits: string) => Promise<void>) {
   const router = Router();
 
   router.get(
@@ -45,6 +51,8 @@ export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmi
       const body = parse(aboutSchema, req.body);
       const about = Object.fromEntries(Object.entries(body).filter(([, v]) => typeof v === 'string' && v !== ''));
       await store.set('settings', 'about', { id: 'about', about, updatedAt: new Date().toISOString() });
+      const wa = whatsappOf(about.phone);
+      if (wa && onWhatsapp) await onWhatsapp(wa);
       await audit(store, req, 'ABOUT_US_UPDATED', 'About us page updated.');
       res.json({ status: 'success', data: about });
     })

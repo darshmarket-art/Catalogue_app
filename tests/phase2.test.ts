@@ -461,6 +461,9 @@ describe('cancelling an order, the order message, and About us', () => {
     expect(saved.status).toBe(200);
     expect(saved.body.data).toEqual({ ownerName: 'Bhakti Shah', story: 'Four generations in gold.', website: 'https://example.com' });
     expect((await request(app).get('/api/about').set(shop)).body.data.ownerName).toBe('Bhakti Shah');
+    // The About us phone becomes the store's WhatsApp number.
+    expect((await request(app).put('/api/about').set(auth).send({ phone: '098200 11111' })).status).toBe(200);
+    expect((await request(app).get('/api/config')).body.data.contact.whatsapp).toBe('919820011111');
   });
 });
 
