@@ -9,6 +9,7 @@ import { PlatformWord } from './AntarixsBrand';
 import { Reveal } from './Reveal';
 import { HowItWorks } from './HowItWorks';
 import { PlansCompare } from './PlansCompare';
+import { getMyStore } from '../myStore';
 
 /** Where "Sign in to your store" goes: [store].<platform domain>, or ?store= on localhost. */
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
@@ -48,6 +49,14 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 /** Antarixs welcome page: hero, the four pillars, what buyers see, how it works, ways in (buyer, store admin, new merchant), plans. */
 export const EntryScreen: React.FC = () => {
+  // A store admin signed in on this browser goes straight to their store until they log out there.
+  const mineUrl = (() => {
+    const m = getMyStore();
+    return m && storeUrl(m);
+  })();
+  useEffect(() => {
+    if (mineUrl) window.location.replace(mineUrl);
+  }, [mineUrl]);
   const [view, setView] = useState<'home' | 'plans' | 'how'>('home');
   const [menu, setMenu] = useState(false);
   useEffect(() => {

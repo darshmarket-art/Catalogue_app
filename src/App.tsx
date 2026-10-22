@@ -25,6 +25,7 @@ import { AdminBuyersHub, type BuyersSegment } from './components/AdminBuyersHub'
 import { AdminStoreScreen } from './components/AdminStoreScreen';
 import { StoreShareSheet } from './components/StoreShareSheet';
 import { currentStoreUrl } from './storeLink';
+import { clearMyStore, setMyStore } from './myStore';
 import { AdminAboutScreen } from './components/AdminAboutScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
@@ -640,7 +641,12 @@ export default function App() {
     handleNavigate('orders');
   };
 
+  useEffect(() => {
+    if (isAdminLoggedIn) setMyStore(merchant.id);
+  }, [isAdminLoggedIn]);
+
   const handleLogout = () => {
+    if (isAdminLoggedIn) clearMyStore();
     setAuthToken(null);
     setOrders([]);
     setCurrentMerchant(null);
