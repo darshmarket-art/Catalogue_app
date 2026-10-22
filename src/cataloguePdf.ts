@@ -4,6 +4,7 @@ import { merchant } from './merchant';
 import { antarixsMarkPng } from './antarixsLogo';
 import { saveFile } from './saveFile';
 import { CARD_PAD, CELL, COLS, FIRST_TOP, GAP, H, MARGIN, NEXT_TOP, PHOTO_H, PHOTO_W, W, cardHeight, pdfPages } from './pdfLayout';
+import { UserError } from './bugReport';
 
 const PHOTO_PX = 560;
 const PHOTO_PY = Math.round(PHOTO_PX * (PHOTO_H / PHOTO_W));
@@ -83,7 +84,7 @@ function hexMark(doc: any, cx: number, cy: number, r: number, fill: [number, num
  */
 export async function downloadCataloguePdf(category: Category, products: Product[], onProgress?: (done: number, total: number) => void) {
   const items = products.filter((p) => p.category === category.name);
-  if (items.length === 0) throw new Error('This collection has no designs yet.');
+  if (items.length === 0) throw new UserError('This collection has no designs yet.');
   return downloadDesignsPdf(category.name, items, onProgress);
 }
 
@@ -93,7 +94,7 @@ export async function downloadCataloguePdf(category: Category, products: Product
  * The file is downloaded (on phones too); every photo carries one brand watermark in its pixels.
  */
 export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void, _mode: 'save' | 'share' = 'save') {
-  if (items.length === 0) throw new Error('Pick at least one design first.');
+  if (items.length === 0) throw new UserError('Pick at least one design first.');
 
   const { jsPDF } = await import('jspdf');
   const [r, g, b] = themeColour();

@@ -3,6 +3,7 @@ import { api } from '../api';
 import { usePlan, upgradeNotice } from '../plan';
 import { Notice, Switch } from './ui';
 import { Icon } from '../layouts/emergent/ui';
+import { UserError, errorText } from '../bugReport';
 
 const b64 = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
@@ -39,12 +40,12 @@ export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) =
         setOn(false);
         return;
       }
-      if ((await Notification.requestPermission()) !== 'granted') throw new Error('Notifications are blocked in this browser.');
+      if ((await Notification.requestPermission()) !== 'granted') throw new UserError('Notifications are blocked in this browser.');
       const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
       await api.pushSubscribe(s.toJSON());
       setOn(true);
     } catch (e: any) {
-      setError(e.message || 'Could not change notifications.');
+      setError(errorText(e, 'OrderNotificationsToggle', 'Could not change notifications.'));
     }
   };
 

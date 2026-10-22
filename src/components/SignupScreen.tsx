@@ -13,6 +13,7 @@ import { saveFile } from '../saveFile';
 import { setMyStore } from '../myStore';
 import { Capacitor } from '@capacitor/core';
 import { storeUrl } from './EntryScreen';
+import { UserError, errorText } from '../bugReport';
 
 // In the Antarixs app the new store opens at app.<domain>/?store=, the same origin as this page, so the owner is signed in already.
 const inApp = Capacitor.isNativePlatform();
@@ -22,7 +23,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
 async function call(path: string, body?: unknown) {
   const res = await fetch(`/api/v1/signup${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(json.message || `Request failed (${res.status})`), { code: json.code });
+  if (!res.ok) throw Object.assign(new UserError(json.message || `Request failed (${res.status})`), { code: json.code });
   return json;
 }
 
@@ -117,7 +118,7 @@ export const SignupScreen: React.FC = () => {
     try {
       await fn();
     } catch (x: any) {
-      setErr(x.message);
+      setErr(errorText(x, 'SignupScreen'));
       setErrCode(x.code ?? null);
     } finally {
       setBusy(false);
@@ -127,7 +128,7 @@ export const SignupScreen: React.FC = () => {
   const checkName = run(async () => {
     const r = await call(`/check?name=${encodeURIComponent(f.storeName)}`);
     setSuggestions(r.suggestions);
-    if (!r.available) throw new Error(r.reason);
+    if (!r.available) throw new UserError(r.reason);
     setStep('owner');
   });
   const sendCode = run(async () => {

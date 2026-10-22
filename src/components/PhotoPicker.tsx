@@ -3,6 +3,7 @@ import { api, ApiError } from '../api';
 import { fitCheck, PHOTO_SPECS, type PhotoKind } from '../../shared/photoSpecs';
 import { I, Photo } from './ui';
 import { PhotoCropper } from './PhotoCropper';
+import { errorText } from '../bugReport';
 
 /** A photo on a form: `ref` is what gets saved, `url` is what is shown. */
 export interface PhotoItem {
@@ -56,7 +57,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
       onChange(photosRef.current);
     } catch (err) {
       if (!(err instanceof ApiError && err.handled)) {
-        setError(err instanceof Error ? err.message : 'The photo could not be uploaded.');
+        setError(errorText(err, 'PhotoPicker', 'The photo could not be uploaded.'));
       }
     } finally {
       setUploading((prev) => prev.filter((u) => u.id !== id));

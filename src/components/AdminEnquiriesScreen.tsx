@@ -4,6 +4,7 @@ import { usePlan, upgradeNotice } from '../plan';
 import type { EnquiryRow } from '../types';
 import { Notice } from './ui';
 import { Icon } from '../layouts/emergent/ui';
+import { errorText } from '../bugReport';
 
 const KINDS: Array<{ key: 'all' | EnquiryRow['kind']; label: string }> = [
   { key: 'all', label: 'All' },
@@ -44,7 +45,7 @@ export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onC
       api
         .getEnquiries()
         .then((data) => active && setRows(data))
-        .catch((e) => active && setError(e.message));
+        .catch((e) => active && setError(errorText(e, 'AdminEnquiriesScreen')));
     load();
     const timer = setInterval(() => !document.hidden && load(), 15000);
     return () => {

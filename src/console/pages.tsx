@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Bell, Search } from 'lucide-react';
 import {
   NOT_CONNECTED, ago, bytes, day, daysLeft, delta, isOnline, num, planActions, short, stamp, storeActions, trialDays, useApi,
-  type Action, type ApiState, type AuditRow, type Cloud, type FeedItem, type Row, type Summary
+  type Action, type ApiState, type AuditRow, type BugRow, type Cloud, type FeedItem, type Row, type Summary
 } from './api';
 
 export interface PageProps { stores: ApiState<Row[]>; summary: ApiState<Summary>; v: number; ask: (s: Row, a: Action) => void; query: string; setQuery: (q: string) => void }
@@ -544,6 +544,41 @@ export function SubdomainsPage({ summary }: PageProps) {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+export function BugsPage({ v }: PageProps) {
+  const api = useApi<BugRow[]>('/bugs', v);
+  return (
+    <>
+      <Load s={api} />
+      <div className="cn-card" style={{ padding: 8 }}>
+        <div className="cn-tw">
+          <table className="cn-t">
+            <caption className="sr-only">Errors from customers' apps, newest first</caption>
+            <thead><tr>{['When', 'Store', 'Where', 'Error', 'Device'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
+            <tbody>
+              {(api.data ?? []).map((b) => (
+                <tr key={b.id}>
+                  <td>{stamp(b.at)}</td>
+                  <td>{b.storeId ? <a className="cn-store" href={`#/stores/${b.storeId}`}>{b.storeId}</a> : 'Antarixs site'}</td>
+                  <td>{b.where ?? '—'}</td>
+                  <td>
+                    <details>
+                      <summary>{b.message}</summary>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, maxWidth: 560 }}>{[b.url, b.stack].filter(Boolean).join('\n\n')}</pre>
+                    </details>
+                  </td>
+                  <td>{b.native ? 'Android app' : 'Browser'}{b.appVersion ? ` · v${b.appVersion}` : ''}<br /><small>{b.userAgent.slice(0, 60)}</small></td>
+                </tr>
+              ))}
+              {api.data && api.data.length === 0 && <tr><td colSpan={5} className="empty">No bug reports.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <small>The latest 100 errors customers' apps hit. They saw a short message; the details are here.</small>
     </>
   );
 }

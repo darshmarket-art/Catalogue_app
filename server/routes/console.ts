@@ -125,6 +125,10 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   const audits = async (storeId?: string) =>
     (await root.list('consoleAudit', storeId ? { where: [{ field: 'storeId', op: '==', value: storeId }] } : undefined))
       .sort((a, b) => b.at.localeCompare(a.at)).slice(0, 100);
+  // Errors customers' apps hit (POST /api/bug-report), newest first.
+  r.get('/bugs', handler(async (_req, res) => {
+    res.json({ status: 'success', data: await root.list('bugReports', { orderBy: { field: 'at', direction: 'desc' }, limit: 100 }) });
+  }));
   r.get('/audit', handler(async (req, res) => {
     res.json({ status: 'success', data: await audits(typeof req.query.storeId === 'string' ? req.query.storeId : undefined) });
   }));

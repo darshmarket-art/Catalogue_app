@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { UserError } from './bugReport';
 
 /**
  * Saves a file to the device instead of opening it, on phones and desktop alike. A PDF blob link opens in the browser's viewer tab,
@@ -10,6 +11,8 @@ import { Share } from '@capacitor/share';
  */
 export async function saveFile(blob: Blob, name: string): Promise<void> {
   if (Capacitor.isNativePlatform()) {
+    // An app installed before file saving was added: the live site is newer than the app on the phone.
+    if (!Capacitor.isPluginAvailable('Filesystem') || !Capacitor.isPluginAvailable('Share')) throw new UserError('Please update the app to save files. Install the latest version, then try again.');
     const data = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(String(r.result).split(',')[1] ?? '');

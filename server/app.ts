@@ -14,6 +14,7 @@ import { catalogueRoutes } from './routes/catalogue';
 import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
 import { aboutRoutes } from './routes/about';
+import { bugReportRoutes } from './routes/bugReports';
 import { pwaRoutes } from './routes/pwa';
 import { legalRoutes, platformRoutes } from './legal';
 import compression from 'compression';
@@ -135,6 +136,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
     res.json({ status: 'ok' });
   });
 
+  app.use('/api/bug-report', bugReportRoutes(config, root));
   app.use('/api/signup', signupRoutes(config, root, createOtpDelivery(config, sender, log, null)));
 
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {

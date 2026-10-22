@@ -5,6 +5,7 @@ import { usePlan, upgradeNotice } from '../plan';
 import { Notice } from './ui';
 import { Icon, OrderStatusPill, Sheet } from '../layouts/emergent/ui';
 import type { AdminOrder, EnquiryRow } from '../types';
+import { errorText } from '../bugReport';
 
 /** Buyers (artboard 3.5 on Pro; 4.3 on Basic, with the 50-buyer meter). */
 /** One buyer's card: who they are, their orders and enquiries (when the plan has them), and the ways to reach or remove them. */
@@ -70,7 +71,7 @@ export const AdminBuyersScreen: React.FC = () => {
     api
       .getBuyers()
       .then(setBuyers)
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(errorText(e, 'AdminBuyersScreen')));
 
   useEffect(() => {
     load();
@@ -90,7 +91,7 @@ export const AdminBuyersScreen: React.FC = () => {
       setSheetFor(null);
       setBuyers((list) => list?.filter((b) => b.phone !== buyer.phone) ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not remove the buyer.');
+      setError(errorText(e, 'AdminBuyersScreen', 'Could not remove the buyer.'));
     } finally {
       setBusyPhone(null);
     }

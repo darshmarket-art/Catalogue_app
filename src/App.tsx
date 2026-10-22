@@ -37,6 +37,7 @@ import { AdminChangePasswordScreen } from './components/AdminChangePasswordScree
 import { TrialBanner } from './components/TrialBanner';
 import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
+import { errorText } from './bugReport';
 
 
 // The bottom-bar screens (buyer tabs and the admin ones): switching between them fades; going deeper slides forward, coming back slides back.
@@ -476,7 +477,7 @@ export default function App() {
       setCategories((prev) => prev.map((c) => (c.name === created.category ? { ...c, designCount: c.designCount + 1 } : c)));
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not publish the product.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not publish the product.'));
       return false;
     }
   };
@@ -488,7 +489,7 @@ export default function App() {
       setCategories((prev) => prev.map((c) => (c.name === product.category ? { ...c, designCount: Math.max(0, c.designCount - 1) } : c)));
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the product.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not delete the product.'));
       return false;
     }
   };
@@ -507,7 +508,7 @@ export default function App() {
       setCategories((prev) => [...prev, created]);
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not create the category.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not create the category.'));
       return false;
     }
   };
@@ -521,7 +522,7 @@ export default function App() {
       if (categoryFilter === category.name) setCategoryFilter(null);
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the category.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not delete the category.'));
       return false;
     }
   };
@@ -542,7 +543,7 @@ export default function App() {
       setBanners((prev) => [...prev, created]);
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not add the banner.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not add the banner.'));
       return false;
     }
   };
@@ -552,7 +553,7 @@ export default function App() {
       const updated = await api.setBannerLink(banner.id, category);
       setBanners((prev) => prev.map((b) => (b.id === banner.id ? { ...b, category: updated.category } : b)));
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not change the banner link.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not change the banner link.'));
     }
   };
 
@@ -561,7 +562,7 @@ export default function App() {
       await api.deleteBanner(banner.id);
       setBanners((prev) => prev.filter((b) => b.id !== banner.id));
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not delete the banner.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not delete the banner.'));
     }
   };
 
@@ -578,7 +579,7 @@ export default function App() {
       if (wa.length >= 11 && wa.length <= 15) merchant.contact = { ...merchant.contact, whatsapp: wa, deskPhone: `+${wa}` };
       return null;
     } catch (err) {
-      return err instanceof Error ? err.message : 'Could not save.';
+      return errorText(err, 'App', 'Could not save.');
     }
   };
 
@@ -596,7 +597,7 @@ export default function App() {
     try {
       await api.reorderBanners(ids);
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(err instanceof Error ? err.message : 'Could not save the banner order.');
+      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not save the banner order.'));
     }
   };
 

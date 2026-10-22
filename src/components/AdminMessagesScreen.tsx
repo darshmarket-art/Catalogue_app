@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api, type MessageKind, type MessageRow, type MessagesPage } from '../api';
 import { Notice } from './ui';
 import { DeliveryPill } from './DeliveryStatus';
+import { errorText } from '../bugReport';
 
 const KIND_LABEL: Record<MessageKind, string> = { otp: 'Sign-in code', 'signup-otp': 'Signup code', 'admin-reset': 'Password reset code', order: 'Order alert', 'store-full': 'Catalogue-full nudge', test: 'Test alert', trial: 'Trial notice' };
 
@@ -20,7 +21,7 @@ export const AdminMessagesScreen: React.FC = () => {
 
   useEffect(() => {
     setErr(null);
-    api.getMessages(filter === 'failed' ? 'failed' : undefined).then(setPage).catch((e) => setErr(e.message));
+    api.getMessages(filter === 'failed' ? 'failed' : undefined).then(setPage).catch((e) => setErr(errorText(e, 'AdminMessagesScreen')));
   }, [filter]);
 
   return (

@@ -7,6 +7,7 @@ import { usePlan } from '../plan';
 import { Field, I, Notice } from './ui';
 import { AdminForgotPassword } from './AdminForgotPassword';
 import { WelcomeGreeting } from './WelcomeGreeting';
+import { errorText } from '../bugReport';
 
 interface AdminLoginScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -49,7 +50,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
         setWelcome({ name: res.admin.name, mustChange: Boolean(res.admin.mustChangePassword), email: res.admin.email });
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Sign-in failed.');
+      setErrorMsg(errorText(err, 'AdminLoginScreen', 'Sign-in failed.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +76,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
       setMode('login');
       setSuccessMsg(res.message || 'Admin account created. You can now sign in.');
     } catch (err: any) {
-      setErrorMsg(err.message || 'Could not create the admin account.');
+      setErrorMsg(errorText(err, 'AdminLoginScreen', 'Could not create the admin account.'));
     } finally {
       setIsSubmitting(false);
     }

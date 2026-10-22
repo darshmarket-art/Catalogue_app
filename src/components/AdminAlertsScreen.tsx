@@ -4,6 +4,7 @@ import { usePlan, upgradeNotice } from '../plan';
 import { Field, Notice } from './ui';
 import { Icon } from '../layouts/emergent/ui';
 import type { ActiveScreen } from '../types';
+import { errorText } from '../bugReport';
 
 const pretty = (n: string) => `+${n}`;
 
@@ -19,7 +20,7 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
   const [test, setTest] = useState<AlertTestResult | null>(null);
 
   useEffect(() => {
-    api.getAlerts().then((d) => { setData(d); setNumbers(d.numbers); }).catch((e) => setErr(e.message));
+    api.getAlerts().then((d) => { setData(d); setNumbers(d.numbers); }).catch((e) => setErr(errorText(e, 'AdminAlertsScreen')));
   }, []);
 
   const run = async (fn: () => Promise<string | null>) => {
@@ -30,7 +31,7 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
     try {
       setOk(await fn());
     } catch (e: any) {
-      setErr(e.message || 'Something went wrong.');
+      setErr(errorText(e, 'AdminAlertsScreen', 'Something went wrong.'));
     } finally {
       setBusy(false);
     }

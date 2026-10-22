@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AnalyticsData, VisitorDetail, VisitorSummary } from '../types';
 import { api } from '../api';
 import { Notice } from './ui';
+import { errorText } from '../bugReport';
 
 const duration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;
@@ -47,7 +48,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
       api
         .getVisitors('all')
         .then((data) => active && setRows(data))
-        .catch((e) => active && setError(e.message));
+        .catch((e) => active && setError(errorText(e, 'AdminVisitorsScreen')));
     setRows(null);
     setError(null);
     load();
@@ -68,7 +69,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
     api
       .getVisitor(openId)
       .then((d) => active && setDetail(d))
-      .catch((e) => active && setError(e.message));
+      .catch((e) => active && setError(errorText(e, 'AdminVisitorsScreen')));
     return () => {
       active = false;
     };

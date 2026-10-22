@@ -5,6 +5,7 @@ import type { ActiveScreen, AdminSummary } from '../types';
 import { Icon, Title } from '../layouts/emergent/ui';
 import { Notice } from './ui';
 import { OrderNotificationsToggle } from './OrderNotificationsToggle';
+import { errorText } from '../bugReport';
 
 interface Props {
   summary: AdminSummary;
@@ -27,7 +28,7 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
     setError(null);
     api
       .downloadAuditExport()
-      .catch((e) => setError(e.message || 'Could not download the audit log.'))
+      .catch((e) => setError(errorText(e, 'AdminStoreScreen', 'Could not download the audit log.')))
       .finally(() => setDownloading(false));
   };
 

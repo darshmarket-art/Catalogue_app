@@ -3,6 +3,7 @@ import { api } from '../api';
 import { AdminOrder, OrderStatus } from '../types';
 import { Notice } from './ui';
 import { Icon, OrderStatusPill, Title } from '../layouts/emergent/ui';
+import { errorText } from '../bugReport';
 
 const STATUSES: OrderStatus[] = ['new', 'confirmed', 'dispatched', 'cancelled'];
 const label = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
@@ -34,7 +35,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
         setError(null);
       })
       .catch((err) => {
-        if (!err.handled) setError(err.message || 'Could not load orders.');
+        if (!err.handled) setError(errorText(err, 'AdminOrdersScreen', 'Could not load orders.'));
       });
   }, []);
 
@@ -58,7 +59,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
       onChanged?.();
     } catch (err: any) {
       setOrders((list) => list?.map((o) => (o.poId === order.poId ? { ...o, status: previous } : o)) ?? null);
-      if (!err.handled) setError(err.message || 'Could not update the order.');
+      if (!err.handled) setError(errorText(err, 'AdminOrdersScreen', 'Could not update the order.'));
     }
   };
 

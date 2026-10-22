@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { Field, Notice } from './ui';
+import { errorText } from '../bugReport';
 
 /** An admin sets their own password. `forced` after signing in with a temporary password: nothing else opens until it is done. */
 export const AdminChangePasswordScreen: React.FC<{ forced: boolean; onDone: () => void }> = ({ forced, onDone }) => {
@@ -20,7 +21,7 @@ export const AdminChangePasswordScreen: React.FC<{ forced: boolean; onDone: () =
       await api.adminChangePassword({ currentPassword: current, newPassword: next });
       onDone();
     } catch (x: any) {
-      setErr(x.message || 'Could not change the password.');
+      setErr(errorText(x, 'AdminChangePasswordScreen', 'Could not change the password.'));
     } finally {
       setBusy(false);
     }

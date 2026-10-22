@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, type Insights } from '../api';
 import { Notice } from './ui';
+import { errorText } from '../bugReport';
 
 const fmt = (n: number) => n.toLocaleString('en-IN');
 const delta = (cur: number, prev: number) => (prev === 0 ? (cur > 0 ? 'new' : '—') : `${cur >= prev ? '+' : ''}${Math.round(((cur - prev) / prev) * 100)}%`);
@@ -10,7 +11,7 @@ export const AdminInsightsScreen: React.FC = () => {
   const [d, setD] = useState<Insights | null>(null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
-    api.getInsights().then(setD).catch((e) => setErr(e.message));
+    api.getInsights().then(setD).catch((e) => setErr(errorText(e, 'AdminInsightsScreen')));
   }, []);
 
   if (err) return <div className="scroll no-tabs"><Notice tone="error">{err}</Notice></div>;

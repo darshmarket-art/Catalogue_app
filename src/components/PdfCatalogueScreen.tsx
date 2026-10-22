@@ -4,6 +4,7 @@ import { merchant } from '../merchant';
 import { downloadDesignsPdf } from '../cataloguePdf';
 import { Chip, Notice } from './ui';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
+import { errorText } from '../bugReport';
 
 /**
  * PDF catalogue (admin): pick designs from every collection, then download or share one PDF.
@@ -53,7 +54,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
       setStatus(null);
-      setError(err instanceof Error ? err.message : 'Could not create the PDF.');
+      setError(errorText(err, 'admin PDF catalogue', 'Could not create the PDF.'));
     }
     setBusy(false);
   };

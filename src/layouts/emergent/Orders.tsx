@@ -6,6 +6,7 @@ import { sector } from '../../sector';
 import { useDesktop } from './useDesktop';
 import { Icon, OrderStatusPill, Ph, Pill, Title, fmtG, type KitProps } from './ui';
 import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
+import { errorText } from '../../bugReport';
 
 const when = (iso: string) => new Date(iso).toLocaleString(getLang() === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -197,7 +198,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
       return null;
     } catch (err) {
       api.getOrderHistory().then(setHistory);
-      return err instanceof Error ? tErr(err.message) : t('Could not cancel the order.');
+      return tErr(errorText(err, 'Orders', t('Could not cancel the order.')));
     }
   };
 

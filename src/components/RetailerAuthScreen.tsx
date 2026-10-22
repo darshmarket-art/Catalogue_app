@@ -11,6 +11,7 @@ import { WelcomeGreeting } from './WelcomeGreeting';
 import { DeliveryPill, FAILURE_TEXT, useOtpDelivery } from './DeliveryStatus';
 import type { ProfileUser } from './ProfileMenu';
 import { t, tErr, ts, useLang } from '../i18n';
+import { errorText } from '../bugReport';
 
 interface RetailerAuthScreenProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -105,7 +106,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       setWait(30);
     } catch (err: any) {
       if (err.code === 'CATALOGUE_FULL') setFull(true);
-      else setErrorMessage(err.message ? tErr(err.message) : t('Could not send the code.'));
+      else setErrorMessage(tErr(errorText(err, 'RetailerAuthScreen', t('Could not send the code.'))));
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,7 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
       if (res.status === 'needs-name') setNeedsName(true);
       else setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
     } catch (err: any) {
-      setErrorMessage(err.message ? tErr(err.message) : t('That code did not work.'));
+      setErrorMessage(tErr(errorText(err, 'RetailerAuthScreen', t('That code did not work.'))));
     } finally {
       setLoading(false);
     }

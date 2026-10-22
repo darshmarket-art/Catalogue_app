@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { Activity, Award, FileText, Globe, HardDrive, LayoutDashboard, Package, RefreshCw, Search, Store, UserRound, Users } from 'lucide-react';
+import { Activity, Award, Bug, FileText, Globe, HardDrive, LayoutDashboard, Package, RefreshCw, Search, Store, UserRound, Users } from 'lucide-react';
 import { markSvgInner } from '../../shared/antarixsMark';
 import { call, num, revisionNo, useApi, type Action, type Row, type Summary } from './api';
-import { ActivityPage, AuditPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, SubdomainsPage, StoresPage, type PageProps } from './pages';
+import { ActivityPage, AuditPage, BugsPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, SubdomainsPage, StoresPage, type PageProps } from './pages';
 
 const NAV: Array<{ id: string; label: string; icon: ComponentType<{ size?: number; 'aria-hidden'?: boolean }>; page: ComponentType<PageProps> }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, page: Overview },
@@ -14,6 +14,7 @@ const NAV: Array<{ id: string; label: string; icon: ComponentType<{ size?: numbe
   { id: 'activity', label: 'Activity', icon: Activity, page: ActivityPage },
   { id: 'storage', label: 'Storage', icon: HardDrive, page: StoragePage },
   { id: 'subdomains', label: 'Subdomains', icon: Globe, page: SubdomainsPage },
+  { id: 'bugs', label: 'Bug reports', icon: Bug, page: BugsPage },
   { id: 'audit', label: 'Audit log', icon: FileText, page: AuditPage }
 ];
 

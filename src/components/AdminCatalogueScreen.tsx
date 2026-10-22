@@ -7,6 +7,7 @@ import { downloadDesignsPdf } from '../cataloguePdf';
 import { AdminBannersScreen } from './AdminBannersScreen';
 import { AdminPuritiesScreen } from './AdminPuritiesScreen';
 import { groupByTag, setTagList, useTagList } from '../tagList';
+import { UserError, errorText } from '../bugReport';
 
 export type CatalogueSegment = 'designs' | 'collections' | 'banners' | 'purities';
 
@@ -137,7 +138,7 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
         setTotal(page.total);
         setHasMore(page.hasMore);
       })
-      .catch((e) => id === req.current && setError(e instanceof Error ? e.message : 'Could not load the designs.'))
+      .catch((e) => id === req.current && setError(errorText(e, 'AdminCatalogueScreen', 'Could not load the designs.')))
       .finally(() => id === req.current && setLoading(false));
   }, [query]);
 
@@ -313,7 +314,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
       after?.();
       onChanged();
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'Could not save the tag.');
+      setProblem(errorText(err, 'AdminCatalogueScreen', 'Could not save the tag.'));
     } finally {
       setBusy(false);
     }
@@ -406,11 +407,11 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
     setStatus(`Preparing the ${c.name} PDF…`);
     try {
       const items = await designsIn(c.name);
-      if (items.length === 0) throw new Error('This collection has no designs yet.');
+      if (items.length === 0) throw new UserError('This collection has no designs yet.');
       await downloadDesignsPdf(c.name, items, (done, total) => setStatus(`Preparing the ${c.name} PDF… ${done} of ${total} photos`));
       setStatus(`${c.name} PDF downloaded`);
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Could not create the PDF.');
+      setStatus(errorText(err, 'admin collection PDF', 'Could not create the PDF.'));
     } finally {
       setBusy(null);
       setTimeout(() => setStatus(null), 3500);

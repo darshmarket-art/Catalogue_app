@@ -7,6 +7,7 @@ import { api } from '../api';
 import { setTagList, useTagList } from '../tagList';
 import { toHindi } from '../../shared/hindi';
 import { Icon } from '../layouts/emergent/ui';
+import { errorText } from '../bugReport';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -38,7 +39,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
       setNewTag(null);
       setTagProblem(null);
     } catch (err) {
-      setTagProblem(err instanceof Error ? err.message : 'Could not add the tag.');
+      setTagProblem(errorText(err, 'AddCategoryScreen', 'Could not add the tag.'));
     }
   };
   const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');

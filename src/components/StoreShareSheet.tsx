@@ -4,6 +4,7 @@ import { Icon, Sheet } from '../layouts/emergent/ui';
 import { shareStoreQr, storeQrBlob } from '../storeQrCard';
 import { saveFile } from '../saveFile';
 import { bareUrl } from '../storeLink';
+import { errorText } from '../bugReport';
 
 /** Share the store: its QR, its link, copy, download the QR picture, or send it on WhatsApp. Reachable from the profile menu any time. */
 export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () => void }> = ({ name, url, onClose }) => {
@@ -31,7 +32,7 @@ export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () 
     try {
       await fn();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Something went wrong.');
+      setErr(errorText(e, `store QR ${what}`));
     } finally {
       setBusy(null);
     }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { Field, Notice } from './ui';
+import { errorText } from '../bugReport';
 
 /** Admin forgot password: a 6-digit code on the store's WhatsApp number, then a new password. */
 export const AdminForgotPassword: React.FC<{ email: string; onBack: () => void; onDone: (message: string) => void }> = ({ email: initial, onBack, onDone }) => {
@@ -19,7 +20,7 @@ export const AdminForgotPassword: React.FC<{ email: string; onBack: () => void; 
     try {
       await fn();
     } catch (x: any) {
-      setErr(x.message || 'Something went wrong.');
+      setErr(errorText(x, 'AdminForgotPassword', 'Something went wrong.'));
     } finally {
       setBusy(false);
     }

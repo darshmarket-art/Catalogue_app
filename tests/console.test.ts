@@ -85,3 +85,16 @@ describe('console', () => {
     expect((await request(app).get('/api/config').set('X-Store', 'example')).status).toBe(403);
   });
 });
+
+describe('bug reports', () => {
+  it('a customer app reports an error (no session needed); the console lists it with the store, newest first', async () => {
+    const send = (body: object, store = 'example') => request(app).post('/api/bug-report').set('X-Store', store).send(body);
+    expect((await send({ message: 'Filesystem plugin is not implemented on android', where: 'collection PDF', native: true, stack: 'x'.repeat(9000) })).status).toBe(200);
+    expect((await send({ message: '' })).status).toBe(400);
+    expect((await request(app).get(`${api}/bugs`)).status).toBe(401);
+    const list = await request(app).get(`${api}/bugs`).set(as());
+    expect(list.body.data).toHaveLength(1);
+    expect(list.body.data[0]).toMatchObject({ storeId: 'example', where: 'collection PDF', native: true, message: 'Filesystem plugin is not implemented on android' });
+    expect(list.body.data[0].stack.length).toBe(4000);
+  });
+});

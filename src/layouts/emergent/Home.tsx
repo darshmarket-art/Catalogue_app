@@ -10,6 +10,7 @@ import { CollectionsBrowser } from './CollectionsBrowser';
 import { recentCollections, recentSkus } from '../../recent';
 import { grams, hn, pur, t, tl, tn, ts, useLang } from '../../i18n';
 import { toHindi } from '../../../shared/hindi';
+import { errorText } from '../../bugReport';
 
 /** Up to this many collections are all shown on Home; more than this and Home features four (the owner's hero collections) plus a Browse all page. */
 const FEW = 6;
@@ -67,7 +68,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       await downloadCataloguePdf(cat, products, (done, total) => setToastMessage(`Preparing the PDF… ${done} of ${total} photos`));
       showToast('PDF downloaded');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Could not create the PDF.');
+      showToast(errorText(err, 'collection PDF', 'Could not create the PDF.'));
     }
   };
 

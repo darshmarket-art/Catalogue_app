@@ -16,6 +16,7 @@ import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
 import { grams, hn, pur, t, tErr, tn, ts, useLang } from '../../i18n';
+import { errorText } from '../../bugReport';
 
 
 const PAGE = 24;
@@ -153,7 +154,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         setCursor(page.cursor);
         setCursorAfter(page.cursorAfter);
       })
-      .catch((err) => id === reqId.current && setError(err instanceof Error ? tErr(err.message) : t('Could not load the catalogue.')))
+      .catch((err) => id === reqId.current && setError(tErr(errorText(err, 'Catalogue', t('Could not load the catalogue.')))))
       .finally(() => id === reqId.current && setLoading(false));
   }, [query, retry]);
 
@@ -248,7 +249,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       setPdfStatus('PDF downloaded');
       stopSelecting();
     } catch (err) {
-      setPdfStatus(err instanceof Error ? err.message : 'Could not create the PDF.');
+      setPdfStatus(errorText(err, 'selection PDF', 'Could not create the PDF.'));
     }
     setTimeout(() => setPdfStatus(null), 3500);
   };
