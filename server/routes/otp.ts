@@ -31,10 +31,18 @@ export function devCode(config: Config, phone: string, code: string): { devCode?
   return { devCode: code };
 }
 
-const phone = z
+/**
+ * Indian mobile numbers only (10 digits starting 6-9, with an optional 0, 91 or +91 in front), and not an obvious made-up
+ * one such as 9999999999, so codes are never paid for on numbers that cannot exist. The digits are kept as typed (accounts are keyed by them).
+ */
+export const isRealMobile = (digits: string) => {
+  const m = /^(?:91|0)?([6-9]\d{9})$/.exec(digits);
+  return Boolean(m) && new Set(m![1]).size > 2;
+};
+export const phone = z
   .string()
   .transform((v) => v.replace(/[^0-9]/g, ''))
-  .refine((v) => v.length >= 10 && v.length <= 15, 'Please provide a valid mobile number.');
+  .refine(isRealMobile, 'Please enter a valid 10-digit mobile number.');
 const requestSchema = z.object({ phone });
 const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
 const resetSchema = forgotSchema.extend({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.'), newPassword: trimmed(128, 10) });

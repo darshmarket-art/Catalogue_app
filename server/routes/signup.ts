@@ -10,7 +10,7 @@ import type { OtpDelivery } from '../whatsapp';
 import { ADMIN_REMEMBER_TTL, safeEqual, signToken } from '../auth';
 import { HttpError, errorHandler, handler, newId, parse } from '../http';
 import { parseMerchant } from '../merchant';
-import { devCode } from './otp';
+import { OTP_PHONE_PER_HOUR, devCode, phone } from './otp';
 import { hostOf, newStoreRecord, scopeStore, secretFor, type StoreRecord } from '../tenancy';
 import { isAvailableStoreName, isReservedStoreName, isValidStoreName } from '../../shared/storeName';
 import { trimmed } from '../schemas';
@@ -20,10 +20,6 @@ const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_RESEND_MS = 30 * 1000;
 
-const phone = z
-  .string()
-  .transform((v) => v.replace(/[^0-9]/g, ''))
-  .refine((v) => v.length >= 10 && v.length <= 15, 'Please provide a valid mobile number.');
 const storeName = z.string().trim().toLowerCase();
 /** Honeypot: a field people never see. Bots that fill every input give themselves away. */
 const website = z.string().max(200).optional();
@@ -141,13 +137,15 @@ export function signupRoutes(config: Config, root: Store, delivery: OtpDelivery,
         throw new HttpError(409, 'This phone number has already been used to start a free trial. Please sign in to your store instead.', 'TRIAL_USED');
       }
       const t = now();
-      const prev = await root.get<{ sentAt: number }>('signupOtps', ph);
+      const prev = await root.get<{ sentAt: number; hourStart?: number; hourCount?: number }>('signupOtps', ph);
       if (prev && t - prev.sentAt < OTP_RESEND_MS) {
         throw new HttpError(429, `Please wait ${Math.ceil((OTP_RESEND_MS - (t - prev.sentAt)) / 1000)} seconds before asking for another code.`);
       }
+      const sameHour = Boolean(prev?.hourStart && t - prev.hourStart < 3600_000);
+      if (sameHour && (prev!.hourCount ?? 0) >= OTP_PHONE_PER_HOUR) throw new HttpError(429, 'Too many codes requested for this number. Please try again later.');
       const code = config.staticOtp ?? String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
       const { channel, messageId } = await delivery(ph, code, 'signup-otp');
-      await root.set('signupOtps', ph, { hash: hash(ph, code), expiresAt: t + OTP_TTL_MS, attempts: 0, sentAt: t });
+      await root.set('signupOtps', ph, { hash: hash(ph, code), expiresAt: t + OTP_TTL_MS, attempts: 0, sentAt: t, hourStart: sameHour ? prev!.hourStart! : t, hourCount: sameHour ? (prev!.hourCount ?? 0) + 1 : 1 });
       res.json({ status: 'success', message: 'We sent a 6-digit code to your WhatsApp.', expiresInSeconds: OTP_TTL_MS / 1000, channel, messageId, ...devCode(config, ph, code) });
     })
   );

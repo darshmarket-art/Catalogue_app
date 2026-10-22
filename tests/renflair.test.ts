@@ -32,3 +32,11 @@ describe('Renflair sign-in codes', () => {
     expect(() => loadConfig({ ...base, OTP_PROVIDER: 'renflair' } as any)).toThrow(/RENFLAIR_API_KEY/);
   });
 });
+
+describe('only real Indian mobile numbers get a code', async () => {
+  const { isRealMobile } = await import('../server/routes/otp');
+  it('accepts 10-digit mobiles with or without 0 / 91, and refuses made-up or landline-shaped numbers', () => {
+    for (const ok of ['9820011111', '09820011111', '919820011111', '6012345678']) expect(isRealMobile(ok)).toBe(true);
+    for (const bad of ['9999999999', '9898989898', '0000000000', '1234567890', '5820011111', '98200111', '4498200111110', '919999999999']) expect(isRealMobile(bad)).toBe(false);
+  });
+});
