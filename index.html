@@ -22,11 +22,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <style>
+      /* The loading screen (see src/components/BootSplash.tsx): shown from the first paint, before the app's own styles load. */
+      .boot-splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--color-surface, #f7f1e8); }
+      .boot-splash span { width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(0, 0, 0, 0.08); border-top-color: var(--color-primary, #4a1835); animation: boot-spin 0.9s linear infinite; }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .boot-splash span { animation-duration: 2.4s; } }
+    </style>
     {{THEME_STYLE}}
     {{MERCHANT_CONFIG}}
   </head>
   <body class="bg-surface text-on-surface antialiased">
-    <div id="root"></div>
+    <div id="root"><div class="boot-splash" aria-hidden="true"><span></span></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

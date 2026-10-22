@@ -11,6 +11,7 @@ import { Reveal } from './Reveal';
 import { HowItWorks } from './HowItWorks';
 import { PlansCompare } from './PlansCompare';
 import { checkStore, clearMyStore, getMyStore } from '../myStore';
+import { BootSplash } from './BootSplash';
 
 /** Where "Sign in to your store" goes: [store].<platform domain>, or ?store= on localhost. */
 export function storeUrl(store: string, loc: Pick<Location, 'protocol' | 'hostname' | 'host'> = window.location): string | null {
@@ -98,19 +99,15 @@ export const EntryScreen: React.FC = () => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  if (mine && mineState !== 'none') {
+  // One steady loading screen while the saved store is looked up and opened (no flash of this page on the way).
+  if (mineState === 'checking') return <BootSplash />;
+  if (mine && mineState === 'offline') {
     return (
       <Shell>
         <main className="ax-narrow" style={{ gap: 14, textAlign: 'center', paddingTop: 120 }}>
-          {mineState === 'checking' ? (
-            <p className="em-mut">Opening {mine}…</p>
-          ) : (
-            <>
-              <p role="alert">No internet connection. Your store, {mine}, is still saved on this device.</p>
-              <button type="button" className="btn" onClick={() => setTries(tries + 1)}>Try again</button>
-              <button type="button" className="ax-link" onClick={() => setMineState('none')}>Go to Antarixs</button>
-            </>
-          )}
+          <p role="alert">No internet connection. Your store, {mine}, is still saved on this device.</p>
+          <button type="button" className="btn" onClick={() => setTries(tries + 1)}>Try again</button>
+          <button type="button" className="ax-link" onClick={() => setMineState('none')}>Go to Antarixs</button>
         </main>
       </Shell>
     );

@@ -38,6 +38,7 @@ import { TrialBanner } from './components/TrialBanner';
 import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
 import { errorText } from './bugReport';
+import { BootSplash } from './components/BootSplash';
 
 
 // The bottom-bar screens (buyer tabs and the admin ones): switching between them fades; going deeper slides forward, coming back slides back.
@@ -126,6 +127,7 @@ export default function App() {
   const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
   // Switching between the four tabs fades; going deeper or back slides.
   const lastScreen = useRef<ActiveScreen>(currentScreen);
+  const firstKey = useRef<ActiveScreen | null | undefined>(undefined);
 
   // Set once the guard entry exists (see the Back handling below); remembered in the history state so a reload keeps it.
   const guardArmed = useRef(Boolean(window.history.state?.g));
@@ -691,6 +693,7 @@ export default function App() {
             : screen;
   useEffect(() => {
     lastScreen.current = activeScreen;
+    if (firstKey.current && firstKey.current !== activeScreen) firstKey.current = null;
     window.scrollTo(0, 0); // a new screen always opens at its top, not where the last one was scrolled
     // After a restored sign-in the screen changes without a navigation: keep the history entry in step (never touch the guard).
     if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen, g: guardArmed.current ? 1 : undefined, ld: window.history.state?.ld }, '');
@@ -744,7 +747,9 @@ export default function App() {
         <p>This version is no longer supported. Install the latest version to continue.</p>
       </div>
     );
-  if (booting) return <div className="min-h-screen bg-surface" />;
+  if (booting) return <BootSplash />;
+  // The first screen after loading fades in over the loading screen instead of sliding; later screens slide as usual.
+  if (firstKey.current === undefined) firstKey.current = activeScreen;
 
   return (
     <div data-layout={DEFAULT_LAYOUT} data-role={isAdminLoggedIn ? 'owner' : 'buyer'} className="min-h-screen bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
@@ -805,7 +810,7 @@ export default function App() {
 
       {/* Main View Container */}
       {/* Keying by screen replays the page-in animation on every navigation, in or out of the app's own history. */}
-      <main key={activeScreen} className={`flex-1 w-full ${TABS.includes(lastScreen.current) && TABS.includes(activeScreen) && !(DRILL.includes(lastScreen.current) && DRILL.includes(activeScreen)) ? 'animate-page-in' : navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
+      <main key={activeScreen} className={`flex-1 w-full ${activeScreen === firstKey.current ? 'animate-fade-in' : TABS.includes(lastScreen.current) && TABS.includes(activeScreen) && !(DRILL.includes(lastScreen.current) && DRILL.includes(activeScreen)) ? 'animate-page-in' : navDir === 'back' ? 'animate-page-back' : 'animate-page-forward'} ${activeScreen === 'welcome' ? '' : 'pt-[calc(var(--header-h)+var(--sat))]'}`}>
 
         {activeScreen === 'welcome' && (
           <K.Welcome onNavigate={handleNavigate} />
