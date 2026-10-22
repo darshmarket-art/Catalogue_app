@@ -46,21 +46,19 @@ function stamp(ctx: CanvasRenderingContext2D, text: string) {
   ctx.restore();
 }
 
-/** The photo centre-cropped to the card's photo shape, with the watermark; null if the browser will not let us read it. */
+/** The whole photo fitted inside the card's photo box (never cropped; white margins match the card), with the watermark; null if the browser will not let us read it. */
 function cardJpeg(img: HTMLImageElement, watermark: string): string | null {
   try {
-    const want = PHOTO_PX / PHOTO_PY;
-    let sw = img.naturalWidth;
-    let sh = sw / want;
-    if (sh > img.naturalHeight) {
-      sh = img.naturalHeight;
-      sw = sh * want;
-    }
+    const k = Math.min(PHOTO_PX / img.naturalWidth, PHOTO_PY / img.naturalHeight);
+    const dw = img.naturalWidth * k;
+    const dh = img.naturalHeight * k;
     const canvas = document.createElement('canvas');
     canvas.width = PHOTO_PX;
     canvas.height = PHOTO_PY;
     const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, 0, 0, PHOTO_PX, PHOTO_PY);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, PHOTO_PX, PHOTO_PY);
+    ctx.drawImage(img, (PHOTO_PX - dw) / 2, (PHOTO_PY - dh) / 2, dw, dh);
     stamp(ctx, watermark);
     return canvas.toDataURL('image/jpeg', 0.82);
   } catch {
