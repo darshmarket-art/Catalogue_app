@@ -64,6 +64,8 @@ export interface About {
   ownerRole?: string;
   story?: string;
   address?: string;
+  /** "lat,lng" picked on Google Maps. */
+  mapPin?: string;
   phone?: string;
   email?: string;
   openingHours?: string;

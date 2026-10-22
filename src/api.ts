@@ -353,6 +353,14 @@ export const api = {
     }
   },
 
+  /** Uploads the store logo (any photo; the server keeps a 512 px PNG). Returns its new address. */
+  async uploadLogo(file: File): Promise<string> {
+    const res = await apiFetch(API_BASE + '/api/v1/admin/brand/logo', { method: 'PUT', headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) }, body: file });
+    const json = await parseJson(res);
+    if (!res.ok || json.status === 'error') throw new ApiError(res.status, json.message || 'The logo could not be uploaded.');
+    return json.data.logoUrl;
+  },
+
   async saveAbout(about: About): Promise<About> {
     return (await request('/api/v1/about', { method: 'PUT', body: JSON.stringify(about) })).data;
   },

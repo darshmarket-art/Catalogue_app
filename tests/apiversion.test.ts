@@ -20,7 +20,7 @@ describe('versioned API', () => {
   it('app-config reports versions, even to an outdated app', async () => {
     const res = await request(app).get('/api/v1/app-config').set('X-App-Version', '0.1.0');
     expect(res.status).toBe(200);
-    expect(res.body.data).toEqual({ minAppVersion: '1.2.0', latestAppVersion: '1.3.0' });
+    expect(res.body.data).toEqual({ minAppVersion: '1.2.0', latestAppVersion: '1.3.0', googleMapsKey: null });
   });
   it('rejects versions below the minimum with 426', async () => {
     const res = await request(app).get('/api/v1/config').set('X-App-Version', '1.1.9');

@@ -13,7 +13,9 @@ import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
 import { shortlistRoutes } from './routes/shortlist';
 import { orderRoutes } from './routes/orders';
-import { aboutRoutes } from './routes/about';
+import { aboutRoutes, whatsappOf } from './routes/about';
+import { brandLogoRoutes } from './routes/brandLogo';
+import type { MerchantConfig } from './merchant';
 import { bugReportRoutes } from './routes/bugReports';
 import { pwaRoutes } from './routes/pwa';
 import { legalRoutes, platformRoutes } from './legal';
@@ -78,11 +80,13 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
         ? {
             directives: {
               defaultSrc: ["'self'"],
-              scriptSrc: ["'self'"],
+              // Google Maps (About us address search and map pin) loads its scripts, tiles and place data from Google.
+              scriptSrc: ["'self'", 'https://maps.googleapis.com', 'https://maps.gstatic.com'],
               styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
               fontSrc: ["'self'", 'https://fonts.gstatic.com'],
               imgSrc: ["'self'", 'data:', 'https:'],
-              connectSrc: ["'self'"],
+              connectSrc: ["'self'", 'https://maps.googleapis.com', 'https://places.googleapis.com', 'https://*.googleapis.com'],
+              workerSrc: ["'self'", 'blob:'],
               objectSrc: ["'none'"],
               frameAncestors: ["'none'"],
               baseUri: ["'self'"],
@@ -117,7 +121,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   });
   // Minimum supported app version. Requests without the header (web, curl) are never blocked.
   app.get('/api/app-config', (_req, res) => {
-    res.json({ status: 'success', data: { minAppVersion: config.minAppVersion, latestAppVersion: config.latestAppVersion } });
+    res.json({ status: 'success', data: { minAppVersion: config.minAppVersion, latestAppVersion: config.latestAppVersion, googleMapsKey: config.googleMapsKey } });
   });
   app.use('/api', (req, res, next) => {
     const v = req.header('x-app-version');
@@ -142,14 +146,15 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
-    // The About us phone becomes the store's WhatsApp number (every WhatsApp button, order alerts' default, OTP fallback).
-    const setWhatsapp = async (wa: string) => {
+    // Settings the admin changes in the app (About us contact details, the logo) are written into the store's merchant record.
+    const patchMerchant = async (fn: (m: MerchantConfig) => MerchantConfig) => {
       const m = entry.rec.merchant;
-      if (m.contact.whatsapp === wa) return;
-      await root.update('stores', id, { merchant: { ...m, contact: { ...m.contact, whatsapp: wa, deskPhone: `+${wa}` } } });
+      const next = fn(m);
+      if (JSON.stringify(next) === JSON.stringify(m)) return;
+      await root.update('stores', id, { merchant: next });
       resolver.invalidate(id);
     };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, setWhatsapp);
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, patchMerchant);
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root, undefined, log));
@@ -160,7 +165,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, setWhatsapp?: (wa: string) => Promise<void>) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, patchMerchant: (fn: (m: MerchantConfig) => MerchantConfig) => Promise<void> = async () => {}) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -242,7 +247,17 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/auth', otpRoutes(config, store, ent, { delivery: createOtpDelivery(config, sender, log, config.merchant.id), log, onStoreFull: createStoreFullNotify(config, store, notifiers, log) }));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer, auth.requireAdmin));
   app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
-  app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin, setWhatsapp));
+  // About us feeds the store's contact details: the phone is the WhatsApp number, the address and map pin drive the Location buttons.
+  app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin, (about) =>
+    patchMerchant((m) => {
+      const wa = whatsappOf(about.phone);
+      const contact = { ...m.contact, ...(wa ? { whatsapp: wa, deskPhone: `+${wa}` } : {}), ...(about.address ? { address: about.address.slice(0, 200) } : {}) };
+      if (about.mapPin) contact.mapPin = about.mapPin;
+      else delete contact.mapPin;
+      return { ...m, contact };
+    })
+  ));
+  app.use(brandLogoRoutes(blobs, auth.requireAdmin, patchMerchant));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer, notify));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin, notify));

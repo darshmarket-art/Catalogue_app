@@ -22,6 +22,8 @@ export interface Config {
   storeCacheMs: number;
   isProduction: boolean;
   minAppVersion: string;
+  /** Browser key for Google Maps (address search and map pin in About us); restricted to the platform's sites in Google Cloud. Null: plain address box. */
+  googleMapsKey: string | null;
   latestAppVersion: string;
   jwtSecret: string;
   masterProvisioningKey: string | null;
@@ -141,6 +143,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     storeCacheMs: env.STORE_CACHE_MS ? parseInt(env.STORE_CACHE_MS, 10) : env.NODE_ENV === 'test' ? 0 : 15000,
     isProduction,
     minAppVersion: env.MIN_APP_VERSION || '0.0.0',
+    googleMapsKey: env.GOOGLE_MAPS_KEY?.trim() || null,
     latestAppVersion: env.LATEST_APP_VERSION || '0.0.0',
     jwtSecret,
     masterProvisioningKey: masterKey,

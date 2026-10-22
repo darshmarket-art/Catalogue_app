@@ -712,3 +712,30 @@ describe('visitor engagement', () => {
     expect((await request(app).get('/api/admin/visitors/unknown').set(owner)).status).toBe(404);
   });
 });
+
+describe('store logo and map pin (About us)', () => {
+  it('an uploaded logo is shrunk to a PNG, served publicly and becomes the store logo; only an admin can upload', async () => {
+    const sharp = (await import('sharp')).default;
+    const app = await build();
+    const auth = await admin(app);
+    const jpg = await sharp({ create: { width: 1200, height: 800, channels: 3, background: '#aa7733' } }).jpeg().toBuffer();
+    expect((await request(app).put('/api/admin/brand/logo').set('Content-Type', 'image/jpeg').send(jpg)).status).toBe(401);
+    expect((await request(app).put('/api/admin/brand/logo').set(auth).set('Content-Type', 'image/png').send(Buffer.from('not an image'))).status).toBe(415);
+    const up = await request(app).put('/api/admin/brand/logo').set(auth).set('Content-Type', 'image/jpeg').send(jpg);
+    expect(up.status).toBe(200);
+    expect(up.body.data.logoUrl).toMatch(/^\/brand\/logo\?v=\d+$/);
+    const img = await request(app).get('/brand/logo');
+    expect(img.headers['content-type']).toBe('image/png');
+    expect((await sharp(img.body).metadata()).width).toBe(512);
+    expect((await request(app).get('/api/config')).body.data.brand.logoUrl).toBe(up.body.data.logoUrl);
+  });
+
+  it('the About us address and map pin become the store contact address and pin', async () => {
+    const app = await build();
+    const auth = await admin(app);
+    expect((await request(app).put('/api/about').set(auth).send({ mapPin: 'not a pin' })).status).toBe(400);
+    expect((await request(app).put('/api/about').set(auth).send({ address: 'Zaveri Bazaar, Mumbai', mapPin: '18.950000,72.832000' })).status).toBe(200);
+    const contact = (await request(app).get('/api/config')).body.data.contact;
+    expect(contact).toMatchObject({ address: 'Zaveri Bazaar, Mumbai', mapPin: '18.950000,72.832000' });
+  });
+});

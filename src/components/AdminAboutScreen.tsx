@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { About } from '../types';
 import { Field, Notice } from './ui';
+import { AddressPicker } from './AddressPicker';
+import { BrandMark } from './BrandMark';
+import { api } from '../api';
+import { setLogo } from '../merchant';
+import { errorText } from '../bugReport';
 
 interface AdminAboutScreenProps {
   about: About;
@@ -30,10 +35,40 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
     setSaved(problem === null);
   };
 
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoMsg, setLogoMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setLogoBusy(true);
+    setLogoMsg(null);
+    try {
+      setLogo(await api.uploadLogo(file));
+      setLogoMsg({ tone: 'ok', text: 'Logo saved. It now shows across your store and in PDFs.' });
+    } catch (err) {
+      setLogoMsg({ tone: 'error', text: errorText(err, 'AdminAboutScreen logo', 'Could not upload the logo.') });
+    }
+    setLogoBusy(false);
+  };
+
   const h = { height: 46 };
   return (
     <form onSubmit={save} className="scroll no-tabs" style={{ gap: 10 }}>
       <p className="sub">Tell buyers who you are and how to reach you. Leave a field empty to hide it.</p>
+      <Field label="Store logo" htmlFor="ab-logo">
+        <div className="em-row" style={{ gap: 14, alignItems: 'center' }}>
+          <span style={{ width: 64, height: 64, borderRadius: 16, border: '1px solid var(--em-line)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, flex: 'none' }}>
+            <BrandMark className="w-full h-full" textClassName="text-[30px]" />
+          </span>
+          <label className="btn sec" style={{ cursor: logoBusy ? 'wait' : 'pointer', flex: 'none' }}>
+            {logoBusy ? 'Uploading…' : 'Upload logo'}
+            <input id="ab-logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadLogo} disabled={logoBusy} style={{ display: 'none' }} />
+          </label>
+        </div>
+        <small className="em-mut">Square works best, on a white or clear background. Shown in your store's header and on PDFs.</small>
+      </Field>
+      {logoMsg && <Notice tone={logoMsg.tone}>{logoMsg.text}</Notice>}
       <Field label="About the business" htmlFor="ab-story">
         <textarea id="ab-story" className="inp" value={form.story ?? ''} onChange={set('story')} maxLength={2000} placeholder="Wholesale gold jewellery since …" />
       </Field>
@@ -57,6 +92,7 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
         <input id="ab-web" type="url" className="inp" style={h} value={form.website ?? ''} onChange={set('website')} placeholder="https://" maxLength={200} />
       </Field>
       <Field label="Address" htmlFor="ab-address">
+        <AddressPicker pin={form.mapPin} onPick={(address, mapPin) => { setForm((f) => ({ ...f, address: address || f.address, mapPin })); setSaved(false); }} />
         <textarea id="ab-address" className="inp" style={{ minHeight: 72 }} value={form.address ?? ''} onChange={set('address')} maxLength={300} />
       </Field>
       <div className="grid2">

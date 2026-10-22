@@ -9,7 +9,8 @@ import { hl, hn, t, tl, ts, useLang } from '../../i18n';
 export const About: React.FC<KitProps<'About'>> = ({ about }) => {
   useLang();
   const phone = about.phone || merchant.contact.deskPhone;
-  const mapAddress = about.address || merchant.contact.address;
+  // The exact spot picked on Google Maps when there is one, else the address text.
+  const mapAddress = about.mapPin || merchant.contact.mapPin || about.address || merchant.contact.address;
   const address = about.address ? hl(about.address, about.addressHi) || ts(about.address) : ts(merchant.contact.address);
   const digits = phone.replace(/[^0-9+]/g, '');
   const story = about.story ? hl(about.story, about.storyHi) : tl(merchant.brand.description);

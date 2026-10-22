@@ -13,6 +13,8 @@ export const aboutSchema = z.object({
   story: field(2000),
   address: field(300),
   phone: field(40),
+  /** "lat,lng" of the place picked on Google Maps, so map links open the exact spot. */
+  mapPin: z.string().trim().regex(/^-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/, 'Pick the place on the map again.').optional().or(z.literal('')),
   email: field(120).refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Enter a valid email address.'),
   openingHours: field(160),
   gstin: field(15),
@@ -32,7 +34,7 @@ export const whatsappOf = (phone?: string) => {
   return d.length >= 11 && d.length <= 15 ? d : null;
 };
 
-export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmin: RequestHandler, onWhatsapp?: (digits: string) => Promise<void>) {
+export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmin: RequestHandler, onSaved?: (about: About) => Promise<void>) {
   const router = Router();
 
   router.get(
@@ -51,8 +53,7 @@ export function aboutRoutes(store: Store, readGuard: RequestHandler, requireAdmi
       const body = parse(aboutSchema, req.body);
       const about = Object.fromEntries(Object.entries(body).filter(([, v]) => typeof v === 'string' && v !== ''));
       await store.set('settings', 'about', { id: 'about', about, updatedAt: new Date().toISOString() });
-      const wa = whatsappOf(about.phone);
-      if (wa && onWhatsapp) await onWhatsapp(wa);
+      await onSaved?.(about);
       await audit(store, req, 'ABOUT_US_UPDATED', 'About us page updated.');
       res.json({ status: 'success', data: about });
     })

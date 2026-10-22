@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import type { Category, Product } from './types';
-import { merchant } from './merchant';
+import { logoSrc, merchant } from './merchant';
 import { antarixsMarkPng } from './antarixsLogo';
 import { saveFile } from './saveFile';
 import { CARD_PAD, CELL, COLS, FIRST_TOP, GAP, H, MARGIN, NEXT_TOP, PHOTO_H, PHOTO_W, W, cardHeight, pdfPages } from './pdfLayout';
@@ -79,6 +79,22 @@ function hexMark(doc: any, cx: number, cy: number, r: number, fill: [number, num
   doc.lines(d.slice(0, 5), pts[0][0], pts[0][1], [1, 1], 'S', true);
 }
 
+/** The store logo as a PNG for the PDF, with its shape; null when there is none or it cannot be read. */
+async function logoPng(): Promise<{ data: string; w: number; h: number } | null> {
+  const src = logoSrc();
+  const img = src ? await loadImage(src) : null;
+  if (!img || !img.naturalWidth) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d')!.drawImage(img, 0, 0);
+    return { data: canvas.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight };
+  } catch {
+    return null; // another site's image without permission to read it
+  }
+}
+
 /**
  * Builds a PDF of one collection and downloads it. The PDF library is loaded only when this is used.
  */
@@ -105,6 +121,17 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   const withDetail = items.some((p) => detail(p) !== '');
   const phone = merchant.contact.deskPhone || `+${merchant.contact.whatsapp}`;
   const brand = merchant.brand.name;
+  // The store's logo in the gold ring (header and thank-you page); the hexagon mark when there is no logo.
+  const logo = await logoPng();
+  const mark = (cx: number, cy: number, r: number, fill: [number, number, number], hexR?: number) => {
+    if (!logo) return hexMark(doc, cx, cy, r, fill, hexR);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.25);
+    doc.circle(cx, cy, r, 'FD');
+    const k = (r * 1.3) / Math.max(logo.w, logo.h);
+    doc.addImage(logo.data, 'PNG', cx - (logo.w * k) / 2, cy - (logo.h * k) / 2, logo.w * k, logo.h * k);
+  };
 
   // Photos are fetched a few at a time so a big collection does not flood the connection.
   const photos: Array<string | null> = [];
@@ -119,7 +146,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   const cardH = cardHeight(withDetail);
 
   const header = () => {
-    hexMark(doc, MARGIN + 10.7, 23, 10.7, [247, 240, 228], 5);
+    mark(MARGIN + 10.7, 23, 10.7, [247, 240, 228], 5);
     doc.setTextColor(26, 26, 26);
     doc.setFont('times', 'normal');
     doc.setFontSize(30);
@@ -229,7 +256,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   doc.addPage();
   doc.setFillColor(...deep);
   doc.rect(0, 0, W, H, 'F');
-  hexMark(doc, W / 2, 85 * mm, 23 * mm, mix(GOLD, deep, 0.16), 21 * 0.46 * mm);
+  mark(W / 2, 85 * mm, 23 * mm, mix(GOLD, deep, 0.16), 21 * 0.46 * mm);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5 * pt);
   doc.setTextColor(...GOLD);

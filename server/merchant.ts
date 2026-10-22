@@ -113,7 +113,8 @@ export const merchantSchema = z.object({
     name: text(60),
     tagline: text(60),
     description: text(200),
-    logoUrl: httpUrl,
+    /** An http(s) address, or the logo uploaded in the app (/brand/logo?v=…). */
+    logoUrl: z.union([httpUrl, z.string().regex(/^\/brand\/logo\?v=\d+$/)]),
     seoTitle: text(120),
     seoDescription: text(300)
   }),
@@ -142,6 +143,8 @@ export const merchantSchema = z.object({
     alertNumbers: z.array(z.string().regex(/^[0-9]{8,15}$/)).max(5).optional(),
     deskPhone: text(30),
     address: text(200).optional(),
+    /** "lat,lng" picked on Google Maps in About us. */
+    mapPin: z.string().regex(/^-?\d{1,2}(\.\d+)?,-?\d{1,3}(\.\d+)?$/).optional(),
     showroomLabel: text(60).optional(),
     instagramUrl: httpUrl.optional(),
     facebookUrl: httpUrl.optional(),
@@ -248,6 +251,7 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
   let out = html;
   for (const [key, value] of Object.entries(replacements)) out = out.split(key).join(value);
   // A site with no preview image (the Antarixs entry page) says so, rather than sending an empty address to Facebook, WhatsApp and X.
-  if (!merchant.brand.logoUrl) out = out.replace(/^[ \t]*<meta (?:property="og:image(?::alt)?"|name="twitter:image") content="[^"]*" \/>\r?\n/gm, '').replace('content="summary_large_image"', 'content="summary"');
+  // An uploaded logo has a relative address, which link previews cannot use.
+  if (!/^https?:/.test(merchant.brand.logoUrl)) out = out.replace(/^[ \t]*<meta (?:property="og:image(?::alt)?"|name="twitter:image") content="[^"]*" \/>\r?\n/gm, '').replace('content="summary_large_image"', 'content="summary"');
   return out;
 }

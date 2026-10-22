@@ -80,7 +80,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     { id: 'facebook', label: ts('Facebook'), href: contact.facebookUrl ?? '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
     ...(contact.whatsapp ? [{ id: 'whatsapp', label: ts('WhatsApp'), href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
     ...(contact.address
-      ? [{ id: 'location', label: contact.showroomLabel ? ts(contact.showroomLabel) : t('Location'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
+      ? [{ id: 'location', label: contact.showroomLabel ? ts(contact.showroomLabel) : t('Location'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.mapPin || contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]
       : [])
   ];
 
