@@ -57,7 +57,15 @@ export const EntryScreen: React.FC = () => {
   useEffect(() => {
     if (mineUrl) window.location.replace(mineUrl);
   }, [mineUrl]);
-  const [view, setView] = useState<'home' | 'plans' | 'how'>('home');
+  const [view, setView] = useState<'home' | 'plans' | 'how' | 'login'>('home');
+  const [name, setName] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const go = (e: React.FormEvent) => {
+    e.preventDefault();
+    const u = storeUrl(name);
+    if (u) window.location.replace(u);
+    else setErr('Enter your store address, for example sharma-jewellers.');
+  };
   const [menu, setMenu] = useState(false);
   useEffect(() => {
     document.title = 'Antarixs · Storefronts for jewellery wholesalers';
@@ -75,6 +83,25 @@ export const EntryScreen: React.FC = () => {
           <a className="btn" href="/signup">
             Start free trial
           </a>
+        </main>
+      </Shell>
+    );
+  }
+
+  if (view === 'login') {
+    return (
+      <Shell>
+        <main className="ax-narrow" style={{ gap: 14 }}>
+          <SubTop onBack={() => setView('home')} title="Store login" />
+          <p className="em-mut" style={{ fontSize: 14 }}>Enter your store address. Owners sign in with email and password, buyers with a WhatsApp code.</p>
+          <form onSubmit={go} className="col" style={{ gap: 16 }}>
+            <div className="inp" style={{ padding: 0 }}>
+              <input aria-label="Store address" autoFocus value={name} onChange={(e) => { setName(e.target.value); setErr(null); }} placeholder="your-name" style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 0, background: 'transparent', padding: '0 0 0 15px', font: 'inherit', color: 'inherit' }} />
+              <span className="em-mut" style={{ paddingRight: 15 }}>.antarixs.com</span>
+            </div>
+            {err && <p role="alert" style={{ color: 'var(--em-error, #b3261e)', fontSize: 14 }}>{err}</p>}
+            <button type="submit" className="btn">Go to my store</button>
+          </form>
         </main>
       </Shell>
     );
@@ -121,6 +148,9 @@ export const EntryScreen: React.FC = () => {
             </button>
             {menu && (
               <div id="ax-menu" className="ax-menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
+                <button type="button" role="menuitem" onClick={() => { setMenu(false); setView('login'); }}>
+                  Store login
+                </button>
                 <button type="button" role="menuitem" onClick={() => { setMenu(false); setView('how'); }}>
                   How it works
                 </button>
