@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs';
 import type { CapacitorConfig } from '@capacitor/cli';
 
 // PLATFORM_APP=1: the Antarixs onboarding app. It opens app.antarixs.com (PLATFORM_URL) and shows offline.html when it cannot.
-// Only that host stays inside the app; the new store's address opens in the browser. See scripts/build-platform-app.ts.
+// The app host and the stores under it ([store].<base domain>) stay inside the app, so the remembered store opens in the app. See scripts/build-platform-app.ts.
 function platformConfig(url: string): CapacitorConfig {
   return {
     appId: 'com.antarixs.app',
     appName: 'Antarixs',
     webDir: 'dist',
-    server: { url, androidScheme: 'https', allowNavigation: [new URL(url).host], errorPath: 'offline.html' }
+    server: { url, androidScheme: 'https', allowNavigation: [new URL(url).host, '*.' + new URL(url).host.replace(/^app./, '')], errorPath: 'offline.html' }
   };
 }
 
