@@ -88,10 +88,11 @@ export const OrderStatusPill: React.FC<{ status: string }> = ({ status }) => (
 );
 
 /** Eyebrow, serif title and the gold hairline under it. */
-export const Title: React.FC<{ eyebrow: React.ReactNode; title: string; right?: React.ReactNode; size?: 'h1' | 'h2' }> = ({ eyebrow, title, right, size = 'h1' }) => (
+/** A screen title; the eyebrow is only for information the title does not already say (counts, status). */
+export const Title: React.FC<{ eyebrow?: React.ReactNode; title: string; right?: React.ReactNode; size?: 'h1' | 'h2' }> = ({ eyebrow, title, right, size = 'h1' }) => (
   <div className="em-row em-sb" style={{ alignItems: 'flex-end', gap: 12 }}>
     <div className="em-grow">
-      <div className="em-ey em-clip">{eyebrow}</div>
+      {eyebrow && <div className="em-ey em-clip">{eyebrow}</div>}
       {size === 'h1' ? <h1 className="em-ser em-h1">{title}</h1> : <h2 className="em-ser em-h2">{title}</h2>}
       <div className="em-rule" />
     </div>

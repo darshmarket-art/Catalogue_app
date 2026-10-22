@@ -223,6 +223,10 @@ export const EntryScreen: React.FC = () => {
                 <Arrow />
               </a>
             </div>
+            {/* Returning owners and buyers: the way in sits right under the main action, not only in the menu. */}
+            <button type="button" className="ax-link" style={{ marginTop: 6, textDecoration: 'underline', textUnderlineOffset: 4 }} onClick={() => setView('login')}>
+              Already have a store? Sign in
+            </button>
           </div>
 
           </div>

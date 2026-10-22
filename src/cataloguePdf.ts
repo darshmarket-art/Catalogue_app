@@ -256,7 +256,8 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   doc.addPage();
   doc.setFillColor(...deep);
   doc.rect(0, 0, W, H, 'F');
-  mark(W / 2, 85 * mm, 23 * mm, mix(GOLD, deep, 0.16), 21 * 0.46 * mm);
+  // The logo stays on the cover; the thank-you page keeps the plain mark.
+  hexMark(doc, W / 2, 85 * mm, 23 * mm, mix(GOLD, deep, 0.16), 21 * 0.46 * mm);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5 * pt);
   doc.setTextColor(...GOLD);

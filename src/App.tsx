@@ -39,6 +39,8 @@ import { PlansScreen } from './components/PlansCompare';
 import { ScreenTop } from './components/ScreenTop';
 import { errorText } from './bugReport';
 import { BootSplash } from './components/BootSplash';
+import { NoticeHost, notify } from './notify';
+import { OrdersUnavailable } from './components/OrdersUnavailable';
 
 
 // The bottom-bar screens (buyer tabs and the admin ones): switching between them fades; going deeper slides forward, coming back slides back.
@@ -157,6 +159,7 @@ export default function App() {
   // Back on the web: the page sits on one entry above a "guard" entry. Pressing Back lands on the guard; we put the page back
   // and run goBack (home first, then "press back again to exit", then really leave).
   const screenRef = useRef<ActiveScreen>(currentScreen);
+  const afterSignIn = useRef<ActiveScreen | null>(null);
   useEffect(() => {
     // Arrived from creating the store (#new): the signup pages must not be reachable by Back, so leaving closes the tab (or blanks it).
     try {
@@ -235,7 +238,7 @@ export default function App() {
   // Any request that finds the token expired or revoked signs the user out once, with a clear message.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      alert(t('Your session has expired. Please sign in again.'));
+      notify(t('Your session has expired. Please sign in again.'));
       handleLogout();
     });
     return () => setUnauthorizedHandler(null);
@@ -350,10 +353,12 @@ export default function App() {
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
-          alert(t('Please sign in to your wholesale account to add items to your order.'));
+          // Sign in, then come back to this screen.
+          afterSignIn.current = screenRef.current;
+          notify(t('Sign in to your wholesale account to add designs to your order.'));
           handleNavigate('retailer-auth');
         } else {
-          alert(err.message);
+          notify(err.message);
         }
       }
     }
@@ -411,7 +416,7 @@ export default function App() {
       const next = await api.setOrderItemQty(id, batchQty);
       setOrders((prev) => prev.map((item) => (item.id === id ? { ...item, ...next } : item)));
     } catch (err) {
-      if (err instanceof ApiError && !err.handled) alert(err.message);
+      if (err instanceof ApiError && !err.handled) notify(err.message);
     }
   };
 
@@ -431,10 +436,11 @@ export default function App() {
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
-          alert(t('Please sign in to your wholesale account to confirm this order.'));
+          afterSignIn.current = screenRef.current;
+          notify(t('Sign in to your wholesale account to confirm this order.'));
           handleNavigate('retailer-auth');
         } else {
-          alert(tErr(err.message));
+          notify(tErr(err.message));
         }
       }
       return null;
@@ -479,7 +485,7 @@ export default function App() {
       setCategories((prev) => prev.map((c) => (c.name === created.category ? { ...c, designCount: c.designCount + 1 } : c)));
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not publish the product.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not publish the product.'));
       return false;
     }
   };
@@ -491,7 +497,7 @@ export default function App() {
       setCategories((prev) => prev.map((c) => (c.name === product.category ? { ...c, designCount: Math.max(0, c.designCount - 1) } : c)));
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not delete the product.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not delete the product.'));
       return false;
     }
   };
@@ -510,7 +516,7 @@ export default function App() {
       setCategories((prev) => [...prev, created]);
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not create the category.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not create the category.'));
       return false;
     }
   };
@@ -524,7 +530,7 @@ export default function App() {
       if (categoryFilter === category.name) setCategoryFilter(null);
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not delete the category.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not delete the category.'));
       return false;
     }
   };
@@ -545,7 +551,7 @@ export default function App() {
       setBanners((prev) => [...prev, created]);
       return true;
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not add the banner.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not add the banner.'));
       return false;
     }
   };
@@ -555,7 +561,7 @@ export default function App() {
       const updated = await api.setBannerLink(banner.id, category);
       setBanners((prev) => prev.map((b) => (b.id === banner.id ? { ...b, category: updated.category } : b)));
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not change the banner link.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not change the banner link.'));
     }
   };
 
@@ -564,7 +570,7 @@ export default function App() {
       await api.deleteBanner(banner.id);
       setBanners((prev) => prev.filter((b) => b.id !== banner.id));
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not delete the banner.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not delete the banner.'));
     }
   };
 
@@ -599,7 +605,7 @@ export default function App() {
     try {
       await api.reorderBanners(ids);
     } catch (err) {
-      if (!(err instanceof ApiError && err.handled)) alert(errorText(err, 'App', 'Could not save the banner order.'));
+      if (!(err instanceof ApiError && err.handled)) notify(errorText(err, 'App', 'Could not save the banner order.'));
     }
   };
 
@@ -675,7 +681,8 @@ export default function App() {
   const buyerOnlyScreens: ActiveScreen[] = ['shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
-  if (!flags.orders && (screen === 'orders' || screen === 'admin-orders')) screen = isAdminLoggedIn ? 'admin-hub' : 'categories';
+  // Without ordering the Orders tab stays and explains itself (OrdersUnavailable); the orders desk falls back to it.
+  if (!flags.orders && screen === 'admin-orders') screen = 'orders';
   if (!flags.pdfCatalogue && screen === 'admin-pdf') screen = 'admin-hub';
   if (!flags.alerts && screen === 'admin-alerts') screen = 'admin-hub';
   if (!flags.insights && screen === 'admin-insights') screen = 'admin-hub';
@@ -766,6 +773,7 @@ export default function App() {
           }}
         />
       )}
+      <NoticeHost />
       {exitHint && (
         <div role="status" className="em-toast">
           {t('Press back again to exit')}
@@ -891,9 +899,10 @@ export default function App() {
         )}
 
         {/* Staff see every order placed by buyers; buyers see their own order and history */}
-        {activeScreen === 'orders' && isAdminLoggedIn && <AdminOrdersScreen key={ordersFilter} initialFilter={ordersFilter} onChanged={refreshSummary} />}
+        {activeScreen === 'orders' && !flags.orders && <OrdersUnavailable admin={isAdminLoggedIn} onSeePlans={() => handleNavigate('admin-plan')} />}
+        {activeScreen === 'orders' && flags.orders && isAdminLoggedIn && <AdminOrdersScreen key={ordersFilter} initialFilter={ordersFilter} onChanged={refreshSummary} />}
 
-        {activeScreen === 'orders' && !isAdminLoggedIn && (
+        {activeScreen === 'orders' && flags.orders && !isAdminLoggedIn && (
           <K.Orders
             key={ordersTab}
             initialTab={ordersTab}
@@ -913,7 +922,9 @@ export default function App() {
               setCurrentMerchant(user);
               // New buyers get the guided tour once (it can be replayed from the profile menu).
               if (isNew && !tourSeen(user.phone)) setTimeout(() => setTouring(true), 450);
-              handleNavigate(categoryFilter ? 'catalogue' : 'categories', true);
+              // Back to where they were asked to sign in (adding to the order), else Home.
+              handleNavigate(afterSignIn.current ?? (categoryFilter ? 'catalogue' : 'categories'), true);
+              afterSignIn.current = null;
               if (flags.orders) api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
             }}
           />

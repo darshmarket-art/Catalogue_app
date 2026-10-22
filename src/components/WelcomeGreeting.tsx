@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { merchant } from '../merchant';
-import { BrandMark } from './BrandMark';
+import { Icon } from '../layouts/emergent/ui';
 import { ts } from '../i18n';
 
 interface WelcomeGreetingProps {
@@ -21,8 +21,9 @@ export const WelcomeGreeting: React.FC<WelcomeGreetingProps> = ({ title, subtitl
   return (
     <div className="em-page notabs" style={{ maxWidth: 480 }} data-testid="welcome-greeting">
       <div className="em-pad" style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
-        <div className="welcome-ring welcome-logo" style={{ width: 88, height: 88, borderRadius: '50%', background: 'var(--em-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <BrandMark className="w-12 h-12" textClassName="text-[34px]" />
+        <div className="welcome-ring welcome-logo" style={{ width: 88, height: 88, borderRadius: '50%', background: 'var(--em-primary)', color: 'var(--em-on-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Signed in: a tick, not the logo again (the logo lives in the header). */}
+          <Icon n="check" size={36} />
         </div>
         <div className="welcome-rise">
           <div className="em-ey">{ts(merchant.brand.name)}</div>

@@ -16,7 +16,8 @@ export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNa
   // The owner has their own four tabs: Today, Orders, Catalogue, Buyers. Setup and account sit under the profile button (Store).
   const ownerTabs: Array<{ screen: ActiveScreen; label: string; icon: string; active: boolean; badge?: number }> = [
     { screen: 'admin-hub', label: 'Today', icon: 'home', active: currentScreen === 'admin-hub' },
-    ...(flags.orders ? [{ screen: 'orders' as const, label: 'Orders', icon: 'package', active: currentScreen === 'orders' || currentScreen === 'admin-orders', badge: adminBadges?.orders }] : []),
+    // Orders stays on every plan (on Basic it explains itself), so the tab bar never changes under people.
+    { screen: 'orders', label: 'Orders', icon: 'package', active: currentScreen === 'orders' || currentScreen === 'admin-orders', badge: flags.orders ? adminBadges?.orders : undefined },
     { screen: 'catalogue', label: 'Catalogue', icon: 'grid', active: currentScreen === 'catalogue' },
     { screen: 'admin-buyers', label: 'Buyers', icon: 'users', active: currentScreen === 'admin-buyers', badge: adminBadges?.buyers }
   ];
@@ -24,7 +25,7 @@ export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNa
     { screen: 'categories', label: t('Home'), icon: 'home', active: currentScreen === 'categories' },
     { screen: 'catalogue', label: t('Catalogue'), icon: 'grid', active: currentScreen === 'catalogue' },
     { screen: 'shortlist', label: t('Shortlist'), icon: 'heart', active: currentScreen === 'shortlist', badge: shortlistCount },
-    ...(flags.orders ? [{ screen: 'orders' as const, label: t('Orders'), icon: 'package', active: currentScreen === 'orders', badge: orderCount }] : [])
+    { screen: 'orders', label: t('Orders'), icon: 'package', active: currentScreen === 'orders', badge: flags.orders ? orderCount : undefined }
   ];
   const tabs = isAdminLoggedIn ? ownerTabs : buyerTabs;
 

@@ -59,7 +59,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
             <div className="em-ser" style={{ fontSize: 19 }}>
               Antarixs
             </div>
-            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: 9 }}>
+            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: 11 }}>
               Plans
             </div>
           </div>

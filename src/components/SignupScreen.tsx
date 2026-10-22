@@ -198,7 +198,7 @@ export const SignupScreen: React.FC = () => {
           <div className="em-card" style={{ width: '100%', padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <span className="em-ey">Scan to open</span>
             {qr && <img src={qr} alt={`QR code for ${f.brandName}`} data-testid="store-ready-qr" style={{ width: 188, height: 188, borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
-            <a href={result.storeUrl} data-testid="store-ready-link" style={{ color: 'var(--em-primary)', fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
+            <a href={result.storeUrl} data-testid="store-ready-link" style={{ color: 'var(--em-accent)', fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
               {host}
             </a>
             <div className="row" style={{ gap: 8, width: '100%' }}>

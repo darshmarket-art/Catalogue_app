@@ -8,7 +8,8 @@
     <meta property="og:title" content="{{SEO_TITLE}}" />
     <meta property="og:description" content="{{SEO_DESCRIPTION}}" />
     <meta property="og:image" content="{{OG_IMAGE}}" />
-    <meta name="theme-color" content="{{THEME_COLOR}}" />
+    <meta name="theme-color" content="{{THEME_COLOR}}" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#180e14" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/png" href="/pwa/icon-192.png" />
     <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
     <meta property="og:type" content="website" />
@@ -20,7 +21,8 @@
     <meta name="twitter:image" content="{{OG_IMAGE}}" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+    <!-- Stores: Fraunces + Inter (+ Noto Sans Devanagari for Hindi). The Antarixs site: Instrument Sans. -->
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <style>
       /* The loading screen (see src/components/BootSplash.tsx): shown from the first paint, before the app's own styles load. */
@@ -28,6 +30,7 @@
       .boot-splash span { width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(0, 0, 0, 0.08); border-top-color: var(--color-primary, #4a1835); animation: boot-spin 0.9s linear infinite; }
       @keyframes boot-spin { to { transform: rotate(360deg); } }
       @media (prefers-reduced-motion: reduce) { .boot-splash span { animation-duration: 2.4s; } }
+      @media (prefers-color-scheme: dark) { .boot-splash { background: #180e14; } .boot-splash span { border-color: rgba(255, 255, 255, 0.12); border-top-color: #e2c389; } }
     </style>
     {{THEME_STYLE}}
     {{MERCHANT_CONFIG}}

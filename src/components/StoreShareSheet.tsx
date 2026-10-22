@@ -57,7 +57,7 @@ export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () 
         ) : (
           <div className="em-skel" style={{ width: 180, height: 180, borderRadius: 12 }} />
         )}
-        <a href={url} data-testid="store-link" style={{ color: 'var(--em-primary)', fontSize: 13, fontWeight: 600, wordBreak: 'break-all', textAlign: 'center' }}>
+        <a href={url} data-testid="store-link" style={{ color: 'var(--em-accent)', fontSize: 13, fontWeight: 600, wordBreak: 'break-all', textAlign: 'center' }}>
           {bareUrl(url)}
         </a>
       </div>

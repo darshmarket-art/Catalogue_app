@@ -8,6 +8,7 @@ import { setTagList, useTagList } from '../tagList';
 import { toHindi } from '../../shared/hindi';
 import { Icon } from '../layouts/emergent/ui';
 import { errorText } from '../bugReport';
+import { confirmDelete } from '../notify';
 
 interface AddCategoryScreenProps {
   /** The purities the owner offers. */
@@ -97,7 +98,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
   const handleDelete = async () => {
     if (!editing) return;
     const n = editing.designCount;
-    if (!window.confirm(`Delete the collection "${editing.name}"${n > 0 ? ` and its ${n} ${n === 1 ? 'design' : 'designs'}` : ''}? This cannot be undone.`)) return;
+    if (!(await confirmDelete(`Delete the collection "${editing.name}"${n > 0 ? ` and its ${n} ${n === 1 ? 'design' : 'designs'}` : ''}? This cannot be undone.`, 'Delete collection'))) return;
     setSubmitting(true);
     if (await onDelete(editing)) onNavigate('categories');
     else setSubmitting(false);

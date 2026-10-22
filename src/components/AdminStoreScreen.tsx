@@ -53,7 +53,7 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
   return (
     <div className="em-page" data-testid="admin-store">
       <div className="em-pad" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <Title eyebrow="Setup and account" title="Store" />
+        <Title title="Store" />
         {error && <Notice tone="error">{error}</Notice>}
         <Group title="Your store">
           <Row icon="info" title="About us" note="What buyers see about you" testId="store-about" onClick={() => onNavigate('admin-about')} />

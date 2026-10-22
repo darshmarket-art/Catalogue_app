@@ -39,12 +39,12 @@ export const AdminInsightsScreen: React.FC = () => {
         <div className="em-row" style={{ gap: 6, alignItems: 'flex-end', height: 120 }}>
           {d.weeks.map((w) => (
             <div key={w.label} className="col" style={{ flex: 1, alignItems: 'center', gap: 4 }} title={`${w.label}: ${w.views} views, ${w.orders} orders`}>
-              <span className="em-mut" style={{ fontSize: 10 }}>{w.orders > 0 ? `${w.orders}◆` : ''}</span>
+              <span className="em-mut" style={{ fontSize: 11 }}>{w.orders > 0 ? `${w.orders}◆` : ''}</span>
               <i style={{ display: 'block', width: '100%', height: `${Math.max(4, Math.round((w.views / maxViews) * 90))}px`, borderRadius: 6, background: 'var(--em-primary)', opacity: w.label === 'This week' ? 1 : 0.55 }} />
             </div>
           ))}
         </div>
-        <div className="em-row em-sb em-mut" style={{ fontSize: 10.5 }}>
+        <div className="em-row em-sb em-mut" style={{ fontSize: 11.5 }}>
           <span>7 weeks ago</span>
           <span>◆ orders booked</span>
           <span>This week</span>

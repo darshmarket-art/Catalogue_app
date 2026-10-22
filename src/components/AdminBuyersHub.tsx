@@ -19,7 +19,7 @@ export const AdminBuyersHub: React.FC<{ segment: BuyersSegment; onSegment: (s: B
   return (
     <div className="em-page" data-testid="admin-buyers-hub">
       <div className="em-pad" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Title eyebrow="Everyone who buys from you" title="Buyers" />
+        <Title title="Buyers" />
         <div className="em-seg" role="group" aria-label="Buyer views">
           {tabs.map((t) => (
             <button key={t.key} type="button" className="em-chip" data-testid={`buyers-seg-${t.key}`} aria-pressed={segment === t.key} onClick={() => onSegment(t.key)}>

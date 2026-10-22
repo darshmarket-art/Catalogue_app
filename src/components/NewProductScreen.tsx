@@ -5,6 +5,7 @@ import { merchant } from '../merchant';
 import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, Notice } from './ui';
+import { confirmDelete } from '../notify';
 
 interface NewProductScreenProps {
   categories: Category[];
@@ -90,7 +91,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
   const handleDelete = async () => {
     if (!editing) return;
-    if (!window.confirm(`Delete "${editing.title}" from the catalogue? This cannot be undone.`)) return;
+    if (!(await confirmDelete(`Delete "${editing.title}" from the catalogue? This cannot be undone.`, 'Delete design'))) return;
     setIsSaving(true);
     if (await onDelete(editing)) onNavigate('catalogue');
     else setIsSaving(false);

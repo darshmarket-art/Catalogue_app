@@ -81,15 +81,15 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
         <div style={{ height: 1, width: 48, background: 'var(--em-gold)', margin: '14px 0' }} />
         <div className="em-row" style={{ gap: 18 }}>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 9 }}>{chosen.length === 1 ? 'Design' : 'Designs'}</div>
+            <div className="em-ey" style={{ fontSize: 11 }}>{chosen.length === 1 ? 'Design' : 'Designs'}</div>
             <span data-testid="pdf-count">{chosen.length}</span>
           </div>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 9 }}>Net weight</div>
+            <div className="em-ey" style={{ fontSize: 11 }}>Net weight</div>
             <span>{netTotal.toFixed(2)} g</span>
           </div>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 9 }}>WhatsApp</div>
+            <div className="em-ey" style={{ fontSize: 11 }}>WhatsApp</div>
             <span>{merchant.contact.whatsapp ? `+${merchant.contact.whatsapp}` : '-'}</span>
           </div>
         </div>
@@ -145,9 +145,9 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                     <span className="em-ser em-clip" style={{ display: 'block', fontSize: 14 }}>
                       {p.title}
                     </span>
-                    <span className="em-row em-sb" style={{ marginTop: 6, fontSize: 10 }}>
+                    <span className="em-row em-sb" style={{ marginTop: 6, fontSize: 11 }}>
                       <span className="em-mut">{p.sku}</span>
-                      <b style={{ color: 'var(--em-primary)' }}>
+                      <b style={{ color: 'var(--em-accent)' }}>
                         {p.purity.split(' ')[0]} · {p.netWt.toFixed(3).slice(0, 5)} g
                       </b>
                     </span>

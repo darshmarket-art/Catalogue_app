@@ -148,10 +148,10 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                 </div>
               </div>
               <div className="ft">
-                <span className="em-ey" style={{ color: 'var(--em-deep)' }}>
+                <span className="em-ey" style={{ color: 'var(--em-deep-ink)' }}>
                   {t('Net total')}
                 </span>
-                <span className="em-ser" style={{ fontSize: 18, color: 'var(--em-primary)' }}>
+                <span className="em-ser" style={{ fontSize: 18, color: 'var(--em-accent)' }}>
                   {fmtG(order.totalNetGrams)}
                 </span>
               </div>
@@ -338,7 +338,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                       {item.sku} · {pur(item.purity.split(' ')[0])} · {fmtG(item.unitWt)} × {item.batchQty}
                     </div>
                     <div className="em-row em-sb" style={{ marginTop: 6 }}>
-                      <span className="em-ser" style={{ color: 'var(--em-primary)', fontSize: 15 }}>
+                      <span className="em-ser" style={{ color: 'var(--em-accent)', fontSize: 15 }}>
                         {fmtG(item.totalNetGold)}
                       </span>
                       <div className="em-qty sm">

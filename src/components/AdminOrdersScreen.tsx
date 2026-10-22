@@ -152,7 +152,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
               )}
               <div className="em-row em-sb" style={{ marginTop: 12 }}>
                 <span className="em-ey">Net total</span>
-                <span className="em-ser" style={{ fontSize: 19, color: 'var(--em-primary)' }}>
+                <span className="em-ser" style={{ fontSize: 19, color: 'var(--em-accent)' }}>
                   {order.totalNetGrams.toFixed(3)} g
                 </span>
               </div>
@@ -181,7 +181,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
                   Mark dispatched
                 </button>
                 {buyer?.phone && (
-                  <a className="em-wacirc" href={`tel:+${buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`} aria-label={`Call ${buyer.ownerName || order.firmName}`} style={{ color: 'var(--em-primary)' }}>
+                  <a className="em-wacirc" href={`tel:+${buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')}`} aria-label={`Call ${buyer.ownerName || order.firmName}`} style={{ color: 'var(--em-accent)' }}>
                     <Icon n="phone" size={18} />
                   </a>
                 )}
