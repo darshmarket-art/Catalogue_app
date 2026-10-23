@@ -123,7 +123,7 @@ async function squarePad(bytes) {
   const dy = side - info.height;
   return sharp(data)
     .extend({ left: Math.floor(dx / 2), right: Math.ceil(dx / 2), top: Math.floor(dy / 2), bottom: Math.ceil(dy / 2), background: '#ffffff' })
-    .toFormat(info.format, { quality: 95 })
+    .toFormat(info.format, { quality: 100, chromaSubsampling: '4:4:4' }) // PNG/WebP ignore chromaSubsampling; JPEG is saved at full quality, once
     .toBuffer();
 }
 

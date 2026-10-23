@@ -268,7 +268,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/enquiries', enquiries.buyer);
   app.use('/api/admin/enquiries', enquiries.admin);
   app.use('/api/admin/summary', adminSummaryRoutes(config, store, log, ent, auth.requireAdmin));
-  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent));
+  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent, config.bulkImportKey));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth, { log, receiptsConnected: receiptsEnabled(config) }));
 
   app.use('/api', notFoundApi);

@@ -1,3 +1,4 @@
+import { bulkImportExempt } from '../bulkImport';
 import express, { Router } from 'express';
 import type { RequestHandler } from 'express';
 import type { Blob, Blobs } from '../blobs';
@@ -43,7 +44,7 @@ export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/pn
 }
 
 /** Admin-only: the browser sends the photo as the raw request body; it is stored in the merchant's bucket. */
-export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements) {
+export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements, bulkImportKey: string | null = null) {
   const router = Router();
 
   router.post(
@@ -59,7 +60,8 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const type = sniff(body);
       if (!type) throw new HttpError(415, 'That file is not a valid JPEG, PNG or WebP image.');
 
-      const result = await optimisePhoto(body, type);
+      // The bulk importer pads and encodes its photos itself; re-saving them here would only add another round of JPEG loss.
+      const result = bulkImportExempt(bulkImportKey, req) ? { buffer: body, type } : await optimisePhoto(body, type);
       const file = newPhotoFile(TYPES[result.type]);
       await blobs.put(objectName(file), result.buffer, result.type);
       res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: result.buffer.length } });
