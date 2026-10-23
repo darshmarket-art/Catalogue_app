@@ -20,13 +20,14 @@ const FEW = 6;
  * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections one per row as full-width square cards
  * with index badges, and "The House". The brand row and profile button are in the top bar.
  */
-export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, isAdmin, buyerName, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
+export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, loading = false, isAdmin, buyerName, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
   useLang();
   const [browsing, setBrowsing] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
-  const slideCount = banners.length || merchant.promotions.length;
+  // While loading there is one placeholder slide; the store's demo promotions only stand in when it really has no banners.
+  const slideCount = loading ? 0 : banners.length || merchant.promotions.length;
   const [searchQuery, setSearchQuery] = useState('');
   const hideBar = useHideOnScroll();
   // The collection whose admin menu (edit, share link, share PDF) is open
@@ -135,7 +136,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       </div>
 
       {/* Banners: the owner's photos, or the default messages from merchant.json. Swipe, or use the arrows on desktop. */}
-      {slideCount > 0 && (
+      {(loading || slideCount > 0) && (
         <div className="em-pad" style={{ marginTop: 18 }}>
           <div className="em-car" onMouseEnter={() => (paused.current = true)} onMouseLeave={() => (paused.current = false)}>
             <div
@@ -147,7 +148,9 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
               onPointerDown={noteManual}
               onWheel={(e) => Math.abs(e.deltaX) > Math.abs(e.deltaY) && noteManual()}
             >
-              {banners.length > 0
+              {loading ? (
+                <div className="em-slide em-skel" aria-hidden="true" style={{ border: 0 }} />
+              ) : banners.length > 0
                 ? banners.map((b, i) => (
                     <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? t('Open {name}', { name: catName(b.category) }) : t('Banner {n}', { n: i + 1 })}>
                       <Ph src={b.image} tone={i} className="em-fill" alt={b.category ? catName(b.category) : t('Banner {n}', { n: i + 1 })} />
@@ -252,9 +255,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           </button>
         )}
 
-        {shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{t(categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.')}</p>}
+        {!loading && shown.length === 0 && <p className="em-hint" style={{ textAlign: 'center', padding: '24px 0' }}>{t(categories.length === 0 ? 'No collections have been added yet.' : 'No collections match your search.')}</p>}
 
-        <div className="em-grid em-grid-2" data-testid="home-collections" style={{ marginTop: 14 }}>
+        <div className="em-grid em-grid-2" data-testid="home-collections" style={{ marginTop: 14 }} aria-busy={loading || undefined}>
+          {loading && categories.length === 0 && Array.from({ length: 4 }, (_, i) => <div key={`skel-${i}`} className="em-sq em-skel" aria-hidden="true" style={{ border: 0, borderRadius: 18 }} />)}
           {shown.map((cat, i) => (
             <div key={cat.id} className="em-sq" data-testid="home-collection">
               <button type="button" className="em-hit" aria-label={t('Open {name}', { name: hn(cat.name, cat.nameHi) })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>

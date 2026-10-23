@@ -33,6 +33,8 @@ export interface CategoriesProps {
   categories: Category[];
   products: Product[];
   banners: Banner[];
+  /** Banners and collections are still on their way: show placeholders, not the store's demo slides or "nothing yet". */
+  loading?: boolean;
   isAdmin: boolean;
   /** The signed-in buyer's name, for the desktop greeting beside the search. */
   buyerName?: string;

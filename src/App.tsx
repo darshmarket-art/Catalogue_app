@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData, AdminSummary } from './types';
-import { api, ApiError, hasStoredSession, setAuthToken, setUnauthorizedHandler } from './api';
+import { api, ApiError, hasStoredSession, hasToken, setAuthToken, setUnauthorizedHandler } from './api';
 import { noteCollection } from './recent';
 import { setTagList } from './tagList';
 import { isTidying } from './backLayer';
@@ -287,25 +287,37 @@ export default function App() {
   }, [currentScreen, isAdminLoggedIn, flags.insights]);
 
   // Catalogue data. A members-only catalogue is loaded after sign-in and cleared on sign-out.
+  // With a saved session the data is requested while that session is still being checked, so the two travel together
+  // instead of one after the other. Until it arrives, screens show placeholders (catalogueReady), never stale or demo content.
+  const canLoadCatalogue = merchant.catalogueAccess !== 'login' || isSignedIn || (booting && hasToken());
+  const [catalogueReady, setCatalogueReady] = useState(false);
   useEffect(() => {
-    if (merchant.catalogueAccess === 'login' && !isSignedIn) {
+    if (!canLoadCatalogue) {
       setCategories([]);
       setProducts([]);
       setBanners([]);
       setShortlist([]);
+      setCatalogueReady(false);
       return;
     }
+    let live = true;
     const fetchData = async () => {
       const [catsData, prodsData, bannerData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners()]);
+      if (!live) return;
       setBanners(bannerData);
-      api.getPurities().then((list) => list && setPurities(list));
-      api.getTags().then((list) => list && setTagList(list));
-      api.getAbout().then(setAbout);
+      api.getPurities().then((list) => list && setPurities(list)).catch(() => {});
+      api.getTags().then((list) => list && setTagList(list)).catch(() => {});
+      api.getAbout().then(setAbout).catch(() => {});
       if (catsData.length > 0) setCategories(catsData);
       if (prodsData.length > 0) setProducts(prodsData);
     };
-    fetchData();
-  }, [isSignedIn]);
+    fetchData()
+      .catch(() => {})
+      .finally(() => live && setCatalogueReady(true));
+    return () => {
+      live = false;
+    };
+  }, [canLoadCatalogue]);
 
   // What is waiting for the owner: fetched on sign-in, then every 15 seconds while the tab is visible, and after the owner acts.
   const refreshSummary = () => {
@@ -896,6 +908,7 @@ export default function App() {
             categories={categories}
             products={products}
             banners={banners}
+            loading={!catalogueReady}
             isAdmin={isAdminLoggedIn}
             buyerName={currentMerchant?.ownerName || currentMerchant?.storeName}
             onEditCategory={openCategoryForm}

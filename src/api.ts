@@ -104,6 +104,8 @@ export const setAuthToken = (token: string | null) => {
 
 // Native: the token loads asynchronously (in restoreSession), so assume one may exist and let it resolve.
 export const hasStoredSession = () => native || authToken !== null;
+/** A session token is already in hand (on the web it is read from storage at start; in the app it arrives with restoreSession). */
+export const hasToken = () => authToken !== null;
 
 export type RestoredSession =
   | { type: 'retailer'; user: { storeName: string; phone: string; ownerName?: string; gstin?: string; marketHub?: string }; mustChangePassword: boolean }
