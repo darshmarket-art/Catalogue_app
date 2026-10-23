@@ -342,6 +342,26 @@ export default function App() {
     api.getShortlist().then(setShortlist);
   }, [currentMerchant?.phone]);
 
+  // Shortlisted designs outside the first page of products are fetched by SKU; a SKU that no longer exists is dropped, so the counter matches the list.
+  useEffect(() => {
+    if (!currentMerchant || !catalogueReady) return;
+    const have = new Set(products.map((p) => p.sku));
+    const missing = shortlist.filter((sku) => !have.has(sku));
+    if (missing.length === 0) return;
+    let live = true;
+    api.getProductsBySku(missing).then((found) => {
+      if (!live) return;
+      if (found.length) setProducts((prev) => [...prev, ...found.filter((f) => !prev.some((p) => p.sku === f.sku))]);
+      const gone = missing.filter((sku) => !found.some((f) => f.sku === sku));
+      if (gone.length) {
+        const next = shortlistRef.current.filter((sku) => !gone.includes(sku));
+        setShortlist(next);
+        api.saveShortlist(next).catch(() => {});
+      }
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [shortlist, catalogueReady, currentMerchant?.phone]);
+
   const toggleShortlist = (product: Product) => {
     const cur = shortlistRef.current;
     const next = cur.includes(product.sku) ? cur.filter((sku) => sku !== product.sku) : [...cur, product.sku];

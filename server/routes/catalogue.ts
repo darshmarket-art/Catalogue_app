@@ -220,6 +220,17 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // The designs for a list of SKUs (the buyer's shortlist), wherever they sit in the catalogue.
+  router.get(
+    '/products/by-sku',
+    readGuard,
+    handler(async (req, res) => {
+      const skus = new Set(String(req.query.skus ?? '').split(',').map((v) => v.trim()).filter(Boolean).slice(0, 500));
+      const found = (await store.list('products')).filter((p) => skus.has(String(p.sku)));
+      res.json({ status: 'success', data: found.map((p) => media.present(p)) });
+    })
+  );
+
   // Search, filters, sort and paging all happen here, so the app only ever downloads the page it shows.
   router.get(
     '/products',

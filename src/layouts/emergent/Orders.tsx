@@ -4,7 +4,7 @@ import { api } from '../../api';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
 import { useDesktop } from './useDesktop';
-import { Icon, OrderStatusPill, Ph, Pill, Title, fmtG, type KitProps } from './ui';
+import { Icon, OrderStatusPill, Ph, Title, fmtG, type KitProps } from './ui';
 import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
 import { errorText } from '../../bugReport';
 
@@ -276,11 +276,6 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
         <Title
           eyebrow={tab === 'past' && history ? `${t('Your activity')} · ${tn(history.length, '{n} order', '{n} orders')}` : t('Your activity')}
           title={t('Orders')}
-          right={
-            <span style={{ marginBottom: 8 }}>
-              <Pill tone="gold">{t('Pro')}</Pill>
-            </span>
-          }
         />
       </div>
       <div className="em-chips" role="tablist" aria-label={t('Orders')}>

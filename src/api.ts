@@ -447,6 +447,11 @@ export const api = {
     }
   },
 
+  /** The designs for these SKUs, wherever they sit in the catalogue (the shortlist can hold designs outside the first page). */
+  async getProductsBySku(skus: string[]): Promise<Product[]> {
+    return (await request(`/api/v1/products/by-sku?skus=${encodeURIComponent(skus.join(','))}`)).data;
+  },
+
   /** One page of the catalogue for a search, filters and sort. Unlike getProducts this reports failures, so the screen can say so. */
   async queryProducts(q: ProductQuery): Promise<ProductPage> {
     const params = new URLSearchParams();
