@@ -27,6 +27,8 @@ export interface Config {
   latestAppVersion: string;
   jwtSecret: string;
   masterProvisioningKey: string | null;
+  /** Secret that lets scripts/bulk-import-products.mjs past the API rate limit on the import routes only; null = no exception. */
+  bulkImportKey: string | null;
   storeKind: StoreKind;
   dataFile: string;
   seedDemoCatalogue: boolean;
@@ -74,6 +76,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Ephemeral per-process secret: dev sessions simply end on restart.
     jwtSecret = crypto.randomBytes(48).toString('hex');
   }
+
+  const bulkImportKey = env.BULK_IMPORT_KEY?.trim() || null;
+  if (bulkImportKey && bulkImportKey.length < 24) problems.push('BULK_IMPORT_KEY must be at least 24 characters');
 
   const masterKey = env.MASTER_PROVISIONING_KEY?.trim() || null;
   if (isProduction && (!masterKey || masterKey.length < MIN_MASTER_KEY_LENGTH)) {
@@ -147,6 +152,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     latestAppVersion: env.LATEST_APP_VERSION || '0.0.0',
     jwtSecret,
     masterProvisioningKey: masterKey,
+    bulkImportKey,
     storeKind,
     dataFile: env.DATA_FILE || 'data/local-db.json',
     seedDemoCatalogue: env.SEED_DEMO_CATALOGUE ? env.SEED_DEMO_CATALOGUE === 'true' : !isProduction,

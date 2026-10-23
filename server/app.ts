@@ -5,6 +5,7 @@ import express from 'express';
 import type { RequestHandler } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { bulkImportExempt } from './bulkImport';
 import type { Config } from './config';
 import type { Store } from './store';
 import { ADMIN_REMEMBER_TTL, claimsOf, createAuth, isNativeClient, NATIVE_TOKEN_TTL, RETAILER_TOKEN_TTL, signToken, user } from './auth';
@@ -183,6 +184,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
       limit: config.rateLimit.api,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: (req) => bulkImportExempt(config.bulkImportKey, req),
       message: { status: 'error', message: 'Too many requests. Please slow down.' }
     })
   );
