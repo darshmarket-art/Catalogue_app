@@ -18,7 +18,7 @@ export interface Entitlements {
 // Until the server answers (or if it cannot be reached) the app behaves as Pro, exactly as it did before plans existed. The server enforces the real limits.
 const PRO: Entitlements = {
   effectivePlan: 'pro', plan: 'pro', trialEndsAt: null,
-  limits: { categories: null, photos: 3000, photosPerDesign: 3, users: null },
+  limits: { categories: null, photos: null, photosPerDesign: 3, users: null },
   flags: { orders: true, insights: true, liveVisitors: true, buyerEngagement: true, alerts: true, enquiries: true, auditLog: true, pdfCatalogue: true, banners: true, purities: true }
 };
 

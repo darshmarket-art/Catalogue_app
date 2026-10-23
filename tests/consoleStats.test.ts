@@ -166,7 +166,7 @@ describe('console store view', () => {
   it('the store view carries owner and last activity', async () => {
     const rows = await get('/stores');
     const alpha = rows.find((s: any) => s.id === 'alpha');
-    expect(alpha).toMatchObject({ owner: { email: 'a@alpha.test' }, buyers: 2, limits: { buyers: null, photos: 3000 } });
+    expect(alpha).toMatchObject({ owner: { email: 'a@alpha.test' }, buyers: 2, limits: { buyers: null, photos: null } });
     expect(Date.now() - Date.parse(alpha.lastActiveAt)).toBeLessThan(5 * 60_000);
     expect(rows.find((s: any) => s.id === 'gamma').lastActiveAt).toBeNull();
   });

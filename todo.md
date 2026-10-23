@@ -52,7 +52,7 @@ Basic is the free plan; every new store gets all Pro features for 14 days. Buyer
 - [ ] Set prices and the exact Pro and Android add-on charges (needed before Phase 11, not before).
 
 ### Phase 1: Plan flags and limits
-- [x] `shared/plans.ts`: Basic and Pro limits (done as server/entitlements.ts; Basic users now 50) (5 categories, 200 photos, 1 photo per design, 50 users vs unlimited, 3,000 photos, 3 per design) and the feature list.
+- [x] `shared/plans.ts`: Basic and Pro limits (done as server/entitlements.ts; Basic users now 50) (5 categories, 200 photos, 1 photo per design, 50 users vs unlimited, unlimited photos, 3 per design) and the feature list.
 - [x] `effectivePlan(store, now)`: Pro while before `trialEndsAt`, else the stored plan; `founder` plan for Bhakti. No job.
 - [x] Server refuses locked features and over-limit actions (Phase 1 limits + Phase 3 flag gating, 402) with a clear message (6th category, 201st photo, 2nd photo per design, orders and Orders desk on Basic, locked analytics).
 - [x] The config sent to the app carries (GET /api/entitlements) `plan`, `trialEndsAt`, limits and which features are on.

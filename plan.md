@@ -26,7 +26,7 @@ A configurable catalogue app that can be sold to many merchants. **Bhakti Jewels
 - **Trial and downgrade rules.** Nothing is deleted and nothing is hidden from visitors: content added during the trial (an 8th category, a 3rd photo) stays; the owner just cannot add more beyond Basic limits until under them or upgraded. The plan is worked out on request (Pro while now is before `trialEndsAt`, else the stored plan), so no job flips it. One trial per phone number and email. Bhakti Jewels becomes store 1 on a permanent Pro "founder" plan. Reminders at days 7, 3 and 1 need a daily scheduled job (later phase).
 - **Access: WhatsApp OTP on both plans.** Buyers sign in with a code sent on WhatsApp. Admins keep email + password (admin 2FA is still a gap). A **user is a verified phone number** per store. **Basic allows 10**: a new number asked for a code when 10 already exist sees "this catalogue is full" and no code is sent; existing buyers always get in; the owner can remove a buyer to free a slot. Pro is unlimited.
 - **OTP rules.** 6 digits, expires in 5 minutes, stored hashed, 5 attempts, resend cooldown, rate limits per phone and per IP, a daily cap per store (OTPs cost money, so abuse control matters). One Antarixs WhatsApp sender for all stores, using a Meta "authentication" template. In development the code is logged; tests inject a fake sender. Existing Bhakti buyers keep their accounts and sign in by OTP to the same phone number; password screens and owner-reset for buyers are retired.
-- **Limits.** Basic: 5 categories (a "catalogue" means a category), 200 photos in total, 1 photo per design, 50 users. Pro: unlimited categories and users, 3,000 photos, up to 3 photos per design. Photos are counted as photos attached to designs, categories and banners, so orphaned files must be cleaned up first.
+- **Limits.** Basic: 5 categories (a "catalogue" means a category), 200 photos in total, 1 photo per design, 50 users. Pro: unlimited categories, users and photos, up to 3 photos per design. Photos are counted as photos attached to designs, categories and banners, so orphaned files must be cleaned up first.
 - **Feature split** (all of Pro is free during the trial):
 
 | Area | Basic | Pro |
@@ -37,7 +37,7 @@ A configurable catalogue app that can be sold to many merchants. **Bhakti Jewels
 | Admin tools | Categories, designs, **Home banner editing**, **purity options**, buyer list (view and remove), Share link and QR | Orders desk, **owner and staff roles**, **PDF catalogue** |
 | Numbers | locked | Kg booked, views and enquiries, live visitors, buyer engagement, audit log |
 | Alerts | locked | WhatsApp and push order alerts |
-| Photos | 200 total, 1 per design | 3,000 total, up to 3 per design |
+| Photos | 200 total, 1 per design | Unlimited, up to 3 per design |
 | Separate add-ons | | Own Android app (paid separately), custom domain (later) |
 
   Confirmed 2026-10-04: PDF catalogue and staff roles are Pro; purity options are Basic.
