@@ -159,45 +159,59 @@ const FEATURES: Array<{ title: string; text: string; visual: React.ReactNode }> 
 const COUNTER = ['Orders desk', 'Insights: kg booked and views', 'Live visitors', 'Buyer engagement', 'WhatsApp enquiries inbox', 'PDF catalogue', 'Banners and purity options', 'Audit log'];
 
 /** "How it works": the features of a [store].antarixs.com store, a photo-led list with a moving picture beside each line. */
-export const HowItWorks: React.FC = () => (
-  <div className="hw">
-    <Reveal>
-      <span className="ax-ey">How it works</span>
-      <h1 className="hw-h1">A store your dealers can open, in three steps.</h1>
-      <p className="ax-mut hw-lead">Name your store, verify on WhatsApp, share the link. Here is what you get at your own address.</p>
-    </Reveal>
-    <ol className="hw-steps">
-      {['Name your store', 'Verify on WhatsApp', 'Share the link or QR'].map((t, i) => (
-        <Reveal key={t} as="li" delay={i * 120}>
-          <span>0{i + 1}</span>
-          {t}
-        </Reveal>
-      ))}
-    </ol>
-    {FEATURES.map((f, i) => (
-      <section key={f.title} className={`hw-row${i % 2 ? ' flip' : ''}`}>
-        <Reveal className="hw-text">
-          <span className="ax-ey">0{i + 1}</span>
-          <h2>{f.title}</h2>
-          <p>{f.text}</p>
-        </Reveal>
-        <Reveal className="hw-vis" delay={160}>
-          {f.visual}
-        </Reveal>
-      </section>
-    ))}
-    <section className="hw-counter">
+export const HowItWorks: React.FC = () => {
+  const root = React.useRef<HTMLDivElement>(null);
+  // The phones' loops run only while that phone is on screen (platform.css pauses the rest); without the observer they just run.
+  React.useEffect(() => {
+    const phones = root.current?.querySelectorAll('.hw-phone') ?? [];
+    if (typeof IntersectionObserver === 'undefined') {
+      phones.forEach((p) => p.classList.add('hw-on'));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => e.target.classList.toggle('hw-on', e.isIntersecting)), { threshold: 0.35 });
+    phones.forEach((p) => io.observe(p));
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div className="hw" ref={root}>
       <Reveal>
-        <span className="ax-ey">Behind the counter</span>
-        <h2>For the owner, one quiet desk.</h2>
+        <span className="ax-ey">How it works</span>
+        <h1 className="hw-h1">A store your dealers can open, in three steps.</h1>
+        <p className="ax-mut hw-lead">Name your store, verify on WhatsApp, share the link. Here is what you get at your own address.</p>
       </Reveal>
-      <ul>
-        {COUNTER.map((c, i) => (
-          <Reveal key={c} as="li" delay={i * 70}>
-            {c}
+      <ol className="hw-steps">
+        {['Name your store', 'Verify on WhatsApp', 'Share the link or QR'].map((t, i) => (
+          <Reveal key={t} as="li" delay={i * 120}>
+            <span>0{i + 1}</span>
+            {t}
           </Reveal>
         ))}
-      </ul>
-    </section>
-  </div>
-);
+      </ol>
+      {FEATURES.map((f, i) => (
+        <section key={f.title} className={`hw-row${i % 2 ? ' flip' : ''}`}>
+          <Reveal className="hw-text">
+            <span className="ax-ey">0{i + 1}</span>
+            <h2>{f.title}</h2>
+            <p>{f.text}</p>
+          </Reveal>
+          <Reveal className="hw-vis" delay={160}>
+            {f.visual}
+          </Reveal>
+        </section>
+      ))}
+      <section className="hw-counter">
+        <Reveal>
+          <span className="ax-ey">Behind the counter</span>
+          <h2>For the owner, one quiet desk.</h2>
+        </Reveal>
+        <ul>
+          {COUNTER.map((c, i) => (
+            <Reveal key={c} as="li" delay={i * 70}>
+              {c}
+            </Reveal>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+};

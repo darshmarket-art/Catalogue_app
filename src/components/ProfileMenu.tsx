@@ -1,5 +1,6 @@
 import { usePlan } from '../plan';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { reducedMotion } from '../spring';
 import type { ActiveScreen } from '../types';
 import { merchant } from '../merchant';
 import { currentStoreUrl } from '../storeLink';
@@ -33,21 +34,46 @@ const itemClass =
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout, onNavigate }) => {
   const orders = usePlan().flags.orders;
   useLang();
-  const [open, setOpen] = useState(false);
+  // 'closing' keeps the menu on screen while it shrinks back into the profile button.
+  const [menu, setMenu] = useState<'closed' | 'open' | 'closing'>('closed');
+  const open = menu === 'open';
+  const close = () => setMenu((m) => (m === 'open' ? 'closing' : m));
   const [sharing, setSharing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const name = buyer?.storeName ?? 'Administrator';
+
+  // The menu grows out of the button at the top right and leaves the same way, so it is clear where it lives.
+  // Layout effect: the first frame is already the small, clear one (no flash). Reduced motion: a plain fade.
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (menu === 'closed') return;
+    if (typeof el?.animate !== 'function') {
+      if (menu === 'closing') setMenu('closed');
+      return;
+    }
+    const shut = { opacity: 0, transform: reducedMotion() ? 'none' : 'scale(0.96)' };
+    const shown = { opacity: 1, transform: 'none' };
+    if (menu === 'open') {
+      el.animate([shut, shown], { duration: 160, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+      return;
+    }
+    const exit = el.animate([shown, shut], { duration: 130, easing: 'ease-in', fill: 'forwards' });
+    exit.onfinish = () => setMenu('closed');
+    // Reopened (or unmounted) mid-exit: stop the exit so it never closes the menu afterwards.
+    return () => exit.cancel();
+  }, [menu]);
 
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setOpen(false);
+        close();
         buttonRef.current?.focus();
       }
     };
@@ -61,7 +87,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
   }, [open]);
 
   const choose = (action: () => void) => () => {
-    setOpen(false);
+    close();
     action();
   };
 
@@ -76,7 +102,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setMenu((m) => (m === 'open' ? 'closing' : 'open'))}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Profile menu"
@@ -86,9 +112,11 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
         <i aria-hidden="true" className="i i-user" />
       </button>
 
-      {open && (
+      {menu !== 'closed' && (
         <div
-          className="card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50 animate-fade-in" style={{ boxShadow: "var(--sh-2)" }}
+          ref={menuRef}
+          className="card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50"
+          style={{ boxShadow: 'var(--sh-2)', transformOrigin: 'top right', pointerEvents: open ? undefined : 'none' }}
         >
           <div className="px-5 pt-4 pb-3">
             <p className="serif text-[21px] leading-tight truncate">{name}</p>

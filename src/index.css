@@ -241,15 +241,21 @@ html.native {
   animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
+/* Reduced motion: loops stop and nothing slides, but screens, steps and the greeting still fade in briefly, so a change is never silent.
+   (The Emergent layout and the platform pages get the same rule, stronger, in emergent.css.) */
 @media (prefers-reduced-motion: reduce) {
-  .step-in,
   .live-dot,
-  [data-layout="emergent"] .em-ordcard,
+  .welcome-ring,
+  [data-layout="emergent"] .em-ordcard {
+    animation: none;
+  }
+  .step-in,
+  .welcome-rise,
   .animate-fade-in,
   .animate-page-in,
   .animate-page-forward,
   .animate-page-back {
-    animation: none;
+    animation: fade-in 0.15s ease-out both;
   }
 }
 

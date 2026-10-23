@@ -1,5 +1,6 @@
 import { LegalLinks } from './LegalLinks';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { reducedMotion } from '../spring';
 import { Capacitor } from '@capacitor/core';
 import { TRIAL_DAYS } from '../../shared/limits';
 import { isValidStoreName } from '../../shared/storeName';
@@ -91,7 +92,22 @@ export const EntryScreen: React.FC = () => {
     if (r === 'open') window.location.replace(u);
     else setErr(r === 'missing' ? 'No store with that address. Check the spelling.' : 'No internet connection. Check it and try again.');
   };
-  const [menu, setMenu] = useState(false);
+  // 'closing' keeps the menu on screen while it shrinks back into the menu button (platform.css grows it out on the way in).
+  const [menu, setMenu] = useState<'closed' | 'open' | 'closing'>('closed');
+  const menuRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (menu !== 'closing') return;
+    const el = menuRef.current;
+    // Gone already (an item switched the page) or no animation support: just close.
+    if (typeof el?.animate !== 'function') {
+      setMenu('closed');
+      return;
+    }
+    const exit = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: reducedMotion() ? 'none' : 'scale(0.96)' }], { duration: 130, easing: 'ease-in', fill: 'forwards' });
+    exit.onfinish = () => setMenu('closed');
+    // Reopened mid-exit: stop the exit so it never closes the menu afterwards.
+    return () => exit.cancel();
+  }, [menu]);
   useEffect(() => {
     document.title = 'Antarixs · Storefronts for jewellery wholesalers';
   }, []);
@@ -180,20 +196,20 @@ export const EntryScreen: React.FC = () => {
           <div className="ax-wrap ax-hero-in">
           <div className="ax-nav">
             <PlatformWord caption="Jewellers Solution" size={44} />
-            <button type="button" className="ax-menubtn" aria-label={menu ? 'Close menu' : 'Open menu'} aria-expanded={menu} aria-controls="ax-menu" onClick={() => setMenu(!menu)}>
+            <button type="button" className="ax-menubtn" aria-label={menu === 'open' ? 'Close menu' : 'Open menu'} aria-expanded={menu === 'open'} aria-controls="ax-menu" onClick={() => setMenu(menu === 'open' ? 'closing' : 'open')}>
               <svg className="ax-i" viewBox="0 0 24 24" aria-hidden="true">
-                {menu ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 8h16M4 16h16" />}
+                {menu === 'open' ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 8h16M4 16h16" />}
               </svg>
             </button>
-            {menu && (
-              <div id="ax-menu" className="ax-menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
-                <button type="button" role="menuitem" onClick={() => { setMenu(false); setView('login'); }}>
+            {menu !== 'closed' && (
+              <div id="ax-menu" ref={menuRef} className="ax-menu" role="menu" style={{ transformOrigin: 'top right', pointerEvents: menu === 'open' ? undefined : 'none' }} onKeyDown={(e) => e.key === 'Escape' && setMenu('closing')}>
+                <button type="button" role="menuitem" onClick={() => { setMenu('closing'); setView('login'); }}>
                   Store login
                 </button>
-                <button type="button" role="menuitem" onClick={() => { setMenu(false); setView('how'); }}>
+                <button type="button" role="menuitem" onClick={() => { setMenu('closing'); setView('how'); }}>
                   How it works
                 </button>
-                <button type="button" role="menuitem" onClick={() => { setMenu(false); setView('plans'); }}>
+                <button type="button" role="menuitem" onClick={() => { setMenu('closing'); setView('plans'); }}>
                   Pricing · Basic &amp; Pro
                 </button>
                 <div className="sep" />

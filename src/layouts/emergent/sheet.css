@@ -1,0 +1,26 @@
+/*
+ * Sheet motion (Sheet in ui.tsx). The entrances live here; the drag, the spring home and the exit run in script (src/spring.ts).
+ * Bottom sheet: slides up on a curve close to a critically damped spring while the scrim fades in. Wide buyer screens open it as a dialog.
+ * Reduced motion: emergent.css swaps these entrances for a short fade (with !important), so nothing here is !important.
+ */
+@keyframes em-sheet-up { from { transform: translate3d(0, 100%, 0); } }
+@keyframes em-sheet-fade { from { opacity: 0; } }
+@keyframes em-sheet-dialog { from { opacity: 0; transform: scale(0.96); } }
+[data-layout="emergent"] .em-sheet-wrap > .em-sheet { animation: em-sheet-up 0.42s cubic-bezier(0.22, 1, 0.36, 1); overscroll-behavior-y: contain; }
+[data-layout="emergent"] .em-sheet-wrap > .em-scrim { animation: em-sheet-fade 0.3s ease-out; }
+
+/* The handle: a 44 px tall strip across the top of the sheet that takes the finger; the bar is drawn in the same place as before
+   and the negative margins keep the content where it was. Content below the bar still wins taps where the two overlap. */
+[data-layout="emergent"] .em-sheet-wrap > .em-sheet > .grab { align-self: stretch; width: auto; height: 44px; margin: -12px -20px -27px; padding-top: 12px; border-radius: 0; background: none; display: flex; justify-content: center; touch-action: none; cursor: grab; }
+[data-layout="emergent"] .em-sheet-wrap > .em-sheet > .grab::before { content: ""; width: 40px; height: 5px; border-radius: 9px; background: var(--em-line); }
+
+@media (min-width: 1024px) {
+  [data-layout="emergent"][data-role="buyer"] .em-sheet-wrap > .em-sheet { animation: em-sheet-dialog 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+  [data-layout="emergent"][data-role="buyer"] .em-sheet-wrap > .em-scrim { animation-duration: 0.22s; }
+  [data-layout="emergent"][data-role="buyer"] .em-sheet-wrap > .em-sheet > .grab { display: none; }
+}
+
+/* Reduced motion keeps opacity fades short, but a dragged sheet and its scrim must follow the finger at once, not 0.15s behind. */
+@media (prefers-reduced-motion: reduce) {
+  [data-layout="emergent"] .em-sheet-wrap :is(.em-scrim, .em-sheet) { transition: none !important; }
+}

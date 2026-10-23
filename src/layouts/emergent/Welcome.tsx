@@ -21,7 +21,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
         </span>
         <div>
           <div className="em-ey g">{ts(merchant.brand.tagline)}</div>
-          <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.12, marginTop: 10, color: 'var(--em-on-primary)', letterSpacing: '-0.5px' }}>
+          <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.12, marginTop: 10, color: 'var(--em-on-primary)', letterSpacing: '-0.02em' }}>
             {ts(merchant.brand.name)}
           </h1>
           <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{tl(merchant.brand.description)}</p>

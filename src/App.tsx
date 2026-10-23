@@ -40,6 +40,7 @@ import { ScreenTop } from './components/ScreenTop';
 import { errorText } from './bugReport';
 import { BootSplash } from './components/BootSplash';
 import { NoticeHost, notify } from './notify';
+import * as haptics from './haptics';
 import { OrdersUnavailable } from './components/OrdersUnavailable';
 
 
@@ -339,17 +340,20 @@ export default function App() {
   };
 
   // Add Item to Order (needs an account)
-  const handleAddToOrder = async (product: Product, quantity: number, purity?: string) => {
+  const handleAddToOrder = async (product: Product, quantity: number, purity?: string, quiet = false): Promise<boolean> => {
     try {
       const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity, ...(purity ? { purity } : {}) });
       // The server merges a repeat add into the existing line, so replace by id rather than append.
       setOrders((prev) => (prev.some((i) => i.id === newItem.id) ? prev.map((i) => (i.id === newItem.id ? newItem : i)) : [...prev, newItem]));
+      // A light knock on the phone in the same moment the cart updates ("Add all" knocks once, at the end).
+      if (!quiet) haptics.tap();
       // Once a design is in the order it leaves the shortlist.
       if (shortlistRef.current.includes(product.sku)) {
         const next = shortlistRef.current.filter((sku) => sku !== product.sku);
         setShortlist(next);
         api.saveShortlist(next).catch(() => {});
       }
+      return true;
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
         if (err.status === 401) {
@@ -361,6 +365,7 @@ export default function App() {
           notify(err.message);
         }
       }
+      return false;
     }
   };
 
@@ -432,6 +437,7 @@ export default function App() {
           (note?.trim() ? `\n\n*नोट:* ${note.trim()}` : '');
       // The server has turned the batch into an order; the next batch starts empty.
       setOrders([]);
+      haptics.success();
       return result;
     } catch (err) {
       if (err instanceof ApiError && !err.handled) {
@@ -575,7 +581,9 @@ export default function App() {
   };
 
   const handleAddAllToOrder = async (items: Product[]) => {
-    for (const product of items) await handleAddToOrder(product, 1);
+    let added = false;
+    for (const product of items) added = (await handleAddToOrder(product, 1, undefined, true)) || added;
+    if (added) haptics.tap();
   };
 
   const handleAboutSaved = async (next: About): Promise<string | null> => {

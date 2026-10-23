@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import type { LayoutKit } from '../props';
 import { useBackLayer } from '../../backLayer';
 import { getLang, t } from '../../i18n';
+import { project, reducedMotion, rubberband, spring, VelocityTracker, type Stop } from '../../spring';
+import './sheet.css';
 
 /** The props of a Gilded screen are the contract: an Emergent screen takes exactly the same. */
 export type KitProps<K extends keyof LayoutKit> = React.ComponentProps<LayoutKit[K]>;
@@ -108,14 +110,242 @@ export const Toast: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </div>
 );
 
-/** The sheet that slides up from the bottom (menus). */
+/**
+ * The sheet that slides up from the bottom (menus). It follows the finger: drag the handle, or the sheet itself when its content is at the top,
+ * and let go; a flick or a long drag closes it, anything else springs home. However it closes, it leaves the way it came.
+ */
 export const Sheet: React.FC<{ label: string; onClose: () => void; children: React.ReactNode }> = ({ label, onClose, children }) => {
   useBackLayer(true, onClose); // Back closes the sheet
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const scrimRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const grabRef = useRef<HTMLDivElement>(null);
+
+  // Gestures write the transform straight to the DOM (no React render per frame).
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current!;
+    const scrim = scrimRef.current!;
+    const sheet = sheetRef.current!;
+    const grab = grabRef.current!;
+    // Wide buyer screens centre it as a dialog (emergent.css): no drag there, and it fades instead of sliding.
+    const isDialog = () => getComputedStyle(wrap).alignItems === 'center';
+    const tracker = new VelocityTracker();
+    let y = 0; // how far below its resting place the sheet is, px
+    let v = 0; // its velocity, handed on to the exit
+    let h = 1;
+    let from = 0; // where the sheet was when the finger took it
+    let start = 0; // where the finger was then
+    let last = 0;
+    let dragged = false;
+    let stop: Stop = () => {};
+
+    const set = (next: number) => {
+      y = next;
+      sheet.style.transform = `translate3d(0, ${y}px, 0)`;
+      scrim.style.opacity = String(Math.min(1, Math.max(0, 1 - y / h)));
+    };
+    // Take hold wherever it is on screen: mid-entrance or mid-spring, it stops under the finger without a jump.
+    const take = (clientY: number) => {
+      stop();
+      const live = new DOMMatrix(getComputedStyle(sheet).transform).m42;
+      for (const a of [...sheet.getAnimations(), ...scrim.getAnimations()]) a.cancel();
+      h = sheet.offsetHeight || 1;
+      sheet.style.willChange = 'transform';
+      set(live);
+      from = live;
+      start = last = clientY;
+      tracker.reset();
+      tracker.add(0, clientY);
+    };
+    // 1:1 with the finger; above the resting place it resists like a rubber band.
+    const follow = (clientY: number) => {
+      const next = from + clientY - start;
+      set(next < 0 ? rubberband(next, h) : next);
+      last = clientY;
+      tracker.add(0, clientY);
+    };
+    // A flick down, or a drag that would carry past 40% of the sheet, closes it; anything else springs home with the finger's speed.
+    const release = () => {
+      tracker.add(0, last); // a finger that stopped before lifting has no speed
+      sheet.style.willChange = '';
+      const vy = tracker.velocity().vy;
+      if (y > 0 && (vy > 500 || y + project(vy) > 0.4 * h)) {
+        v = vy;
+        closeRef.current(); // the parent unmounts the sheet and the exit below carries on from here
+        return;
+      }
+      stop = spring(y, 0, vy, (next, vel) => {
+        set(next);
+        v = vel;
+      }, {
+        response: 0.3,
+        // No transform at rest: it would become the containing block for any position: fixed content.
+        onDone: () => {
+          sheet.style.transform = '';
+          scrim.style.opacity = '';
+        }
+      });
+    };
+
+    // The handle: Pointer Events, captured so the drag survives the finger leaving it. Touching it catches the sheet at once.
+    let pointer: number | null = null;
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0 || isDialog()) return;
+      pointer = e.pointerId;
+      grab.setPointerCapture(e.pointerId);
+      take(e.clientY);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== pointer) return;
+      if (!dragged) {
+        if (Math.abs(e.clientY - start) < 10) return;
+        dragged = true;
+        start = e.clientY; // follow from here, so the sheet does not jump by the 10 px threshold
+      }
+      follow(e.clientY);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerId !== pointer) return;
+      pointer = null;
+      release();
+    };
+
+    // The sheet body: a downward drag when the content is scrolled to the top moves the sheet; anything else scrolls as usual.
+    // Touch events, not pointer events, because only a non-passive touchmove can stop the browser scrolling once we know.
+    const atTop = (target: EventTarget | null) => {
+      for (let n = target as Element | null; n && n !== sheet; n = n.parentElement) if (n.scrollTop > 0) return false;
+      return sheet.scrollTop <= 0;
+    };
+    let touch: { id: number; x: number; y: number; live: boolean } | null = null;
+    const mine = (e: TouchEvent) => touch && Array.from(e.changedTouches).find((p) => p.identifier === touch!.id);
+    const onTouchStart = (e: TouchEvent) => {
+      if (touch || grab.contains(e.target as Node) || isDialog()) return;
+      const p = e.changedTouches[0];
+      touch = { id: p.identifier, x: p.clientX, y: p.clientY, live: false };
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const p = mine(e);
+      if (!touch || !p) return;
+      if (!touch.live) {
+        const dx = p.clientX - touch.x;
+        const dy = p.clientY - touch.y;
+        if (!(dy > 0 && dy >= Math.abs(dx) && atTop(e.target))) {
+          if (Math.abs(dx) >= 10 || dy <= -10) touch = null; // a scroll or a sideways swipe: leave it to the browser
+          return;
+        }
+        if (!e.cancelable) {
+          touch = null; // the browser has already started scrolling
+          return;
+        }
+        e.preventDefault(); // hold the page still (no pull-to-refresh) until the 10 px threshold decides
+        if (dy < 10) return;
+        touch.live = dragged = true;
+        take(p.clientY);
+        return;
+      }
+      e.preventDefault();
+      follow(p.clientY);
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!mine(e)) return;
+      if (touch!.live) release();
+      touch = null;
+    };
+
+    // A drag is not a tap: swallow the click that can follow it. Keyboard clicks (detail 0) always go through.
+    const onPress = () => {
+      dragged = false;
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!dragged || !e.detail) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const ac = new AbortController();
+    const on = { signal: ac.signal };
+    grab.addEventListener('pointerdown', onDown, on);
+    grab.addEventListener('pointermove', onMove, on);
+    grab.addEventListener('pointerup', onUp, on);
+    grab.addEventListener('pointercancel', onUp, on);
+    sheet.addEventListener('touchstart', onTouchStart, { ...on, passive: true });
+    sheet.addEventListener('touchmove', onTouchMove, { ...on, passive: false });
+    sheet.addEventListener('touchend', onTouchEnd, on);
+    sheet.addEventListener('touchcancel', onTouchEnd, on);
+    wrap.addEventListener('pointerdown', onPress, { ...on, capture: true });
+    wrap.addEventListener('click', onClick, { ...on, capture: true });
+
+    // Exit along the way it came, however it closes (scrim, Back, a drag, or the parent just unmounting it). React is about to remove
+    // the sheet, so a copy takes its place on <body> (in the same layout and role, so the same CSS applies) and plays the exit there.
+    return () => {
+      stop();
+      ac.abort();
+      if (!wrap.isConnected) return;
+      const dialog = isDialog();
+      const live = getComputedStyle(sheet);
+      const y0 = new DOMMatrix(live.transform).m42;
+      const sheetFrom = { transform: live.transform, opacity: live.opacity };
+      const scrimFrom = getComputedStyle(scrim).opacity;
+      const host = document.createElement('div');
+      const root = wrap.closest('[data-layout]');
+      for (const a of ['data-layout', 'data-role']) {
+        const val = root?.getAttribute(a);
+        if (val) host.setAttribute(a, val);
+      }
+      host.setAttribute('aria-hidden', 'true');
+      host.inert = true; // nothing in the copy can take focus or a tap
+      host.style.cssText = 'position:fixed;inset:0;z-index:60;pointer-events:none';
+      const ghost = wrap.cloneNode(true) as HTMLElement;
+      ghost.removeAttribute('role');
+      ghost.removeAttribute('aria-modal');
+      const gSheet = ghost.querySelector<HTMLElement>('.em-sheet')!;
+      const gScrim = ghost.querySelector<HTMLElement>('.em-scrim')!;
+      // Freeze the copy exactly where the sheet is on screen (the entrance may still be running); important beats the reduced-motion rule.
+      for (const el of [gSheet, gScrim]) el.style.setProperty('animation', 'none', 'important');
+      gSheet.style.transform = sheetFrom.transform === 'none' ? '' : sheetFrom.transform;
+      gSheet.style.opacity = sheetFrom.opacity;
+      gScrim.style.opacity = scrimFrom;
+      host.appendChild(ghost);
+      document.body.appendChild(host);
+      gSheet.scrollTop = sheet.scrollTop;
+
+      let stopExit: Stop = () => {};
+      let timer = 0;
+      const done = () => {
+        stopExit();
+        clearTimeout(timer);
+        host.remove();
+      };
+      // After React's commit: StrictMode's rehearsal unmount leaves the real sheet in place, and then no exit is wanted.
+      queueMicrotask(() => {
+        if (wrap.isConnected) return host.remove();
+        timer = window.setTimeout(done, 1000); // in case a frame or finish event never comes (hidden tab)
+        if (reducedMotion()) {
+          ghost.animate({ opacity: [1, 0] }, { duration: 150, fill: 'forwards' }).onfinish = done;
+        } else if (dialog) {
+          const timing: KeyframeAnimationOptions = { duration: 160, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' };
+          gSheet.animate({ opacity: [sheetFrom.opacity, '0'], transform: [sheetFrom.transform, 'scale(0.96)'] }, timing).onfinish = done;
+          gScrim.animate({ opacity: [scrimFrom, '0'] }, timing);
+        } else {
+          // Down and off the bottom edge from where it is, at the speed it already has; the scrim fades in step.
+          const to = gSheet.offsetHeight + 24;
+          const s0 = parseFloat(scrimFrom);
+          stopExit = spring(y0, to, v, (next) => {
+            gSheet.style.transform = `translate3d(0, ${next}px, 0)`;
+            gScrim.style.opacity = String(s0 * Math.max(0, Math.min(1, (to - next) / (to - y0))));
+          }, { response: 0.35, onDone: done });
+        }
+      });
+    };
+  }, []);
+
   return (
-    <div className="em-sheet-wrap" role="dialog" aria-modal="true" aria-label={label}>
-      <button type="button" aria-label={t('Close')} className="em-scrim" onClick={onClose} />
-      <div className="em-sheet">
-        <div className="grab" />
+    <div ref={wrapRef} className="em-sheet-wrap" role="dialog" aria-modal="true" aria-label={label}>
+      <button ref={scrimRef} type="button" aria-label={t('Close')} className="em-scrim" onClick={onClose} />
+      <div ref={sheetRef} className="em-sheet">
+        <div ref={grabRef} className="grab" />
         {children}
       </div>
     </div>

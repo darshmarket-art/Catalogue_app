@@ -11,6 +11,7 @@ import { recentCollections, recentSkus } from '../../recent';
 import { grams, hn, pur, t, tl, tn, ts, useLang } from '../../i18n';
 import { toHindi } from '../../../shared/hindi';
 import { errorText } from '../../bugReport';
+import { reducedMotion } from '../../spring';
 
 /** Up to this many collections are all shown on Home; more than this and Home features four (the owner's hero collections) plus a Browse all page. */
 const FEW = 6;
@@ -37,10 +38,15 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     if (el) el.scrollTo({ left: ((i + slideCount) % slideCount) * el.clientWidth, behavior: 'smooth' });
   };
 
-  // Auto-advance every 6s unless the buyer is touching or hovering the banner
+  // When the buyer last swiped or scrolled the banners themselves: the carousel leaves them in charge for a while after.
+  const lastManual = useRef(0);
+  const noteManual = () => (lastManual.current = Date.now());
+
+  // Auto-advance every 6s unless the buyer is touching or hovering the banner, or moved it in the last 8s.
+  // Never with reduced motion (swiping, the arrows and the dots still work).
   useEffect(() => {
-    if (slideCount < 2) return;
-    const timer = setInterval(() => !paused.current && goToSlide(activeSlide + 1), 6000);
+    if (slideCount < 2 || reducedMotion()) return;
+    const timer = setInterval(() => !paused.current && Date.now() - lastManual.current >= 8000 && goToSlide(activeSlide + 1), 6000);
     return () => clearInterval(timer);
   }, [activeSlide, slideCount]);
 
@@ -136,8 +142,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
               ref={scroller}
               className="em-car-track"
               onScroll={(e) => setActiveSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
-              onTouchStart={() => (paused.current = true)}
-              onTouchEnd={() => (paused.current = false)}
+              onTouchStart={() => { paused.current = true; noteManual(); }}
+              onTouchEnd={() => { paused.current = false; noteManual(); }}
+              onPointerDown={noteManual}
+              onWheel={(e) => Math.abs(e.deltaX) > Math.abs(e.deltaY) && noteManual()}
             >
               {banners.length > 0
                 ? banners.map((b, i) => (

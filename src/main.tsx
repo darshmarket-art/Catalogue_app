@@ -31,6 +31,16 @@ if (Capacitor.isNativePlatform()) {
   void SystemBars.setStyle({style: SystemBarsStyle.Light}).catch(() => {});
 }
 
+// Scroll edge: the top bars show a soft shadow only once the page has scrolled under them (CSS reads html[data-scrolled]).
+// Passive and at most once a frame, so it never slows scrolling.
+let scrollFrame = 0;
+const markScrolled = () => {
+  scrollFrame = 0;
+  document.documentElement.toggleAttribute('data-scrolled', window.scrollY > 4);
+};
+window.addEventListener('scroll', () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(markScrolled); }, {passive: true});
+markScrolled();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {window.location.pathname === '/welcome-antarixs' ? <EntryScreen /> : window.location.pathname === '/signup' ? <SignupScreen /> : <PlanProvider><App /></PlanProvider>}

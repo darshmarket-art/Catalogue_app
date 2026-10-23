@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActiveScreen } from '../types';
-import { api } from '../api';
+import { api, ApiError } from '../api';
+import * as haptics from '../haptics';
 import { merchant } from '../merchant';
 import { LegalLinks } from './LegalLinks';
 import { Icon } from '../layouts/emergent/ui';
@@ -120,9 +121,14 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
     try {
       const res = await api.verifyOtp({ phone: fullPhone(), code: code.trim(), ...(needsName ? { firmName: name.trim(), ownerName: name.trim() } : {}) });
       if (res.status === 'needs-name') setNeedsName(true);
-      else setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
+      else {
+        setWelcome({ user: profileOf(res.user), isNew: Boolean(res.isNew) });
+        haptics.success();
+      }
     } catch (err: any) {
       setErrorMessage(tErr(errorText(err, 'RetailerAuthScreen', t('That code did not work.'))));
+      // Only the server refusing the code (wrong, expired, too many tries) buzzes; a lost connection does not.
+      if (err instanceof ApiError && (err.status === 401 || err.status === 429)) haptics.warning();
     } finally {
       setLoading(false);
     }
