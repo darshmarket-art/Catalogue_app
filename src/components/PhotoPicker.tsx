@@ -67,7 +67,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   /** Checks the photo against the rule; right-shaped ones upload as they are, wrong-shaped ones go to the crop step. */
   const prepare = async (file: File) => {
     if (!spec) return upload(file);
-    const size = await createImageBitmap(file).then((b) => ({ w: b.width, h: b.height })).catch(() => null);
+    const size = await createImageBitmap(file).then((b) => { const s = { w: b.width, h: b.height }; b.close(); return s; }).catch(() => null);
     const fit = size ? fitCheck(size.w, size.h, spec) : 'ok';
     if (fit === 'ok') return upload(file);
     if (fit === 'small' && spec.strict) {
