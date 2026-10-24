@@ -2,10 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>You are offline</title>
     <style>
-      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; box-sizing: border-box; font-family: system-ui, sans-serif; background: #f7f1e8; color: #1f1418; }
+      /* Edge to edge in the app (viewport-fit=cover), so the page pads itself clear of the camera cut-out and the system bars (same rule as src/index.css). */
+      :root { --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)); --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)); --sal: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px)); --sar: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px)); }
+      body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; text-align: center; padding: calc(24px + var(--sat)) calc(24px + var(--sar)) calc(24px + var(--sab)) calc(24px + var(--sal)); box-sizing: border-box; font-family: system-ui, sans-serif; background: #f7f1e8; color: #1f1418; }
       h1 { font-size: 26px; margin: 0 0 8px; }
       p { font-size: 16px; line-height: 1.5; margin: 0 0 20px; color: #6a5960; }
       button { min-height: 52px; padding: 0 28px; border: 0; border-radius: 16px; background: #4a1835; color: #fbf3e6; font-size: 16px; font-weight: 700; }

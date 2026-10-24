@@ -134,9 +134,12 @@ export function runAudits(args: { width: number; clip: boolean; minTarget: numbe
     const hit = document.elementFromPoint(cx, cy);
     // An open menu or dropdown on top is a popover the person chose to open (an absolute-positioned child inside the bar, or a dialog), not a bar that sits over the page.
     const hitBar = hit && !floating(hit) ? bars.find((b) => b.contains(hit) && !b.contains(f) && !f.contains(b)) : undefined;
+    // Bars are asked again now, after the focus: one that hides itself while a field has focus (the app does, on touch screens, so the keyboard has the room) is not on top of anything,
+    // and neither is one underneath a modal layer that holds the field.
+    const standing = bars.filter((b) => shown(b) && inScope(b));
     let covered = 0;
     let by: Element | undefined = hitBar;
-    for (const b of bars) {
+    for (const b of standing) {
       if (b.contains(f) || f.contains(b)) continue;
       const br = b.getBoundingClientRect();
       const a = Math.max(0, Math.min(br.right, vis.r) - Math.max(br.left, vis.l)) * Math.max(0, Math.min(br.bottom, vis.b) - Math.max(br.top, vis.t));
@@ -148,6 +151,9 @@ export function runAudits(args: { width: number; clip: boolean; minTarget: numbe
     }
     f.blur();
   }
+
+  // The app lets its bars back 200 ms after the last blur; the page is audited as it rests, so that happens now (the loop above is synchronous).
+  document.documentElement.removeAttribute('data-typing');
 
   // (c) Tap targets. The effective box is the element's border box (so padding counts) widened to include absolutely positioned ::before/::after boxes.
   const tapOffenders = new Map<string, AuditResult['tapTargets']['offenders'][number]>();

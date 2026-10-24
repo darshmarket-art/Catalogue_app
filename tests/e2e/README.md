@@ -39,7 +39,7 @@ RESPONSIVE_SCRATCH="../scratchpad" RESPONSIVE_OUT=before RESPONSIVE_REPORT_ONLY=
 | Check | Rule | Fails by default |
 | --- | --- | --- |
 | Horizontal overflow | `scrollWidth <= width`. The test's width is used, not `innerWidth`, because a phone-emulating browser widens its layout viewport to fit an overflowing page. Also lists content that sticks out past the edge while the root hides it (`cutOff`). Offenders are the elements that break out of a fitting parent. | yes |
-| Covered input | Each visible input/textarea/select is focused (the browser scrolls it into view), then a fixed or sticky element that does not contain it must not hold the point at its centre or cover half of it; it must also be on screen. An open menu or dialog is not a bar. | yes |
+| Covered input | Each visible input/textarea/select is focused (the browser scrolls it into view), then a fixed or sticky element that does not contain it must not hold the point at its centre or cover half of it; it must also be on screen. An open menu or dialog is not a bar. Bars are judged after the focus: one that hides itself for the keyboard, or that sits underneath a modal layer holding the field, is not on top of anything. | yes |
 | Tap target | Every visible `button, a, [role=button]` needs an effective box of at least 44x44 CSS px. The box is the element's border box (padding counts) widened to include absolutely positioned `::before`/`::after` boxes (computed from their resolved inset/size). Links inside a sentence are exempt and counted. Under 28 px on a side is flagged `severe`. | no |
 | Small text | Computed font-size under 12 px on an element that owns text. | no |
 | Clipped text (200% runs only) | `overflow` hidden/clip with `scrollWidth > clientWidth` or `scrollHeight > clientHeight`; `ellipsis` and `lineClamp` flags say if it is deliberate truncation. | no |
@@ -61,8 +61,8 @@ While a modal layer is open (tour, cart sheet, cropper, a design opened over the
 
 ## Not emulated
 
-- The on-screen keyboard (a real soft keyboard shrinks the visible area; here only focus-scrolling is checked).
-- Safe-area insets / notch (`env(safe-area-inset-*)` is 0).
+- The on-screen keyboard itself: no IME, no `interactive-widget`, no Chrome visual-viewport-only resize, no iOS. `keyboard.e2e.ts` does what the Android app does (adjustResize): it makes the window shorter after the screen is open (phone and landscape phone, with the keyboard up) and focuses every field of the phone and code steps, sign-up, admin login, the new-product form and the order note; none may sit under a bar or outside the window. It also checks that the bars step aside while a field has focus (`html[data-typing]`) and come back.
+- Safe-area insets / notch (`env(safe-area-inset-*)` is 0). The same file forces `--sal`/`--sar` to 44 px on `:root` at 844x390 and checks that header, tabs, buttons and page content stay out of the 44 px strips.
 - Real Android font scale and Capacitor.
 
 ## Add a screen
