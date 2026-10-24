@@ -56,15 +56,15 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
             <AntarixsMark size={24} dark />
           </span>
           <div>
-            <div className="em-ser" style={{ fontSize: 19 }}>
+            <div className="em-ser" style={{ fontSize: '1.1875rem' }}>
               Antarixs
             </div>
-            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: 12 }}>
+            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: '0.75rem' }}>
               Plans
             </div>
           </div>
         </div>
-        <div style={{ fontSize: 14, lineHeight: 1.55, marginTop: 14 }}>Every new store starts with Pro for {TRIAL_DAYS} days. Then it moves to Basic unless you upgrade. Nothing is deleted.</div>
+        <div style={{ fontSize: '0.875rem', lineHeight: 1.55, marginTop: 14 }}>Every new store starts with Pro for {TRIAL_DAYS} days. Then it moves to Basic unless you upgrade. Nothing is deleted.</div>
       </div>
     ) : (
       <div className="note trial">
@@ -78,10 +78,10 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
           {current === 'basic' && <span className="tag ok">Your plan</span>}
         </span>
         <div>
-          <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? undefined : { fontSize: 24 }}>
+          <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? undefined : { fontSize: '1.5rem' }}>
             Free
           </span>
-          <p className="sub" style={atlas ? { fontSize: 12 } : undefined}>
+          <p className="sub" style={atlas ? { fontSize: '0.75rem' } : undefined}>
             To get started
           </p>
         </div>
@@ -92,10 +92,10 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
           {current === 'pro' && <span className="tag ok">Your plan</span>}
         </span>
         <div>
-          <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? { whiteSpace: 'nowrap' } : { fontSize: 24, whiteSpace: 'nowrap' }}>
+          <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? { whiteSpace: 'nowrap' } : { fontSize: '1.5rem', whiteSpace: 'nowrap' }}>
             Contact us
           </span>
-          <p className="sub" style={atlas ? { fontSize: 12, color: 'inherit', opacity: 0.7 } : undefined}>
+          <p className="sub" style={atlas ? { fontSize: '0.75rem', color: 'inherit', opacity: 0.7 } : undefined}>
             To grow
           </p>
         </div>

@@ -63,7 +63,7 @@ export const NoticeHost: React.FC = () => {
       )}
       {ask && (
         <Sheet label={ask.message} onClose={() => answer(false)}>
-          <p style={{ fontSize: 16, lineHeight: 1.5, margin: '4px 0 18px' }}>{ask.message}</p>
+          <p style={{ fontSize: '1rem', lineHeight: 1.5, margin: '4px 0 18px' }}>{ask.message}</p>
           <div className="em-row" style={{ gap: 10 }}>
             <button type="button" className="em-btn sec" style={{ flex: 1 }} onClick={() => answer(false)}>
               {t('Cancel')}

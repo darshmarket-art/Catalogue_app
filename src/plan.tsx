@@ -49,8 +49,8 @@ const UpgradeModal: React.FC<{ feature: string; onClose: () => void }> = ({ feat
       <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--gold-l)', color: 'var(--gold-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <I n="lock" size="l" />
       </div>
-      <h2 style={{ fontSize: 26 }}>{feature} is a Pro feature</h2>
-      <p className="sub" style={{ fontSize: 15.5 }}>Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues and up to 3 photos per design.</p>
+      <h2 style={{ fontSize: '1.625rem' }}>{feature} is a Pro feature</h2>
+      <p className="sub" style={{ fontSize: '0.9688rem' }}>Pro adds orders, insights, live visitors, buyer engagement, the audit log, PDF catalogues and up to 3 photos per design.</p>
       <div className="card col" style={{ gap: 8, padding: '12px 16px' }}>
         {['Buyers place orders you confirm and dispatch', 'Kg booked, views and live visitors', 'Unlimited collections and buyers'].map((t) => (
           <div key={t} className="row"><I n="check" size="s" style={{ color: 'var(--ok)' }} /><span>{t}</span></div>

@@ -55,10 +55,10 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
         <span className="em-badge">
           <Icon n="clock" size={24} />
         </span>
-        <h2 className="em-ser" style={{ fontSize: 24 }}>
+        <h2 className="em-ser" style={{ fontSize: '1.5rem' }}>
           {t('No past orders yet')}
         </h2>
-        <p className="em-mut" style={{ margin: 0, fontSize: 14 }}>{t('Orders you place will be listed here.')}</p>
+        <p className="em-mut" style={{ margin: 0, fontSize: '0.875rem' }}>{t('Orders you place will be listed here.')}</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
       </div>
       <div className="em-pad em-past" data-testid="past-orders">
         {problem && (
-          <div role="alert" className="em-card" style={{ color: 'var(--em-bad)', borderColor: 'var(--em-bad)', fontSize: 14 }}>
+          <div role="alert" className="em-card" style={{ color: 'var(--em-bad)', borderColor: 'var(--em-bad)', fontSize: '0.875rem' }}>
             {problem}
           </div>
         )}
@@ -95,10 +95,10 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                 <div className="em-row em-sb" style={{ alignItems: 'flex-start', gap: 10 }}>
                   <div className="em-grow">
                     <div className="em-ey">{when(order.timestamp)}</div>
-                    <div className="em-ser" style={{ fontSize: 19, marginTop: 2 }}>
+                    <div className="em-ser" style={{ fontSize: '1.1875rem', marginTop: 2 }}>
                       {t('Order {id}', { id: order.poId })}
                     </div>
-                    <div className="em-mut" style={{ fontSize: 12, marginTop: 4 }}>
+                    <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 4 }}>
                       {tn(order.itemCount, '{n} design', '{n} designs')} · {t('{w} net', { w: fmtG(order.totalNetGrams) })}
                     </div>
                   </div>
@@ -152,7 +152,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                 <span className="em-ey" style={{ color: 'var(--em-deep-ink)' }}>
                   {t('Net total')}
                 </span>
-                <span className="em-ser" style={{ fontSize: 18, color: 'var(--em-accent)' }}>
+                <span className="em-ser" style={{ fontSize: '1.125rem', color: 'var(--em-accent)' }}>
                   {fmtG(order.totalNetGrams)}
                 </span>
               </div>
@@ -226,10 +226,10 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
           <div className="em-ey" style={{ marginTop: 12 }}>
             {confirmedPO}
           </div>
-          <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.2 }}>
+          <h1 className="em-ser" style={{ fontSize: '1.875rem', lineHeight: 1.2 }}>
             {t(sector.copy.orders.bookedBanner)}
           </h1>
-          <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 320 }}>
+          <p className="em-mut" style={{ fontSize: '0.8125rem', lineHeight: 1.55, margin: '0 0 20px', maxWidth: 320 }}>
             {t('{w} net.', { w: fmtG(bookedGrams) })} {tl(merchant.orders.bookedNote) ? `${t('Your order is booked,')} ${tl(merchant.orders.bookedNote)}` : t('We will confirm on WhatsApp shortly.')}
           </p>
           <a href={waLink} target="_blank" rel="noreferrer" className="em-btn wa">
@@ -300,10 +300,10 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
           <span className="em-badge">
             <Icon n="bag" size={24} />
           </span>
-          <h2 className="em-ser" style={{ fontSize: 24 }}>
+          <h2 className="em-ser" style={{ fontSize: '1.5rem' }}>
             {t(sector.copy.orders.emptyTitle)}
           </h2>
-          <p className="em-mut" style={{ maxWidth: 300, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+          <p className="em-mut" style={{ maxWidth: 300, fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
             {t(sector.copy.orders.emptyText)}
           </p>
           <button type="button" className="em-btn" onClick={onNavigateCatalogue}>
@@ -314,7 +314,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
         <>
           <div className="em-pad em-body">
             <div className="em-row em-sb" style={{ marginBottom: 2 }}>
-              <span className="em-mut" style={{ fontSize: 13 }}>
+              <span className="em-mut" style={{ fontSize: '0.8125rem' }}>
                 {tn(orders.length, '{n} design', '{n} designs')} · {tn(totalPieces, '{n} piece', '{n} pieces')}
               </span>
               <button type="button" className="em-link" data-testid="cart-clear" onClick={() => orders.forEach((i) => onRemoveItem(i.id))}>
@@ -327,14 +327,14 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                 <div key={item.id} className="em-li">
                   <Ph src={item.image} tone={i} className="em-thumb" style={{ width: 76, height: 76 }} sizes={SIZES_THUMB} />
                   <div className="em-grow">
-                    <div className="em-ser" style={{ fontSize: 16 }}>
+                    <div className="em-ser" style={{ fontSize: '1rem' }}>
                       {hn(item.title, item.titleHi)}
                     </div>
-                    <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
+                    <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 2 }}>
                       {item.sku} · {pur(item.purity.split(' ')[0])} · {fmtG(item.unitWt)} × {item.batchQty}
                     </div>
                     <div className="em-row em-sb" style={{ marginTop: 6 }}>
-                      <span className="em-ser" style={{ color: 'var(--em-accent)', fontSize: 15 }}>
+                      <span className="em-ser" style={{ color: 'var(--em-accent)', fontSize: '0.9375rem' }}>
                         {fmtG(item.totalNetGold)}
                       </span>
                       <div className="em-qty sm">
@@ -371,7 +371,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                   <div className="em-ey">
                     {tn(orders.length, '{n} design', '{n} designs')} · {t('{n} pcs', { n: totalPieces })}
                   </div>
-                  <div className="em-ser tot" style={{ fontSize: 28 }}>
+                  <div className="em-ser tot" style={{ fontSize: '1.75rem' }}>
                     {t('{w} net', { w: fmtG(totalNetGold) })}
                   </div>
                 </div>

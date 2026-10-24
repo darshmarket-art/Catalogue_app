@@ -32,7 +32,7 @@ export const AdminMessagesScreen: React.FC = () => {
       {page && (
         <>
           <div className="card em-row em-sb" style={{ gap: 10 }} data-testid="messages-receipts">
-            <span style={{ fontSize: 13.5 }}>Delivery receipts</span>
+            <span style={{ fontSize: '0.8438rem' }}>Delivery receipts</span>
             <span className={`tag ${page.receipts.connected ? 'ok' : 'mut'}`} data-testid="messages-receipts-status">
               {page.receipts.connected ? `Connected${page.receipts.lastAt ? ` · last ${when(page.receipts.lastAt)}` : ''}` : 'Not connected'}
             </span>
@@ -76,8 +76,8 @@ export const AdminMessagesScreen: React.FC = () => {
 
 const Stat: React.FC<{ label: string; value: string; testId: string; tone?: string }> = ({ label, value, testId, tone }) => (
   <div className="card col" style={{ gap: 2 }} data-testid={testId}>
-    <span className="em-mut" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</span>
-    <b className="em-ser" style={{ fontSize: 22, color: tone === 'bad' ? 'var(--em-bad)' : undefined }}>{value}</b>
+    <span className="em-mut" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</span>
+    <b className="em-ser" style={{ fontSize: '1.375rem', color: tone === 'bad' ? 'var(--em-bad)' : undefined }}>{value}</b>
   </div>
 );
 
@@ -89,13 +89,13 @@ const Row: React.FC<{ m: MessageRow; open: boolean; onToggle: () => void }> = ({
       </span>
       <DeliveryPill status={m.status} testId="message-status" />
     </span>
-    <span className="sub" style={{ fontSize: 12.5 }}>
+    <span className="sub" style={{ fontSize: '0.7813rem' }}>
       {m.buyer ? `${m.to} · ` : ''}
       {when(m.createdAt)}
       {m.receiptAt ? ` · receipt ${when(m.receiptAt)}` : ''}
     </span>
     {open && (
-      <span className="sub" style={{ fontSize: 12.5 }} data-testid="message-details">
+      <span className="sub" style={{ fontSize: '0.7813rem' }} data-testid="message-details">
         {m.status === 'failed' ? `Meta error ${m.errorCode ?? '—'}: ${m.errorTitle ?? 'not delivered'}` : `Message id ${m.id}`}
       </span>
     )}

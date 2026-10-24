@@ -13,7 +13,7 @@ export const OrdersUnavailable: React.FC<{ admin: boolean; onSeePlans: () => voi
       <span className="em-circ" style={{ width: 64, height: 64, background: 'var(--em-tint)' }}>
         <Icon n="package" size={28} />
       </span>
-      <h2 className="em-ser" style={{ fontSize: 24 }}>{admin ? 'Orders are part of Pro' : t('Order on WhatsApp')}</h2>
+      <h2 className="em-ser" style={{ fontSize: '1.5rem' }}>{admin ? 'Orders are part of Pro' : t('Order on WhatsApp')}</h2>
       <p className="em-mut" style={{ maxWidth: 340, lineHeight: 1.5 }}>
         {admin
           ? 'On Basic, buyers enquire about designs on WhatsApp. Pro adds an order basket, the orders desk and order alerts.'

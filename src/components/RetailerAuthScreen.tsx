@@ -35,7 +35,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
   return (
     <div className="relative em-row" style={{ gap: 8 }}>
       {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className="inp" style={{ flex: 1, justifyContent: 'center', height: 56, fontSize: 22, fontWeight: 600, padding: 0, borderColor: focused && i === Math.min(value.length, 5) ? 'var(--em-primary)' : undefined }}>
+        <div key={i} className="inp" style={{ flex: 1, justifyContent: 'center', height: 56, fontSize: '1.375rem', fontWeight: 600, padding: 0, borderColor: focused && i === Math.min(value.length, 5) ? 'var(--em-primary)' : undefined }}>
           {value[i] ?? ' '}
         </div>
       ))}
@@ -163,10 +163,10 @@ export const RetailerAuthScreen: React.FC<RetailerAuthScreenProps> = ({ onNaviga
         <div>
           <div className="em-ey">{ts(merchant.brand.name)}</div>
           <div className="em-rule" style={{ width: 48 }} />
-          <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
+          <h1 className="em-ser" style={{ fontSize: '1.875rem', lineHeight: 1.15 }}>
             {t(needsName ? 'Enter your name' : codeSent ? 'Enter the code' : 'Login')}
           </h1>
-          <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
+          <p className="em-mut" style={{ marginTop: 8, fontSize: '0.875rem', lineHeight: 1.5 }}>
             {needsName ? (
               t('Your number is verified. Tell us your name to finish signing in.')
             ) : codeSent ? (

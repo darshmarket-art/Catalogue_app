@@ -97,7 +97,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
       {mode === 'login' ? (
         <form onSubmit={handleLoginSubmit} className="col" style={{ gap: 16 }}>
           <div>
-            <h1 style={{ fontSize: 32, lineHeight: 1.05 }}>Sign in to your store</h1>
+            <h1 style={{ fontSize: '2rem', lineHeight: 1.05 }}>Sign in to your store</h1>
             <p className="sub" style={{ marginTop: 6 }}>
               The administrator of {merchant.brand.name} signs in with email and password.
             </p>
@@ -113,10 +113,10 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
               {eye(showPass, () => setShowPass(!showPass))}
             </div>
           </Field>
-          <label className="row" style={{ gap: 10, cursor: 'pointer', fontSize: 14.5 }}>
+          <label className="row" style={{ gap: 10, cursor: 'pointer', fontSize: '0.9063rem' }}>
             <input type="checkbox" data-testid="admin-remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 20, height: 20, accentColor: 'var(--plum)' }} />
             <span>
-              Keep me signed in <span className="sub" style={{ fontSize: 13 }}>· a month on this device, otherwise 8 hours</span>
+              Keep me signed in <span className="sub" style={{ fontSize: '0.8125rem' }}>· a month on this device, otherwise 8 hours</span>
             </span>
           </label>
           <button type="submit" disabled={isSubmitting} className="btn" data-testid="admin-login-submit">

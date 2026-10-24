@@ -27,10 +27,10 @@ export const WelcomeGreeting: React.FC<WelcomeGreetingProps> = ({ title, subtitl
         </div>
         <div className="welcome-rise">
           <div className="em-ey">{ts(merchant.brand.name)}</div>
-          <h1 className="em-ser" style={{ fontSize: 32, lineHeight: 1.2, marginTop: 8 }}>
+          <h1 className="em-ser" style={{ fontSize: '2rem', lineHeight: 1.2, marginTop: 8 }}>
             {title}
           </h1>
-          <p className="em-mut" style={{ marginTop: 8, fontSize: 14 }}>
+          <p className="em-mut" style={{ marginTop: 8, fontSize: '0.875rem' }}>
             {subtitle}
           </p>
         </div>

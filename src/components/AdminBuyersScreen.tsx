@@ -23,15 +23,15 @@ const BuyerSheet: React.FC<{ buyer: BuyerRow; removing: boolean; busy: boolean; 
       <div className="em-row" style={{ gap: 14 }}>
         <div className="em-av" style={{ width: 52, height: 52 }}>{buyer.firmName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?'}</div>
         <div className="em-grow">
-          <div className="em-ser" style={{ fontSize: 21 }}>{buyer.firmName}</div>
-          <div className="em-mut" style={{ fontSize: 12.5 }}>{[buyer.ownerName && buyer.ownerName !== buyer.firmName ? buyer.ownerName : '', buyer.marketHub].filter(Boolean).join(' · ') || buyer.phone}</div>
+          <div className="em-ser" style={{ fontSize: '1.3125rem' }}>{buyer.firmName}</div>
+          <div className="em-mut" style={{ fontSize: '0.7813rem' }}>{[buyer.ownerName && buyer.ownerName !== buyer.firmName ? buyer.ownerName : '', buyer.marketHub].filter(Boolean).join(' · ') || buyer.phone}</div>
         </div>
       </div>
       {orders && orders.length > 0 && (
         <div className="em-card" data-testid="buyer-orders">
           <b style={{ fontWeight: 600 }}>Orders</b>
           {orders.slice(0, 5).map((o) => (
-            <div key={o.poId} className="em-row em-sb" style={{ marginTop: 6, fontSize: 13 }}>
+            <div key={o.poId} className="em-row em-sb" style={{ marginTop: 6, fontSize: '0.8125rem' }}>
               <span>{o.poId} · {o.items.length} {o.items.length === 1 ? 'design' : 'designs'}</span>
               <OrderStatusPill status={o.status} />
             </div>
@@ -42,7 +42,7 @@ const BuyerSheet: React.FC<{ buyer: BuyerRow; removing: boolean; busy: boolean; 
         <div className="em-card" data-testid="buyer-enquiries">
           <b style={{ fontWeight: 600 }}>WhatsApp enquiries</b>
           {enquiries.slice(0, 5).map((e) => (
-            <div key={e.id} style={{ marginTop: 6, fontSize: 13 }}>{e.kind === 'design' ? `Asked about ${e.title ?? 'a design'}` : e.kind === 'shortlist' ? `Sent a shortlist${e.count ? ` of ${e.count}` : ''}` : `Sent an order${e.count ? ` of ${e.count} items` : ''}`}</div>
+            <div key={e.id} style={{ marginTop: 6, fontSize: '0.8125rem' }}>{e.kind === 'design' ? `Asked about ${e.title ?? 'a design'}` : e.kind === 'shortlist' ? `Sent a shortlist${e.count ? ` of ${e.count}` : ''}` : `Sent an order${e.count ? ` of ${e.count} items` : ''}`}</div>
           ))}
         </div>
       )}
@@ -150,14 +150,14 @@ export const AdminBuyersScreen: React.FC = () => {
               {online(b.lastSeen) && <span data-testid="buyer-online" aria-label="online" style={{ position: "absolute", right: -1, bottom: -1, width: 10, height: 10, borderRadius: 5, background: "var(--em-ok, #2f8f5b)", border: "2px solid var(--em-card, #fff)" }} />}
             </div>
             <div className="em-grow">
-              <div className="em-ser em-clip" style={{ fontSize: 16 }}>
+              <div className="em-ser em-clip" style={{ fontSize: '1rem' }}>
                 {b.firmName}
               </div>
-              <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
+              <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 2 }}>
                 {b.phone} · joined {joined(b.createdAt)}
                 {seen(b.lastSeen)}
               </div>
-              <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }} data-testid="buyer-contact">
+              <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 2 }} data-testid="buyer-contact">
                 {[b.ownerName && b.ownerName !== b.firmName ? `Contact: ${b.ownerName}` : '', b.marketHub ? `Hub: ${b.marketHub}` : '', b.gstin && b.gstin !== 'PENDING-VERIFY' ? `GSTIN ${b.gstin}` : ''].filter(Boolean).join(' · ')}
               </div>
             </div>

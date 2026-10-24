@@ -251,7 +251,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         {q && (
           <button type="button" className="em-li" style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)' }} data-testid="home-search-designs" onClick={searchDesigns}>
             <span className="em-badge"><Icon n="search" size={16} /></span>
-            <span className="em-grow"><b style={{ fontWeight: 600 }}>{t('Search designs for “{q}”', { q: searchQuery.trim() })}</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>{t('Name, SKU or weight across the catalogue')}</span></span>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>{t('Search designs for “{q}”', { q: searchQuery.trim() })}</b><span className="em-mut" style={{ display: 'block', fontSize: '0.8125rem' }}>{t('Name, SKU or weight across the catalogue')}</span></span>
             <Icon n="right" size={16} />
           </button>
         )}
@@ -290,8 +290,8 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <button type="button" className="em-browse" data-testid="browse-collections" onClick={() => setBrowsing(true)}>
             <span className="em-badge"><Icon n="grid" size={18} /></span>
             <span className="em-grow">
-              <b className="em-ser" style={{ fontSize: 17, fontWeight: 500 }}>{t('Browse all {n} collections', { n: categories.length })}</b>
-              <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>{t('Search or browse by type')}</span>
+              <b className="em-ser" style={{ fontSize: '1.0625rem', fontWeight: 500 }}>{t('Browse all {n} collections', { n: categories.length })}</b>
+              <span className="em-mut" style={{ display: 'block', fontSize: '0.8125rem' }}>{t('Search or browse by type')}</span>
             </span>
             <Icon n="right" size={18} />
           </button>
@@ -318,7 +318,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <div className="em-card em-social" data-testid="social-links">
             <div className="em-social-head">
               <div className="em-ey" style={{ color: 'var(--em-gold-ink)' }}>{t('Find us')}</div>
-              <p className="em-ser" style={{ fontSize: 20, margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: ts(merchant.brand.name) })}</p>
+              <p className="em-ser" style={{ fontSize: '1.25rem', margin: '4px 0 14px' }}>{t('Stay in touch with {name}', { name: ts(merchant.brand.name) })}</p>
               {contact.address && (
                 <div className="em-dk em-find-addr">
                   <MapPin size={22} aria-hidden="true" />
@@ -362,7 +362,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       {/* Admin menu for one collection */}
       {menuFor && (
         <Sheet label={`Options for ${menuFor.name}`} onClose={() => setMenuFor(null)}>
-          <h2 className="em-ser" style={{ fontSize: 24 }}>
+          <h2 className="em-ser" style={{ fontSize: '1.5rem' }}>
             {menuFor.name}
           </h2>
           <div>
@@ -385,7 +385,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
                 </span>
                 <span className="em-grow">
                   <b style={{ fontWeight: 600 }}>{o.label}</b>
-                  <span className="em-mut" style={{ display: 'block', fontSize: 13 }}>
+                  <span className="em-mut" style={{ display: 'block', fontSize: '0.8125rem' }}>
                     {o.note}
                   </span>
                 </span>

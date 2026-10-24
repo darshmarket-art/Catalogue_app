@@ -98,7 +98,7 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <b style={{ fontWeight: 600 }}>Store logo</b>
           <small className="em-mut" style={{ lineHeight: 1.4 }}>Shown in your store and on PDFs.</small>
-          <label className="em-btn sec" style={{ minHeight: 42, padding: '8px 16px', fontSize: 14, cursor: logoBusy ? 'wait' : 'pointer', marginTop: 2 }}>
+          <label className="em-btn sec" style={{ minHeight: 42, padding: '8px 16px', fontSize: '0.875rem', cursor: logoBusy ? 'wait' : 'pointer', marginTop: 2 }}>
             {logoBusy ? 'Uploading…' : merchant.brand.logoUrl.startsWith('/') ? 'Change logo' : 'Upload logo'}
             <input id="ab-logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={pickLogo} disabled={logoBusy} style={{ display: 'none' }} />
           </label>
@@ -142,7 +142,7 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
       </div>
       <div className="em-row" style={{ marginTop: 10, gap: 12, alignItems: 'center' }}>
         <p className="sub" style={{ flex: 1, margin: 0 }}>For buyers who use the app in Hindi. Filled in from your English when you save; check and edit if you like.</p>
-        <button type="button" className="em-btn sec" style={{ minHeight: 40, padding: '6px 14px', fontSize: 13, flex: 'none' }} disabled={translating} onClick={() => void translateAll()}>
+        <button type="button" className="em-btn sec" style={{ minHeight: 40, padding: '6px 14px', fontSize: '0.8125rem', flex: 'none' }} disabled={translating} onClick={() => void translateAll()}>
           {translating ? 'Translating…' : 'Translate to Hindi'}
         </button>
       </div>

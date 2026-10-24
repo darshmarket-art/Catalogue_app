@@ -34,7 +34,7 @@ export const AntarixsWordmark: React.FC<{ dark?: boolean; caption?: string }> = 
       <AntarixsMark size={26} dark={dark} />
     </span>
     <span>
-      <span className="em-ser" style={{ display: 'block', fontSize: 20, lineHeight: 1.1, color: dark ? '#f7f3ff' : 'var(--em-ink)' }}>
+      <span className="em-ser" style={{ display: 'block', fontSize: '1.25rem', lineHeight: 1.1, color: dark ? '#f7f3ff' : 'var(--em-ink)' }}>
         Antarixs
       </span>
       {caption && <span className="em-ey" style={{ display: 'block', color: dark ? 'rgba(247,243,255,0.7)' : undefined, letterSpacing: '0.15em' }}>{caption}</span>}
@@ -44,9 +44,9 @@ export const AntarixsWordmark: React.FC<{ dark?: boolean; caption?: string }> = 
 
 export const PoweredByAntarixs: React.FC = () => (
   <span style={{ alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999, border: '1px solid var(--em-line)', background: 'var(--em-tint)' }}>
-    <span className="em-mut" style={{ fontSize: 12, letterSpacing: '0.04em' }}>{t('Powered by')}</span>
+    <span className="em-mut" style={{ fontSize: '0.75rem', letterSpacing: '0.04em' }}>{t('Powered by')}</span>
     <AntarixsMark size={16} />
-    <span className="em-ser" style={{ fontSize: 13 }}>Antarixs</span>
+    <span className="em-ser" style={{ fontSize: '0.8125rem' }}>Antarixs</span>
   </span>
 );
 

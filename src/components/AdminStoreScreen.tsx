@@ -37,7 +37,7 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
       <span className="em-circ" style={{ background: danger ? undefined : 'var(--em-tint)' }}><Icon n={icon} size={18} /></span>
       <span className="em-grow">
         <b style={{ display: 'block', fontWeight: 600 }}>{title}{extra}</b>
-        <span className="em-mut" style={{ fontSize: 12 }}>{note}</span>
+        <span className="em-mut" style={{ fontSize: '0.75rem' }}>{note}</span>
       </span>
       {!danger && <Icon n="right" size={18} />}
     </button>

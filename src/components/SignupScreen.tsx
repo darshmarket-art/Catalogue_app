@@ -36,7 +36,7 @@ const CodeBoxes: React.FC<{ value: string; onChange: (v: string) => void }> = ({
   return (
     <div className="relative row" style={{ gap: 8 }}>
       {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className={`inp${focused && i === Math.min(value.length, 5) ? ' on' : ''}`} style={{ flex: 1, justifyContent: 'center', fontSize: 24, fontWeight: 800, padding: 0 }}>
+        <div key={i} className={`inp${focused && i === Math.min(value.length, 5) ? ' on' : ''}`} style={{ flex: 1, justifyContent: 'center', fontSize: '1.5rem', fontWeight: 800, padding: 0 }}>
           {value[i] ?? ' '}
         </div>
       ))}
@@ -189,16 +189,16 @@ export const SignupScreen: React.FC = () => {
           <span style={{ width: 56, height: 56, borderRadius: 28, background: 'var(--ok)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}>
             <Icon n="check" size={26} />
           </span>
-          <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.1 }}>
+          <h1 className="em-ser" style={{ fontSize: '2.375rem', lineHeight: 1.1 }}>
             {f.brandName.trim() || 'Your store'} is ready
           </h1>
-          <p className="em-mut" style={{ fontSize: 13, lineHeight: 1.5 }}>
+          <p className="em-mut" style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
             Your 14-day Pro trial has started. Share this link or QR with your buyers. They sign in with their WhatsApp number and browse.
           </p>
           <div className="em-card" style={{ width: '100%', padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <span className="em-ey">Scan to open</span>
             {qr && <img src={qr} alt={`QR code for ${f.brandName}`} data-testid="store-ready-qr" style={{ width: 'min(clamp(188px, 36vw, 280px), max(188px, 38svh))', aspectRatio: '1', borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
-            <a href={result.storeUrl} data-testid="store-ready-link" style={{ color: 'var(--em-accent)', fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
+            <a href={result.storeUrl} data-testid="store-ready-link" style={{ color: 'var(--em-accent)', fontSize: '0.9375rem', fontWeight: 700, wordBreak: 'break-all' }}>
               {host}
             </a>
             <div className="row" style={{ gap: 8, width: '100%' }}>
@@ -218,8 +218,8 @@ export const SignupScreen: React.FC = () => {
           </button>
           <div className="em-card" style={{ width: '100%', padding: 16, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span className="em-ey">Next step</span>
-            <b style={{ fontSize: 15 }}>Add your first collection, then your designs</b>
-            <p className="em-mut" style={{ fontSize: 13, margin: 0 }}>Buyers see collections first (e.g. Rings, Bridal, Chains). Each design belongs to one.</p>
+            <b style={{ fontSize: '0.9375rem' }}>Add your first collection, then your designs</b>
+            <p className="em-mut" style={{ fontSize: '0.8125rem', margin: 0 }}>Buyers see collections first (e.g. Rings, Bridal, Chains). Each design belongs to one.</p>
             <a className="btn" href={result.storeUrl} data-testid="store-ready-first-collection" onClick={(e) => { e.preventDefault(); open('#new-collection'); }}>
               Add your first collection
               <I n="chev" />
@@ -260,8 +260,8 @@ export const SignupScreen: React.FC = () => {
       {step === 'name' && (
         <form onSubmit={checkName} className="col step-in" style={{ gap: 16, flex: 1 }}>
           <div>
-            <h1 className="em-ser" style={{ fontSize: 32 }}>Create your store</h1>
-            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
+            <h1 className="em-ser" style={{ fontSize: '2rem' }}>Create your store</h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: '0.875rem' }}>
               Free for 14 days. No card needed.
             </p>
           </div>
@@ -319,8 +319,8 @@ export const SignupScreen: React.FC = () => {
       {step === 'owner' && (
         <form onSubmit={sendCode} className="col step-in" style={{ gap: 14, flex: 1 }}>
           <div>
-            <h1 className="em-ser" style={{ fontSize: 32 }}>About you</h1>
-            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
+            <h1 className="em-ser" style={{ fontSize: '2rem' }}>About you</h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: '0.875rem' }}>
               We verify your phone on WhatsApp.
             </p>
           </div>
@@ -353,8 +353,8 @@ export const SignupScreen: React.FC = () => {
       {step === 'code' && (
         <form onSubmit={create} className="col step-in" style={{ gap: 16, flex: 1 }}>
           <div>
-            <h1 className="em-ser" style={{ fontSize: 32 }}>Enter the code</h1>
-            <p className="em-mut" style={{ marginTop: 6, fontSize: 14 }}>
+            <h1 className="em-ser" style={{ fontSize: '2rem' }}>Enter the code</h1>
+            <p className="em-mut" style={{ marginTop: 6, fontSize: '0.875rem' }}>
               Sent to {f.phone} on WhatsApp.
             </p>
           </div>
@@ -386,12 +386,12 @@ export const SignupScreen: React.FC = () => {
         <span style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 55%, rgb(30 26 43 / 0.55))' }} />
       </div>
       <div className="ax-card store">
-        <span style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--dark)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontSize: 26, flex: 'none' }}>
+        <span style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--dark)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontSize: '1.625rem', flex: 'none' }}>
           {(f.brandName.trim()[0] || 'S').toUpperCase()}
         </span>
         <span style={{ minWidth: 0 }}>
-          <b style={{ display: 'block', fontFamily: 'var(--serif)', fontWeight: 500, fontSize: 22, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.brandName.trim() || 'Your store'}</b>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+          <b style={{ display: 'block', fontFamily: 'var(--serif)', fontWeight: 500, fontSize: '1.375rem', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.brandName.trim() || 'Your store'}</b>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: avail && avail.name === f.storeName ? (avail.ok ? 'var(--ok)' : 'var(--bad)') : '#b9ad9c', flex: 'none' }} />
             <span className="ax-mut" style={{ wordBreak: 'break-all' }}>
               {f.storeName || 'your-store'}.antarixs.com

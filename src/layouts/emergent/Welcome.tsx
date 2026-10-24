@@ -21,10 +21,10 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
         </span>
         <div>
           <div className="em-ey g">{ts(merchant.brand.tagline)}</div>
-          <h1 className="em-ser" style={{ fontSize: 38, lineHeight: 1.12, marginTop: 10, color: 'var(--em-on-primary)', letterSpacing: '-0.02em' }}>
+          <h1 className="em-ser" style={{ fontSize: '2.375rem', lineHeight: 1.12, marginTop: 10, color: 'var(--em-on-primary)', letterSpacing: '-0.02em' }}>
             {ts(merchant.brand.name)}
           </h1>
-          <p style={{ fontSize: 14, opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{tl(merchant.brand.description)}</p>
+          <p style={{ fontSize: '0.875rem', opacity: 0.78, marginTop: 10, lineHeight: 1.55, maxWidth: 340 }}>{tl(merchant.brand.description)}</p>
           {merchant.welcome.features.length > 0 && (
             <ul className="em-dk em-hero-feats">
               {merchant.welcome.features.map((f) => (
@@ -68,7 +68,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
                 </span>
                 <div className="em-grow">
                   <b style={{ fontWeight: 600 }}>{ts(f.title)}</b>
-                  <p className="em-mut" style={{ fontSize: 13, margin: '2px 0 0', lineHeight: 1.45 }}>
+                  <p className="em-mut" style={{ fontSize: '0.8125rem', margin: '2px 0 0', lineHeight: 1.45 }}>
                     {tl(f.description)}
                   </p>
                 </div>

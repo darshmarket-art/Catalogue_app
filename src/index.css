@@ -89,7 +89,7 @@
 
 /* Space for the camera cut-out and the system buttons. The app draws edge to edge inside the native shell. */
 :root {
-  --header-h: 72px;
+  --header-h: 4.5rem;
   --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   /* Side insets: a landscape phone's camera cut-out. 0 in portrait and on desktop. */
@@ -98,7 +98,7 @@
 }
 
 html.native {
-  --header-h: 56px;
+  --header-h: 3.5rem;
 }
 
 /* Set by main.tsx while a field has focus: the browser scrolls the field clear of the bars that sit over the page. */

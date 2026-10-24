@@ -56,10 +56,10 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
           <span className="em-badge">
             <Icon n="heart" size={24} />
           </span>
-          <h2 className="em-ser" style={{ fontSize: 24 }}>
+          <h2 className="em-ser" style={{ fontSize: '1.5rem' }}>
             {t('Your shortlist is empty')}
           </h2>
-          <p className="em-mut" style={{ maxWidth: 300, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+          <p className="em-mut" style={{ maxWidth: 300, fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
             {t('Tap the heart on any design to keep it here. Then send the list on WhatsApp or add it all to your order.')}
           </p>
           <button type="button" className="em-btn" onClick={onBrowse}>

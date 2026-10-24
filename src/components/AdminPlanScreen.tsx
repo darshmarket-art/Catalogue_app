@@ -21,17 +21,17 @@ const UpgradeSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
     <Sheet label="Upgrade to Pro" onClose={onClose}>
       <div className="em-row em-sb">
-        <span className="em-ser" style={{ fontSize: 22 }}>
+        <span className="em-ser" style={{ fontSize: '1.375rem' }}>
           Upgrade to Pro
         </span>
         <button type="button" className="em-circ" aria-label="Close" onClick={onClose}>
           <Icon n="x" size={16} />
         </button>
       </div>
-      <p className="em-mut" style={{ fontSize: 14, lineHeight: 1.5, marginTop: -4 }}>
+      <p className="em-mut" style={{ fontSize: '0.875rem', lineHeight: 1.5, marginTop: -4 }}>
         Pro unlocks orders and the orders desk, insights, live visitors, buyer engagement, the audit log, PDF catalogues, unlimited collections and buyers, and 3 photos per design.
       </p>
-      <div className="em-card" style={{ padding: '12px 16px', fontSize: 13.5 }}>
+      <div className="em-card" style={{ padding: '12px 16px', fontSize: '0.8438rem' }}>
         Self-serve payment is coming. For now, tell us and we switch your store to Pro, usually the same day.
       </div>
       <a className="em-btn" href={mail} data-testid="upgrade-email">
@@ -107,14 +107,14 @@ export const AdminPlanScreen: React.FC<{ categories: number; onNavigate: (screen
       ) : isPro ? (
         <div className="em-countdown">
           <span className="pro">Pro</span>
-          <div className="big" style={{ fontSize: 34 }}>
+          <div className="big" style={{ fontSize: '2.125rem' }}>
             Every feature is on
           </div>
         </div>
       ) : (
         <div className="em-countdown">
           <span className="tag mut">Basic</span>
-          <div className="big" style={{ fontSize: 34 }}>
+          <div className="big" style={{ fontSize: '2.125rem' }}>
             {ended ? 'Your Pro trial has ended' : 'You are on Basic'}
           </div>
           <p>{ended ? 'Nothing was deleted. Upgrade to get everything back.' : 'Upgrade any time to unlock orders, insights and more.'}</p>
@@ -129,7 +129,7 @@ export const AdminPlanScreen: React.FC<{ categories: number; onNavigate: (screen
       )}
 
       {!isPro && (ent.turnedAway?.total ?? 0) > 0 && (
-        <div className="em-card" data-testid="turned-away-nudge" style={{ padding: '12px 16px', fontSize: 13.5, lineHeight: 1.5 }}>
+        <div className="em-card" data-testid="turned-away-nudge" style={{ padding: '12px 16px', fontSize: '0.8438rem', lineHeight: 1.5 }}>
           <b style={{ fontWeight: 600 }}>
             {ent.turnedAway!.today} new buyer{ent.turnedAway!.today === 1 ? '' : 's'} turned away today
           </b>{' '}
