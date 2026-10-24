@@ -362,6 +362,11 @@ export default function App() {
     return () => { live = false; };
   }, [shortlist, catalogueReady, currentMerchant?.phone]);
 
+  const clearShortlist = () => {
+    setShortlist([]);
+    api.saveShortlist([]).catch(() => {});
+  };
+
   const toggleShortlist = (product: Product) => {
     const cur = shortlistRef.current;
     const next = cur.includes(product.sku) ? cur.filter((sku) => sku !== product.sku) : [...cur, product.sku];
@@ -919,6 +924,7 @@ export default function App() {
             onAddToOrder={handleAddToOrder}
             onRemove={toggleShortlist}
             onAddAllToOrder={handleAddAllToOrder}
+            onClear={clearShortlist}
             onBrowse={() => handleNavigate('catalogue')}
           />
         )}

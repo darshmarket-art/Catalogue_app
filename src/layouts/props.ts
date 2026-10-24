@@ -78,6 +78,7 @@ export interface ShortlistProps {
   categories: Category[];
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
   onRemove: (product: Product) => void;
+  onClear: () => void;
   /** Adds one piece of each design to the current order. */
   onAddAllToOrder: (items: Product[]) => Promise<void>;
   onBrowse: () => void;

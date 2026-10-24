@@ -9,10 +9,11 @@ import { Icon, Ph, Title, fmtG, stockTone, type KitProps } from './ui';
 import { getLang, hn, pur, t, tn, ts, useLang } from '../../i18n';
 
 /** Shortlist (atlas Shortlist): hearted designs as a divided list, with the total net weight and the order and WhatsApp actions in a bar at the foot. */
-export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, purities, categories, onAddToOrder, onRemove, onAddAllToOrder, onBrowse }) => {
+export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, purities, categories, onAddToOrder, onRemove, onClear, onAddAllToOrder, onBrowse }) => {
   const canOrder = usePlan().flags.orders;
   useLang();
   const [adding, setAdding] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false); // two taps, so one stray tap does not wipe the list
   const [added, setAdded] = useState(false);
   // The design whose details are open. Kept as the design itself so un-hearting it inside the details does not close the page.
   const [open, setOpen] = useState<Product | null>(null);
@@ -71,7 +72,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
   return (
     <div className="em-page dock1 em-split">
       <div className="em-pad em-body">
-        <Title eyebrow={`${t('Your favourites')} · ${tn(items.length, '{n} design', '{n} designs')}`} title={t('Shortlist')} />
+        <Title eyebrow={`${t('Your favourites')} · ${tn(items.length, '{n} design', '{n} designs')}`} title={t('Shortlist')} right={<button type="button" className="em-link" data-testid="shortlist-clear" style={{ marginBottom: 8 }} onClick={() => (confirmClear ? onClear() : setConfirmClear(true))} onBlur={() => setConfirmClear(false)}>{t(confirmClear ? 'Tap again to clear' : 'Clear all')}</button>} />
         <div className="em-sl-list" style={{ marginTop: 6 }}>
           {items.map((p, i) => (
             <div key={p.sku} className="em-li">
