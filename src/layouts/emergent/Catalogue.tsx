@@ -349,9 +349,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
 
         <div className="em-ey">{t(sector.filters.weight)}</div>
         <div className="em-row" style={{ gap: 10 }}>
-          <input aria-label={t('Minimum net weight')} data-testid="filter-min-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Min')} value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
+          <input aria-label={t('Minimum net weight')} data-testid="filter-min-weight" className="inp" style={{ minHeight: 44 }} inputMode="decimal" placeholder={t('Min')} value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
           <span className="em-mut">{t('to')}</span>
-          <input aria-label={t('Maximum net weight')} data-testid="filter-max-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Max')} value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
+          <input aria-label={t('Maximum net weight')} data-testid="filter-max-weight" className="inp" style={{ minHeight: 44 }} inputMode="decimal" placeholder={t('Max')} value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
         </div>
 
         <div className="em-ey">{t(sector.filters.availability)}</div>
@@ -629,9 +629,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             {t(sector.filters.weight)}
           </div>
           <div className="em-row" style={{ gap: 10 }}>
-            <input aria-label={t('Minimum net weight')} data-testid="filter-min-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Min')} value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
+            <input aria-label={t('Minimum net weight')} data-testid="filter-min-weight" className="inp" style={{ minHeight: 44 }} inputMode="decimal" placeholder={t('Min')} value={draft.minWt} onChange={(e) => setDraft({ ...draft, minWt: e.target.value.replace(/[^\d.]/g, '') })} />
             <span className="em-mut">{t('to')}</span>
-            <input aria-label={t('Maximum net weight')} data-testid="filter-max-weight" className="inp" style={{ height: 44 }} inputMode="decimal" placeholder={t('Max')} value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
+            <input aria-label={t('Maximum net weight')} data-testid="filter-max-weight" className="inp" style={{ minHeight: 44 }} inputMode="decimal" placeholder={t('Max')} value={draft.maxWt} onChange={(e) => setDraft({ ...draft, maxWt: e.target.value.replace(/[^\d.]/g, '') })} />
           </div>
 
           <div className="em-ey" style={{ marginTop: 6 }}>

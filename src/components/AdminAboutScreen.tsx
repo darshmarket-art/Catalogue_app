@@ -87,7 +87,7 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
     setLogoBusy(false);
   };
 
-  const h = { height: 46 };
+  const h = { minHeight: 46 };
   return (
     <form onSubmit={save} className="scroll no-tabs" style={{ gap: 10 }}>
       <p className="sub">Tell buyers who you are and how to reach you. Leave a field empty to hide it.</p>
@@ -134,7 +134,7 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
       </Field>
       <div className="grid2">
         <Field label="Opening hours" htmlFor="ab-hours">
-          <input id="ab-hours" className="inp" style={{ ...h, fontSize: 14 }} value={form.openingHours ?? ''} onChange={set('openingHours')} placeholder="Mon to Sat, 10 to 7" maxLength={160} />
+          <input id="ab-hours" className="inp" style={h} value={form.openingHours ?? ''} onChange={set('openingHours')} placeholder="Mon to Sat, 10 to 7" maxLength={160} />
         </Field>
         <Field label="GST number" htmlFor="ab-gst">
           <input id="ab-gst" className="inp uppercase" style={h} value={form.gstin ?? ''} onChange={set('gstin')} maxLength={15} />
@@ -154,7 +154,7 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
           <input id="ab-role-hi" lang="hi" className="inp" style={h} value={form.ownerRoleHi ?? ''} onChange={set('ownerRoleHi')} placeholder="संस्थापक" maxLength={80} />
         </Field>
         <Field label="Opening hours, in Hindi" htmlFor="ab-hours-hi">
-          <input id="ab-hours-hi" lang="hi" className="inp" style={{ ...h, fontSize: 14 }} value={form.openingHoursHi ?? ''} onChange={set('openingHoursHi')} placeholder="सोम से शनि, 10 से 7" maxLength={160} />
+          <input id="ab-hours-hi" lang="hi" className="inp" style={h} value={form.openingHoursHi ?? ''} onChange={set('openingHoursHi')} placeholder="सोम से शनि, 10 से 7" maxLength={160} />
         </Field>
       </div>
       <Field label="Address, in Hindi" htmlFor="ab-address-hi">

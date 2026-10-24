@@ -33,6 +33,7 @@ export default async function globalTeardown() {
   const coveredInputs = flat(ran, (a) => a.coveredInputs);
   const tapTargets = flat(ran, (a) => a.tapTargets.offenders);
   const smallText = flat(ran, (a) => a.smallText);
+  const smallInputs = flat(ran, (a) => a.smallInputs);
   const clippedText = flat(ran, (a) => a.clippedText);
   const worst = [...overflow].sort((a, b) => b.overBy - a.overBy).slice(0, 10);
   const summary = {
@@ -47,13 +48,15 @@ export default async function globalTeardown() {
     tapTargetOffenders: tapTargets.length,
     tapTargetInstances: instances(tapTargets),
     tapTargetsBelowFloor28: tapTargets.filter((t) => t.severe).length,
+    tapTargetMainOffenders: tapTargets.filter((t) => t.primary).length,
+    smallInputs: smallInputs.length,
     smallTextOffenders: smallText.length,
     smallTextInstances: instances(smallText),
     clippedTextOffenders: clippedText.length,
     clippedTextInstances: instances(clippedText),
     worstOverflow: worst
   };
-  const out = { generatedAt: new Date().toISOString(), phase: process.env.RESPONSIVE_OUT || 'before', summary, combos: combos.map(({ audits, ...c }) => c), overflow, coveredInputs, tapTargets, smallText, clippedText };
+  const out = { generatedAt: new Date().toISOString(), phase: process.env.RESPONSIVE_OUT || 'before', summary, combos: combos.map(({ audits, ...c }) => c), overflow, coveredInputs, tapTargets, smallInputs, smallText, clippedText };
   fs.writeFileSync(path.join(outDir(), 'findings.json'), JSON.stringify(out, null, 1));
   fs.rmSync(dir, { recursive: true, force: true });
   const { worstOverflow, ...counts } = summary;

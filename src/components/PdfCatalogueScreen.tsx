@@ -100,7 +100,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
             <div className="em-ser" style={{ fontSize: 24, lineHeight: 1.25, marginTop: 6 }}>
               {merchant.brand.name}
             </div>
-            {merchant.brand.tagline && <div style={{ fontSize: 11, opacity: 0.72, marginTop: 2 }}>{merchant.brand.tagline}</div>}
+            {merchant.brand.tagline && <div style={{ fontSize: 12, opacity: 0.72, marginTop: 2 }}>{merchant.brand.tagline}</div>}
           </div>
           <span className="em-badge" style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--em-gold)', background: 'color-mix(in srgb, var(--em-gold) 14%, transparent)', color: 'var(--em-gold-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
             <Icon n="file" size={18} />
@@ -109,15 +109,15 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
         <div style={{ height: 1, width: 48, background: 'var(--em-gold)', margin: '14px 0' }} />
         <div className="em-row" style={{ gap: 18 }}>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 11 }}>{chosen.length === 1 ? 'Design' : 'Designs'}</div>
+            <div className="em-ey" style={{ fontSize: 12 }}>{chosen.length === 1 ? 'Design' : 'Designs'}</div>
             <span data-testid="pdf-count">{chosen.length}</span>
           </div>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 11 }}>Net weight</div>
+            <div className="em-ey" style={{ fontSize: 12 }}>Net weight</div>
             <span>{netTotal.toFixed(2)} g</span>
           </div>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 11 }}>WhatsApp</div>
+            <div className="em-ey" style={{ fontSize: 12 }}>WhatsApp</div>
             <span>{merchant.contact.whatsapp ? `+${merchant.contact.whatsapp}` : '-'}</span>
           </div>
         </div>
@@ -178,7 +178,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                     <span className="em-ser em-clip" style={{ display: 'block', fontSize: 14 }}>
                       {p.title}
                     </span>
-                    <span className="em-row em-sb" style={{ marginTop: 6, fontSize: 11 }}>
+                    <span className="em-row em-sb" style={{ marginTop: 6, fontSize: 12 }}>
                       <span className="em-mut">{p.sku}</span>
                       <b style={{ color: 'var(--em-accent)' }}>
                         {p.purity.split(' ')[0]} · {p.netWt.toFixed(3).slice(0, 5)} g

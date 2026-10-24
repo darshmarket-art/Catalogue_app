@@ -213,7 +213,7 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
             <div className="em-card-t">
               <span className="em-ser em-clip">{d.title}</span>
               <span className="em-wt">{fmtG(d.netWt)}</span>
-              <span className="em-mut" style={{ fontSize: 11 }}>{d.sku}</span>
+              <span className="em-mut" style={{ fontSize: 12 }}>{d.sku}</span>
               <span style={{ marginTop: 4 }}><StockPill status={d.stockStatus} small /></span>
             </div>
           </div>
@@ -337,7 +337,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
             <div key={t} data-testid="tag-row" style={{ padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
               {editing === t ? (
                 <form className="em-row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); void run(() => api.renameTag(t, draft.trim()), () => setEditing(null)); }}>
-                  <input className="inp" style={{ height: 40, flex: 1, minWidth: 0 }} aria-label={`New name for ${t}`} data-testid="tag-rename-input" value={draft} maxLength={30} autoFocus onChange={(e) => setDraft(e.target.value)} />
+                  <input className="inp" style={{ minHeight: 40, flex: 1, minWidth: 0 }} aria-label={`New name for ${t}`} data-testid="tag-rename-input" value={draft} maxLength={30} autoFocus onChange={(e) => setDraft(e.target.value)} />
                   <button type="submit" className="em-btn sm" disabled={busy || !draft.trim()}>Save</button>
                   <button type="button" className="em-link" onClick={() => setEditing(null)}>Cancel</button>
                 </form>
@@ -354,7 +354,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
                   {countOf(t) > 0 ? (
                     <>
                       <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>Move its {countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'} to:</p>
-                      <select className="inp" style={{ height: 40, width: '100%' }} aria-label="Move collections to" data-testid="tag-move-to" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+                      <select className="inp" style={{ minHeight: 40, width: '100%' }} aria-label="Move collections to" data-testid="tag-move-to" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
                         <option value="">Choose a tag…</option>
                         {tags.filter((x) => x !== t).map((x) => <option key={x} value={x}>{x}</option>)}
                       </select>
@@ -371,7 +371,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
             </div>
           ))}
           <form className="em-row" style={{ gap: 8, marginTop: 10, borderTop: '1px solid var(--em-line)', paddingTop: 10 }} onSubmit={(e) => { e.preventDefault(); if (name.trim()) void run(() => api.createTag(name.trim()), () => setName('')); }}>
-            <input className="inp" style={{ height: 40, flex: 1, minWidth: 0 }} aria-label="New tag name" data-testid="tag-new-input" placeholder="New tag, e.g. Anklets" value={name} maxLength={30} onChange={(e) => setName(e.target.value)} />
+            <input className="inp" style={{ minHeight: 40, flex: 1, minWidth: 0 }} aria-label="New tag name" data-testid="tag-new-input" placeholder="New tag, e.g. Anklets" value={name} maxLength={30} onChange={(e) => setName(e.target.value)} />
             <button type="submit" className="em-btn sm" data-testid="tag-add" disabled={busy || !name.trim()}>Add</button>
           </form>
         </div>

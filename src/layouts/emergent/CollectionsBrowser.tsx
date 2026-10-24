@@ -52,7 +52,7 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
       <span className="em-colcard-t">
         <span className="em-ser em-colcard-n">{hn(c.name, c.nameHi)}</span>
         {hl(c.subtitle, c.subtitleHi) && <span className="em-mut em-dk em-colcard-sub">{hl(c.subtitle, c.subtitleHi)}</span>}
-        <span className="em-mut" style={{ fontSize: 11 }}>{tn(c.designCount, '{n} design', '{n} designs')}<span className="em-dk in">{'\u00a0'}· {t('avg {w}', { w: grams(c.avgNetWt) })}</span></span>
+        <span className="em-mut" style={{ fontSize: 12 }}>{tn(c.designCount, '{n} design', '{n} designs')}<span className="em-dk in">{'\u00a0'}· {t('avg {w}', { w: grams(c.avgNetWt) })}</span></span>
       </span>
     </button>
   );
@@ -86,7 +86,7 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
           {allowAll && !term && (
             <button type="button" className="em-li em-colrow" data-testid="collection-all" onClick={() => onPick(null)}>
               <span className="em-thumb em-circ" style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--em-tint)' }}><Icon n="grid" size={22} /></span>
-              <span className="em-grow"><span className="em-ser" style={{ display: 'block', fontSize: 17 }}>{t('All collections')}</span><span className="em-mut" style={{ fontSize: 11 }}>{t('Every design in the store')}</span></span>
+              <span className="em-grow"><span className="em-ser" style={{ display: 'block', fontSize: 17 }}>{t('All collections')}</span><span className="em-mut" style={{ fontSize: 12 }}>{t('Every design in the store')}</span></span>
               {!current ? <Icon n="check" size={18} /> : <Icon n="right" size={18} />}
             </button>
           )}

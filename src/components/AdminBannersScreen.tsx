@@ -57,7 +57,7 @@ export const AdminBannersScreen: React.FC<Props> = ({ banners, categories, onLin
       <label className="lab" htmlFor={id}>
         Opens collection (optional)
       </label>
-      <select id={id} className="inp" style={{ height: 46 }} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} className="inp" style={{ minHeight: 46 }} value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">Nothing, just a picture</option>
         {categories.map((c) => (
           <option key={c.id} value={c.name}>

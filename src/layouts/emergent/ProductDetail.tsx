@@ -258,11 +258,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                 </button>
               </div>
             )}
-            <div className="em-row em-sb" style={{ gap: 12 }}>
+            <div className="em-row em-sb em-pd-meta" style={{ gap: 12 }}>
               <span className="em-ey em-clip">
                 {hn(product.category, catHi)} · {product.sku}
               </span>
-              <span className="em-mut" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+              <span className="em-mut" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
                 {t('Tap a photo to zoom')}
               </span>
             </div>

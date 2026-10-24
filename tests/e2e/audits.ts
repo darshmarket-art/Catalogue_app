@@ -9,7 +9,9 @@ export interface Offender { selector: string; text: string; [k: string]: unknown
 export interface AuditResult {
   overflow: { scrollWidth: number; innerWidth: number; /** scrollWidth > width: the page scrolls sideways. */ over: boolean; /** Content sticks out past the screen edge but the page does not scroll (the root hides it): cut off, unreachable. */ cutOff: boolean; offenders: Array<Offender & { overBy: number; left: number; right: number; width: number }> };
   coveredInputs: Array<Offender & { ratio: number; coveredBy: string; centerCovered: boolean; offscreen: boolean }>;
-  tapTargets: { checked: number; exempt: number; offenders: Array<Offender & { w: number; h: number; severe: boolean; pseudo: boolean; count: number }> };
+  tapTargets: { checked: number; exempt: number; offenders: Array<Offender & { w: number; h: number; severe: boolean; pseudo: boolean; /** One of the main controls (PRIMARY_CONTROLS): these must pass. */ primary: boolean; count: number }> };
+  /** Visible text fields whose computed font-size is under 16px: iOS Safari zooms the page when one is focused. */
+  smallInputs: Array<Offender & { fontSize: number }>;
   smallText: Array<Offender & { fontSize: number; count: number }>;
   /** Only filled when `clip` is true (the 200% runs). */
   clippedText: Array<Offender & { axis: 'x' | 'y'; scroll: number; client: number; ellipsis: boolean; lineClamp: boolean; count: number }>;
@@ -18,9 +20,13 @@ export interface AuditResult {
 export const MIN_TARGET = 44;
 export const HARD_FLOOR = 28;
 export const MIN_TEXT_PX = 12;
+/** iOS Safari zooms the page into a focused field whose text is under 16px (apple-design text-fields.md: a field must stay readable). */
+export const MIN_INPUT_PX = 16;
+/** The controls Phase 3a gave a 44px hit box; any of these under 44x44 is a regression. Dots, the language and layout switches and the letter rail are packed edge to edge on purpose and are not in it. */
+export const PRIMARY_CONTROLS = '.em-heart, .em-opts, .em-x, .em-qty button, .em-chip, .chip, .em-link, .em-btn, .btn, .em-circ, .ib, .em-brand, .lnk, .em-cartbar button, .em-pd-nav button, .em-find-call, .em-tab, .em-addbar';
 
-export function runAudits(args: { width: number; clip: boolean; minTarget: number; hardFloor: number; minText: number }): AuditResult {
-  const { width, clip, minTarget, hardFloor, minText } = args;
+export function runAudits(args: { width: number; clip: boolean; minTarget: number; hardFloor: number; minText: number; minInput: number; primary: string }): AuditResult {
+  const { width, clip, minTarget, hardFloor, minText, minInput, primary } = args;
   const cs = (e: Element, p?: string) => getComputedStyle(e, p);
   const cls = (e: Element) => (typeof (e as HTMLElement).className === 'string' ? (e as HTMLElement).className : '').trim().split(/\s+/).filter(Boolean);
   const one = (e: Element) => {
@@ -180,13 +186,15 @@ export function runAudits(args: { width: number; clip: boolean; minTarget: numbe
       let w = parseFloat(p.width), h = parseFloat(p.height);
       if (Number.isNaN(w)) w = padW - (left || 0) - (right || 0);
       if (Number.isNaN(h)) h = padH - (top || 0) - (bottom || 0);
-      const x0 = r.left + pl + (Number.isNaN(left) ? padW - (right || 0) - w : left);
-      const y0 = r.top + pt + (Number.isNaN(top) ? padH - (bottom || 0) - h : top);
+      // A box centred with translate(-50%, -50%) is moved by its transform: the computed matrix has the offset in px.
+      const tf = p.transform && p.transform !== 'none' ? new DOMMatrixReadOnly(p.transform) : null;
+      const x0 = r.left + pl + (Number.isNaN(left) ? padW - (right || 0) - w : left) + (tf ? tf.m41 : 0);
+      const y0 = r.top + pt + (Number.isNaN(top) ? padH - (bottom || 0) - h : top) + (tf ? tf.m42 : 0);
       if (w > 0 && h > 0) { L = Math.min(L, x0); T = Math.min(T, y0); R = Math.max(R, x0 + w); B = Math.max(B, y0 + h); pseudo = true; }
     }
     const w = R - L, h = B - T;
     if (w < minTarget - 0.5 || h < minTarget - 0.5) {
-      addGrouped(tapOffenders, `${sel(e)}|${Math.round(w)}x${Math.round(h)}`, { selector: sel(e), text: label(e), w: Math.round(w), h: Math.round(h), severe: w < hardFloor || h < hardFloor, pseudo });
+      addGrouped(tapOffenders, `${sel(e)}|${Math.round(w)}x${Math.round(h)}`, { selector: sel(e), text: label(e), w: Math.round(w), h: Math.round(h), severe: w < hardFloor || h < hardFloor, pseudo, primary: e.matches(primary) });
     }
   }
 
@@ -210,10 +218,20 @@ export function runAudits(args: { width: number; clip: boolean; minTarget: numbe
     }
   }
 
+  // (f) Text fields under 16px (checkboxes, radios, range, file and hidden inputs are not typed into).
+  const smallInputs: AuditResult['smallInputs'] = [];
+  for (const f of Array.from(document.querySelectorAll<HTMLElement>('input, textarea, select'))) {
+    const t = (f as HTMLInputElement).type;
+    if (['hidden', 'file', 'checkbox', 'radio', 'range', 'button', 'submit', 'color'].includes(t) || !shown(f) || hiddenByAncestor(f) || clippedAway(f) || !inScope(f)) continue;
+    const px = parseFloat(cs(f).fontSize);
+    if (px < minInput) smallInputs.push({ selector: sel(f), text: f.getAttribute('aria-label') || f.getAttribute('placeholder') || f.id || '', fontSize: Math.round(px * 10) / 10 });
+  }
+
   return {
     overflow: { scrollWidth: sw, innerWidth: window.innerWidth, over: sw > W, cutOff: sw <= W && overflowOffenders.length > 0, offenders: overflowOffenders.slice(0, 30) },
     coveredInputs,
     tapTargets: { checked, exempt, offenders: [...tapOffenders.values()] },
+    smallInputs,
     smallText: [...smallText.values()],
     clippedText: [...clippedText.values()]
   };

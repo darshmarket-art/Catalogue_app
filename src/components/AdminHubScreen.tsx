@@ -106,7 +106,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
                 <span className="em-badge" style={{ fontFamily: 'var(--font-serif)', fontSize: 16, ...(w.hot ? {} : { background: 'var(--em-bad)', color: '#fff' }) }}>{w.n}</span>
                 <span className="em-grow">
                   <span style={{ display: 'block', fontWeight: 500 }}>{w.title}</span>
-                  <span className="em-mut" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>{w.note}</span>
+                  <span className="em-mut" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{w.note}</span>
                 </span>
                 <Icon n="right" size={18} />
               </button>
@@ -223,7 +223,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
               <i style={{ width: `${(doneCount / checklist.length) * 100}%` }} />
             </div>
             {checklist.map((c) => (
-              <button key={c.label} type="button" className="em-row" disabled={c.done} onClick={c.go} style={{ gap: 10, padding: '8px 0', width: '100%', border: 0, background: 'none', textAlign: 'left', font: 'inherit', color: c.done ? 'var(--em-mut)' : 'inherit', textDecoration: c.done ? 'line-through' : 'none', cursor: c.done ? 'default' : 'pointer' }}>
+              <button key={c.label} type="button" className="em-row" disabled={c.done} onClick={c.go} style={{ gap: 10, padding: '10px 0', width: '100%', border: 0, background: 'none', textAlign: 'left', font: 'inherit', color: c.done ? 'var(--em-mut)' : 'inherit', textDecoration: c.done ? 'line-through' : 'none', cursor: c.done ? 'default' : 'pointer' }}>
                 <span style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${c.done ? 'var(--em-ok)' : 'var(--em-line)'}`, background: c.done ? 'var(--em-ok)' : 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
                   {c.done && <Icon n="check" size={13} />}
                 </span>

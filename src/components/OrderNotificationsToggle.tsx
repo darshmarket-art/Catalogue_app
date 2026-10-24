@@ -72,7 +72,7 @@ export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) =
       <div className="card em-row em-sb" style={{ gap: 12 }}>
         <div>
           <div style={{ fontWeight: 500 }}>Alerts</div>
-          <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
+          <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
             {!flags.alerts ? 'Pro feature' : key ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser'}
           </div>
         </div>

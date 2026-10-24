@@ -59,7 +59,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
             <div className="em-ser" style={{ fontSize: 19 }}>
               Antarixs
             </div>
-            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: 11 }}>
+            <div className="em-ey" style={{ color: 'rgb(247 243 255 / 0.7)', fontSize: 12 }}>
               Plans
             </div>
           </div>
@@ -81,7 +81,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
           <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? undefined : { fontSize: 24 }}>
             Free
           </span>
-          <p className="sub" style={atlas ? { fontSize: 11 } : undefined}>
+          <p className="sub" style={atlas ? { fontSize: 12 } : undefined}>
             To get started
           </p>
         </div>
@@ -95,7 +95,7 @@ export const PlansCompare: React.FC<{ current?: 'basic' | 'pro'; atlas?: boolean
           <span className={atlas ? 'em-ser' : 'stat'} style={atlas ? { whiteSpace: 'nowrap' } : { fontSize: 24, whiteSpace: 'nowrap' }}>
             Contact us
           </span>
-          <p className="sub" style={atlas ? { fontSize: 11, color: 'inherit', opacity: 0.7 } : undefined}>
+          <p className="sub" style={atlas ? { fontSize: 12, color: 'inherit', opacity: 0.7 } : undefined}>
             To grow
           </p>
         </div>
