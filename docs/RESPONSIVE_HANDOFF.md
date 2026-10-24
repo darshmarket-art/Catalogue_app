@@ -1,8 +1,10 @@
-# Responsive and adaptive UI: hand-off (updated 2026-10-24, session limit reached; Phases 1 and 2 merged)
+# Responsive and adaptive UI: STATUS (2026-10-25): ALL PHASES DONE AND PUSHED TO main (77d561f)
 
-Read `docs/PROJECT_STATE.md` first, then this. Branch: `feat/responsive-adaptive` (never push to main, no PR until asked). Commits carry `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
-Skills the user wants used for UI work: `.claude/skills/apple-design` and `.claude/skills/apple-motion` (outside the repo, in `catalogue-app/.claude/skills`). Cite the skill rule that drove each decision.
-Scratchpad (screenshots, findings, outside the repo): `C:\Users\darshan.parekh\Desktop\Gold app\catalogue-app\scratchpad\` (`before\findings.json` is the baseline; `after-phase1\`, `after-phase2\` are partial runs).
+All phases (0-5) are merged and pushed to `main` (fast-forward, 23 commits). NOT deployed (Cloud Run deploys are done by the user, see DEPLOY_TO_CLOUD_RUN.md).
+Final checks on the merged branch: lint clean, 360 unit tests, build ok, full harness 466 passed in strict mode (overflow 0, covered inputs 0, small text 0, fields under 16px 0, main-control tap targets 0, unreachable combos 0). Remaining tap-target offenders: 395 (all at least 28px; dots, language and layout switches, packed rows). Clipped text at 200%: 222 entries, most deliberate ellipsis.
+Phase 3b (rem) also: tablet tier starts at 640px (673px foldable is a tablet), the home banner slide now grows with its text (167px of content in a 139px slide before; slide is now 189px on phones), wordmark/hero headings are viewport-capped so they do not scale at 200% on phones, buyer header is cramped at 200% on 320px (design pass wanted).
+STILL NEEDS THE USER (cannot be done here): deploy; run the Antarixs Android workflow and install the APK (EdgeToEdge on classpath, splash colour on Android 12+, keyboard on Android 7-10, status bar); go through docs/RESPONSIVE_DEVICE_CHECKLIST.md on real devices; verify the CI `responsive` job on a real runner and make it required once green (currently continue-on-error); optionally design pass on the 200% buyer header and owner-catalogue caption taps.
+The sections below are the history; where they say "not pushed" or "still to do", this paragraph supersedes them.
 
 ## Done and merged into `feat/responsive-adaptive`
 
