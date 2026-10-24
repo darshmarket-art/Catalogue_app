@@ -42,11 +42,11 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
         <Ph src={product.image} className="em-dk em-cs-thumb" sizes={SIZES_THUMB} />
         <div className="em-grow" style={{ minWidth: 0 }}>
           <div className="em-ey em-dk" style={{ color: 'var(--em-gold-ink)' }}>{t('Add to cart')}</div>
-          <div className="em-ser" style={{ fontSize: 22 }}>
+          <div className="em-ser" style={{ fontSize: '1.375rem' }}>
             {hn(product.title, product.titleHi)}
           </div>
           <p className="em-mut em-dk em-cs-sku">{product.sku} · {t('{w} net each', { w: fmtG(product.netWt) })}</p>
-          <p className="em-mut" style={{ fontSize: 13, margin: '4px 0 0' }}>
+          <p className="em-mut" style={{ fontSize: '0.8125rem', margin: '4px 0 0' }}>
             {t('Choose how many pieces you want in each purity.')}
           </p>
         </div>
@@ -62,7 +62,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
             <div key={o.key} className="em-row em-sb" style={{ gap: 12, padding: '12px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{pur(o.title)}</div>
-                <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
+                <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 2 }}>
                   {n > 0 ? t('{n} × {w} = {total} net', { n, w: fmtG(product.netWt), total: fmtG(product.netWt * n) }) : t('{w} net each', { w: fmtG(product.netWt) })}
                 </div>
               </div>

@@ -28,7 +28,7 @@ interface ProfileMenuProps {
 }
 
 const itemClass =
-  'w-full flex items-center gap-3 px-5 min-h-[50px] text-left text-[15px] font-semibold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-[rgb(74_24_53/0.07)]';
+  'w-full flex items-center gap-3 px-5 min-h-[50px] text-left text-[0.9375rem] font-semibold text-on-surface hover:bg-surface-container-low focus:bg-surface-container-low border-t border-[rgb(74_24_53/0.07)]';
 
 /** One profile button for everyone who is signed in: buyers and staff share it, so there is a single place to find orders and log out. */
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpenOrders, onOpenAdminConsole, onOpenAbout, onLogout, onNavigate }) => {
@@ -119,7 +119,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
           style={{ boxShadow: 'var(--sh-2)', transformOrigin: 'top right', pointerEvents: open ? undefined : 'none' }}
         >
           <div className="px-5 pt-4 pb-3">
-            <p className="serif text-[21px] leading-tight truncate">{name}</p>
+            <p className="serif text-[1.3125rem] leading-tight truncate">{name}</p>
             {isAdmin ? (
               <p className="sub mt-0.5">Administrator</p>
             ) : (

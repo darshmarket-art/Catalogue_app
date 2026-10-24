@@ -107,7 +107,7 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
 
           <div className="card col" style={{ gap: 10 }}>
             <b style={{ fontWeight: 600 }}>Send a test alert</b>
-            <p className="sub" style={{ margin: 0, fontSize: 13 }}>A sample "order placed" alert goes to every number above and to devices with notifications on.</p>
+            <p className="sub" style={{ margin: 0, fontSize: '0.8125rem' }}>A sample "order placed" alert goes to every number above and to devices with notifications on.</p>
             <button type="button" className="btn wa sm" data-testid="alert-test-button" disabled={busy} onClick={sendTest}>
               <Icon n="wa" size={16} />
               {busy ? 'Sending…' : 'Send test alert'}
@@ -115,15 +115,15 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
             {test && (
               <div className="col" style={{ gap: 6 }} data-testid="alert-test-results">
                 {test.results.map((r) => (
-                  <div key={r.to} className="em-row em-sb" data-testid="alert-test-result" style={{ gap: 10, fontSize: 13.5 }}>
+                  <div key={r.to} className="em-row em-sb" data-testid="alert-test-result" style={{ gap: 10, fontSize: '0.8438rem' }}>
                     <span>{r.to}</span>
                     <span className={`tag ${r.ok ? 'ok' : 'warn'}`}>{r.ok ? 'Accepted by WhatsApp' : r.error}</span>
                   </div>
                 ))}
-                <span className="sub" style={{ fontSize: 13 }} data-testid="alert-test-pushed">
+                <span className="sub" style={{ fontSize: '0.8125rem' }} data-testid="alert-test-pushed">
                   Phone notifications sent: {test.pushed}
                 </span>
-                {!test.whatsappConfigured && <span className="sub" style={{ fontSize: 13 }}>WhatsApp sending starts once the platform's Meta credentials and templates are in place.</span>}
+                {!test.whatsappConfigured && <span className="sub" style={{ fontSize: '0.8125rem' }}>WhatsApp sending starts once the platform's Meta credentials and templates are in place.</span>}
               </div>
             )}
           </div>
@@ -132,7 +132,7 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
             <button type="button" className="card em-row em-sb" style={{ gap: 12, width: '100%', textAlign: 'left' }} data-testid="open-message-log" onClick={() => onNavigate('admin-messages')}>
               <span>
                 <b style={{ fontWeight: 600 }}>See what happened to each message</b>
-                <span className="sub" style={{ display: 'block', fontSize: 13 }}>Delivery log for the last 90 days</span>
+                <span className="sub" style={{ display: 'block', fontSize: '0.8125rem' }}>Delivery log for the last 90 days</span>
               </span>
               <Icon n="right" size={18} />
             </button>
@@ -151,7 +151,7 @@ export const AdminAlertsScreen: React.FC<{ onNavigate?: (screen: ActiveScreen) =
 };
 
 const StatusLine: React.FC<{ label: string; on: boolean; onText: string; offText: string; testId: string }> = ({ label, on, onText, offText, testId }) => (
-  <div className="em-row em-sb" style={{ fontSize: 13.5 }}>
+  <div className="em-row em-sb" style={{ fontSize: '0.8438rem' }}>
     <span>{label}</span>
     <span className={`tag ${on ? 'ok' : 'mut'}`} data-testid={testId}>{on ? onText : offText}</span>
   </div>
@@ -159,7 +159,7 @@ const StatusLine: React.FC<{ label: string; on: boolean; onText: string; offText
 
 const Wording: React.FC<{ label: string; text: string }> = ({ label, text }) => (
   <div>
-    <div className="em-mut" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</div>
-    <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{text}</div>
+    <div className="em-mut" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</div>
+    <div style={{ fontSize: '0.8438rem', lineHeight: 1.5 }}>{text}</div>
   </div>
 );

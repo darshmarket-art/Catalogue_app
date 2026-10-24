@@ -89,7 +89,7 @@ export const AdminCatalogueScreen: React.FC<Props> = (p) => {
 
       {adding && (
         <Sheet label="Add to the catalogue" onClose={() => setAdding(false)}>
-          <div className="em-ser" style={{ fontSize: 22 }}>Add to your catalogue</div>
+          <div className="em-ser" style={{ fontSize: '1.375rem' }}>Add to your catalogue</div>
           {[
             { icon: 'plus', t: 'New design', n: 'Photo, weights and purity in under a minute', go: p.onNewProduct },
             { icon: 'layers', t: 'New collection', n: 'Group designs so buyers can browse', go: p.onNewCategory },
@@ -97,7 +97,7 @@ export const AdminCatalogueScreen: React.FC<Props> = (p) => {
           ].map((o) => (
             <button key={o.t} type="button" className="em-row" data-testid={`add-${o.icon}`} style={{ gap: 14, padding: '12px 0', border: 0, borderTop: '1px solid var(--em-line)', background: 'none', textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer' }} onClick={() => { setAdding(false); o.go(); }}>
               <span className="em-circ" style={{ background: 'var(--em-tint)' }}><Icon n={o.icon} size={18} /></span>
-              <span className="em-grow"><b style={{ display: 'block', fontWeight: 600 }}>{o.t}</b><span className="em-mut" style={{ fontSize: 12 }}>{o.n}</span></span>
+              <span className="em-grow"><b style={{ display: 'block', fontWeight: 600 }}>{o.t}</b><span className="em-mut" style={{ fontSize: '0.75rem' }}>{o.n}</span></span>
               <Icon n="right" size={18} />
             </button>
           ))}
@@ -213,7 +213,7 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
             <div className="em-card-t">
               <span className="em-ser em-clip">{d.title}</span>
               <span className="em-wt">{fmtG(d.netWt)}</span>
-              <span className="em-mut" style={{ fontSize: 12 }}>{d.sku}</span>
+              <span className="em-mut" style={{ fontSize: '0.75rem' }}>{d.sku}</span>
               <span style={{ marginTop: 4 }}><StockPill status={d.stockStatus} small /></span>
             </div>
           </div>
@@ -225,14 +225,14 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
       </div>
       {menuFor && (
         <Sheet label={`Options for ${menuFor.title}`} onClose={() => setMenuFor(null)}>
-          <h2 className="em-ser" style={{ fontSize: 22 }}>{menuFor.title}</h2>
+          <h2 className="em-ser" style={{ fontSize: '1.375rem' }}>{menuFor.title}</h2>
           <button type="button" className="em-opt" data-testid="admin-design-edit" onClick={() => { const d = menuFor; setMenuFor(null); onEditProduct(d); }}>
             <span className="em-badge"><Icon n="edit" size={16} /></span>
-            <span className="em-grow"><b style={{ fontWeight: 600 }}>Edit design</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>Photos, weights, details</span></span>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>Edit design</b><span className="em-mut" style={{ display: 'block', fontSize: '0.8125rem' }}>Photos, weights, details</span></span>
           </button>
           <button type="button" className="em-opt" data-testid="admin-design-delete" onClick={() => void remove(menuFor)} style={confirming === menuFor.id ? { color: 'var(--em-bad)' } : undefined}>
             <span className="em-badge" style={{ color: 'var(--em-bad)' }}><Icon n={confirming === menuFor.id ? 'check' : 'trash'} size={16} /></span>
-            <span className="em-grow"><b style={{ fontWeight: 600, color: 'var(--em-bad)' }}>{confirming === menuFor.id ? 'Tap again to delete for good' : 'Delete design'}</b><span className="em-mut" style={{ display: 'block', fontSize: 13 }}>This cannot be undone</span></span>
+            <span className="em-grow"><b style={{ fontWeight: 600, color: 'var(--em-bad)' }}>{confirming === menuFor.id ? 'Tap again to delete for good' : 'Delete design'}</b><span className="em-mut" style={{ display: 'block', fontSize: '0.8125rem' }}>This cannot be undone</span></span>
           </button>
         </Sheet>
       )}
@@ -266,7 +266,7 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
   const list = categories.filter((c) => !q.trim() || c.name.toLowerCase().includes(q.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Sheet label="Choose a collection" onClose={onClose}>
-      <div className="em-ser" style={{ fontSize: 22 }}>Collections · {categories.length}</div>
+      <div className="em-ser" style={{ fontSize: '1.375rem' }}>Collections · {categories.length}</div>
       <label className="em-srch" style={{ height: 44 }}>
         <Icon n="search" size={16} />
         <input aria-label="Search collections" data-testid="collection-picker-search" placeholder="Search collections" type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} />
@@ -283,7 +283,7 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
             <div className="em-letter em-tag-h">{t} <span>{cs.length}</span></div>
           {cs.map((c) => (
           <button key={c.id} type="button" className="em-li" data-testid="collection-picker-row" style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)', cursor: 'pointer' }} onClick={() => onPick(c.name)}>
-            <span className="em-grow"><b style={{ fontWeight: 600 }}>{c.name}</b><span className="em-mut" style={{ display: 'block', fontSize: 12 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span></span>
+            <span className="em-grow"><b style={{ fontWeight: 600 }}>{c.name}</b><span className="em-mut" style={{ display: 'block', fontSize: '0.75rem' }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span></span>
             {current === c.name && <Icon n="check" size={18} />}
           </button>
           ))}
@@ -325,14 +325,14 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
       <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={open} onClick={() => setOpen(!open)}>
         <b style={{ fontWeight: 600 }}>Tags</b>
         <span className="em-row" style={{ gap: 10 }}>
-          <span className="em-mut" style={{ fontSize: 12 }}>{tags.length} tags</span>
+          <span className="em-mut" style={{ fontSize: '0.75rem' }}>{tags.length} tags</span>
           <span className="em-circ" style={{ width: 32, height: 32 }} aria-hidden="true"><Icon n={open ? 'up' : 'chev'} size={18} /></span>
         </span>
       </button>
       {open && (
         <div style={{ marginTop: 8 }}>
-          <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>Every collection is filed under one tag. Buyers browse collections by tag.</p>
-          {problem && <p role="alert" style={{ color: 'var(--em-bad)', fontSize: 13, margin: '4px 0' }}>{problem}</p>}
+          <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '0 0 6px' }}>Every collection is filed under one tag. Buyers browse collections by tag.</p>
+          {problem && <p role="alert" style={{ color: 'var(--em-bad)', fontSize: '0.8125rem', margin: '4px 0' }}>{problem}</p>}
           {tags.map((t, i) => (
             <div key={t} data-testid="tag-row" style={{ padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
               {editing === t ? (
@@ -344,7 +344,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
               ) : (
                 <div className="em-row" style={{ gap: 8 }}>
                   <span className="em-grow em-clip" style={{ fontWeight: 500 }}>{t}</span>
-                  <span className="em-mut" style={{ fontSize: 12 }}>{countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'}</span>
+                  <span className="em-mut" style={{ fontSize: '0.75rem' }}>{countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'}</span>
                   <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-edit" aria-label={`Rename ${t}`} onClick={() => { setEditing(t); setDraft(t); setDeleting(null); setProblem(null); }}><Icon n="edit" size={14} /></button>
                   <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-delete" disabled={tags.length <= 1} aria-label={`Delete ${t}`} onClick={() => { setDeleting(deleting === t ? null : t); setMoveTo(''); setEditing(null); setProblem(null); }}><Icon n="x" size={14} /></button>
                 </div>
@@ -353,14 +353,14 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
                 <div style={{ marginTop: 8 }} data-testid="tag-delete-confirm">
                   {countOf(t) > 0 ? (
                     <>
-                      <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>Move its {countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'} to:</p>
+                      <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '0 0 6px' }}>Move its {countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'} to:</p>
                       <select className="inp" style={{ minHeight: 40, width: '100%' }} aria-label="Move collections to" data-testid="tag-move-to" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
                         <option value="">Choose a tag…</option>
                         {tags.filter((x) => x !== t).map((x) => <option key={x} value={x}>{x}</option>)}
                       </select>
                     </>
                   ) : (
-                    <p className="em-mut" style={{ fontSize: 12.5, margin: '0 0 6px' }}>No collections use this tag.</p>
+                    <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '0 0 6px' }}>No collections use this tag.</p>
                   )}
                   <div className="em-row" style={{ gap: 8, marginTop: 8 }}>
                     <button type="button" className="em-btn sm" data-testid="tag-delete-go" disabled={busy || (countOf(t) > 0 && !moveTo)} onClick={() => void run(() => api.deleteTag(t, moveTo || undefined), () => setDeleting(null))}>Delete tag</button>
@@ -437,7 +437,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
       </div>
       <div className="em-card-t">
         <span className="em-ser em-clip">{c.name}</span>
-        <span className="em-mut" style={{ fontSize: 12 }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span>
+        <span className="em-mut" style={{ fontSize: '0.75rem' }}>{c.designCount} {c.designCount === 1 ? 'design' : 'designs'}</span>
       </div>
       <div className="em-row em-sb" style={{ padding: '0 10px 10px', gap: 6 }}>
         <button type="button" className="em-circ" data-testid="collection-hero" aria-pressed={typeof c.heroOrder === 'number'} aria-label={typeof c.heroOrder === 'number' ? `Remove ${c.name} from the hero collections` : `Make ${c.name} a hero collection on Home`} onClick={() => toggleHero(c)} style={typeof c.heroOrder === 'number' ? { color: 'var(--em-gold-ink)', borderColor: 'var(--em-gold)', background: 'color-mix(in srgb, var(--em-gold) 22%, var(--em-card))' } : { color: 'var(--em-mut)' }}>
@@ -460,13 +460,13 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
         <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={heroOpen} onClick={() => setHeroOpen(!heroOpen)}>
           <b style={{ fontWeight: 600 }}>Hero collections on Home</b>
           <span className="em-row" style={{ gap: 10 }}>
-            <span className="em-mut" style={{ fontSize: 12 }}>{heroes.length} of 4</span>
+            <span className="em-mut" style={{ fontSize: '0.75rem' }}>{heroes.length} of 4</span>
             <span className="em-circ" style={{ width: 32, height: 32 }} aria-hidden="true"><Icon n={heroOpen ? 'up' : 'chev'} size={18} /></span>
           </span>
         </button>
         {heroOpen && (
           <>
-            <p className="em-mut" style={{ fontSize: 12.5, margin: '8px 0 6px' }}>Buyers see these first. Tap the star on a collection to add it, then use the arrows to move it up or down.</p>
+            <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '8px 0 6px' }}>Buyers see these first. Tap the star on a collection to add it, then use the arrows to move it up or down.</p>
             {heroes.length === 0 ? (
               <p className="em-hint" style={{ margin: 0 }}>None chosen yet, so Home shows your four busiest collections.</p>
             ) : (

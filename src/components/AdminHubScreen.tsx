@@ -78,7 +78,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
             </span>
             <span className="em-grow">
               <span className="em-ey">{days <= 3 ? 'Pro trial ending soon' : 'Pro Trial'}</span>
-              <span style={{ display: 'block', fontSize: 14, marginTop: 2 }}>
+              <span style={{ display: 'block', fontSize: '0.875rem', marginTop: 2 }}>
                 {days} {days === 1 ? 'day' : 'days'} of Pro left. {days <= 3 ? 'Upgrade to keep orders, insights and PDF.' : 'Then you move to Basic.'}
               </span>
             </span>
@@ -92,7 +92,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
             </span>
             <span className="em-grow">
               <span className="em-ey">Pro trial ended</span>
-              <span style={{ display: 'block', fontSize: 14, marginTop: 2 }}>Nothing was deleted.</span>
+              <span style={{ display: 'block', fontSize: '0.875rem', marginTop: 2 }}>Nothing was deleted.</span>
             </span>
             <Icon n="next" className="em-chev" />
           </button>
@@ -103,17 +103,17 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
           <div data-testid="needs-you" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {waiting.map((w) => (
               <button key={w.key} type="button" className="em-alertrow" data-testid={w.testId} style={w.hot ? undefined : { borderColor: 'var(--em-line)' }} onClick={w.go}>
-                <span className="em-badge" style={{ fontFamily: 'var(--font-serif)', fontSize: 16, ...(w.hot ? {} : { background: 'var(--em-bad)', color: '#fff' }) }}>{w.n}</span>
+                <span className="em-badge" style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', ...(w.hot ? {} : { background: 'var(--em-bad)', color: '#fff' }) }}>{w.n}</span>
                 <span className="em-grow">
                   <span style={{ display: 'block', fontWeight: 500 }}>{w.title}</span>
-                  <span className="em-mut" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{w.note}</span>
+                  <span className="em-mut" style={{ display: 'block', fontSize: '0.75rem', marginTop: 2 }}>{w.note}</span>
                 </span>
                 <Icon n="right" size={18} />
               </button>
             ))}
           </div>
         ) : (
-          <div className="em-card" data-testid="all-caught-up" style={{ fontSize: 14 }}>
+          <div className="em-card" data-testid="all-caught-up" style={{ fontSize: '0.875rem' }}>
             <b style={{ fontWeight: 600 }}>All caught up.</b> <span className="em-mut">No orders, enquiries or failed messages are waiting.</span>
           </div>
         )}
@@ -186,7 +186,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
             <Icon n="plus" size={22} />
           </span>
           <span className="em-grow">
-            <span className="em-ser" style={{ display: 'block', fontSize: 20 }}>New design</span>
+            <span className="em-ser" style={{ display: 'block', fontSize: '1.25rem' }}>New design</span>
             <small>Add to catalogue in under a minute</small>
           </span>
           <Icon n="right" size={20} className="em-chev" />
@@ -217,7 +217,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
           <div className="em-card" data-testid="setup-checklist">
             <div className="em-row em-sb">
               <b style={{ fontWeight: 500 }}>Finish setting up</b>
-              <span className="em-mut" style={{ fontSize: 12 }}>{doneCount} of {checklist.length}</span>
+              <span className="em-mut" style={{ fontSize: '0.75rem' }}>{doneCount} of {checklist.length}</span>
             </div>
             <div className="meter" style={{ margin: '10px 0 6px' }}>
               <i style={{ width: `${(doneCount / checklist.length) * 100}%` }} />

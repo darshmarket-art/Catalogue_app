@@ -42,7 +42,7 @@ export const AdminForgotPassword: React.FC<{ email: string; onBack: () => void; 
       style={{ gap: 16 }}
     >
       <div>
-        <h1 style={{ fontSize: 32, lineHeight: 1.05 }}>Reset password</h1>
+        <h1 style={{ fontSize: '2rem', lineHeight: 1.05 }}>Reset password</h1>
         <p className="sub" style={{ marginTop: 6 }}>We send a 6-digit code to the store's WhatsApp number.</p>
       </div>
       {err && <Notice tone="error">{err}</Notice>}

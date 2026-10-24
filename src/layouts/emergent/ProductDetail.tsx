@@ -262,7 +262,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
               <span className="em-ey em-clip">
                 {hn(product.category, catHi)} · {product.sku}
               </span>
-              <span className="em-mut" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+              <span className="em-mut" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                 {t('Tap a photo to zoom')}
               </span>
             </div>
@@ -274,7 +274,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
             </div>
 
             {description && (
-              <p className="em-mut" style={{ marginTop: 14, fontSize: 14, lineHeight: 1.5 }} data-testid="product-description">
+              <p className="em-mut" style={{ marginTop: 14, fontSize: '0.875rem', lineHeight: 1.5 }} data-testid="product-description">
                 {description}
               </p>
             )}

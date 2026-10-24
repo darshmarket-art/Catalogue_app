@@ -57,7 +57,7 @@ export const AdminPuritiesScreen: React.FC<AdminPuritiesScreenProps> = ({ puriti
         );
       })}
 
-      <h2 style={{ fontSize: 20, marginTop: 6 }}>Add a purity</h2>
+      <h2 style={{ fontSize: '1.25rem', marginTop: 6 }}>Add a purity</h2>
       <div className="grid2">
         <div>
           <label className="lab" htmlFor="new-karat">

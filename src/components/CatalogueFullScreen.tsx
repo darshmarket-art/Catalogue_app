@@ -14,10 +14,10 @@ export const CatalogueFullScreen: React.FC<{ name: string; phone: string; onBack
         <div>
           <div className="em-ey">{merchant.brand.name}</div>
           <div className="em-rule" style={{ width: 48 }} />
-          <h1 className="em-ser" style={{ fontSize: 30, lineHeight: 1.15 }}>
+          <h1 className="em-ser" style={{ fontSize: '1.875rem', lineHeight: 1.15 }}>
             The showroom is full right now
           </h1>
-          <p className="em-mut" style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }} data-testid="catalogue-full-message">
+          <p className="em-mut" style={{ marginTop: 8, fontSize: '0.875rem', lineHeight: 1.5 }} data-testid="catalogue-full-message">
             {merchant.brand.name} has reached the number of buyers it can host at the moment, so no code was sent to +91 {phone}. Ask the owner for a place; they are usually quick to make room.
           </p>
         </div>

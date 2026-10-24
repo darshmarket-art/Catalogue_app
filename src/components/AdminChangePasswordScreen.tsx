@@ -31,7 +31,7 @@ export const AdminChangePasswordScreen: React.FC<{ forced: boolean; onDone: () =
     <div className="scroll no-tabs" style={{ gap: 16, maxWidth: 480 }} data-testid="change-password-screen">
       <form onSubmit={submit} className="col" style={{ gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 30, lineHeight: 1.05 }}>{forced ? 'Choose your password' : 'Change password'}</h1>
+          <h1 style={{ fontSize: '1.875rem', lineHeight: 1.05 }}>{forced ? 'Choose your password' : 'Change password'}</h1>
           <p className="sub" style={{ marginTop: 6 }}>
             {forced ? 'You signed in with a temporary password. Set your own to continue.' : 'Enter your current password, then the new one.'}
           </p>

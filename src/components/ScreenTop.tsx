@@ -11,7 +11,7 @@ export const ScreenTop: React.FC<{ title: string; onBack: () => void }> = ({ tit
       <button type="button" className="ib" aria-label="Back" onClick={onBack}>
         <I n="back" />
       </button>
-      <h1 style={title.length > 13 ? { fontSize: 24 } : undefined}>{title}</h1>
+      <h1 style={title.length > 13 ? { fontSize: '1.5rem' } : undefined}>{title}</h1>
     </div>
   </header>
 );

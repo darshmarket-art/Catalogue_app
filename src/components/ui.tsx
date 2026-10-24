@@ -30,7 +30,7 @@ export const Photo: React.FC<{ src?: string; tone?: number; className?: string; 
 /** Heading and lead line at the top of a screen's body (the title itself sits in the top bar). */
 export const PageTitle: React.FC<{ title?: string; sub?: React.ReactNode; size?: number }> = ({ title, sub, size = 32 }) => (
   <div>
-    {title && <h1 style={{ fontSize: size, lineHeight: 1.05 }}>{title}</h1>}
+    {title && <h1 style={{ fontSize: `${size / 16}rem`, lineHeight: 1.05 }}>{title}</h1>}
     {sub && <p className="sub" style={{ marginTop: title ? 6 : 0 }}>{sub}</p>}
   </div>
 );

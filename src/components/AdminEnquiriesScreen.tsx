@@ -85,11 +85,11 @@ export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onC
         {shown.map((e, i) => (
           <div key={e.id} className="em-row" style={{ gap: 12, padding: '14px 0', borderBottom: i < shown.length - 1 ? '1px solid var(--em-line)' : 0, alignItems: 'flex-start' }}>
             <div className="em-grow" style={{ minWidth: 0 }}>
-              <div className="em-ser em-clip" style={{ fontSize: 16 }}>
+              <div className="em-ser em-clip" style={{ fontSize: '1rem' }}>
                 {e.firmName} <span className={`tag ${e.repliedAt ? 'ok' : 'warn'}`} style={{ marginLeft: 6, verticalAlign: 'middle' }}>{e.repliedAt ? 'Replied' : 'Waiting'}</span>
               </div>
-              <div style={{ fontSize: 13.5, marginTop: 3 }}>{about(e)}</div>
-              <div className="em-mut" style={{ fontSize: 12, marginTop: 3 }}>
+              <div style={{ fontSize: '0.8438rem', marginTop: 3 }}>{about(e)}</div>
+              <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 3 }}>
                 {e.buyerPhone} · {ago(e.createdAt)}
               </div>
             </div>

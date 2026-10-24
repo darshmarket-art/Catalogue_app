@@ -41,7 +41,7 @@ const SubTop: React.FC<{ onBack: () => void; title: string }> = ({ onBack, title
     <button type="button" className="ib" aria-label="Back" onClick={onBack}>
       <Icon n="back" />
     </button>
-    <span style={{ fontFamily: 'var(--serif)', fontSize: 22 }}>{title}</span>
+    <span style={{ fontFamily: 'var(--serif)', fontSize: '1.375rem' }}>{title}</span>
   </div>
 );
 
@@ -148,13 +148,13 @@ export const EntryScreen: React.FC = () => {
       <Shell>
         <main className="ax-narrow" style={{ gap: 14 }}>
           <SubTop onBack={() => setView('home')} title="Store login" />
-          <p className="em-mut" style={{ fontSize: 14 }}>Enter your store address. Owners sign in with email and password, buyers with a WhatsApp code.</p>
+          <p className="em-mut" style={{ fontSize: '0.875rem' }}>Enter your store address. Owners sign in with email and password, buyers with a WhatsApp code.</p>
           <form onSubmit={go} className="col" style={{ gap: 16 }}>
             <div className="inp" style={{ padding: 0 }}>
               <input aria-label="Store address" autoFocus value={name} onChange={(e) => { setName(e.target.value); setErr(null); }} placeholder="your-name" style={{ flex: 1, minWidth: 0, height: '100%', border: 0, outline: 0, background: 'transparent', padding: '0 0 0 15px', font: 'inherit', color: 'inherit' }} />
               <span className="em-mut" style={{ paddingRight: 15 }}>.antarixs.com</span>
             </div>
-            {err && <p role="alert" style={{ color: 'var(--em-error, #b3261e)', fontSize: 14 }}>{err}</p>}
+            {err && <p role="alert" style={{ color: 'var(--em-error, #b3261e)', fontSize: '0.875rem' }}>{err}</p>}
             <button type="submit" className="btn" disabled={busy}>{busy ? 'Checking…' : 'Go to my store'}</button>
           </form>
         </main>
@@ -251,7 +251,7 @@ export const EntryScreen: React.FC = () => {
         <section className="ax-wrap ax-sec" aria-labelledby="ax-pillars">
           <div style={{ maxWidth: 640 }}>
             <span className="ax-ey">The platform</span>
-            <h2 className="ax-h2" id="ax-pillars" style={{ fontSize: 'clamp(32px, 3.6vw, 50px)', marginTop: 14 }}>
+            <h2 className="ax-h2" id="ax-pillars" style={{ fontSize: 'clamp(min(2rem, 10vw), 3.6vw, 3.125rem)', marginTop: 14 }}>
               Everything a wholesale jewellery house runs on.
             </h2>
           </div>
@@ -272,7 +272,7 @@ export const EntryScreen: React.FC = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
             <div style={{ maxWidth: 560 }}>
               <span className="ax-ey">Basic &amp; Pro</span>
-              <h2 className="ax-h2" id="ax-plans" style={{ fontSize: 'clamp(30px, 3.2vw, 46px)', marginTop: 14 }}>
+              <h2 className="ax-h2" id="ax-plans" style={{ fontSize: 'clamp(min(1.875rem, 9.375vw), 3.2vw, 2.875rem)', marginTop: 14 }}>
                 Start with the full Pro trial.
               </h2>
             </div>

@@ -120,11 +120,11 @@ function Chart({ series }: { series: Summary['series'] }) {
           <rect key={d.day} x={x(i) - step / 2} y={T} width={step} height={H - T - B} fill="transparent"><title>{`${label(d.day)}: ${d.orders} orders, ${d.visits} visits`}</title></rect>
         ))}
       </svg>
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>Orders and visits per day, last 14 days</caption>
         <thead><tr><th scope="col">Day</th><th scope="col">Orders</th><th scope="col">Visits</th></tr></thead>
         <tbody>{series.map((d) => <tr key={d.day}><td>{label(d.day)}</td><td>{d.orders}</td><td>{d.visits}</td></tr>)}</tbody>
-      </table>
+      </table></div>
     </>
   );
 }
@@ -268,7 +268,7 @@ export function StoreDetail({ id, v, ask }: PageProps & { id: string }) {
       <Load s={api} />
       <div className="cn-two">
         <section aria-label="Store detail" className="cn-card">
-          <div className="cn-row" style={{ justifyContent: 'space-between' }}><h2 className="ser" style={{ fontSize: 26 }}>{s.name}</h2><StatusTag s={s} /></div>
+          <div className="cn-row" style={{ justifyContent: 'space-between' }}><h2 className="ser" style={{ fontSize: '1.625rem' }}>{s.name}</h2><StatusTag s={s} /></div>
           <small>{s.subdomain}</small>
           <div style={{ marginTop: 10 }}>
             <div className="cn-kv"><span>Owner</span><b>{s.owner?.email ?? '—'}{s.owner?.phone ? ` · ${s.owner.phone}` : ''}</b></div>
@@ -283,13 +283,13 @@ export function StoreDetail({ id, v, ask }: PageProps & { id: string }) {
           </div>
         </section>
         <section aria-label="Actions" className="cn-card cn-stack">
-          <h2 className="ser" style={{ fontSize: 20 }}>Change store</h2>
+          <h2 className="ser" style={{ fontSize: '1.25rem' }}>Change store</h2>
           <div className="cn-row">{actions.map((a) => <button key={a.label} type="button" className="cn-btn sm soft" onClick={() => ask(s, a)}>{a.label}</button>)}</div>
           <small>You confirm each change first, and every change is recorded below.</small>
         </section>
       </div>
       <section aria-label="Recent changes" className="cn-card">
-        <h2 className="ser" style={{ fontSize: 20, marginBottom: 6 }}>Recent changes</h2>
+        <h2 className="ser" style={{ fontSize: '1.25rem', marginBottom: 6 }}>Recent changes</h2>
         {s.audit?.map((a) => <div key={a.id} className="cn-kv"><span>{a.what} · by {a.who}</span><b>{stamp(a.at)}</b></div>)}
         {!s.audit?.length && <small>None yet.</small>}
       </section>
@@ -582,7 +582,7 @@ export function BugsPage({ v }: PageProps) {
                   <td>
                     <details>
                       <summary>{b.note ? `"${b.note}"` : b.message}</summary>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, maxWidth: 560 }}>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.75rem', maxWidth: 560 }}>
                         {[b.url, b.ctx && `Context: ${b.ctx}`, b.crumbs?.length ? `Steps before it:\n${b.crumbs.join('\n')}` : '', b.stack].filter(Boolean).join('\n\n')}
                       </pre>
                     </details>

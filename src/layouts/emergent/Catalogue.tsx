@@ -320,7 +320,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     <aside className="em-fside" aria-label={t('Filter and sort')} data-testid="filter-panel">
       <div className="em-fcard">
         <div className="em-row em-sb">
-          <span className="em-ser" style={{ fontSize: 20 }}>{t('Filter and sort')}</span>
+          <span className="em-ser" style={{ fontSize: '1.25rem' }}>{t('Filter and sort')}</span>
           <button type="button" className="em-link" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>
             {t('Reset')}
           </button>
@@ -453,7 +453,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                 <Icon n="x" size={12} />
               </button>
             ))}
-            <button type="button" className="em-link" style={{ flex: 'none', fontSize: 12 }} data-testid="clear-filters" onClick={clearAll}>
+            <button type="button" className="em-link" style={{ flex: 'none', fontSize: '0.75rem' }} data-testid="clear-filters" onClick={clearAll}>
               {t('Clear all')}
             </button>
           </div>
@@ -494,7 +494,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                     <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} sizes={SIZES_THUMB} alt={hn(prod.title, prod.titleHi)} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
-                      <span className="em-ser em-clip" style={{ display: 'block', fontSize: 15.5 }}>{hn(prod.title, prod.titleHi)}</span>
+                      <span className="em-ser em-clip" style={{ display: 'block', fontSize: '0.9688rem' }}>{hn(prod.title, prod.titleHi)}</span>
                       <span className="em-wt" style={{ display: 'block', marginTop: 3 }}>{fmtG(prod.netWt)}</span>
                     </span>
                   </button>
@@ -597,7 +597,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       {sheet && (
         <Sheet label={t('Filter and sort designs')} onClose={() => setSheet(false)}>
           <div className="em-row em-sb">
-            <span className="em-ser" style={{ fontSize: 22 }}>
+            <span className="em-ser" style={{ fontSize: '1.375rem' }}>
               {t('Filter and sort')}
             </span>
             <button type="button" className="em-link" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>

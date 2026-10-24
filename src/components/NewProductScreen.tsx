@@ -138,7 +138,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           </select>
         </Field>
       </div>
-      <button type="button" className="lnk" style={{ minHeight: 28, marginTop: -4, alignSelf: 'flex-start', fontSize: 13.5 }} onClick={() => onNavigate('add-category')}>
+      <button type="button" className="lnk" style={{ minHeight: 28, marginTop: -4, alignSelf: 'flex-start', fontSize: '0.8438rem' }} onClick={() => onNavigate('add-category')}>
         + Add a new collection
       </button>
 
@@ -153,7 +153,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       <div className="em-netbanner" data-testid="np-net">
         <div>
           <div className="em-ey g">Net weight</div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>Auto-calculated</div>
+          <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: 2 }}>Auto-calculated</div>
         </div>
         <div className="em-ser">{net === null ? '—' : `${net.toFixed(3)} g`}</div>
       </div>

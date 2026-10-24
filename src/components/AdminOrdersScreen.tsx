@@ -93,7 +93,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
           <span className="em-badge">
             <Icon n="package" size={24} />
           </span>
-          <h2 className="em-ser" style={{ fontSize: 24 }}>
+          <h2 className="em-ser" style={{ fontSize: '1.5rem' }}>
             No orders here yet
           </h2>
           <p className="sub">{filter === 'all' ? 'Orders placed by your buyers will appear here.' : `There are no ${filter} orders.`}</p>
@@ -113,10 +113,10 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
             <div className="in">
               <div className="em-row em-sb" style={{ alignItems: 'flex-start', gap: 10 }}>
                 <div className="em-grow">
-                  <div className="em-ser" style={{ fontSize: 19 }}>
+                  <div className="em-ser" style={{ fontSize: '1.1875rem' }}>
                     {order.firmName}
                   </div>
-                  <div className="em-mut" style={{ fontSize: 12, marginTop: 4 }}>
+                  <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 4 }}>
                     {buyer?.phone ? `${buyer.phone} · ` : ''}
                     {order.poId} · {ago(order.timestamp)}
                   </div>
@@ -152,7 +152,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
               )}
               <div className="em-row em-sb" style={{ marginTop: 12 }}>
                 <span className="em-ey">Net total</span>
-                <span className="em-ser" style={{ fontSize: 19, color: 'var(--em-accent)' }}>
+                <span className="em-ser" style={{ fontSize: '1.1875rem', color: 'var(--em-accent)' }}>
                   {order.totalNetGrams.toFixed(3)} g
                 </span>
               </div>

@@ -59,11 +59,11 @@ export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) =
           </span>
           <span className="em-grow">
             <b style={{ display: 'block', fontWeight: 600 }}>Alerts</b>
-            <span className="em-mut" style={{ fontSize: 12 }}>{note}</span>
+            <span className="em-mut" style={{ fontSize: '0.75rem' }}>{note}</span>
           </span>
           <Switch on={on} onChange={toggle} label="Alerts on this device" />
         </div>
-        {error && <p role="alert" style={{ color: 'var(--em-bad)', fontSize: 13, margin: '6px 0 10px' }}>{error}</p>}
+        {error && <p role="alert" style={{ color: 'var(--em-bad)', fontSize: '0.8125rem', margin: '6px 0 10px' }}>{error}</p>}
       </>
     );
   }
@@ -72,7 +72,7 @@ export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) =
       <div className="card em-row em-sb" style={{ gap: 12 }}>
         <div>
           <div style={{ fontWeight: 500 }}>Alerts</div>
-          <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
+          <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 2 }}>
             {!flags.alerts ? 'Pro feature' : key ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser'}
           </div>
         </div>

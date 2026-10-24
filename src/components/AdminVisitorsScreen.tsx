@@ -27,7 +27,7 @@ const Figures: React.FC<{ items: Array<[string, string]> }> = ({ items }) => (
     {items.map(([label, value]) => (
       <div key={label}>
         <b>{value}</b>
-        <span className="sub" style={{ display: 'block', fontSize: 12 }}>
+        <span className="sub" style={{ display: 'block', fontSize: '0.75rem' }}>
           {label}
         </span>
       </div>
@@ -89,8 +89,8 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
             <div className="card col" style={{ gap: 10 }}>
               <div className="row">
                 <div className="grow">
-                  <h2 style={{ fontSize: 22 }}>{detail.name}</h2>
-                  <p className="sub" style={{ fontSize: 13 }}>
+                  <h2 style={{ fontSize: '1.375rem' }}>{detail.name}</h2>
+                  <p className="sub" style={{ fontSize: '0.8125rem' }}>
                     {detail.kind === 'verified' ? 'Buyer' : 'Guest visitor'} · last seen {ago(detail.lastSeen)} · last 30 days
                   </p>
                 </div>
@@ -100,7 +100,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
               <Figures items={[['On designs', duration(detail.dwellSeconds)], ['Added', String(detail.addedToCart)]]} />
             </div>
 
-            <h2 style={{ fontSize: 18 }}>Designs they spent time on</h2>
+            <h2 style={{ fontSize: '1.125rem' }}>Designs they spent time on</h2>
             {detail.products.length === 0 ? (
               <p className="sub">No design views recorded yet.</p>
             ) : (
@@ -116,7 +116,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
               </div>
             )}
 
-            <h2 style={{ fontSize: 18 }}>What they searched for</h2>
+            <h2 style={{ fontSize: '1.125rem' }}>What they searched for</h2>
             {detail.searchTerms.length === 0 ? (
               <p className="sub">No searches yet.</p>
             ) : (
@@ -130,7 +130,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
               </div>
             )}
 
-            <h2 style={{ fontSize: 18 }}>Hearted or added to order</h2>
+            <h2 style={{ fontSize: '1.125rem' }}>Hearted or added to order</h2>
             {detail.picked.length === 0 ? (
               <p className="sub">Nothing yet.</p>
             ) : (
@@ -154,19 +154,19 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
       <p className="sub">Tap a buyer to see which designs held their attention. Last 30 days, refreshed every 15 seconds.</p>
       <div className="grid2">
         <div className="card">
-          <span className="stat" style={{ fontSize: 30 }}>
+          <span className="stat" style={{ fontSize: '1.875rem' }}>
             {analytics.todayVisitors}
           </span>
-          <span className="sub" style={{ display: 'block', fontSize: 13 }}>
+          <span className="sub" style={{ display: 'block', fontSize: '0.8125rem' }}>
             Visitors today
           </span>
         </div>
         <div className="card">
-          <span className="stat" style={{ fontSize: 30, color: 'var(--ok)' }}>
+          <span className="stat" style={{ fontSize: '1.875rem', color: 'var(--ok)' }}>
             <i className="live-dot" aria-hidden="true" />
             {analytics.liveVisitors}
           </span>
-          <span className="sub" style={{ display: 'block', fontSize: 13 }}>
+          <span className="sub" style={{ display: 'block', fontSize: '0.8125rem' }}>
             Online now
           </span>
         </div>
@@ -184,7 +184,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
               <div className="row">
                 <div className="grow">
                   <b>{v.name}</b>
-                  <p className="sub" style={{ fontSize: 13 }}>
+                  <p className="sub" style={{ fontSize: '0.8125rem' }}>
                     {v.kind === 'guest' ? 'Guest · ' : ''}
                     {online ? 'Looking at designs now' : ago(v.lastSeen)}
                   </p>

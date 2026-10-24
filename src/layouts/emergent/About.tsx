@@ -37,16 +37,16 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
     <div className="em-page notabs em-about" style={{ paddingTop: 0 }}>
       <section className="em-hero about">
         <div className="em-ey g">{t('About the house')}</div>
-        <h1 className="em-ser" style={{ fontSize: 33, lineHeight: 1.2, marginTop: 8, color: 'var(--em-on-primary)' }}>
+        <h1 className="em-ser" style={{ fontSize: '2.0625rem', lineHeight: 1.2, marginTop: 8, color: 'var(--em-on-primary)' }}>
           {ts(merchant.brand.name)}
         </h1>
-        <p style={{ fontSize: 13, opacity: 0.75, margin: '6px 0 0' }}>{ts(merchant.brand.tagline)}</p>
+        <p style={{ fontSize: '0.8125rem', opacity: 0.75, margin: '6px 0 0' }}>{ts(merchant.brand.tagline)}</p>
       </section>
 
       <div className="em-pad em-ab" style={{ paddingTop: 20 }}>
         <div className="em-ab-story">
         <div className="em-rule" />
-        <p className="em-mut" style={{ fontSize: 14, lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line' }}>
+        <p className="em-mut" style={{ fontSize: '0.875rem', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line' }}>
           {story}
         </p>
         </div>

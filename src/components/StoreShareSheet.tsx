@@ -45,14 +45,14 @@ export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () 
   return (
     <Sheet label="Share your store" onClose={onClose}>
       <div className="em-row em-sb">
-        <span className="em-ser" style={{ fontSize: 22 }}>
+        <span className="em-ser" style={{ fontSize: '1.375rem' }}>
           Share your store
         </span>
         <button type="button" className="em-circ" aria-label="Close" onClick={onClose}>
           <Icon n="x" size={16} />
         </button>
       </div>
-      <p className="em-mut" style={{ fontSize: 13, marginTop: -4 }}>
+      <p className="em-mut" style={{ fontSize: '0.8125rem', marginTop: -4 }}>
         Buyers open this link or scan the QR, sign in with their WhatsApp number, and browse your catalogue.
       </p>
       <div className="em-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 18 }}>
@@ -61,7 +61,7 @@ export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () 
         ) : (
           <div className="em-skel" style={{ width: QR_SIZE, aspectRatio: '1', borderRadius: 12 }} />
         )}
-        <a href={url} data-testid="store-link" style={{ color: 'var(--em-accent)', fontSize: 13, fontWeight: 600, wordBreak: 'break-all', textAlign: 'center' }}>
+        <a href={url} data-testid="store-link" style={{ color: 'var(--em-accent)', fontSize: '0.8125rem', fontWeight: 600, wordBreak: 'break-all', textAlign: 'center' }}>
           {bareUrl(url)}
         </a>
       </div>

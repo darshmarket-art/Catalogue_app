@@ -114,7 +114,7 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
       {/* margin auto centres the card and, unlike align-items, lets a short window (a landscape phone) scroll to the buttons instead of cutting them off. */}
       <div className="card col" style={{ gap: 12, padding: 16, maxWidth: 400, width: '100%', alignItems: 'center', margin: 'auto' }}>
         <b>Fit the {spec.label.toLowerCase()} photo</b>
-        <p className="sub" style={{ fontSize: 13, textAlign: 'center' }}>
+        <p className="sub" style={{ fontSize: '0.8125rem', textAlign: 'center' }}>
           {spec.tip}
         </p>
         <div

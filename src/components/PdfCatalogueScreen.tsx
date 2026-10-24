@@ -97,10 +97,10 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
         <div className="em-row em-sb" style={{ alignItems: 'flex-start', gap: 12 }}>
           <div className="em-grow">
             <div className="em-ey">Cover page</div>
-            <div className="em-ser" style={{ fontSize: 24, lineHeight: 1.25, marginTop: 6 }}>
+            <div className="em-ser" style={{ fontSize: '1.5rem', lineHeight: 1.25, marginTop: 6 }}>
               {merchant.brand.name}
             </div>
-            {merchant.brand.tagline && <div style={{ fontSize: 12, opacity: 0.72, marginTop: 2 }}>{merchant.brand.tagline}</div>}
+            {merchant.brand.tagline && <div style={{ fontSize: '0.75rem', opacity: 0.72, marginTop: 2 }}>{merchant.brand.tagline}</div>}
           </div>
           <span className="em-badge" style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--em-gold)', background: 'color-mix(in srgb, var(--em-gold) 14%, transparent)', color: 'var(--em-gold-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
             <Icon n="file" size={18} />
@@ -109,15 +109,15 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
         <div style={{ height: 1, width: 48, background: 'var(--em-gold)', margin: '14px 0' }} />
         <div className="em-row" style={{ gap: 18 }}>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 12 }}>{chosen.length === 1 ? 'Design' : 'Designs'}</div>
+            <div className="em-ey" style={{ fontSize: '0.75rem' }}>{chosen.length === 1 ? 'Design' : 'Designs'}</div>
             <span data-testid="pdf-count">{chosen.length}</span>
           </div>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 12 }}>Net weight</div>
+            <div className="em-ey" style={{ fontSize: '0.75rem' }}>Net weight</div>
             <span>{netTotal.toFixed(2)} g</span>
           </div>
           <div className="m">
-            <div className="em-ey" style={{ fontSize: 12 }}>WhatsApp</div>
+            <div className="em-ey" style={{ fontSize: '0.75rem' }}>WhatsApp</div>
             <span>{merchant.contact.whatsapp ? `+${merchant.contact.whatsapp}` : '-'}</span>
           </div>
         </div>
@@ -125,7 +125,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
 
       <div>
         <div className="em-rule" style={{ width: 40, margin: '0 0 8px' }} />
-        <h2 style={{ fontSize: 20 }}>Pick designs</h2>
+        <h2 style={{ fontSize: '1.25rem' }}>Pick designs</h2>
         <p className="hint" style={{ marginTop: 4 }}>
           Includes photo, name, SKU, purity and net weight. No prices.
         </p>
@@ -175,10 +175,10 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                     </span>
                   </Ph>
                   <span style={{ display: 'block', padding: 12 }}>
-                    <span className="em-ser em-clip" style={{ display: 'block', fontSize: 14 }}>
+                    <span className="em-ser em-clip" style={{ display: 'block', fontSize: '0.875rem' }}>
                       {p.title}
                     </span>
-                    <span className="em-row em-sb" style={{ marginTop: 6, fontSize: 12 }}>
+                    <span className="em-row em-sb" style={{ marginTop: 6, fontSize: '0.75rem' }}>
                       <span className="em-mut">{p.sku}</span>
                       <b style={{ color: 'var(--em-accent)' }}>
                         {p.purity.split(' ')[0]} · {p.netWt.toFixed(3).slice(0, 5)} g
@@ -203,11 +203,11 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                 <b className="grow" data-testid="pdf-selected">
                   {picked.size} selected
                 </b>
-                <button type="button" className="lnk" style={{ minHeight: 30, fontSize: 13.5 }} onClick={toggleVisible} disabled={visible.length === 0}>
+                <button type="button" className="lnk" style={{ minHeight: 30, fontSize: '0.8438rem' }} onClick={toggleVisible} disabled={visible.length === 0}>
                   {allVisiblePicked ? 'Clear' : `Select these ${visible.length}`}
                 </button>
                 {picked.size > 0 && (
-                  <button type="button" className="lnk" style={{ minHeight: 30, fontSize: 13.5 }} onClick={() => setPicked(new Map())}>
+                  <button type="button" className="lnk" style={{ minHeight: 30, fontSize: '0.8438rem' }} onClick={() => setPicked(new Map())}>
                     None
                   </button>
                 )}
