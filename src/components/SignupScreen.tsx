@@ -382,7 +382,7 @@ export const SignupScreen: React.FC = () => {
     </div>
     <aside className="ax-side" aria-label="Your store preview">
       <div className="ax-photo">
-        <img src="/platform/signup.jpg" alt="Nakshi Lakshmi Set" />
+        <img src="/platform/signup.jpg" alt="Nakshi Lakshmi Set" width={800} height={800} loading="lazy" decoding="async" />
         <span style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 55%, rgb(30 26 43 / 0.55))' }} />
       </div>
       <div className="ax-card store">

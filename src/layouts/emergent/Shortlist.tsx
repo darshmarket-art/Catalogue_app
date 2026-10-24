@@ -7,6 +7,7 @@ import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { Icon, Ph, Title, fmtG, stockTone, type KitProps } from './ui';
 import { getLang, hn, pur, t, tn, ts, useLang } from '../../i18n';
+import { SIZES_THUMB } from '../../photoSrcSet';
 
 /** Shortlist (atlas Shortlist): hearted designs as a divided list, with the total net weight and the order and WhatsApp actions in a bar at the foot. */
 export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist, storeName, purities, categories, onAddToOrder, onRemove, onClear, onAddAllToOrder, onBrowse }) => {
@@ -77,7 +78,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
           {items.map((p, i) => (
             <div key={p.sku} className="em-li">
               <button type="button" className="em-li-open" aria-label={t('View {name}', { name: hn(p.title, p.titleHi) })} data-testid="shortlist-open" onClick={() => setOpen(p)} style={{ display: 'flex', alignItems: 'center', gap: 'inherit', flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
-              <Ph src={p.image} tone={i} className="em-thumb" />
+              <Ph src={p.image} tone={i} className="em-thumb" sizes={SIZES_THUMB} />
               <div className="em-grow">
                 <div className="em-ey em-dk em-sl-coll">{hn(p.category, categories.find((c) => c.name === p.category)?.nameHi)}</div>
                 <div className="em-ser">{hn(p.title, p.titleHi)}</div>

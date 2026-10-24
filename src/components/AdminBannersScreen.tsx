@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Banner, Category } from '../types';
 import { I, Photo } from './ui';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
+import { SIZES_FULL } from '../photoSrcSet';
 
 interface Props {
   banners: Banner[];
@@ -74,7 +75,7 @@ export const AdminBannersScreen: React.FC<Props> = ({ banners, categories, onLin
 
       {banners.map((b, i) => (
         <div key={b.id} className="card col" style={{ gap: 10 }}>
-          <Photo src={b.image} tone={i} style={{ height: 110 }} />
+          <Photo src={b.image} tone={i} sizes={SIZES_FULL} style={{ height: 110 }} />
           {collectionSelect(`banner-${b.id}`, b.category ?? '', (v) => onLink(b, v || null), b.category)}
           <div className="row">
             <button type="button" className="ib" aria-label="Move earlier" disabled={i === 0} onClick={() => move(i, -1)}>

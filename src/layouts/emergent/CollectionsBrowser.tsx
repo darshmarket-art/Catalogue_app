@@ -5,6 +5,7 @@ import { useBackLayer } from '../../backLayer';
 import { groupByTag, useTagList } from '../../tagList';
 import { grams, hl, hn, t, tn, ts, useLang } from '../../i18n';
 import { toHindi } from '../../../shared/hindi';
+import { SIZES_GRID } from '../../photoSrcSet';
 
 interface Props {
   categories: Category[];
@@ -45,7 +46,7 @@ export const CollectionsBrowser: React.FC<Props> = ({ categories, current, allow
   const card = (c: Category, i: number, key = c.id) => (
     <button key={key} type="button" className="em-colcard" data-testid="collection-row" aria-label={t('Open {name}', { name: hn(c.name, c.nameHi) })} onClick={() => onPick(c.name)}>
       <span className="em-sq" style={current === c.name ? { outline: '2.5px solid var(--em-gold)', outlineOffset: -2.5 } : undefined}>
-        <Ph src={c.image} tone={i} className="em-fill" />
+        <Ph src={c.image} tone={i} className="em-fill" sizes={SIZES_GRID} />
         {current === c.name && <span className="em-pick" style={{ background: 'var(--em-primary)', borderColor: 'var(--em-primary)' }}><Icon n="check" size={15} /></span>}
       </span>
       <span className="em-colcard-t">

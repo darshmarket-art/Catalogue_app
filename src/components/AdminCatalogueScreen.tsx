@@ -8,6 +8,7 @@ import { AdminBannersScreen } from './AdminBannersScreen';
 import { AdminPuritiesScreen } from './AdminPuritiesScreen';
 import { groupByTag, setTagList, useTagList } from '../tagList';
 import { UserError, errorText } from '../bugReport';
+import { SIZES_GRID } from '../photoSrcSet';
 
 export type CatalogueSegment = 'designs' | 'collections' | 'banners' | 'purities';
 
@@ -203,7 +204,7 @@ const Designs: React.FC<Props & { pdf: boolean; collection: string; onCollection
           <div key={d.id} className="em-cardwrap" data-testid="admin-design-row">
             <div className="em-sq">
               <button type="button" className="em-hit" onClick={() => onEditProduct(d)} aria-label={`Edit ${d.title}`}>
-                <Ph src={d.image} tone={i} className="em-fill" />
+                <Ph src={d.image} tone={i} className="em-fill" sizes={SIZES_GRID} />
               </button>
               <button type="button" className="em-circ f em-opts" style={{ left: "auto", right: 10 }} data-testid="admin-design-menu" aria-label={`Options for ${d.title}`} onClick={() => { setMenuFor(d); setConfirming(null); }}>
                 <Icon n="more" size={16} />
@@ -431,7 +432,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
     <div key={c.id} className="em-cardwrap" data-testid="admin-collection-row">
       <div className="em-sq">
         <button type="button" className="em-hit" onClick={() => onOpenDesigns(c.name)} aria-label={`Open the designs in ${c.name}`}>
-          <Ph src={c.image} tone={i} className="em-fill" />
+          <Ph src={c.image} tone={i} className="em-fill" sizes={SIZES_GRID} />
         </button>
       </div>
       <div className="em-card-t">

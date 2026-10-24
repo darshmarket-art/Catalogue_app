@@ -32,5 +32,5 @@ export const BrandMark: React.FC<BrandMarkProps> = ({ className, textClassName }
     );
   }
 
-  return <img alt={`${merchant.brand.name} Emblem`} className={`${className} object-contain`} src={src} onError={() => setFailed(true)} />;
+  return <img alt={`${merchant.brand.name} Emblem`} className={`${className} object-contain`} src={src} decoding="async" onError={() => setFailed(true)} />;
 };

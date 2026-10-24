@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import type { LayoutKit } from '../props';
 import { useBackLayer } from '../../backLayer';
 import { getLang, t } from '../../i18n';
+import { photoSrcSet } from '../../photoSrcSet';
 import { project, reducedMotion, rubberband, spring, VelocityTracker, type Stop } from '../../spring';
 import './sheet.css';
 
@@ -67,10 +68,10 @@ export const Icon: React.FC<{ n: string; size?: number; fill?: boolean; classNam
   </svg>
 );
 
-/** A photo frame: the image, or a tinted placeholder from the store's own gold. A span, so it can sit inside a button. Give it `alt` when the photo is the only thing that names the item; beside a visible name the empty default is right. */
-export const Ph: React.FC<{ src?: string; tone?: number; className?: string; style?: React.CSSProperties; alt?: string; children?: React.ReactNode }> = ({ src, tone = 0, className = '', style, alt = '', children }) => (
+/** A photo frame: the image, or a tinted placeholder from the store's own gold. A span, so it can sit inside a button. Pass `sizes` (see photoSrcSet.ts) to let the browser pick a smaller resized copy, and `priority` for a photo that is on screen at first paint (not lazy). Give it `alt` when the photo is the only thing that names the item; beside a visible name the empty default is right. */
+export const Ph: React.FC<{ src?: string; tone?: number; className?: string; style?: React.CSSProperties; alt?: string; sizes?: string; priority?: boolean; children?: React.ReactNode }> = ({ src, tone = 0, className = '', style, alt = '', sizes, priority, children }) => (
   <span className={`em-ph t${tone % 4} ${className}`} style={style}>
-    {src && <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" />}
+    {src && <img src={src} srcSet={sizes ? photoSrcSet(src) : undefined} sizes={sizes} alt={alt} loading={priority ? undefined : 'lazy'} fetchPriority={priority ? 'high' : undefined} decoding="async" referrerPolicy="no-referrer" />}
     {children}
   </span>
 );

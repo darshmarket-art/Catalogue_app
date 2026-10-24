@@ -1,4 +1,5 @@
 import React from 'react';
+import { photoSrcSet } from '../photoSrcSet';
 
 /**
  * Shared building blocks, so every screen reads like its artboard on the design canvas.
@@ -19,9 +20,9 @@ export const I: React.FC<{ n: string; size?: 's' | 'l'; className?: string; styl
 );
 
 /** A photo frame: the image when there is one, otherwise the canvas's lit-metal placeholder (tone a to d). */
-export const Photo: React.FC<{ src?: string; tone?: number; className?: string; style?: React.CSSProperties; children?: React.ReactNode }> = ({ src, tone = 0, className = '', style, children }) => (
+export const Photo: React.FC<{ src?: string; tone?: number; className?: string; style?: React.CSSProperties; sizes?: string; children?: React.ReactNode }> = ({ src, tone = 0, className = '', style, sizes, children }) => (
   <div className={`photo ${['', 'b', 'c', 'd'][tone % 4]} ${className}`} style={style}>
-    {src && <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />}
+    {src && <img src={src} srcSet={sizes ? photoSrcSet(src) : undefined} sizes={sizes} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
     {children}
   </div>
 );

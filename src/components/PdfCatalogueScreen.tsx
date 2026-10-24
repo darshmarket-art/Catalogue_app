@@ -6,6 +6,7 @@ import { api } from '../api';
 import { Chip, Notice } from './ui';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
 import { errorText } from '../bugReport';
+import { SIZES_GRID } from '../photoSrcSet';
 
 /**
  * PDF catalogue (admin): pick designs from every collection, then download or share one PDF.
@@ -168,7 +169,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                   className={`em-pickcard${on ? ' on' : ''}`}
                   style={{ opacity: picked.size > 0 && !on ? 0.72 : 1 }}
                 >
-                  <Ph src={p.image} tone={i} style={{ aspectRatio: '1', width: '100%' }}>
+                  <Ph src={p.image} tone={i} sizes={SIZES_GRID} style={{ aspectRatio: '1', width: '100%' }}>
                     <span aria-hidden="true" className="chk">
                       {on && <Icon n="check" size={15} />}
                     </span>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Category, Product, Purity } from '../../types';
 import { Icon, Ph, Sheet, fmtG } from './ui';
 import { hn, pur, t, tn, useLang } from '../../i18n';
+import { SIZES_THUMB } from '../../photoSrcSet';
 
 /**
  * The purities a design is sold in: the ones its collection is set up with (Edit collection > Purities sold here), or every purity
@@ -38,7 +39,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
   return (
     <Sheet label={t('Add {name} to cart', { name: hn(product.title, product.titleHi) })} onClose={onClose}>
       <div className="em-row" style={{ alignItems: 'flex-start', gap: 12 }}>
-        <Ph src={product.image} className="em-dk em-cs-thumb" />
+        <Ph src={product.image} className="em-dk em-cs-thumb" sizes={SIZES_THUMB} />
         <div className="em-grow" style={{ minWidth: 0 }}>
           <div className="em-ey em-dk" style={{ color: 'var(--em-gold-ink)' }}>{t('Add to cart')}</div>
           <div className="em-ser" style={{ fontSize: 22 }}>

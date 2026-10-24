@@ -351,6 +351,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({ images, start = 0, tit
           src={images[index]}
           alt={`${title}, photo ${index + 1}`}
           draggable={false}
+          decoding="async"
           referrerPolicy="no-referrer"
           className="max-w-full max-h-full object-contain"
         />
