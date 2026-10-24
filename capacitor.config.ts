@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// Both apps draw edge to edge (index.html has viewport-fit=cover). SystemBars passes the bar sizes to the page as env(safe-area-inset-*)
+// and as --safe-area-inset-* (src/index.css reads both into --sat and --sab). "css" is the default today; Capacitor 9 changes the
+// default to "native", which does not set the variables, so it is pinned here. The "cover" hint stops a layout jump on first paint.
+// The soft keyboard needs no @capacitor/keyboard: SystemBars pads the window by the keyboard height, so the page shrinks above it.
+// Manifest, theme and MainActivity patches for this live in scripts/storeApp.ts (patchAndroidShell).
+const systemBars = { insetsHandling: 'css', initialViewportFitValueHint: 'cover' } as const;
+
 // PLATFORM_APP=1: the Antarixs onboarding app. It opens app.antarixs.com (PLATFORM_URL) and shows offline.html when it cannot.
 // The app host and the stores under it ([store].<base domain>) stay inside the app, so the remembered store opens in the app. See scripts/build-platform-app.ts.
 function platformConfig(url: string): CapacitorConfig {
@@ -8,7 +15,8 @@ function platformConfig(url: string): CapacitorConfig {
     appId: 'com.antarixs.app',
     appName: 'Antarixs',
     webDir: 'dist',
-    server: { url, androidScheme: 'https', allowNavigation: [new URL(url).host, '*.' + new URL(url).host.replace(/^app./, '')], errorPath: 'offline.html' }
+    server: { url, androidScheme: 'https', allowNavigation: [new URL(url).host, '*.' + new URL(url).host.replace(/^app./, '')], errorPath: 'offline.html' },
+    plugins: { SystemBars: systemBars }
   };
 }
 
@@ -18,7 +26,8 @@ function storeConfig(): CapacitorConfig {
     appId: m.android.packageName,
     appName: m.brand.name, // MERCHANT=<store> is set by scripts/build-store-app.ts
     webDir: 'dist',
-    server: { androidScheme: 'https' }
+    server: { androidScheme: 'https' },
+    plugins: { SystemBars: systemBars }
   };
 }
 
