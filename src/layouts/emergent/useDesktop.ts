@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
-/** The two width breakpoints of the layout. They must match the media queries in the CSS (min-width: 700px for tablet, min-width: 1024px for desktop). */
-export const TABLET_MIN = 700;
+/** The two width breakpoints of the layout. They must match the media queries in the CSS (min-width: 640px for tablet, min-width: 1024px for desktop). */
+export const TABLET_MIN = 640;
 export const DESKTOP_MIN = 1024;
 
 /** Re-renders when a media query starts or stops matching (so a rotation or an unfold is picked up with no resize listener). */
@@ -23,7 +23,7 @@ const useMedia = (query: string) =>
 export const useDesktop = () => useMedia(`(min-width: ${DESKTOP_MIN}px)`);
 
 /**
- * 'phone' below 700px, 'tablet' from 700px to 1023px, 'desktop' from 1024px. Follows the width available to the page, not the device or its
+ * 'phone' below 640px, 'tablet' from 640px to 1023px, 'desktop' from 1024px. Follows the width available to the page, not the device or its
  * orientation, so a rotated phone, a folded-out phone and a split-screen tablet all land in the tier that matches the space they have.
  */
 export type Tier = 'phone' | 'tablet' | 'desktop';
@@ -33,7 +33,7 @@ export const useTier = (): Tier => {
   return desktop ? 'desktop' : tablet ? 'tablet' : 'phone';
 };
 
-/** True only in the tablet tier (700px to 1023px). */
+/** True only in the tablet tier (640px to 1023px). */
 export const useTablet = () => useTier() === 'tablet';
 
 /** A list and its detail side by side needs height as well as width: below this a wide window (a phone on its side) keeps the detail as an overlay. Matches the min-height in emergent.css. */

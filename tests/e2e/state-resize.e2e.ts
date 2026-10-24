@@ -311,10 +311,8 @@ test('e2. crop position at 340x700 and 1200x800', async ({ page }) => {
 test.describe('foldable 344x882 <-> 673x841', () => {
   const cols = (page: Page) => page.locator('.em-grid').first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
 
-  // KNOWN GAP (reported, not fixed here: the fix is CSS): TABLET_MIN is 700 (useDesktop.ts:4, and the 700px media queries in emergent.css), so an
-  // unfolded 673px screen gets the phone layout. test.fail() keeps this green while it is true and turns red the day 673 becomes a tablet.
+  // TABLET_MIN is 640 (useDesktop.ts and the min-width: 640px queries in emergent.css) so an unfolded 673px foldable gets the tablet tier.
   test('unfolded 673x841 is the tablet tier (four columns, two-pane)', async ({ page }) => {
-    test.fail(true, 'TABLET_MIN is 700, unfolded foldables are 673 wide');
     await size(page, 673, 841);
     await fakeCatalogueGrid(page);
     expect(await cols(page), 'unfolded: four photo columns').toBe(4);
@@ -332,7 +330,7 @@ test.describe('foldable 344x882 <-> 673x841', () => {
     await settle(page);
     const role = await page.locator('.em-pd-wrap').getAttribute('role');
     expect(await page.evaluate(() => document.body.style.overflow)).toBe(role === 'dialog' ? 'hidden' : '');
-    record('fold: 673x841 static', 'static', unfolded.cols === 4 && role === 'region', { ...unfolded, productRole: role, note: 'tablet tier expected; TABLET_MIN=700 so phone layout applies' });
+    record('fold: 673x841 static', 'static', unfolded.cols === 4 && role === 'region', { ...unfolded, productRole: role, note: 'tablet tier expected at 673 (TABLET_MIN=640)' });
 
     await size(page, 344, 882);
     await expect(page.locator('.em-pd-wrap')).toHaveAttribute('role', 'dialog');

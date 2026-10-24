@@ -1048,14 +1048,14 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
 }
 
 /* ======================================================================================================
- * Tablet tier and wider, every role (700px and up: TABLET_MIN in useDesktop.ts; the pieces that need script use useTier / useTablet).
- * Below 700px nothing in this block applies, so phones stay exactly as they were. Buyers from 1024px also get the desktop block
+ * Tablet tier and wider, every role (640px and up: TABLET_MIN in useDesktop.ts; the pieces that need script use useTier / useTablet).
+ * Below 640px nothing in this block applies, so phones stay exactly as they were. Buyers from 1024px also get the desktop block
  * above, which wins wherever both set the same thing (it is more specific). Owners have no desktop block of their own: the
  * [data-role="owner"] rules here give them a wide shell from the tablet tier up.
  * The layout follows the width the app has, not the device or its orientation (a rotated phone, an unfolded foldable and a
  * split-screen tablet all land where their width puts them). The tab bar stays a tab bar; it only gets wider.
  * ====================================================================================================== */
-@media (min-width: 700px) {
+@media (min-width: 640px) {
   [data-layout="emergent"] .em-page, [data-layout="emergent"] .em-page.home { max-width: 880px; }
   /* The top bar follows the page under it: --em-w is the page width Header.tsx picked (640, Home 760, Catalogue 1100); never narrower than the shell. */
   [data-layout="emergent"] .em-top-in:where(:not(.sub)) { max-width: max(var(--em-w, 640px), 880px); }
@@ -1083,7 +1083,7 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
 /* Tablet only: list and detail side by side. Wider than this the buyer gets the desktop design window instead; narrower, the overlay.
    The design pane also needs room to be tall (560px: PANE_MIN_H in useDesktop.ts, which must match): a phone on its side has a regular
    width but a compact height, and there the design stays a full-screen overlay. */
-@media (min-width: 700px) and (max-width: 1023.98px) and (min-height: 560px) {
+@media (min-width: 640px) and (max-width: 1023.98px) and (min-height: 560px) {
   /* Catalogue and a design: the design opens in a pane beside the grid (Catalogue.tsx sets em-pane-open). The pane's column grows from 0
      with a transition, which starts from wherever it is if the design is closed or another is opened half way (a reduced-motion setting
      swaps it for no transition and a short fade). The photo grid keeps scrolling with the page, and the open design stays marked in it. */
@@ -1100,7 +1100,7 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
   [data-layout="emergent"] .em-page.em-pane-open .em-cartbar { display: none; }
 }
 
-@media (min-width: 700px) and (max-width: 1023.98px) {
+@media (min-width: 640px) and (max-width: 1023.98px) {
   /* Past orders: two cards across. */
   [data-layout="emergent"] .em-past { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   [data-layout="emergent"] .em-past > :not(.em-ord) { grid-column: 1 / -1; }
