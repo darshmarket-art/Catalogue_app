@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { clampOffset, cropScale, sourceRect, type PhotoSpec } from '../../shared/photoSpecs';
 import { I } from './ui';
+import { frameWidth, toFraction, toPx, type FrameOffset } from './cropFrame';
 
 /** Longest side of the working copy of the photo (the server keeps no more than this). */
 const MAX_EDGE = 2400;
@@ -12,11 +13,22 @@ const MAX_EDGE = 2400;
 export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (cropped: File) => void; onCancel: () => void; onSkip?: () => void; round?: boolean }> = ({ file, spec, onDone, onCancel, onSkip, round }) => {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [off, setOff] = useState({ ox: 0, oy: 0 });
+  // The photo's place is kept as a fraction of the frame, so a resized frame (rotation, unfold) shows the same part of the photo.
+  const [off, setOff] = useState<FrameOffset>({ fx: 0, fy: 0 });
   const [url, setUrl] = useState<string | null>(null);
-  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const CW = Math.min(320, window.innerWidth - 64);
+  const drag = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null);
+  const [CW, setCW] = useState(() => frameWidth(window.innerWidth));
   const CH = CW / spec.ratio;
+
+  useEffect(() => {
+    const fit = () => setCW(frameWidth(window.innerWidth));
+    window.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', fit);
+    return () => {
+      window.removeEventListener('resize', fit);
+      window.removeEventListener('orientationchange', fit);
+    };
+  }, []);
 
   // Read as a data URL: the production CSP blocks blob: images, and this also survives React StrictMode's double mount.
   useEffect(() => {
@@ -28,7 +40,8 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
       const cover = Math.max(CW / i.naturalWidth, CH / i.naturalHeight);
       const z = round ? (Math.min(CW / i.naturalWidth, CH / i.naturalHeight) / cover) * 0.8 : 1;
       setZoom(z);
-      setOff({ ox: (CW - i.naturalWidth * cover * z) / 2, oy: (CH - i.naturalHeight * cover * z) / 2 });
+      // (CW here may be from before a resize: as fractions of the frame the result is the same at any frame size)
+      setOff(toFraction({ ox: (CW - i.naturalWidth * cover * z) / 2, oy: (CH - i.naturalHeight * cover * z) / 2 }, CW, CH));
     };
     const useUrl = (src: string) => {
       if (!alive) return;
@@ -65,14 +78,15 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
     };
   }, []);
 
-  const view = img ? { nw: img.naturalWidth, nh: img.naturalHeight, cw: CW, ch: CH, zoom, ...off } : null;
+  const view = img ? { nw: img.naturalWidth, nh: img.naturalHeight, cw: CW, ch: CH, zoom, ...toPx(off, CW, CH) } : null;
   const place = view ? (round ? { ox: view.ox, oy: view.oy } : clampOffset(view)) : { ox: 0, oy: 0 };
   const scale = view ? cropScale(view) : 1;
 
   const move = (e: React.PointerEvent) => {
     if (!drag.current || !view) return;
-    const next = { ...view, ox: drag.current.ox + e.clientX - drag.current.x, oy: drag.current.oy + e.clientY - drag.current.y };
-    setOff(round ? { ox: next.ox, oy: next.oy } : clampOffset(next));
+    const start = toPx(drag.current, CW, CH);
+    const next = { ...view, ox: start.ox + e.clientX - drag.current.x, oy: start.oy + e.clientY - drag.current.y };
+    setOff(toFraction(round ? next : clampOffset(next), CW, CH));
   };
 
   const use = () => {
@@ -106,7 +120,7 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
           data-testid="crop-frame"
           onPointerDown={(e) => {
             (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-            drag.current = { x: e.clientX, y: e.clientY, ox: place.ox, oy: place.oy };
+            drag.current = { x: e.clientX, y: e.clientY, ...toFraction(place, CW, CH) };
           }}
           onPointerMove={move}
           onPointerUp={() => (drag.current = null)}
