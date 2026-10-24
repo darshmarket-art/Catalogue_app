@@ -11,6 +11,7 @@ import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { useHideOnScroll } from './useHideOnScroll';
+import { useScrollAnchor } from './useScrollAnchor';
 import { useDesktop, usePane } from './useDesktop';
 import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
@@ -63,6 +64,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   const desk = useDesktop() && !isAdmin;
   // On a tablet (wide and tall enough) an open design shows in a pane beside the grid (emergent.css); on a phone it is an overlay, as before.
   const pane = usePane();
+  useScrollAnchor();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debounced, setDebounced] = useState(initialSearch.trim());
   const [picking, setPicking] = useState(false);
