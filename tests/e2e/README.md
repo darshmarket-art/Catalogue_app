@@ -74,3 +74,7 @@ While a modal layer is open (tour, cart sheet, cropper, a design opened over the
 In `screens.ts` add an entry to `SCREENS`: `{ id, role: 'buyer' | 'owner' | 'guest', open: async (page) => { ... } }`. `open` goes to the screen with real clicks and waits for something that only exists there (prefer `getByTestId`). Roles decide what is in `localStorage` before the app starts (`seedRole`). It runs at every size and scale automatically. If a screen cannot be reached yet, add `fixme: 'why'` and it is skipped with that reason. If it fails only at some sizes, the combo is recorded as `unreachable` (a screenshot `...-UNREACHABLE.png` is saved) and that is a finding.
 
 Sign-in rate limits are lifted in `server.ts`; without that, a full run exhausts the server's 1000-calls-per-15-minutes limit and sessions start failing half way.
+
+## State across rotation and resize
+
+`state-resize.e2e.ts` sets a state up through the real UI, resizes with `setViewportSize` (390x844 to 844x390 and back, 673x841 to 344x882 and back) and checks it survived: cart and order note, an open design (3rd), a filled sign-up form and step, the OTP steps, crop position (fractions of the frame within 0.5px; also 340x700 and 1200x800), buyer tour step and highlight, catalogue grid scroll, and the foldable live resize. Every check also appends to `<out>/state-results.jsonl`. A `test.fail` test is a known gap (673px is not yet the tablet tier). Real-device items: `docs/RESPONSIVE_DEVICE_CHECKLIST.md`.
