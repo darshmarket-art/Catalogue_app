@@ -21,6 +21,8 @@ import { SIZES_GRID, SIZES_THUMB } from '../../photoSrcSet';
 
 
 const PAGE = 24;
+/** An open design this close to the end of the loaded list fetches the next page, so swiping never runs dry. */
+const SWIPE_AHEAD = 6;
 
 /** Everything a buyer can narrow the catalogue by, besides the collection chips and the search box. */
 interface Filters {
@@ -186,6 +188,12 @@ export const Catalogue: React.FC<CatalogueProps> = ({
     return () => io.disconnect();
   }, [hasMore, items.length, loading, loadingMore]);
 
+  // Swiping through designs walks the loaded list, and the grid's own sentinel is hidden behind the open design, so fetch the next page
+  // a few designs before the end. Keyed on the position and the loaded count (not on loadingMore), so a failed fetch retries on the next swipe, not in a loop.
+  useEffect(() => {
+    if (openIndex >= 0 && hasMore && openIndex >= items.length - SWIPE_AHEAD) loadMore();
+  }, [openIndex, items.length, hasMore]);
+
   // What a buyer searches for tells the owner what they are after. Recorded once they pause typing.
   useEffect(() => {
     const term = searchQuery.trim();
@@ -257,6 +265,9 @@ export const Catalogue: React.FC<CatalogueProps> = ({
 
   /** Tapping a design opens its details; while the owner is picking designs it ticks them instead. */
   const openOrPick = (prod: Product, photo?: Element | null) => (selecting ? togglePick(prod.id) : withTransition(() => setOpenProductId(prod.id), photo));
+
+  /** The caption under a photo opens the design too, so the whole card is the target (the photo button stays the keyboard and screen-reader one). */
+  const openFromCaption = (prod: Product) => (e: React.MouseEvent<HTMLElement>) => openOrPick(prod, e.currentTarget.closest('.em-cardwrap')?.querySelector('.em-ph'));
 
   const toggleHeart = (prod: Product) => {
     if (!hearted.has(prod.sku)) trackSelect(prod.sku);
@@ -508,7 +519,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                       </button>
                     )}
                   </article>
-                  <div className="em-card-t">
+                  <div className="em-card-t" style={{ cursor: 'pointer' }} onClick={openFromCaption(prod)}>
                     <span className="em-ser em-clip">{hn(prod.title, prod.titleHi)}</span>
                     <span className="em-wt">{fmtG(prod.netWt)}</span>
                   </div>
@@ -538,7 +549,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
                   </button>
                 )}
               </article>
-              <div className="em-card-t">
+              <div className="em-card-t" style={{ cursor: 'pointer' }} onClick={openFromCaption(prod)}>
                 <span className="em-ser em-clip">{hn(prod.title, prod.titleHi)}</span>
                 <span className="em-wt">{fmtG(prod.netWt)}</span>
               </div>
@@ -656,7 +667,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
         purities={purities}
         categories={categories}
         hearted={openProduct ? hearted.has(openProduct.sku) : false}
-        position={openIndex >= 0 ? { index: openIndex, total: items.length } : undefined}
+        position={openIndex >= 0 ? { index: openIndex, total: items.length, of: Math.max(total, items.length) } : undefined}
         onStep={(dir) => {
           const next = items[openIndex + dir];
           if (next) setOpenProductId(next.id);

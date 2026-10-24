@@ -23,8 +23,9 @@ interface ProductDetailProps {
   onClose: () => void;
   onEdit: (product: Product) => void;
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
-  /** Where this design sits in the list the buyer came from, and a way to step to the previous (-1) or next (1) one. */
-  position?: { index: number; total: number };
+  /** Where this design sits in the list the buyer came from, and a way to step to the previous (-1) or next (1) one.
+   *  `total` is how many are loaded (the step bound); `of` is the full count shown to the buyer, when more are still to load. */
+  position?: { index: number; total: number; of?: number };
   onStep?: (dir: -1 | 1) => void;
 }
 
@@ -239,7 +240,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
                   {t('Previous')}
                 </button>
                 <span aria-live="polite">
-                  {t('Design {n} of {total}', { n: position.index + 1, total: position.total })}
+                  {t('Design {n} of {total}', { n: position.index + 1, total: position.of ?? position.total })}
                 </span>
                 <button type="button" data-testid="design-next" disabled={!canStep(1)} onClick={() => step(1)} aria-label={t('Next design')}>
                   {t('Next')}
