@@ -110,13 +110,13 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       </div>
 
       <Field label="Design name" htmlFor="np-title">
-        <input id="np-title" className="inp" style={{ height: 48 }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
+        <input id="np-title" className="inp" style={{ minHeight: 48 }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Antique Temple Necklace" />
       </Field>
 
 
       <div className="grid2">
         <Field label="Collection" htmlFor="np-category">
-          <select id="np-category" value={category} onChange={(e) => setCategory(e.target.value)} className="inp" style={{ height: 48 }}>
+          <select id="np-category" value={category} onChange={(e) => setCategory(e.target.value)} className="inp" style={{ minHeight: 48 }}>
             <option value="">Choose</option>
             {categories.map((c) => (
               <option key={c.id} value={c.name}>
@@ -126,7 +126,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           </select>
         </Field>
         <Field label="Purity" htmlFor="np-purity">
-          <select id="np-purity" className="inp" style={{ height: 48 }} value={purity} onChange={(e) => setPurity(e.target.value)}>
+          <select id="np-purity" className="inp" style={{ minHeight: 48 }} value={purity} onChange={(e) => setPurity(e.target.value)}>
             <option value="">Choose</option>
             {purities
               .filter((pu) => pu.enabled || pu.key === editing?.purity)
@@ -144,16 +144,16 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
 
       <div className="grid2">
         <Field label="Gross weight (g)" htmlFor="np-gross">
-          <input id="np-gross" className="inp" style={{ height: 48 }} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
+          <input id="np-gross" className="inp" style={{ minHeight: 48 }} value={grossWt} onChange={(e) => setGrossWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
         </Field>
         <Field label="Stone or tare (g)" htmlFor="np-stone">
-          <input id="np-stone" className="inp" style={{ height: 48 }} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
+          <input id="np-stone" className="inp" style={{ minHeight: 48 }} value={stoneWt} onChange={(e) => setStoneWt(e.target.value)} inputMode="decimal" placeholder="0.000" />
         </Field>
       </div>
       <div className="em-netbanner" data-testid="np-net">
         <div>
           <div className="em-ey g">Net weight</div>
-          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Auto-calculated</div>
+          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>Auto-calculated</div>
         </div>
         <div className="em-ser">{net === null ? '—' : `${net.toFixed(3)} g`}</div>
       </div>
@@ -170,22 +170,22 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       </div>
 
       <Field label="HUID or hallmark number (optional)" htmlFor="np-huid">
-        <input id="np-huid" className="inp" style={{ height: 48 }} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
+        <input id="np-huid" className="inp" style={{ minHeight: 48 }} value={huid} onChange={(e) => setHuid(e.target.value)} placeholder="Only if this piece carries one" />
       </Field>
 
       <Field label="Description (optional)" htmlFor="np-desc" hint="Searchable: a few words on the motif, finish or occasion help buyers find it.">
-        <textarea id="np-desc" data-testid="np-description" className="inp" style={{ height: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Antique temple work with a matte finish, bridal set" />
+        <textarea id="np-desc" data-testid="np-description" className="inp" style={{ minHeight: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Antique temple work with a matte finish, bridal set" />
       </Field>
 
 
       <Field label={editing ? 'SKU' : 'SKU (optional)'} htmlFor="np-sku">
-        <input id="np-sku" className="inp" style={{ height: 48 }} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Leave blank to generate one" />
+        <input id="np-sku" className="inp" style={{ minHeight: 48 }} value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Leave blank to generate one" />
       </Field>
 
       {merchant.productFields.map((field) => (
         <Field key={field.key} label={`${field.label}${field.unit ? ` (${field.unit})` : ''}${field.required ? ' *' : ''}`} htmlFor={`np-${field.key}`}>
           {field.type === 'select' ? (
-            <select id={`np-${field.key}`} className="inp" style={{ height: 48 }} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
+            <select id={`np-${field.key}`} className="inp" style={{ minHeight: 48 }} value={extra[field.key] ?? ''} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })}>
               <option value="">Select</option>
               {field.options?.map((o) => (
                 <option key={o} value={o}>
@@ -194,7 +194,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
               ))}
             </select>
           ) : (
-            <input id={`np-${field.key}`} className="inp" style={{ height: 48 }} value={extra[field.key] ?? ''} inputMode={field.type === 'number' ? 'decimal' : 'text'} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })} />
+            <input id={`np-${field.key}`} className="inp" style={{ minHeight: 48 }} value={extra[field.key] ?? ''} inputMode={field.type === 'number' ? 'decimal' : 'text'} onChange={(e) => setExtra({ ...extra, [field.key]: e.target.value })} />
           )}
         </Field>
       ))}

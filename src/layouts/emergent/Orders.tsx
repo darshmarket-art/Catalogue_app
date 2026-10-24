@@ -330,7 +330,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
                     <div className="em-ser" style={{ fontSize: 16 }}>
                       {hn(item.title, item.titleHi)}
                     </div>
-                    <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
+                    <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
                       {item.sku} · {pur(item.purity.split(' ')[0])} · {fmtG(item.unitWt)} × {item.batchQty}
                     </div>
                     <div className="em-row em-sb" style={{ marginTop: 6 }}>

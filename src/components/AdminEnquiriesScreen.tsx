@@ -66,7 +66,7 @@ export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onC
 
       <div className="inp-icon">
         <Icon n="search" size={16} />
-        <input className="inp" style={{ height: 46 }} type="search" aria-label="Search enquiries" placeholder="Search buyer, phone or design" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input className="inp" style={{ minHeight: 46 }} type="search" aria-label="Search enquiries" placeholder="Search buyer, phone or design" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
       <div className="chips">
         {KINDS.map((k) => (
@@ -89,7 +89,7 @@ export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onC
                 {e.firmName} <span className={`tag ${e.repliedAt ? 'ok' : 'warn'}`} style={{ marginLeft: 6, verticalAlign: 'middle' }}>{e.repliedAt ? 'Replied' : 'Waiting'}</span>
               </div>
               <div style={{ fontSize: 13.5, marginTop: 3 }}>{about(e)}</div>
-              <div className="em-mut" style={{ fontSize: 11, marginTop: 3 }}>
+              <div className="em-mut" style={{ fontSize: 12, marginTop: 3 }}>
                 {e.buyerPhone} · {ago(e.createdAt)}
               </div>
             </div>

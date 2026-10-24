@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { HARD_FLOOR, MIN_TARGET, MIN_TEXT_PX, runAudits } from './audits';
+import { HARD_FLOOR, MIN_INPUT_PX, MIN_TARGET, MIN_TEXT_PX, PRIMARY_CONTROLS, runAudits } from './audits';
 import { STORE_ID, outDir } from './env';
 import { SCREENS, seedRole, settle } from './screens';
 import type { Role } from './screens';
@@ -48,7 +48,7 @@ for (const w of WINDOWS) {
       const dir = path.join(outDir(), 'keyboard');
       fs.mkdirSync(dir, { recursive: true });
       await page.screenshot({ path: path.join(dir, `${screen.id}-${w.name}.png`) });
-      const audits = await page.evaluate(runAudits, { width: w.short[0], clip: false, minTarget: MIN_TARGET, hardFloor: HARD_FLOOR, minText: MIN_TEXT_PX });
+      const audits = await page.evaluate(runAudits, { width: w.short[0], clip: false, minTarget: MIN_TARGET, hardFloor: HARD_FLOOR, minText: MIN_TEXT_PX, minInput: MIN_INPUT_PX, primary: PRIMARY_CONTROLS });
       expect(audits.coveredInputs, `fields under a bar or outside the ${w.short.join('x')} window: ${audits.coveredInputs.map((o) => `${o.selector} (${o.coveredBy || 'off screen'})`).join(', ')}`).toEqual([]);
     });
   }

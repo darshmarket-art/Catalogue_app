@@ -62,7 +62,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ product, purities, categor
             <div key={o.key} className="em-row em-sb" style={{ gap: 12, padding: '12px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{pur(o.title)}</div>
-                <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
+                <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
                   {n > 0 ? t('{n} × {w} = {total} net', { n, w: fmtG(product.netWt), total: fmtG(product.netWt * n) }) : t('{w} net each', { w: fmtG(product.netWt) })}
                 </div>
               </div>

@@ -38,7 +38,7 @@ export const BottomNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNa
               <Icon n={tab.icon} size={tab.active ? 22 : 20} />
               {tab.badge ? <b key={tab.badge} className="em-bd">{tab.badge > 99 ? '99+' : tab.badge}</b> : null}
             </span>
-            {tab.label}
+            <i className="em-tab-l">{tab.label}</i>
           </button>
         ))}
       </nav>

@@ -76,7 +76,7 @@ export const AdminMessagesScreen: React.FC = () => {
 
 const Stat: React.FC<{ label: string; value: string; testId: string; tone?: string }> = ({ label, value, testId, tone }) => (
   <div className="card col" style={{ gap: 2 }} data-testid={testId}>
-    <span className="em-mut" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</span>
+    <span className="em-mut" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</span>
     <b className="em-ser" style={{ fontSize: 22, color: tone === 'bad' ? 'var(--em-bad)' : undefined }}>{value}</b>
   </div>
 );

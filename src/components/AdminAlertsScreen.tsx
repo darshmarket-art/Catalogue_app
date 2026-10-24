@@ -159,7 +159,7 @@ const StatusLine: React.FC<{ label: string; on: boolean; onText: string; offText
 
 const Wording: React.FC<{ label: string; text: string }> = ({ label, text }) => (
   <div>
-    <div className="em-mut" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</div>
+    <div className="em-mut" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</div>
     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{text}</div>
   </div>
 );

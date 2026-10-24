@@ -107,7 +107,7 @@ function Chart({ series }: { series: Summary['series'] }) {
     <>
       <svg viewBox={`0 0 ${W} ${H}`} className="cn-chart" role="img" aria-label={`Line chart, last 14 days: ${totalO} orders and ${totalV} visits. Orders use the left scale and visits the right scale.`}>
         <g stroke="#e6ddd0" strokeWidth="1">{[0, 0.5, 1].map((f) => <line key={f} x1={L} x2={W - R} y1={T + (H - T - B) * f} y2={T + (H - T - B) * f} />)}</g>
-        <g fontSize="10" fontFamily="Inter, sans-serif">
+        <g fontSize="12" fontFamily="Inter, sans-serif">
           <g fill="#5c1f3a" textAnchor="end"><text x={L - 6} y={T + 4}>{num(maxO)}</text><text x={L - 6} y={H - B + 4}>0</text></g>
           <g fill="#7a5f1d"><text x={W - R + 6} y={T + 4}>{num(maxV)}</text><text x={W - R + 6} y={H - B + 4}>0</text></g>
           <g fill="#6a625c"><text x={L} y={H - 6}>{label(series[0].day)}</text><text x={x(7)} y={H - 6} textAnchor="middle">{label(series[7].day)}</text><text x={W - R} y={H - 6} textAnchor="end">{label(series[13].day)}</text></g>
@@ -582,7 +582,7 @@ export function BugsPage({ v }: PageProps) {
                   <td>
                     <details>
                       <summary>{b.note ? `"${b.note}"` : b.message}</summary>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, maxWidth: 560 }}>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, maxWidth: 560 }}>
                         {[b.url, b.ctx && `Context: ${b.ctx}`, b.crumbs?.length ? `Steps before it:\n${b.crumbs.join('\n')}` : '', b.stack].filter(Boolean).join('\n\n')}
                       </pre>
                     </details>

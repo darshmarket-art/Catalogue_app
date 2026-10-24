@@ -51,7 +51,12 @@ const buyerCatalogue = async (page: Page) => {
 };
 const addToCart = async (page: Page) => {
   await buyerCatalogue(page);
-  await page.getByTestId('card-add-to-cart').first().click();
+  // A short landscape window: scroll the button to the middle first and let the sticky filters slide away (they do when the page scrolls down),
+  // or Playwright's own scrolling leaves the button under the filters, the header or the tab bar and gives up.
+  const add = page.getByTestId('card-add-to-cart').first();
+  await add.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(500);
+  await add.click();
   await page.getByTestId('cart-sheet-close').waitFor();
 };
 

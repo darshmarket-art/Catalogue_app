@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { expect, test } from '@playwright/test';
-import { HARD_FLOOR, MIN_TARGET, MIN_TEXT_PX, runAudits } from './audits';
+import { HARD_FLOOR, MIN_INPUT_PX, MIN_TARGET, MIN_TEXT_PX, PRIMARY_CONTROLS, runAudits } from './audits';
 import { REPORT_ONLY, STRICT_TARGETS, STRICT_TEXT, outDir } from './env';
 import { SCREENS, seedRole, settle } from './screens';
 import type { ComboResult } from './teardown';
@@ -47,13 +47,17 @@ for (const [width, height] of SIZES) {
           await page.screenshot({ path: path.join(outDir(), `${screen.role}-${screen.id}-${width}x${height}-${scale}.png`) });
           // The audit focuses every field in one go: bars that fade out for the keyboard must be in their end state by the time it looks (screenshot is already taken).
           await page.addStyleTag({ content: '*,*::before,*::after{transition:none!important}' });
-          const audits = await page.evaluate(runAudits, { width, clip: scale >= 200, minTarget: MIN_TARGET, hardFloor: HARD_FLOOR, minText: MIN_TEXT_PX });
+          const audits = await page.evaluate(runAudits, { width, clip: scale >= 200, minTarget: MIN_TARGET, hardFloor: HARD_FLOOR, minText: MIN_TEXT_PX, minInput: MIN_INPUT_PX, primary: PRIMARY_CONTROLS });
           write({ ...base, status: 'ok', audits });
 
           const short = (list: Array<{ selector: string }>) => list.slice(0, 5).map((o) => o.selector).join(', ');
           if (!REPORT_ONLY()) {
             expect.soft(audits.overflow.over || audits.overflow.cutOff, `horizontal overflow: scrollWidth ${audits.overflow.scrollWidth} vs ${width}; ${short(audits.overflow.offenders)}`).toBe(false);
             expect.soft(audits.coveredInputs, `inputs covered by a fixed or sticky bar, or off screen: ${short(audits.coveredInputs)}`).toEqual([]);
+            // Phase 3a: text fields are at least 16px (iOS zoom), and the main controls have a 44px target.
+            expect.soft(audits.smallInputs, `fields under ${MIN_INPUT_PX}px: ${short(audits.smallInputs)}`).toEqual([]);
+            const mainTargets = audits.tapTargets.offenders.filter((o) => o.primary);
+            expect.soft(mainTargets, `main controls under ${MIN_TARGET}x${MIN_TARGET}: ${short(mainTargets)}`).toEqual([]);
           }
           if (STRICT_TARGETS()) expect.soft(audits.tapTargets.offenders, `tap targets under ${MIN_TARGET}x${MIN_TARGET}: ${short(audits.tapTargets.offenders)}`).toEqual([]);
           if (STRICT_TEXT()) {

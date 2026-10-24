@@ -44,7 +44,7 @@ export const AntarixsWordmark: React.FC<{ dark?: boolean; caption?: string }> = 
 
 export const PoweredByAntarixs: React.FC = () => (
   <span style={{ alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999, border: '1px solid var(--em-line)', background: 'var(--em-tint)' }}>
-    <span className="em-mut" style={{ fontSize: 11, letterSpacing: '0.04em' }}>{t('Powered by')}</span>
+    <span className="em-mut" style={{ fontSize: 12, letterSpacing: '0.04em' }}>{t('Powered by')}</span>
     <AntarixsMark size={16} />
     <span className="em-ser" style={{ fontSize: 13 }}>Antarixs</span>
   </span>

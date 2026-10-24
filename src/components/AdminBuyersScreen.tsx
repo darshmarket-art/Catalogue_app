@@ -134,7 +134,7 @@ export const AdminBuyersScreen: React.FC = () => {
 
       <div className="inp-icon" style={{ marginTop: 4 }}>
         <Icon n="search" size={16} />
-        <input className="inp" style={{ height: 46 }} type="search" aria-label="Search shop or phone" placeholder="Search shop or phone" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input className="inp" style={{ minHeight: 46 }} type="search" aria-label="Search shop or phone" placeholder="Search shop or phone" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
       {error && <Notice tone="error">{error}</Notice>}
@@ -153,11 +153,11 @@ export const AdminBuyersScreen: React.FC = () => {
               <div className="em-ser em-clip" style={{ fontSize: 16 }}>
                 {b.firmName}
               </div>
-              <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }}>
+              <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }}>
                 {b.phone} · joined {joined(b.createdAt)}
                 {seen(b.lastSeen)}
               </div>
-              <div className="em-mut" style={{ fontSize: 11, marginTop: 2 }} data-testid="buyer-contact">
+              <div className="em-mut" style={{ fontSize: 12, marginTop: 2 }} data-testid="buyer-contact">
                 {[b.ownerName && b.ownerName !== b.firmName ? `Contact: ${b.ownerName}` : '', b.marketHub ? `Hub: ${b.marketHub}` : '', b.gstin && b.gstin !== 'PENDING-VERIFY' ? `GSTIN ${b.gstin}` : ''].filter(Boolean).join(' · ')}
               </div>
             </div>
