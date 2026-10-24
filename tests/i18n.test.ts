@@ -36,3 +36,18 @@ describe('buyer language (English / Hindi)', () => {
     expect(purityHindi('22K 916')).toBe('22 कैरेट 916');
   });
 });
+
+describe('document language', () => {
+  it('keeps <html lang> in step with the chosen language', () => {
+    const doc = { documentElement: { lang: 'en' } };
+    (globalThis as { document?: unknown }).document = doc;
+    try {
+      setLang('hi');
+      expect(doc.documentElement.lang).toBe('hi');
+      setLang('en');
+      expect(doc.documentElement.lang).toBe('en');
+    } finally {
+      delete (globalThis as { document?: unknown }).document;
+    }
+  });
+});

@@ -7,6 +7,7 @@ import { useDesktop } from './useDesktop';
 import { Icon, OrderStatusPill, Ph, Title, fmtG, type KitProps } from './ui';
 import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
 import { errorText } from '../../bugReport';
+import { SIZES_THUMB } from '../../photoSrcSet';
 
 const when = (iso: string) => new Date(iso).toLocaleString(getLang() === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -324,7 +325,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
             <div className="em-ol-list" style={{ marginTop: 8 }}>
               {orders.map((item, i) => (
                 <div key={item.id} className="em-li">
-                  <Ph src={item.image} tone={i} className="em-thumb" style={{ width: 76, height: 76 }} />
+                  <Ph src={item.image} tone={i} className="em-thumb" style={{ width: 76, height: 76 }} sizes={SIZES_THUMB} />
                   <div className="em-grow">
                     <div className="em-ser" style={{ fontSize: 16 }}>
                       {hn(item.title, item.titleHi)}

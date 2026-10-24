@@ -9,6 +9,7 @@ import { CartSheet, soldPurities } from './CartSheet';
 import { Icon, Ph, Pill, StockPill, fmtG } from './ui';
 import { useBackLayer } from '../../backLayer';
 import { getLang, hl, hn, pur, t, tl, ts, useLang } from '../../i18n';
+import { SIZES_FULL, SIZES_THUMB } from '../../photoSrcSet';
 
 interface ProductDetailProps {
   product: Product | null;
@@ -193,7 +194,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
             <div ref={scroller} data-testid="product-gallery" className="em-gal" onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
               {slides.map((src, i) => (
                 <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={t('Zoom photo {n} of {name}', { n: i + 1, name })}>
-                  <Ph src={src} tone={i} alt={slides.length > 1 ? `${name}, ${t('Photo {n}', { n: i + 1 })}` : name} style={i === 0 ? { viewTransitionName: 'product-photo' } as React.CSSProperties : undefined} />
+                  <Ph src={src} tone={i} sizes={SIZES_FULL} priority={i === 0} alt={slides.length > 1 ? `${name}, ${t('Photo {n}', { n: i + 1 })}` : name} style={i === 0 ? { viewTransitionName: 'product-photo' } as React.CSSProperties : undefined} />
                 </button>
               ))}
             </div>
@@ -211,7 +212,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
               <div className="em-dk fx em-pd-thumbs" role="group" aria-label={t('Photos')}>
                 {slides.map((src, i) => (
                   <button key={`th-${i}-${src}`} type="button" className={slide === i ? 'on' : ''} aria-label={t('Photo {n}', { n: i + 1 })} aria-current={slide === i ? 'true' : undefined} onClick={() => goTo(i)}>
-                    <Ph src={src} tone={i} className="em-fill" />
+                    <Ph src={src} tone={i} className="em-fill" sizes={SIZES_THUMB} />
                   </button>
                 ))}
               </div>

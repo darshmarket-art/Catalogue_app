@@ -12,6 +12,7 @@ import { grams, hn, pur, t, tl, tn, ts, useLang } from '../../i18n';
 import { toHindi } from '../../../shared/hindi';
 import { errorText } from '../../bugReport';
 import { reducedMotion } from '../../spring';
+import { SIZES_FULL, SIZES_GRID, SIZES_THUMB } from '../../photoSrcSet';
 
 /** Up to this many collections are all shown on Home; more than this and Home features four (the owner's hero collections) plus a Browse all page. */
 const FEW = 6;
@@ -153,7 +154,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
               ) : banners.length > 0
                 ? banners.map((b, i) => (
                     <button key={b.id} type="button" className="em-slide" disabled={!b.category} onClick={() => b.category && onFilterCategoryInCatalogue(b.category)} aria-label={b.category ? t('Open {name}', { name: catName(b.category) }) : t('Banner {n}', { n: i + 1 })}>
-                      <Ph src={b.image} tone={i} className="em-fill" alt={b.category ? catName(b.category) : t('Banner {n}', { n: i + 1 })} />
+                      <Ph src={b.image} tone={i} className="em-fill" sizes={SIZES_FULL} priority={i === 0} alt={b.category ? catName(b.category) : t('Banner {n}', { n: i + 1 })} />
                       {b.category && (
                         <>
                           <span className="em-sc" />
@@ -262,7 +263,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           {shown.map((cat, i) => (
             <div key={cat.id} className="em-sq" data-testid="home-collection">
               <button type="button" className="em-hit" aria-label={t('Open {name}', { name: hn(cat.name, cat.nameHi) })} onClick={() => onFilterCategoryInCatalogue(cat.name)}>
-                <Ph src={cat.image} tone={i} className="em-fill" alt={hn(cat.name, cat.nameHi)} />
+                <Ph src={cat.image} tone={i} className="em-fill" sizes={SIZES_GRID} alt={hn(cat.name, cat.nameHi)} />
                 <span className="em-sc" />
                 {cat.tag && <span className="em-dk em-pill em-col-tag">{ts(cat.tag)}</span>}
                 <span className="em-col-ov">
@@ -303,7 +304,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           <div className="em-chips em-strip" style={{ paddingTop: 10, paddingBottom: 0 }}>
             {viewed.map((p, i) => (
               <button key={p.id} type="button" className="em-strip-i" aria-label={t('Open {name}', { name: hn(p.title, p.titleHi) })} onClick={() => onOpenDesign?.(p.sku)}>
-                <Ph src={p.image} tone={i} className="em-strip-ph" />
+                <Ph src={p.image} tone={i} className="em-strip-ph" sizes={SIZES_THUMB} />
                 <span>{hn(p.title, p.titleHi)}</span>
                 <b className="em-dk em-strip-wt">{t('{w} net', { w: fmtG(p.netWt) })}</b>
               </button>

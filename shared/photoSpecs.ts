@@ -58,3 +58,6 @@ export function sourceRect(v: CropView): { sx: number; sy: number; sw: number; s
   const { ox, oy } = clampOffset(v);
   return { sx: -ox / s || 0, sy: -oy / s || 0, sw: v.cw / s, sh: v.ch / s };
 }
+
+/** Widths the /media route can resize a stored photo to (?w=). A fixed list, so a caller cannot make the server cache endless variants; the client builds its srcset from the same list. */
+export const PHOTO_VARIANT_WIDTHS = [240, 480, 960, 1440] as const;

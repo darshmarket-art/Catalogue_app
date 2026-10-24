@@ -191,7 +191,7 @@ export const EntryScreen: React.FC = () => {
       <main>
         <header className="ax-hero">
           <div className="ax-photo ax-banner" aria-hidden="false">
-            <img src="/platform/banner.jpg" alt="Peacock earrings in gold with kundan, enamel and a ruby drop, on brown velvet" fetchPriority="high" />
+            <img src="/platform/banner.jpg" alt="Peacock earrings in gold with kundan, enamel and a ruby drop, on brown velvet" width={892} height={1583} fetchPriority="high" decoding="async" />
           </div>
           <div className="ax-wrap ax-hero-in">
           <div className="ax-nav">

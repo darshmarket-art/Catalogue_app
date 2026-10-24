@@ -7,6 +7,7 @@ import type { Entitlements } from '../entitlements';
 import { HttpError, handler } from '../http';
 import { logger } from '../logger';
 import sharp from 'sharp';
+import { PHOTO_VARIANT_WIDTHS } from '../../shared/photoSpecs';
 
 // Uploads can be large (phone photos), so the limit is generous; they are shrunk before they are stored. Cloud Run accepts requests up to 32 MB.
 export const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
@@ -71,8 +72,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
   return router;
 }
 
-/** Serves a photo to anyone holding an unexpired link that this server signed. */
-export const THUMB_WIDTHS = new Set([240, 480, 960]);
+export const THUMB_WIDTHS: ReadonlySet<number> = new Set(PHOTO_VARIANT_WIDTHS);
 
 /** Resized WebP copies for grids, made on first request with sharp and kept next to the originals. Falls back to the original. */
 async function thumbnail(blobs: Blobs, file: string, width: number): Promise<Blob | null> {
@@ -92,6 +92,7 @@ async function thumbnail(blobs: Blobs, file: string, width: number): Promise<Blo
   }
 }
 
+/** Serves a photo to anyone holding an unexpired link that this server signed. ?w=<one of THUMB_WIDTHS> returns a resized WebP; any other value gets the original, as before. */
 export function mediaRoute(blobs: Blobs, media: Media): RequestHandler {
   return handler(async (req, res) => {
     const file = String(req.params.file);

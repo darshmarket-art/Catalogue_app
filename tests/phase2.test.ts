@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { loadConfig, type Config } from '../server/config';
 import { MemoryStore, type Store } from '../server/store';
-import { scopeStore, newStoreRecord } from '../server/tenancy';
+import { scopeStore, scopeBlobs, newStoreRecord } from '../server/tenancy';
 import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
@@ -117,6 +117,33 @@ describe('photo upload and private links', () => {
     expect((await request(app).get(longAgo)).status).toBe(403);
     // the same file under another secret is rejected
     expect((await request(app).get(createMedia('y'.repeat(48)).linkFor(file))).status).toBe(403);
+  });
+
+  it('?w= serves a resized WebP only for the listed widths, cached once per width, and the plain link still gives the original', async () => {
+    const sharp = (await import('sharp')).default;
+    const big = await sharp({ create: { width: 1000, height: 500, channels: 3, background: '#b8860b' } }).jpeg().toBuffer();
+    const auth = await admin(app);
+    const { url } = (await upload(app, auth, big)).body.data;
+    const file = url.split('?')[0].replace('/media/', '');
+
+    const small = await request(app).get(`${url}&w=480`).buffer(true).parse((res, cb) => { const c: Buffer[] = []; res.on('data', (d: Buffer) => c.push(d)); res.on('end', () => cb(null, Buffer.concat(c))); });
+    expect(small.status).toBe(200);
+    expect(small.headers['content-type']).toBe('image/webp');
+    expect((await sharp(small.body).metadata()).width).toBe(480);
+    const mine = scopeBlobs(blobs, 'bhakti');
+    expect(await mine.get(`thumbs/${file}-480.webp`)).not.toBeNull();
+
+    // any other width is ignored (no variant is made) and the original comes back as before
+    for (const w of ['500', '0', '-1', '99999', 'abc', '480.5', '480&w=240']) {
+      const res = await request(app).get(`${url}&w=${w}`);
+      expect(res.status, w).toBe(200);
+      expect(res.headers['content-type'], w).toBe('image/jpeg');
+    }
+    expect(await mine.get(`thumbs/${file}-500.webp`)).toBeNull();
+    expect((await request(app).get(url)).headers['content-type']).toBe('image/jpeg');
+
+    // the signature still decides access; a width cannot unlock a photo
+    expect((await request(app).get(url.replace(/s=.*/, 's=forged') + '&w=480')).status).toBe(403);
   });
 
   it('links are stable within a window, so browsers can cache the photo', () => {
