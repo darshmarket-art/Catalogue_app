@@ -41,6 +41,44 @@ const markScrolled = () => {
 window.addEventListener('scroll', () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(markScrolled); }, {passive: true});
 markScrolled();
 
+// The soft keyboard and covered fields. While a text field has focus on a touch screen under 1024 px, html[data-typing] is set and CSS moves the floating
+// bars out of the way (the keyboard takes the room). Chrome scrolls only the caret of a focused text field into view and ignores scroll-margin on it; a select it
+// scrolls into the whole page, ignoring scroll-padding. So on focus the padding is set to what sits over the page's top and bottom edges right then (measured,
+// not guessed: the header, the tab bar, the docks, the cart bar, the save bar) and the field is scrolled in by hand, which honours it. Cleared at the blur.
+const TEXT_FIELD = 'textarea, input:not([type=checkbox], [type=radio], [type=range], [type=button], [type=submit], [type=file])';
+const touchPhone = window.matchMedia('(max-width: 1023.98px) and (pointer: coarse)');
+let release = 0;
+const floating = (bar: Element) => ['fixed', 'sticky'].includes(getComputedStyle(bar).position);
+document.addEventListener('focusin', (e) => {
+  const field = e.target instanceof Element && e.target.matches(`${TEXT_FIELD}, select`) ? e.target : null;
+  if (!field) return; // a button taking focus leaves the pending release alone
+  window.clearTimeout(release);
+  const root = document.documentElement;
+  const typing = touchPhone.matches && field.matches(TEXT_FIELD);
+  root.toggleAttribute('data-typing', typing);
+  let top = 0;
+  for (const bar of document.querySelectorAll('.em-top, .topbar')) if (floating(bar)) top = Math.max(top, bar.getBoundingClientRect().bottom);
+  let bottom = 0;
+  // While typing the bottom bars are gone or resting in the flow, so nothing covers the bottom.
+  if (!typing) for (const bar of document.querySelectorAll('.em-tabs, .em-dock, .em-cartbar, .em-savebar')) {
+    const r = bar.getBoundingClientRect();
+    if (floating(bar) && r.height && r.top < window.innerHeight) bottom = Math.max(bottom, window.innerHeight - r.top);
+  }
+  root.style.setProperty('--scroll-pad-t', top ? `${top + 8}px` : '0px');
+  root.style.setProperty('--scroll-pad-b', bottom ? `${bottom + 12}px` : '0px');
+  field.scrollIntoView({ block: 'nearest' }); // the whole field, not just the caret (and a select, which the browser scrolls without the padding)
+});
+// The bars come back 200 ms after the blur, not at it: a tap on a button blurs the field on the way down and clicks a few ms later, and a bar that has
+// moved by then makes the click miss (the save bar going from resting to sticking, for one). Moving to another field cancels it, so nothing flickers.
+document.addEventListener('focusout', () => {
+  release = window.setTimeout(() => {
+    const root = document.documentElement;
+    root.removeAttribute('data-typing');
+    root.style.removeProperty('--scroll-pad-t');
+    root.style.removeProperty('--scroll-pad-b');
+  }, 200);
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {window.location.pathname === '/welcome-antarixs' ? <EntryScreen /> : window.location.pathname === '/signup' ? <SignupScreen /> : <PlanProvider><App /></PlanProvider>}

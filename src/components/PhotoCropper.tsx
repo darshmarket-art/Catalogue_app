@@ -110,8 +110,9 @@ export const PhotoCropper: React.FC<{ file: File; spec: PhotoSpec; onDone: (crop
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Fit the ${spec.label.toLowerCase()} photo`} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(20,10,16,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div className="card col" style={{ gap: 12, padding: 16, maxWidth: 400, width: '100%', alignItems: 'center' }}>
+    <div role="dialog" aria-modal="true" aria-label={`Fit the ${spec.label.toLowerCase()} photo`} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(20,10,16,0.6)', display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: 16 }}>
+      {/* margin auto centres the card and, unlike align-items, lets a short window (a landscape phone) scroll to the buttons instead of cutting them off. */}
+      <div className="card col" style={{ gap: 12, padding: 16, maxWidth: 400, width: '100%', alignItems: 'center', margin: 'auto' }}>
         <b>Fit the {spec.label.toLowerCase()} photo</b>
         <p className="sub" style={{ fontSize: 13, textAlign: 'center' }}>
           {spec.tip}

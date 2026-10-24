@@ -21,8 +21,8 @@ small { font-size: 11.5px; color: var(--muted); }
 .rule { height: 1px; width: 44px; background: var(--gold); margin: 8px 0; }
 
 /* shell */
-.cn-body { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
-.cn-side { background: var(--deep); color: #faf6f1; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.cn-body { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; min-height: 100dvh; }
+.cn-side { background: var(--deep); color: #faf6f1; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto; }
 .cn-brand { display: flex; gap: 10px; align-items: center; padding: 0 6px; }
 .cn-brand b { font-size: 18px; font-weight: 500; display: block; line-height: 1.2; }
 .cn-brand small { color: rgba(250, 246, 241, 0.65); letter-spacing: 0.2em; text-transform: uppercase; font-size: 9px; font-weight: 600; }

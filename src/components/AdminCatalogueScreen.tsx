@@ -271,7 +271,7 @@ const CollectionPicker: React.FC<{ categories: Category[]; current: string; onPi
         <Icon n="search" size={16} />
         <input aria-label="Search collections" data-testid="collection-picker-search" placeholder="Search collections" type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} />
       </label>
-      <div style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+      <div style={{ maxHeight: '50dvh', overflowY: 'auto' }}>
         {!q && (
           <button type="button" className="em-li" style={{ width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit', background: 'none', border: 0, borderBottom: '1px solid var(--em-line)', cursor: 'pointer' }} onClick={() => onPick('')}>
             <span className="em-grow"><b style={{ fontWeight: 600 }}>All collections</b></span>

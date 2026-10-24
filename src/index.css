@@ -92,10 +92,18 @@
   --header-h: 72px;
   --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  /* Side insets: a landscape phone's camera cut-out. 0 in portrait and on desktop. */
+  --sal: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --sar: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
 }
 
 html.native {
   --header-h: 56px;
+}
+
+/* Set by main.tsx while a field has focus: the browser scrolls the field clear of the bars that sit over the page. */
+html {
+  scroll-padding-block: var(--scroll-pad-t, 0px) var(--scroll-pad-b, 0px);
 }
 
 @utility pt-safe {

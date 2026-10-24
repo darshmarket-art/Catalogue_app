@@ -45,6 +45,8 @@ for (const [width, height] of SIZES) {
           await settle(page);
 
           await page.screenshot({ path: path.join(outDir(), `${screen.role}-${screen.id}-${width}x${height}-${scale}.png`) });
+          // The audit focuses every field in one go: bars that fade out for the keyboard must be in their end state by the time it looks (screenshot is already taken).
+          await page.addStyleTag({ content: '*,*::before,*::after{transition:none!important}' });
           const audits = await page.evaluate(runAudits, { width, clip: scale >= 200, minTarget: MIN_TARGET, hardFloor: HARD_FLOOR, minText: MIN_TEXT_PX });
           write({ ...base, status: 'ok', audits });
 
