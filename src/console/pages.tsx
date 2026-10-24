@@ -548,37 +548,54 @@ export function SubdomainsPage({ summary }: PageProps) {
   );
 }
 
+const BUG_KIND_LABEL: Record<string, string> = {
+  error: 'Error', promise: 'Promise', console: 'Console', resource: 'File failed', csp: 'Blocked', api: 'Call failed',
+  slow: 'Slow call', crash: 'Page died', server: 'Server 500', user: 'Reported'
+};
+
 export function BugsPage({ v }: PageProps) {
   const api = useApi<BugRow[]>('/bugs', v);
+  const [kind, setKind] = useState('');
+  const rows = (api.data ?? []).filter((b) => !kind || (b.kind ?? 'error') === kind);
+  const counts = (api.data ?? []).reduce<Record<string, number>>((m, b) => ({ ...m, [b.kind ?? 'error']: (m[b.kind ?? 'error'] ?? 0) + 1 }), {});
   return (
     <>
       <Load s={api} />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+        <button type="button" className={`cn-btn sm${kind === '' ? '' : ' ghost'}`} onClick={() => setKind('')}>All {api.data?.length ?? 0}</button>
+        {Object.keys(BUG_KIND_LABEL).filter((k) => counts[k]).map((k) => (
+          <button key={k} type="button" className={`cn-btn sm${kind === k ? '' : ' ghost'}`} onClick={() => setKind(k)}>{BUG_KIND_LABEL[k]} {counts[k]}</button>
+        ))}
+      </div>
       <div className="cn-card" style={{ padding: 8 }}>
         <div className="cn-tw">
           <table className="cn-t">
-            <caption className="sr-only">Errors from customers' apps, newest first</caption>
-            <thead><tr>{['When', 'Store', 'Where', 'Error', 'Device'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
+            <caption className="sr-only">Problems from customers' apps and the server, latest first</caption>
+            <thead><tr>{['Last seen', 'Store', 'Kind', 'Where', 'Problem', 'Device'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>
-              {(api.data ?? []).map((b) => (
+              {rows.map((b) => (
                 <tr key={b.id}>
-                  <td>{stamp(b.at)}</td>
+                  <td>{stamp(b.at)}{(b.count ?? 1) > 1 && <small> · {b.count}×</small>}{b.firstAt && b.firstAt !== b.at && <><br /><small>first {stamp(b.firstAt)}</small></>}</td>
                   <td>{b.storeId ? <a className="cn-store" href={`#/stores/${b.storeId}`}>{b.storeId}</a> : 'Antarixs site'}</td>
+                  <td>{BUG_KIND_LABEL[b.kind ?? 'error'] ?? b.kind}</td>
                   <td>{b.where ?? '—'}</td>
                   <td>
                     <details>
-                      <summary>{b.message}</summary>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, maxWidth: 560 }}>{[b.url, b.stack].filter(Boolean).join('\n\n')}</pre>
+                      <summary>{b.note ? `"${b.note}"` : b.message}</summary>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, maxWidth: 560 }}>
+                        {[b.url, b.ctx && `Context: ${b.ctx}`, b.crumbs?.length ? `Steps before it:\n${b.crumbs.join('\n')}` : '', b.stack].filter(Boolean).join('\n\n')}
+                      </pre>
                     </details>
                   </td>
                   <td>{b.native ? 'Android app' : 'Browser'}{b.appVersion ? ` · v${b.appVersion}` : ''}<br /><small>{b.userAgent.slice(0, 60)}</small></td>
                 </tr>
               ))}
-              {api.data && api.data.length === 0 && <tr><td colSpan={5} className="empty">No bug reports.</td></tr>}
+              {api.data && rows.length === 0 && <tr><td colSpan={6} className="empty">No bug reports.</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      <small>The latest 100 errors customers' apps hit. They saw a short message; the details are here.</small>
+      <small>The latest 100 distinct problems, newest first. The same problem is one row with a count. Customers saw a short message; the steps before it are inside each row.</small>
     </>
   );
 }

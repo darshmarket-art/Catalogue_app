@@ -66,5 +66,6 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
     return res.status(400).json({ status: 'error', message: 'Malformed JSON body.' });
   }
   logger.error('unhandled error', { path: req.path, error: err?.stack || String(err) });
+  void res.locals.recordBug?.({ kind: 'server', message: String(err?.message ?? err), stack: err?.stack, where: `${req.method} ${req.path}`.slice(0, 80), url: req.originalUrl.split('?')[0], native: req.get('x-app-client') === 'native', appVersion: req.get('x-app-version') ?? undefined });
   res.status(500).json({ status: 'error', message: 'Something went wrong. Please try again.' });
 }

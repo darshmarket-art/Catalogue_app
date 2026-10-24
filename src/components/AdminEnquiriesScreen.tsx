@@ -30,7 +30,7 @@ const about = (e: EnquiryRow) =>
 
 const digits = (phone: string) => phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1');
 
-/** WhatsApp enquiries (Pro): everything buyers sent the store on WhatsApp, newest first, with a one-tap reply. */
+/** WhatsApp enquiries (Pro): everything buyers sent the store on WhatsApp, waiting ones first (newest first), replied ones below, with a one-tap reply. */
 export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onChanged }) => {
   const { flags } = usePlan();
   const [rows, setRows] = useState<EnquiryRow[] | null>(null);
@@ -55,7 +55,8 @@ export const AdminEnquiriesScreen: React.FC<{ onChanged?: () => void }> = ({ onC
   }, [flags.enquiries]);
 
   const q = query.trim().toLowerCase();
-  const shown = (rows ?? []).filter((e) => (kind === 'all' || e.kind === kind) && (!q || `${e.firmName} ${e.ownerName} ${e.buyerPhone} ${e.title ?? ''} ${e.sku ?? ''}`.toLowerCase().includes(q)));
+  const shown = (rows ?? []).filter((e) => (kind === 'all' || e.kind === kind) && (!q || `${e.firmName} ${e.ownerName} ${e.buyerPhone} ${e.title ?? ''} ${e.sku ?? ''}`.toLowerCase().includes(q)))
+    .sort((a, b) => Number(Boolean(a.repliedAt)) - Number(Boolean(b.repliedAt))); // waiting first; a replied one drops below (stable, so each group stays newest first)
 
   return (
     <div className="scroll" style={{ gap: 12 }} data-testid="admin-enquiries-screen">

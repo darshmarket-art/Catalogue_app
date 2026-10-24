@@ -20,6 +20,7 @@ import {
 import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { noteApiCall } from './bugReport';
 
 // Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
 const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
@@ -43,7 +44,16 @@ const apiFetch = async (url: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
   headers.set('X-App-Version', __APP_VERSION__);
   if (STORE) headers.set('X-Store', STORE);
-  const res = await fetch(url, { ...init, headers });
+  const started = Date.now();
+  const method = (init.method ?? 'GET').toUpperCase();
+  let res: Response;
+  try {
+    res = await fetch(url, { ...init, headers });
+  } catch (err) {
+    noteApiCall(method, url, 'failed', Date.now() - started, err);
+    throw err;
+  }
+  noteApiCall(method, url, res.status, Date.now() - started);
   if (res.status === 426) window.dispatchEvent(new Event('app-update-required'));
   return res;
 };

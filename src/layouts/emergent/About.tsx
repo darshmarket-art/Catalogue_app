@@ -4,6 +4,7 @@ import { LegalLinks } from '../../components/LegalLinks';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
 import { hl, hn, t, tl, ts, useLang } from '../../i18n';
+import { reportProblem } from '../../bugReport';
 
 /** "About us" (atlas About): a hero under the top bar, then the store's details as icon rows. Anything the owner leaves empty falls back to the merchant's own details, or is hidden. */
 export const About: React.FC<KitProps<'About'>> = ({ about }) => {
@@ -94,12 +95,44 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
             ))}
           </div>
         </div>
+        <ReportProblem />
         <div className="em-ab-foot" style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <PoweredByAntarixs />
           <span className="em-hint">{window.location.hostname}</span>
           <LegalLinks />
         </div>
       </div>
+    </div>
+  );
+};
+
+/** Something looked wrong but nothing failed (so nothing reported itself): a note goes to Bug reports with the steps that led here. */
+const ReportProblem: React.FC = () => {
+  const [open, setOpen] = React.useState(false);
+  const [note, setNote] = React.useState('');
+  const [sent, setSent] = React.useState(false);
+  if (sent) return <p className="em-hint" style={{ marginTop: 24, textAlign: 'center' }}>{t('Thank you, we have it.')}</p>;
+  if (!open) {
+    return (
+      <button type="button" className="em-link" data-testid="report-problem" style={{ marginTop: 24, alignSelf: 'center' }} onClick={() => setOpen(true)}>
+        {t('Report a problem')}
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={3} placeholder={t('What went wrong?')} aria-label={t('Report a problem')} style={{ width: '100%' }} />
+      <button
+        type="button"
+        className="em-btn sec sm"
+        disabled={note.trim().length < 3}
+        onClick={() => {
+          reportProblem(note.trim());
+          setSent(true);
+        }}
+      >
+        {t('Send')}
+      </button>
     </div>
   );
 };

@@ -6,7 +6,7 @@ import './index.css';
 import {PlanProvider} from './plan';
 import {EntryScreen} from './components/EntryScreen';
 import {SignupScreen} from './components/SignupScreen';
-import {reportBug} from './bugReport';
+import {installBugCapture} from './bugReport';
 
 // The service worker only runs in the real app (it would get in the way of the dev server's live reload).
 if ('serviceWorker' in navigator && import.meta.env.PROD && !Capacitor.isNativePlatform()) {
@@ -21,9 +21,9 @@ window.addEventListener('vite:preloadError', () => {
   window.location.reload();
 });
 
-// Anything that escapes the screens goes to console.<domain> (Bug reports), not to the customer.
-window.addEventListener('error', (e) => reportBug(e.error ?? e.message, 'uncaught'));
-window.addEventListener('unhandledrejection', (e) => reportBug(e.reason, 'unhandled promise'));
+// Everything that goes wrong (errors, rejected promises, console.error, failed files, blocked requests, failed or slow calls,
+// a page that died) goes to console.<domain> (Bug reports) with the steps that led to it, not to the customer.
+installBugCapture();
 
 if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native');

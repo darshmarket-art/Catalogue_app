@@ -17,7 +17,7 @@ import { orderRoutes } from './routes/orders';
 import { aboutRoutes, whatsappOf } from './routes/about';
 import { brandLogoRoutes } from './routes/brandLogo';
 import type { MerchantConfig } from './merchant';
-import { bugReportRoutes } from './routes/bugReports';
+import { bugReportRoutes, recordBug } from './routes/bugReports';
 import { pwaRoutes } from './routes/pwa';
 import { legalRoutes, platformRoutes } from './legal';
 import compression from 'compression';
@@ -59,6 +59,12 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   const app = express();
 
   app.disable('x-powered-by');
+  // Server-side failures (a 500) are recorded in Bug reports too; the store apps mounted below reach this through res.locals.
+  app.use((req, res, next) => {
+    res.locals.recordBug = (input: Parameters<typeof recordBug>[3]) => recordBug(root, config, req, input);
+    next();
+  });
+
   // Cloud Run terminates TLS in front of the container; trust exactly one proxy hop for client IPs.
   if (config.isProduction) app.set('trust proxy', 1);
 

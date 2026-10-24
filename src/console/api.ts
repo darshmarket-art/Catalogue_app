@@ -32,7 +32,7 @@ export interface Row {
   limits: { buyers: number | null; photos: number | null }; lastActiveAt: string | null;
   categories?: number; audit?: AuditRow[];
 }
-export interface BugRow { id: string; at: string; storeId: string | null; message: string; stack?: string; where?: string; url?: string; appVersion?: string; native?: boolean; userAgent: string }
+export interface BugRow { id: string; at: string; firstAt?: string; count?: number; kind?: string; storeId: string | null; message: string; stack?: string; where?: string; url?: string; appVersion?: string; native?: boolean; userAgent: string; crumbs?: string[]; ctx?: string; note?: string }
 export interface AuditRow { id: string; at: string; who: string; storeId?: string; action?: string; what: string }
 export interface Summary {
   generatedAt: string;

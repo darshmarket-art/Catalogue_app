@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Category, Product } from '../types';
 import { merchant } from '../merchant';
 import { downloadDesignsPdf } from '../cataloguePdf';
+import { api } from '../api';
 import { Chip, Notice } from './ui';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
 import { errorText } from '../bugReport';
@@ -10,36 +11,62 @@ import { errorText } from '../bugReport';
  * PDF catalogue (admin): pick designs from every collection, then download or share one PDF.
  * A screen of its own, so it works the same in every layout (the buyer Catalogue screen is layout-specific).
  */
-export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Category[] }> = ({ products, categories }) => {
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+const PAGE = 120;
+
+export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Category[] }> = ({ products: firstPage, categories }) => {
+  // The picked designs themselves, not just ids: a pick made in one collection stays when another collection is opened.
+  const [picked, setPicked] = useState<Map<string, Product>>(new Map());
   const [collection, setCollection] = useState<string | null>(null);
+  // The app only holds the newest designs, so the grid asks the server for the open collection, a page at a time.
+  const [visible, setVisible] = useState<Product[]>(firstPage);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const request = useRef(0);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const visible = useMemo(() => products.filter((p) => !collection || p.category === collection), [products, collection]);
-  const chips = categories.map((c) => c.name).filter((name) => products.some((p) => p.category === name));
-  const chosen = products.filter((p) => picked.has(p.id));
+  const load = async (offset: number) => {
+    const mine = ++request.current;
+    setLoading(true);
+    try {
+      const page = await api.queryProducts({ ...(collection ? { category: collection } : {}), limit: PAGE, offset });
+      if (mine !== request.current) return; // another collection was opened meanwhile
+      setVisible((prev) => (offset === 0 ? page.items : [...prev, ...page.items]));
+      setHasMore(page.hasMore);
+    } catch (err) {
+      if (mine === request.current) setError(errorText(err, 'admin PDF catalogue', 'Could not load the designs.'));
+    } finally {
+      if (mine === request.current) setLoading(false);
+    }
+  };
+  useEffect(() => {
+    void load(0);
+  }, [collection]);
+
+  const chips = categories.filter((c) => c.designCount > 0).map((c) => c.name);
+  const chosen = [...picked.values()];
   const collections = new Set(chosen.map((p) => p.category)).size;
   const netTotal = chosen.reduce((sum, p) => sum + p.netWt, 0);
   // One collection picked: its name is the title and file name; a mix is called a selection.
   const title = collections === 1 ? chosen[0].category : 'Selection';
   const allVisiblePicked = visible.length > 0 && visible.every((p) => picked.has(p.id));
+  const none = !loading && visible.length === 0;
 
-  const toggle = (id: string) =>
+  const toggle = (p: Product) =>
     setPicked((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      const next = new Map(prev);
+      if (next.has(p.id)) next.delete(p.id);
+      else next.set(p.id, p);
       return next;
     });
 
   const toggleVisible = () =>
     setPicked((prev) => {
-      const next = new Set(prev);
+      const next = new Map(prev);
       for (const p of visible) {
         if (allVisiblePicked) next.delete(p.id);
-        else next.add(p.id);
+        else next.set(p.id, p);
       }
       return next;
     });
@@ -105,7 +132,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
 
       {error && <Notice tone="error">{error}</Notice>}
 
-      {products.length === 0 ? (
+      {categories.length === 0 || (none && !collection) ? (
         <p className="sub" style={{ textAlign: 'center', padding: '32px 0' }}>
           No designs have been added yet. Add designs, then come back to share them.
         </p>
@@ -121,6 +148,11 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
               </Chip>
             ))}
           </div>
+          {collection && (
+            <p className="hint" style={{ margin: 0 }}>
+              Your picks stay when you open another collection. Open one, tap designs, then open the next.
+            </p>
+          )}
 
           <div className="grid2 md:!grid-cols-3" data-testid="pdf-grid">
             {visible.map((p, i) => {
@@ -132,7 +164,7 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                   data-testid={`pdf-pick-${p.sku}`}
                   aria-pressed={on}
                   aria-label={`${on ? 'Remove' : 'Add'} ${p.title}`}
-                  onClick={() => toggle(p.id)}
+                  onClick={() => toggle(p)}
                   className={`em-pickcard${on ? ' on' : ''}`}
                   style={{ opacity: picked.size > 0 && !on ? 0.72 : 1 }}
                 >
@@ -157,6 +189,13 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
             })}
           </div>
 
+          {hasMore && (
+            <button type="button" className="btn alt" data-testid="pdf-more" disabled={loading} onClick={() => load(visible.length)} style={{ alignSelf: 'center' }}>
+              {loading ? 'Loading…' : 'Show more designs'}
+            </button>
+          )}
+          {loading && visible.length === 0 && <p className="hint" style={{ textAlign: 'center' }}>Loading designs…</p>}
+
           <div className="dock low">
             <div className="card col" style={{ gap: 10, padding: '12px 16px', boxShadow: 'var(--sh-2)' }}>
               <div className="row">
@@ -164,10 +203,10 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                   {picked.size} selected
                 </b>
                 <button type="button" className="lnk" style={{ minHeight: 30, fontSize: 13.5 }} onClick={toggleVisible} disabled={visible.length === 0}>
-                  {allVisiblePicked ? 'Clear' : `Select all ${visible.length}`}
+                  {allVisiblePicked ? 'Clear' : `Select these ${visible.length}`}
                 </button>
                 {picked.size > 0 && (
-                  <button type="button" className="lnk" style={{ minHeight: 30, fontSize: 13.5 }} onClick={() => setPicked(new Set())}>
+                  <button type="button" className="lnk" style={{ minHeight: 30, fontSize: 13.5 }} onClick={() => setPicked(new Map())}>
                     None
                   </button>
                 )}
