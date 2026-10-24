@@ -5,6 +5,7 @@ import { usePlan } from '../plan';
 import { Icon } from '../layouts/emergent/ui';
 import { useBackLayer } from '../backLayer';
 import { setLang, t, ts, useLang } from '../i18n';
+import { cardY, needsScroll } from './tourPlace';
 
 /** A design the tour borrows to show shortlisting and ordering; removed again when the tour ends. */
 export interface TourSample {
@@ -120,6 +121,8 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
   // Whether the step being shown lights up an element (otherwise the card sits in the middle).
   const [aimed, setAimed] = useState(false);
   const target = useRef<Element | null>(null);
+  // How to find the current step's element again (a rotation can swap it for another, e.g. the filter button for the filter panel).
+  const retarget = useRef<(() => Element | null) | null>(null);
   const aimedRef = useRef(false);
   const radius = useRef(28);
   const holeRef = useRef<HTMLDivElement>(null);
@@ -147,7 +150,8 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      const el = target.current;
+      let el = target.current;
+      if (aimedRef.current && el && !el.isConnected) el = target.current = retarget.current?.() ?? el;
       if (aimedRef.current && el && el.isConnected) {
         const r = el.getBoundingClientRect();
         if (r.width || r.height) want = { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2, r: radius.current };
@@ -174,9 +178,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
       const card = cardRef.current;
       if (card) {
         const h = card.offsetHeight;
-        const vh = window.innerHeight;
-        const centred = want.width === 0;
-        const wantY = centred ? (vh - h) / 2 : want.top + want.height + 14 + h < vh - 8 ? want.top + want.height + 14 : Math.max(8, want.top - 14 - h);
+        const wantY = cardY(want, h, window.innerHeight);
         if (curY === null || still) curY = wantY;
         else {
           vY += ((wantY - curY) * 70 - vY * 2 * Math.sqrt(70)) * dt;
@@ -190,6 +192,36 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Lights up an element: scrolls it clear of the top bar and of the card (both measured, so they follow the screen's size), and takes its corner radius.
+  const aim = (el: Element) => {
+    const fixed = !!el.closest('.em-tabs, .em-top, .em-dock, .em-sheet') || getComputedStyle(el).position === 'fixed';
+    const bar = document.querySelector('.em-top')?.getBoundingClientRect();
+    const topInset = (bar?.height ? bar.bottom : 0) + PAD * 3;
+    if (!fixed && needsScroll(el.getBoundingClientRect(), window.innerHeight, topInset, cardRef.current?.offsetHeight ?? 0)) el.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
+    radius.current = Math.min((parseFloat(getComputedStyle(el).borderRadius) || 14) + PAD, 28);
+    target.current = el;
+  };
+
+  // A rotation or unfold changes the layout under the tour. The step stays; its element is found again and brought into view for the new size.
+  // (The animation loop already follows the element's live position, so the window glides there rather than jumping.)
+  useEffect(() => {
+    let timer = 0;
+    const settle = () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const el = retarget.current?.();
+        if (el && aimedRef.current) aim(el);
+      }, 150);
+    };
+    window.addEventListener('resize', settle);
+    window.addEventListener('orientationchange', settle);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', settle);
+      window.removeEventListener('orientationchange', settle);
+    };
+  }, []);
+
   // Each step: do its action, go to its screen, wait for its element (designs load from the server), bring it into view, then light it up.
   useEffect(() => {
     let cancelled = false;
@@ -201,6 +233,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
       if (s.screen) onNavigate(s.screen);
       const centreOn = () => {
         target.current = null;
+        retarget.current = null;
         aimedRef.current = false;
         setAimed(false);
         setShown(at);
@@ -212,11 +245,8 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
         if (cancelled) return;
         const el = s.target!();
         if (el) {
-          const r = el.getBoundingClientRect();
-          const fixed = !!el.closest('.em-tabs, .em-top, .em-dock, .em-sheet') || getComputedStyle(el).position === 'fixed';
-          if (!fixed && (r.top < 90 || r.bottom > window.innerHeight - 280)) el.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
-          radius.current = Math.min((parseFloat(getComputedStyle(el).borderRadius) || 14) + PAD, 28);
-          target.current = el;
+          aim(el);
+          retarget.current = s.target!;
           aimedRef.current = true;
           setAimed(true);
           setShown(at);
