@@ -65,6 +65,10 @@ While a modal layer is open (tour, cart sheet, cropper, a design opened over the
 - Safe-area insets / notch (`env(safe-area-inset-*)` is 0).
 - Real Android font scale and Capacitor.
 
+## Tablet checks
+
+`tablet.e2e.ts` is a handful of structural assertions on the computed layout (not screenshots), run with the rest of `npm run test:responsive`, or alone with `npx playwright test tests/e2e/tablet.e2e.ts`. It covers the tablet tier (700px to 1023px, `TABLET_MIN` and `DESKTOP_MIN` in `src/layouts/emergent/useDesktop.ts`): four photo columns, the open design in a pane beside the grid (and not modal, with the page still scrolling), the owner shell wider than the 640px phone column, and a live resize between pane and overlay that keeps the open design. The same checks at 390px assert that the phone layout is unchanged.
+
 ## Add a screen
 
 In `screens.ts` add an entry to `SCREENS`: `{ id, role: 'buyer' | 'owner' | 'guest', open: async (page) => { ... } }`. `open` goes to the screen with real clicks and waits for something that only exists there (prefer `getByTestId`). Roles decide what is in `localStorage` before the app starts (`seedRole`). It runs at every size and scale automatically. If a screen cannot be reached yet, add `fixme: 'why'` and it is skipped with that reason. If it fails only at some sizes, the combo is recorded as `unreachable` (a screenshot `...-UNREACHABLE.png` is saved) and that is a finding.

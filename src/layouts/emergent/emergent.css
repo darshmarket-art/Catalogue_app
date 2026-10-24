@@ -100,6 +100,8 @@ html[data-scrolled] [data-layout="emergent"] .em-sticky { box-shadow: 0 8px 20px
 /* The shared profile menu draws its button with .ib; here it is one of the round buttons. */
 [data-layout="emergent"] .em-top .ib { width: 40px; height: 40px; border-radius: 50%; box-shadow: none; border-color: var(--em-line); color: var(--em-accent); background: var(--em-card); }
 [data-layout="emergent"] .em-top .ib:hover { transform: none; }
+/* The profile menu opens under the top bar and must end above the tab bar: it is as tall as the visible area allows, and scrolls inside. */
+[data-layout="emergent"] .em-pmenu { max-height: calc(100vh - var(--header-h) - var(--sat) - var(--em-tab-h) - var(--sab) - 12px); max-height: calc(100dvh - var(--header-h) - var(--sat) - var(--em-tab-h) - var(--sab) - 12px); overflow-y: auto; overscroll-behavior: contain; }
 
 /* ---------- search, chips, pills, buttons ---------- */
 [data-layout="emergent"] .em-srch { display: flex; align-items: center; gap: 10px; height: 46px; padding-inline: 16px; border: 1px solid var(--em-line); background: var(--em-card); border-radius: 999px; color: var(--em-mut); transition: border-color 0.2s, box-shadow 0.2s; }
@@ -190,13 +192,15 @@ html[data-scrolled] [data-layout="emergent"] .em-sticky { box-shadow: 0 8px 20px
 [data-layout="emergent"] .em-slide .em-ov p { font-size: 12.5px; opacity: 0.85; margin: 6px 0 0; line-height: 1.4; }
 [data-layout="emergent"] .em-slide .em-link { color: var(--em-gold-hi); min-height: 32px; margin-top: 4px; }
 @media (min-width: 768px) { [data-layout="emergent"] .em-slide .em-ov { left: 64px; right: 64px; } }
+/* A 2:1 banner on a short, wide screen (a phone on its side) would fill it: cap its height by what is visible. Desktop keeps its own height. */
+@media (max-width: 1023.98px) { [data-layout="emergent"] .em-slide { max-height: max(200px, 62svh); } }
 [data-layout="emergent"] .em-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 2px; z-index: 3; }
 [data-layout="emergent"] .em-dots button { width: 22px; height: 22px; padding: 0; border: 0; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 [data-layout="emergent"] .em-dots button::after { content: ""; height: 6px; width: 6px; border-radius: 3px; background: color-mix(in srgb, var(--em-on-primary) 60%, transparent); transition: width 0.25s; }
 [data-layout="emergent"] .em-dots button.on::after { width: 20px; background: var(--em-gold); }
 [data-layout="emergent"] .em-arrow { display: none; position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; }
 @media (min-width: 768px) { [data-layout="emergent"] .em-arrow { display: inline-flex; } }
-[data-layout="emergent"] .em-feat { position: relative; display: block; width: 100%; height: 310px; border-radius: 20px; overflow: hidden; border: 1px solid var(--em-line); padding: 0; background: none; text-align: left; font: inherit; color: var(--em-on-primary); cursor: pointer; }
+[data-layout="emergent"] .em-feat { position: relative; display: block; width: 100%; height: 310px; height: min(310px, 60svh); border-radius: 20px; overflow: hidden; border: 1px solid var(--em-line); padding: 0; background: none; text-align: left; font: inherit; color: var(--em-on-primary); cursor: pointer; }
 [data-layout="emergent"] .em-feat .em-ov { left: 20px; right: 20px; bottom: 20px; }
 [data-layout="emergent"] .em-feat .em-ov > .em-ser { font-size: 27px; line-height: 1.2; margin-top: 6px; white-space: normal; }
 [data-layout="emergent"] .em-feat .em-ov > small { display: block; font-size: 12px; opacity: 0.8; margin-top: 6px; }
@@ -214,6 +218,8 @@ html[data-scrolled] [data-layout="emergent"] .em-sticky { box-shadow: 0 8px 20px
 [data-layout="emergent"] .em-fab-item > a { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--em-deep) 70%, transparent); }
 
 /* ---------- catalogue ---------- */
+/* Wraps the sticky header and the grid: no box of its own, except beside the design pane on a tablet (tablet block below). */
+[data-layout="emergent"] .em-pane-main { display: contents; }
 [data-layout="emergent"] .em-sticky { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 20; background: var(--em-bg); border-bottom: 1px solid var(--em-line); transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
 /* Scrolling down slides the title, search and filters out of the way; scrolling up brings them back. */
 [data-layout="emergent"] .em-sticky.hide { transform: translateY(calc(-100% - var(--header-h) - var(--sat))); }
@@ -322,8 +328,8 @@ html[data-scrolled] [data-layout="emergent"] .em-sticky { box-shadow: 0 8px 20px
 [data-layout="emergent"] .em-hero { position: relative; overflow: hidden; color: var(--em-on-primary); background: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--em-gold) 38%, transparent) 0%, transparent 60%), linear-gradient(150deg, color-mix(in srgb, var(--em-primary) 82%, #fff) 0%, var(--em-primary) 45%, var(--em-deep) 100%); display: flex; flex-direction: column; justify-content: space-between; }
 [data-layout="emergent"] .em-hero > * { position: relative; }
 [data-layout="emergent"] .em-hero .em-h1 { color: var(--em-on-primary); }
-[data-layout="emergent"] .em-hero.lg { min-height: 440px; padding: calc(24px + var(--sat)) 24px 28px; }
-[data-layout="emergent"] .em-hero.about { min-height: calc(290px + var(--header-h) + var(--sat)); margin-top: calc(-1 * (var(--header-h) + var(--sat))); padding: calc(var(--header-h) + var(--sat) + 24px) 24px 24px; justify-content: flex-end; }
+[data-layout="emergent"] .em-hero.lg { min-height: 440px; min-height: min(440px, 78svh); padding: calc(24px + var(--sat)) 24px 28px; }
+[data-layout="emergent"] .em-hero.about { min-height: calc(290px + var(--header-h) + var(--sat)); min-height: min(calc(290px + var(--header-h) + var(--sat)), 72svh); margin-top: calc(-1 * (var(--header-h) + var(--sat))); padding: calc(var(--header-h) + var(--sat) + 24px) 24px 24px; justify-content: flex-end; }
 @media (min-width: 520px) { [data-layout="emergent"] .em-welcome .em-hero { border-radius: 28px; margin-top: 20px; } }
 [data-layout="emergent"] .em-role { display: flex; align-items: center; gap: 16px; width: 100%; padding: 20px; border-radius: 20px; border: 1px solid var(--em-line); background: var(--em-card); color: var(--em-ink); text-align: left; font: inherit; cursor: pointer; transition: transform 0.2s; }
 [data-layout="emergent"] .em-role:active { transform: scale(0.99); }
@@ -530,6 +536,8 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
 
 /* Order cards and buyer rows fade in as they appear. */
 [data-layout="emergent"] .em-ordcard, [data-layout="emergent"] .em-row.em-buyer { animation: row-in 0.22s ease-out both; }
+/* Buyer's past orders: a column of order cards (two across on a tablet, see the tablet block). */
+[data-layout="emergent"] .em-past { display: flex; flex-direction: column; gap: 14px; }
 
 /* Admin screens shown inside another admin screen's segment (Catalogue, Buyers): drop their own page padding. */
 [data-layout="emergent"] .em-embed .scroll { padding: 0; max-width: none; margin: 0; }
@@ -995,6 +1003,71 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
   [data-layout="emergent"][data-role="buyer"] .em-sq:hover, [data-layout="emergent"][data-role="buyer"] .em-cardwrap:hover, [data-layout="emergent"][data-role="buyer"] .em-colcard:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--em-deep) 55%, transparent); }
 }
 
+/* ======================================================================================================
+ * Tablet tier and wider, every role (700px and up: TABLET_MIN in useDesktop.ts; the pieces that need script use useTier / useTablet).
+ * Below 700px nothing in this block applies, so phones stay exactly as they were. Buyers from 1024px also get the desktop block
+ * above, which wins wherever both set the same thing (it is more specific). Owners have no desktop block of their own: the
+ * [data-role="owner"] rules here give them a wide shell from the tablet tier up.
+ * The layout follows the width the app has, not the device or its orientation (a rotated phone, an unfolded foldable and a
+ * split-screen tablet all land where their width puts them). The tab bar stays a tab bar; it only gets wider.
+ * ====================================================================================================== */
+@media (min-width: 700px) {
+  [data-layout="emergent"] .em-page, [data-layout="emergent"] .em-page.home { max-width: 880px; }
+  /* The top bar follows the page under it: --em-w is the page width Header.tsx picked (640, Home 760, Catalogue 1100); never narrower than the shell. */
+  [data-layout="emergent"] .em-top-in:where(:not(.sub)) { max-width: max(var(--em-w, 640px), 880px); }
+  [data-layout="emergent"] .em-tabs nav { max-width: 720px; }
+  [data-layout="emergent"] .em-cartbar > div { max-width: 720px; }
+  [data-layout="emergent"] .em-trialbar { max-width: 880px; }
+  /* Photo grids: at most 4 across (5 in the compact view), fewer when the space is short, so the count steps down as the pane beside it opens. */
+  [data-layout="emergent"] .em-grid.em-grid-c2, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-c2 { grid-template-columns: repeat(auto-fill, minmax(max(140px, calc((100% - 36px) / 4)), 1fr)); max-width: none; }
+  [data-layout="emergent"] .em-grid.em-grid-3, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-3 { grid-template-columns: repeat(auto-fill, minmax(max(100px, calc((100% - 32px) / 5)), 1fr)); }
+  [data-layout="emergent"] .em-grid.em-grid-2, [data-layout="emergent"] .em-page.wide .em-grid.em-grid-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: none; }
+  /* Owner: tiles four across; the orders desk is a grid of order cards, its title and filters across the top. */
+  [data-layout="emergent"] .em-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  [data-layout="emergent"] .scroll:not(.no-tabs):not(.wide) { max-width: 880px; }
+  [data-layout="emergent"] .scroll.em-desk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  [data-layout="emergent"] .scroll.em-desk > :not(.em-ordcard) { grid-column: 1 / -1; }
+}
+
+/* Owner at desktop width: a sensible wide shell (forms and settings keep their 640px column), three order cards across. */
+@media (min-width: 1024px) {
+  [data-layout="emergent"][data-role="owner"] .em-page:not(.home):not(.wide):not(.notabs), [data-layout="emergent"][data-role="owner"] .scroll.em-desk, [data-layout="emergent"][data-role="owner"] .em-trialbar { max-width: 1040px; }
+  [data-layout="emergent"][data-role="owner"] .em-top-in:not(.sub) { max-width: max(var(--em-w, 640px), 1040px); }
+  [data-layout="emergent"][data-role="owner"] .scroll.em-desk { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Tablet only: list and detail side by side. Wider than this the buyer gets the desktop design window instead; narrower, the overlay.
+   The design pane also needs room to be tall (560px: PANE_MIN_H in useDesktop.ts, which must match): a phone on its side has a regular
+   width but a compact height, and there the design stays a full-screen overlay. */
+@media (min-width: 700px) and (max-width: 1023.98px) and (min-height: 560px) {
+  /* Catalogue and a design: the design opens in a pane beside the grid (Catalogue.tsx sets em-pane-open). The pane's column grows from 0
+     with a transition, which starts from wherever it is if the design is closed or another is opened half way (a reduced-motion setting
+     swaps it for no transition and a short fade). The photo grid keeps scrolling with the page, and the open design stays marked in it. */
+  [data-layout="emergent"] .em-page.em-pane { display: grid; grid-template-columns: minmax(0, 1fr) 0px; align-content: start; transition: grid-template-columns 0.34s cubic-bezier(0.22, 1, 0.36, 1), column-gap 0.34s cubic-bezier(0.22, 1, 0.36, 1); }
+  [data-layout="emergent"] .em-page.em-pane.em-pane-open { grid-template-columns: minmax(0, 1fr) clamp(300px, 46vw, 420px); column-gap: 16px; }
+  [data-layout="emergent"] .em-page.em-pane > .em-pane-main { display: block; grid-column: 1; grid-row: 1; min-width: 0; }
+  [data-layout="emergent"] .em-page.em-pane > .em-pd-wrap { position: sticky; inset: auto; top: calc(var(--header-h) + var(--sat) + 12px); grid-column: 2; grid-row: 1; align-self: start; z-index: 1; display: block; min-width: 0; overflow: hidden; padding-right: var(--em-px); height: calc(100vh - var(--header-h) - var(--sat) - var(--em-tab-h) - var(--sab) - 24px); height: calc(100dvh - var(--header-h) - var(--sat) - var(--em-tab-h) - var(--sab) - 24px); }
+  /* No animation rule here on purpose: the design keeps the one it opened with, so a resize between pane and overlay never replays it. */
+  [data-layout="emergent"] .em-page.em-pane .em-scrim { display: none; }
+  [data-layout="emergent"] .em-page.em-pane .em-pd { width: 100%; min-width: 300px; max-width: none; height: 100%; margin: 0; border: 1px solid var(--em-line); border-radius: 24px; }
+  [data-layout="emergent"] .em-page.em-pane .em-sq.current::after { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--em-gold); pointer-events: none; }
+  [data-layout="emergent"] .em-page.em-pane .em-lrow.current { background: var(--em-tint); }
+  /* The cart bar floats over the foot of the pane; the design has its own Add to cart, so the bar waits until the design is closed (on a phone the design covers it too). */
+  [data-layout="emergent"] .em-page.em-pane-open .em-cartbar { display: none; }
+}
+
+@media (min-width: 700px) and (max-width: 1023.98px) {
+  /* Past orders: two cards across. */
+  [data-layout="emergent"] .em-past { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  [data-layout="emergent"] .em-past > :not(.em-ord) { grid-column: 1 / -1; }
+  /* Orders: the lines at the left, the order panel at the right (the desktop layout, narrower). */
+  [data-layout="emergent"] .em-page.em-split-t { display: grid; grid-template-columns: minmax(0, 1fr) 320px; column-gap: 24px; align-items: start; padding-inline: var(--em-px); padding-bottom: calc(var(--em-tab-h) + var(--sab) + 28px); }
+  [data-layout="emergent"] .em-page.em-split-t > * { grid-column: 1 / -1; }
+  [data-layout="emergent"] .em-page.em-split-t > .em-pad, [data-layout="emergent"] .em-page.em-split-t > .em-chips { padding-inline: 0; }
+  [data-layout="emergent"] .em-page.em-split-t > .em-body { grid-column: 1; }
+  [data-layout="emergent"] .em-page.em-split-t > .em-dock { grid-column: 2; position: sticky; top: calc(var(--header-h) + var(--sat) + 16px); left: auto; right: auto; bottom: auto; z-index: 5; border: 1px solid var(--em-line); border-radius: 22px; box-shadow: 0 20px 50px -30px color-mix(in srgb, var(--em-deep) 45%, transparent); }
+  [data-layout="emergent"] .em-page.em-split-t > .em-dock .em-dock-in { max-width: none; padding: 20px; }
+}
 
 /* ---------- Accessibility pass (design review, Apple HIG): sizes, field edges, focus, touch targets ---------- */
 /* Field and control edges: 3.78:1 on cards, 3.44:1 on the page (--em-line stays for dividers, which may be soft). */

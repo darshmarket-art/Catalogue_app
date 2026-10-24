@@ -23,6 +23,8 @@ interface ProductDetailProps {
   onClose: () => void;
   onEdit: (product: Product) => void;
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
+  /** True while the layout shows the design in a pane beside the list (tablet width; emergent.css does the placing). It is not modal then: the list stays in reach and keeps scrolling. */
+  pane?: boolean;
   /** Where this design sits in the list the buyer came from, and a way to step to the previous (-1) or next (1) one. */
   position?: { index: number; total: number };
   onStep?: (dir: -1 | 1) => void;
@@ -40,7 +42,7 @@ const specRows = (p: Product) => [
  * A design's details (atlas Product detail): a full-bleed gallery with counter and dots, a rounded sheet over the photo, specifications,
  * quantity and a sticky bar. Same behaviour as the Gilded sheet: tap a photo to zoom, heart, add to order, owner edit, WhatsApp enquiry on Basic.
  */
-export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, position, onStep }) => {
+export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, pane = false, position, onStep }) => {
   const canOrder = usePlan().flags.orders;
   useLang();
   useBackLayer(Boolean(product), onClose); // Back closes the design
@@ -154,17 +156,25 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
       else onClose();
     };
     window.addEventListener('keydown', onKey);
-    // The page behind stays put while this one is open, and focus comes back to the card afterwards.
+    // Focus comes back to the card afterwards.
     const opener = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = overflow;
       opener?.focus?.();
     };
   }, [product?.id]);
+
+  // The page behind stays put while this one is open as an overlay. In the tablet pane the list stays live, and a window that is resized
+  // from one to the other (a foldable, a rotation) takes or drops the lock without closing the design or moving it.
+  useEffect(() => {
+    if (!product || pane) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = overflow;
+    };
+  }, [Boolean(product), pane]);
 
   if (!product) return null;
   const slides = product.images.length ? product.images : [product.image ?? ''];
@@ -185,7 +195,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({ product, isAdmin, 
   const goTo = (i: number) => scroller.current?.scrollTo({ left: i * scroller.current.clientWidth, behavior: 'smooth' });
 
   return (
-    <div className="em-pd-wrap" role="dialog" aria-modal="true" aria-label={name}>
+    <div className="em-pd-wrap" role={pane ? 'region' : 'dialog'} aria-modal={pane ? undefined : true} aria-label={name}>
       {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={name} onClose={() => setZoomFrom(null)} />}
       <button type="button" aria-label={t('Close')} tabIndex={-1} className="em-scrim" onClick={onClose} />
       <div className="em-pd">

@@ -73,7 +73,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
   const count = (s: OrderStatus) => (orders ?? []).filter((o) => o.status === s).length;
 
   return (
-    <div className="scroll" style={{ gap: 14 }}>
+    <div className="scroll em-desk" style={{ gap: 14 }}>
       <div data-testid="orders-count">
         <Title eyebrow={`${count('new')} waiting for you · ${orders?.length ?? 0} ${orders?.length === 1 ? 'order' : 'orders'}`} title="Orders" />
       </div>

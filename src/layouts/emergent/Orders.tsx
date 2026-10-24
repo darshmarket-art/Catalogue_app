@@ -76,7 +76,7 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
           </button>
         ))}
       </div>
-      <div className="em-pad" style={{ display: 'flex', flexDirection: 'column', gap: 14 }} data-testid="past-orders">
+      <div className="em-pad em-past" data-testid="past-orders">
         {problem && (
           <div role="alert" className="em-card" style={{ color: 'var(--em-bad)', borderColor: 'var(--em-bad)', fontSize: 14 }}>
             {problem}
@@ -272,7 +272,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   );
 
   return (
-    <div className={`em-page${hasLines ? ' dock2 em-split' : ''}`}>
+    <div className={`em-page${hasLines ? ' dock2 em-split em-split-t' : ''}`}>
       <div className="em-pad">
         <Title
           eyebrow={tab === 'past' && history ? `${t('Your activity')} · ${tn(history.length, '{n} order', '{n} orders')}` : t('Your activity')}
