@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PLATFORM_APP_ID, platformIconSvg, platformUrl } from '../scripts/platformApp';
+import { PLATFORM_APP_ID, PLATFORM_ICON_TILE, platformForegroundSvg, platformIconSvg, platformUrl } from '../scripts/platformApp';
 
 describe('Antarixs onboarding app', () => {
   it('opens app.<base domain>', () => {
@@ -18,5 +18,10 @@ describe('Antarixs onboarding app', () => {
     expect(svg).toContain('<svg');
     expect(svg).toContain('#1A0B4D'); // the kit's Deep icon tile
     expect(svg).toContain('#5AD4FF'); // the mark's sky-blue apex
+  });
+  it('draws the adaptive foreground as the mark alone, on the same tile colour', () => {
+    expect(platformForegroundSvg()).toContain('#5AD4FF');
+    expect(platformForegroundSvg()).not.toContain('<rect');
+    expect(PLATFORM_ICON_TILE).toBe('#1A0B4D');
   });
 });

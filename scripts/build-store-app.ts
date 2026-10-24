@@ -1,11 +1,12 @@
 // Prepares one store's native app. Env: STORE_ID (required), API_BASE (live API; or STORE_JSON = export-store.ts file).
 //   STORE_ID=acme API_BASE=https://... npx tsx scripts/build-store-app.ts
 // Writes merchants/<id>/merchant.json + icons, and prints KEY=VALUE lines (also appended to $GITHUB_ENV when set).
-// After `npx cap add android`, run with --icons to write launcher icons from the logo (default icon if no usable logo).
+// After `npx cap add android`, run with --icons: it patches the generated Android shell (keyboard, edge to edge, splash colour)
+// and writes launcher icons from the logo (default icon if no usable logo).
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
-import { LAUNCHER_SIZES, merchantFileFor, merchantFrom, nativeBuildValues } from './storeApp.ts';
+import { LAUNCHER_SIZES, cornerColor, merchantFileFor, merchantFrom, nativeBuildValues, patchAndroidShell, writeAdaptiveIcon } from './storeApp.ts';
 
 const id = process.env.STORE_ID ?? 'bhakti';
 const apiBase = process.env.API_BASE ?? process.env.VITE_API_BASE ?? '';
@@ -23,17 +24,20 @@ async function logoBuffer(url?: string): Promise<Buffer | null> {
 }
 
 if (process.argv.includes('--icons')) {
-  // Android 8+ prefers the adaptive-icon xml; remove it so the PNGs we write are what shows.
   const res = path.resolve('android/app/src/main/res');
-  const logo = await logoBuffer(JSON.parse(fs.readFileSync(path.join(dir, 'merchant.json'), 'utf8')).brand.logoUrl);
+  const merchant = JSON.parse(fs.readFileSync(path.join(dir, 'merchant.json'), 'utf8'));
+  patchAndroidShell(path.resolve('android'), nativeBuildValues(id, merchant, '').splashColor);
+  const logo = await logoBuffer(merchant.brand.logoUrl);
   const fallback = path.join(dir, "icons/icon-512.png");
   const src = logo ?? (fs.existsSync(fallback) ? fs.readFileSync(fallback) : null);
   if (!src) console.log('No logo or icons/icon-512.png: keeping the default Capacitor icon.');
   else {
-    fs.rmSync(path.join(res, 'mipmap-anydpi-v26'), { recursive: true, force: true });
+    // Android 7 and older, and launchers that ignore the adaptive layers, use these squares.
     for (const [d, px] of Object.entries(LAUNCHER_SIZES))
-      for (const n of ['ic_launcher', 'ic_launcher_round', 'ic_launcher_foreground'])
+      for (const n of ['ic_launcher', 'ic_launcher_round'])
         await sharp(src).resize(px, px, { fit: 'contain', background: '#ffffff' }).png().toFile(path.join(res, `mipmap-${d}`, `${n}.png`));
+    // Android 8+: the template's mipmap-anydpi-v26 xml, with the logo inside the safe zone over its own corner colour.
+    await writeAdaptiveIcon(res, src, await cornerColor(src));
     console.log(`Launcher icons written from ${logo ? 'the store logo' : 'icons/icon-512.png'}.`);
   }
   process.exit(0);
