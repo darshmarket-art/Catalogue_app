@@ -35,3 +35,8 @@ export const useTier = (): Tier => {
 
 /** True only in the tablet tier (700px to 1023px). */
 export const useTablet = () => useTier() === 'tablet';
+
+/** A list and its detail side by side needs height as well as width: below this a wide window (a phone on its side) keeps the detail as an overlay. Matches the min-height in emergent.css. */
+export const PANE_MIN_H = 560;
+/** True when the detail belongs in a pane beside the list: the tablet tier, and tall enough. */
+export const usePane = () => useMedia(`(min-width: ${TABLET_MIN}px) and (max-width: ${DESKTOP_MIN - 0.02}px) and (min-height: ${PANE_MIN_H}px)`);

@@ -6,6 +6,9 @@ import { saveFile } from '../saveFile';
 import { bareUrl } from '../storeLink';
 import { errorText } from '../bugReport';
 
+/** 180 px on a phone, growing with the width up to 280 px; never taller than 38% of the visible height (a phone on its side keeps 180). */
+const QR_SIZE = 'min(clamp(180px, 36vw, 280px), max(180px, 38svh))';
+
 /** Share the store: its QR, its link, copy, download the QR picture, or send it on WhatsApp. Reachable from the profile menu any time. */
 export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () => void }> = ({ name, url, onClose }) => {
   const [qr, setQr] = useState('');
@@ -14,7 +17,8 @@ export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () 
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    void QRCode.toDataURL(url, { margin: 1, width: 320 }).then(setQr).catch(() => {});
+    // 640 px: it shows up to 280 CSS px wide (see QR_SIZE) and stays sharp on a 2x screen.
+    void QRCode.toDataURL(url, { margin: 1, width: 640 }).then(setQr).catch(() => {});
   }, [url]);
 
   const copy = () => {
@@ -53,9 +57,9 @@ export const StoreShareSheet: React.FC<{ name: string; url: string; onClose: () 
       </p>
       <div className="em-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: 18 }}>
         {qr ? (
-          <img src={qr} alt={`QR code for ${name}`} data-testid="store-qr" style={{ width: 180, height: 180, borderRadius: 12, border: '1px solid var(--em-line)', padding: 8, background: '#fff' }} />
+          <img src={qr} alt={`QR code for ${name}`} data-testid="store-qr" style={{ width: QR_SIZE, aspectRatio: '1', borderRadius: 12, border: '1px solid var(--em-line)', padding: 8, background: '#fff' }} />
         ) : (
-          <div className="em-skel" style={{ width: 180, height: 180, borderRadius: 12 }} />
+          <div className="em-skel" style={{ width: QR_SIZE, aspectRatio: '1', borderRadius: 12 }} />
         )}
         <a href={url} data-testid="store-link" style={{ color: 'var(--em-accent)', fontSize: 13, fontWeight: 600, wordBreak: 'break-all', textAlign: 'center' }}>
           {bareUrl(url)}

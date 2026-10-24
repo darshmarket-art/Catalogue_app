@@ -83,7 +83,7 @@ export const SignupScreen: React.FC = () => {
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
   useEffect(() => {
-    if (result) void QRCode.toDataURL(result.storeUrl, { margin: 1, width: 320 }).then(setQr).catch(() => {});
+    if (result) void QRCode.toDataURL(result.storeUrl, { margin: 1, width: 640 }).then(setQr).catch(() => {});
   }, [result]);
 
   useEffect(() => {
@@ -197,7 +197,7 @@ export const SignupScreen: React.FC = () => {
           </p>
           <div className="em-card" style={{ width: '100%', padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <span className="em-ey">Scan to open</span>
-            {qr && <img src={qr} alt={`QR code for ${f.brandName}`} data-testid="store-ready-qr" style={{ width: 188, height: 188, borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
+            {qr && <img src={qr} alt={`QR code for ${f.brandName}`} data-testid="store-ready-qr" style={{ width: 'min(clamp(188px, 36vw, 280px), max(188px, 38svh))', aspectRatio: '1', borderRadius: 12, border: '1px solid var(--em-line)', padding: 10, background: '#fff' }} />}
             <a href={result.storeUrl} data-testid="store-ready-link" style={{ color: 'var(--em-accent)', fontSize: 15, fontWeight: 700, wordBreak: 'break-all' }}>
               {host}
             </a>

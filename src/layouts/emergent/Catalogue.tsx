@@ -11,7 +11,7 @@ import { Icon, Ph, Pill, Sheet, Title, Toast, fmtG, type KitProps } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { useHideOnScroll } from './useHideOnScroll';
-import { useDesktop } from './useDesktop';
+import { useDesktop, usePane } from './useDesktop';
 import { withTransition } from '../../viewTransition';
 import { CollectionsBrowser } from './CollectionsBrowser';
 import { noteCollection, noteSku, readView, writeView, type CatalogueView } from '../../recent';
@@ -61,6 +61,8 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   useLang();
   // Desktop buyers get the filters as a panel beside the designs instead of a sheet; the choices and the Apply step are the same.
   const desk = useDesktop() && !isAdmin;
+  // On a tablet (wide and tall enough) an open design shows in a pane beside the grid (emergent.css); on a phone it is an overlay, as before.
+  const pane = usePane();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debounced, setDebounced] = useState(initialSearch.trim());
   const [picking, setPicking] = useState(false);
@@ -368,9 +370,10 @@ export const Catalogue: React.FC<CatalogueProps> = ({
   );
 
   return (
-    <div className={`em-page wide${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
+    <div className={`em-page wide em-pane${openProduct ? ' em-pane-open' : ''}${selecting ? ' dock1' : ''}`} style={{ paddingTop: 0, paddingBottom: showCartBar ? 'calc(var(--em-tab-h) + var(--sab) + 100px)' : undefined }}>
       {(pdfStatus || addedNotice) && <Toast>{pdfStatus ?? t('Added {name} to your order', { name: addedNotice ?? '' })}</Toast>}
 
+      <div className="em-pane-main">
       <div className={`em-sticky em-cat-head${hideBar ? ' hide' : ''}`}>
         <div className="em-pad em-cat-top" style={{ paddingTop: 12, paddingBottom: 10 }}>
           {onNavigate && !selecting && (
@@ -485,7 +488,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             const isPicked = picked.has(prod.id);
             if (view === 'list' && !selecting) {
               return (
-                <div key={prod.id} data-sku={prod.sku} data-testid="product-row" className="em-lrow">
+                <div key={prod.id} data-sku={prod.sku} data-testid="product-row" className={`em-lrow${prod.id === openProductId ? ' current' : ''}`}>
                   <button type="button" className="em-row" style={{ gap: 12, flex: 1, minWidth: 0, padding: 0, border: 0, background: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                     <Ph src={prod.image} tone={i} className="em-thumb" style={{ width: 64, height: 64 }} sizes={SIZES_THUMB} alt={hn(prod.title, prod.titleHi)} />
                     <span className="em-grow" style={{ minWidth: 0 }}>
@@ -509,7 +512,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             if (view === 'grid3' && !selecting) {
               return (
                 <div key={prod.id} className="em-cardwrap em-tile">
-                  <article data-sku={prod.sku} data-testid="product-card" className="em-sq">
+                  <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${prod.id === openProductId ? ' current' : ''}`}>
                     <button type="button" className="em-hit" aria-label={t('View {name}', { name: hn(prod.title, prod.titleHi) })} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                       <Ph src={prod.image} tone={i} className="em-fill" sizes={SIZES_GRID} alt={hn(prod.title, prod.titleHi)} />
                     </button>
@@ -528,7 +531,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
             }
             return (
               <div key={prod.id} className="em-cardwrap">
-              <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}`}>
+              <article data-sku={prod.sku} data-testid="product-card" className={`em-sq${selecting && isPicked ? ' picked' : ''}${prod.id === openProductId ? ' current' : ''}`}>
                 <button type="button" className="em-hit" aria-label={selecting ? `Select ${prod.title}` : t('View {name}', { name: hn(prod.title, prod.titleHi) })} aria-pressed={selecting ? isPicked : undefined} onClick={(e) => openOrPick(prod, e.currentTarget.querySelector('.em-ph'))}>
                   <Ph src={prod.image} tone={i} className="em-fill" sizes={SIZES_GRID} alt={hn(prod.title, prod.titleHi)} />
                 </button>
@@ -586,6 +589,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
           </div>
         )}
         </div>
+      </div>
       </div>
 
       {sheet && (
@@ -664,6 +668,7 @@ export const Catalogue: React.FC<CatalogueProps> = ({
       <ProductDetail
         product={openProduct}
         isAdmin={isAdmin}
+        pane={pane}
         purities={purities}
         categories={categories}
         hearted={openProduct ? hearted.has(openProduct.sku) : false}

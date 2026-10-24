@@ -115,7 +115,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ buyer, isAdmin, onOpen
       {menu !== 'closed' && (
         <div
           ref={menuRef}
-          className="card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50"
+          className="em-pmenu card absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] !p-0 overflow-hidden z-50"
           style={{ boxShadow: 'var(--sh-2)', transformOrigin: 'top right', pointerEvents: open ? undefined : 'none' }}
         >
           <div className="px-5 pt-4 pb-3">

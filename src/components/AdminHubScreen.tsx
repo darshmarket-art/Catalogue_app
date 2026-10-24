@@ -195,7 +195,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
         <div style={{ marginTop: 6 }}>
           <div className="em-rule" style={{ width: 40, margin: '0 0 8px' }} />
           <div className="em-h3" style={{ marginBottom: 14 }}>Quick actions</div>
-          <div className="grid2" style={{ gap: 10 }}>
+          <div className="grid2 em-tiles" style={{ gap: 10 }}>
             {tiles.map((t) => (
               <button key={t.label} type="button" data-testid={t.testId} className={`tile${t.locked ? ' lk' : ''}`} onClick={t.locked ? () => upgradeNotice(t.label) : t.go}>
                 <span className="em-tile-ico">
