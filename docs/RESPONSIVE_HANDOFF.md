@@ -1,4 +1,4 @@
-# Responsive and adaptive UI: hand-off (updated 2026-10-24, session limit reached; Phase 2 CSS merged)
+# Responsive and adaptive UI: hand-off (updated 2026-10-24, session limit reached; Phases 1 and 2 merged)
 
 Read `docs/PROJECT_STATE.md` first, then this. Branch: `feat/responsive-adaptive` (never push to main, no PR until asked). Commits carry `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 Skills the user wants used for UI work: `.claude/skills/apple-design` and `.claude/skills/apple-motion` (outside the repo, in `catalogue-app/.claude/skills`). Cite the skill rule that drove each decision.
@@ -13,20 +13,16 @@ Scratchpad (screenshots, findings, outside the repo): `C:\Users\darshan.parekh\D
 | 4 | `srcset`/`sizes` from the existing `/media?w=` variants, lazy and async decoding, platform JPEGs -29.5%, `lang` already handled by `i18n.ts` | merge `e3fc4fc` |
 | 5.1, 5.2 | Android shell patches in `scripts/storeApp.ts` (`adjustResize`, `EdgeToEdge.enable`, themed splash), `SystemBars` config, adaptive icon inside the safe zone | merge `f4e1ef0` |
 | 2 (CSS/HTML) | dvh/svh, typing signal and scroll padding for the keyboard, `--sal`/`--sar`, offline.html cover (see Agent B below) | merge of `1934cdd` |
+| 1 | Tablet tier, two-pane, owner wide layout, landscape, landing, QR (see below) | merge `6d388a9` |
 | extra | Buyer catalogue: swiping an open design loads more pages (was stuck at 24); the title under a photo opens the design. Test: `tests/e2e/catalogue-swipe.e2e.ts` | `8b45c4c` |
 
 Baseline (414 combos, Edge 155): 0 overflow, 66 covered inputs, 1500 tap-target offenders, 2497 small-text, 136 clipped at 200%. Two combos unreachable (buyer tour at 844x390: profile menu cut off by the bottom nav).
 
-## In flight (NOT committed, NOT merged): one worktree (Agent A) under `Catalogue_app/.claude/worktrees/`
-
-It has uncommitted edits. Next session: `git -C <worktree> status` and `diff`, finish, run lint, test, build and the harness, commit, then merge into `feat/responsive-adaptive` with `git merge --no-ff`. Expect merge conflicts in `emergent.css` and `platform.css` (resolve by hand; Phase 1 owns widths and grids, Phase 2 owns units, fixed offsets and insets).
-Do NOT run `git worktree remove` on a worktree before deleting any `node_modules` junction inside it: removing one wiped the main `node_modules` once (restored with `npm ci`).
-
-### Agent A: Phase 1 layout (worktree `agent-abcf528b31d65a559`, branch `worktree-agent-abcf528b31d65a559`)
-Brief: tablet tier 700-1023px (wider shell, 4-column grid, catalogue+detail and orders+order two-pane using `useTier()`), owner wide layout, landscape-safe `.em-feat` and `.em-hero.lg`, profile menu max-height at 844x390, landing page `platform.css` heights (`clamp()`/`svh`, `.hw-phone` aspect-ratio), QR sizes `min()` in `SignupScreen.tsx` and `StoreShareSheet.tsx`.
-Uncommitted files so far: `AdminHubScreen.tsx`, `AdminOrdersScreen.tsx`, `ProfileMenu.tsx`, `SignupScreen.tsx`, `StoreShareSheet.tsx`, `platform.css`, `Catalogue.tsx`, `Orders.tsx`, `ProductDetail.tsx`, `emergent.css`, `useDesktop.ts`, `tests/e2e/README.md`. A new agent (restarted after an accidental stop) was continuing in this worktree.
-Merge note: `Catalogue.tsx` and `ProductDetail.tsx` also changed in `8b45c4c` (swipe `position.of`, caption tap). Keep `position.total` = loaded count and `position.of` = full count.
-Still to verify: phone sizes pixel-identical, tablet sizes 768x1024, 1024x768, 673x841, 344x882, live resize 673x841 to 344x882 with a product open and a scrolled grid, harness `RESPONSIVE_OUT=after-phase1`.
+## Phase 1 layout: DONE and MERGED (agent commit `209549c`, merge `6d388a9`)
+Tablet tier 700-1023px (shell 880px, tab bar 720px, 4-column grid, 5 in compact), catalogue+detail two-pane (`usePane()`, `PANE_MIN_H=560` in `useDesktop.ts`, must match the min-height media query in `emergent.css`), orders two-pane, owner wide layout (880px tablet, 1040px desktop, hub tiles 4 across, orders as card grid), landscape heroes in svh, profile menu max-height (the 844x390 tour combos are reachable now), landing banner `clamp(380px,90svh,900px)`, `.hw-phone` aspect-ratio, QR `min(clamp(180px,36vw,280px), max(180px,38svh))` with a 640px raster. New `tests/e2e/tablet.e2e.ts`.
+Merge check: after the merge, lint, 360 unit tests, build and the full harness (446 passed, overflow 0, covered inputs 0) are green; tap targets 1517, small text 2512, clipped 136 (Phase 3 baseline).
+NOT done by that agent: it did not read the skill files or cite rules, and did not re-check the audit line numbers. Phone pixel diff (320-430): 38 of 80 differ, looked like noise and random data in the two pairs viewed; not every pair checked. Buyer at >=1024px was not diffed (should be unchanged; unproven). Live resize 673 to 344 to 1024: the open product survived every step, scroll position moved with reflow (never jumped to top). `buyer-cart-sheet` and `buyer-product-detail` at 1024x1366 timed out once under load, pass alone.
+Worktree `agent-abcf528b31d65a559` can be left alone (do not remove it before checking for a node_modules junction).
 
 ### Agent B: Phase 2 CSS/HTML: DONE and MERGED (agent commit `1934cdd`, merged into feat/responsive-adaptive)
 Keyboard approach: a focus signal (`html[data-typing]`, set in `src/main.tsx` on touch screens under 1024px) fades the tabs, cart bar, FAB and dock; the save bar rests in flow; bars return 200ms after blur. Plus measured `scroll-padding` and a manual `scrollIntoView` (Chromium ignores `scroll-margin` on text fields). Not `interactive-widget` (iOS ignores it, the Android app already resizes) and not `visualViewport` (both shrink together in the app).
@@ -37,7 +33,7 @@ Do not remove its worktree before deleting `node_modules` inside it (a real dire
 
 ## Still to do (in this order)
 
-1. Finish and merge Agent A (above; B is merged). Phase 1 was branched before Phase 2 merged, so merge feat/responsive-adaptive into it first or expect conflicts in emergent.css and platform.css.
+1. (Done: Phases 1 and 2 are merged.) Optional: diff buyer at >=1024px before/after Phase 1 to prove it is unchanged, and check phone pairs at 320-430.
 2. Phase 3 first pass (one agent, after A and B): touch targets (44px, hit area via padding or `::after`, check neighbours do not overlap): `.em-heart`, `.em-opts`, `.em-x`, `.em-qty.sm`, `.em-dots`, `.em-pd-dots`, `.em-chip`/`.chip`, `.em-link`, `.em-btn.sm`/`.btn.sm`, `.em-circ`/`.ib`; `height` to `min-height` on `.em-tabs nav`, `.em-chip`, `.em-srch`, `.inp`, `.em-top-in`; inputs 16px; gate the 10 `:hover` rules behind `@media (hover: hover)`; raise body text under 12px (badges may stay, say why). Hindi overflow list from the Phase 4 agent: Min/Max inputs, sort and filter chips, 3-column grid titles at 11px, `em-colcard-n`, `em-strip-i`, `em-col-ov`, "Resend in {n}s", "Verify and enter".
 3. Phase 3 rem conversion, last: mechanical script over `emergent.css`, `index.css`, `platform.css`, `console.css`, `gilded.css` (px font sizes to rem, same size at default scale); diff review plus desktop screenshot comparison.
 4. Phase 5.3 to 5.5 (lead): state survival across rotation and resize (cart, open product, sign-up form, OTP step, crop position, tour step, grid scroll); foldable live resize 673x841 and 344x882 (limitation: Capacitor has no fold-posture API); manual real-device checklist (sizes above, 200% font scale, keyboard on sign-up and OTP, rotation during crop and tour). The crop and tour verification steps are in the Phase 2 JS agent report (crop: fractions of the frame equal after resize 340x700 and 1200x800; tour: `data-step` unchanged, hole matches target within 2px).
