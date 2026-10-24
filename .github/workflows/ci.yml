@@ -20,3 +20,23 @@ jobs:
       - run: npm run build
       - name: Dependency audit (production only)
         run: npm audit --omit=dev --audit-level=high
+
+  # Responsive test matrix (tests/e2e). Report-only in effect: continue-on-error keeps it from blocking. Make it required once green.
+  responsive:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:responsive
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: responsive-findings
+          path: test-results/responsive
+          retention-days: 14
