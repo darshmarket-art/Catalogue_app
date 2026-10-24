@@ -10,3 +10,5 @@ coverage/
 data/
 # Downloaded automatically by tesseract.js (scripts/extract-weights.mjs) into the working directory
 *.traineddata
+# Playwright output (tests/e2e)
+test-results/
