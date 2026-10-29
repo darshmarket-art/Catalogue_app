@@ -4,8 +4,7 @@ import type { Config } from './config';
 import type { Blobs } from './blobs';
 import type { Store, Doc } from './store';
 import type { MerchantConfig } from './merchant';
-import { effectivePlan, type PlanDoc, type ProductPlan } from './entitlements';
-import type { Product } from '../shared/products';
+import { effectivePlan, type PlanDoc } from './entitlements';
 import { isReservedStoreName, isValidStoreName } from '../shared/storeName';
 
 /** One document per store in the top-level "stores" collection (the only data not inside a store's namespace). */
@@ -16,10 +15,6 @@ export interface StoreRecord {
   plan: PlanDoc['plan'];
   trialEndsAt?: string;
   ownApp?: boolean;
-  /** The products this store has. Absent = Catalogue only (every store created before Live Rate). plan/trialEndsAt/ownApp above are the Catalogue plan. */
-  products?: Product[];
-  /** The Live Rate plan; present when the store has that product. */
-  liveRate?: ProductPlan;
   /** Trial reminder marks already sent (7, 3, 1, ended); cleared when the trial is extended. */
   remindersSent?: string[];
   trialNotice?: string;
@@ -35,7 +30,7 @@ export const newStoreRecord = (merchant: MerchantConfig, patch: Partial<StoreRec
   merchant, createdAt: new Date().toISOString(), ...patch
 });
 
-export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice, products: r.products, liveRate: r.liveRate });
+export const planOf = (r: StoreRecord): PlanDoc => ({ plan: r.plan, trialEndsAt: r.trialEndsAt, ownApp: r.ownApp, trialNotice: r.trialNotice });
 
 
 const COLLECTION = /^[A-Za-z0-9_]+$/;

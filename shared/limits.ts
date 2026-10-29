@@ -8,17 +8,6 @@ export const LIMITS: Record<'basic' | 'pro', Limits> = {
 
 export const TRIAL_DAYS = 14;
 
-/**
- * Live Rate product limits and flags. Provisional: the real tiers follow the pricing decision (docs/LIVE_RATE_PLAN.md, section 10).
- * Kept apart from the Catalogue tables above so neither product's plan can change the other's.
- */
-export interface LiveRateLimits { rows: number | null; users: number | null }
-export const LIVE_RATE_LIMITS: Record<'basic' | 'pro', LiveRateLimits> = {
-  basic: { rows: 6, users: 50 },
-  pro: { rows: null, users: null }
-};
-export const liveRateFlagsFor = (p: 'basic' | 'pro') => ({ rateBoard: true, rateAlerts: p === 'pro', bullionTrade: p === 'pro' });
-
 /** Feature flags per plan: Basic has no ordering, insights or PDF; banners and purities are on both. Shared so the Plans screen reads the table the server enforces. */
 export const flagsFor = (p: 'basic' | 'pro') => ({
   orders: p === 'pro', insights: p === 'pro', liveVisitors: p === 'pro', buyerEngagement: p === 'pro',

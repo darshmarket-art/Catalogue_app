@@ -12,9 +12,6 @@ Status: plan only, nothing built. Written 2026-10-29 against `main` at `a698878`
 | D4 | **Android first.** | iOS is out of this plan. Removes the Apple 4.2.6 risk from the schedule. |
 | D5 | **Live Rate sign-up is phone number + OTP, like Catalogue buyers, and the buyer stays signed in.** | Reuses `server/routes/otp.ts`; native sessions already last 90 days (`NATIVE_TOKEN_TTL`). See §6a. |
 | D6 | **Antarixs publishes every customer app on its own Google Play developer account.** | Per-customer signing and Play listings are an Antarixs operation. See §6b. |
-| D7 | **Silver comes from the same feed** (not derived from gold). The licence is full-fledged. | Silver 999 is a base rate like gold 24K; silver 925/800 derive from it. Closes §10 Q1 and Q2. |
-| D8 | **The Antarixs Play developer account is registered.** | Phase 5 no longer waits on account verification. Closes §10 Q8. |
-| D9 | **Production sign-off is the last step.** | The §8 security fixes (static OTP and the rest) are done at the end, before the first paying customer. Until then, test apps must use test numbers only and no real customer data (see "Risk of deferring sign-off" below). |
 
 Open questions that these answers create are in §10.
 
@@ -41,8 +38,6 @@ The Live Rate screens use the **store design** that `[store].antarixs.com` uses 
 ## 3. Product model (compatibility for the three customer types)
 
 ### Data
-**Built in phase 1 (differs from the first draft below).** The Catalogue plan stays in the original top-level fields (`plan`, `trialEndsAt`, `ownApp`, `trialNotice`), so no store record, console screen, trial sweep or stat had to change and no migration is needed. The new fields are `products?: ('catalogue'|'liveRate')[]` (absent = Catalogue only) and `liveRate?: { plan; trialEndsAt? }`. Helpers: `shared/products.ts`; per-product entitlements: `makeEntitlements` returns `products` and `liveRate`. Original draft, kept for reference:
-
 `StoreRecord` (`server/tenancy.ts`) gains:
 
 ```ts
@@ -120,8 +115,8 @@ Add one test matrix, run for each of the three store types: which routes answer 
 ### Sources (revision 2)
 - **Licensed feed (primary).** Antarixs already holds a licence. The feed supplies **24K gold (999)**. The engine derives everything else:
   - **Gold sub-karats:** `rate(purity) = rate24K × fineness`, with a table: 24K 999 (1.000 of the 999 base, quoted as the base itself), 22K 916 (0.916/0.999), 20K 833, 18K 750, 14K 585 and any purity the owner enables. `server/purities.ts` and `shared/jewellery.ts` already hold the owner's purity list, so the rate rows reuse those keys.
-  - **Silver:** comes from the same feed (D7). Silver 999 is the base and 925/800 derive from it the same way gold karats derive from 24K.
-  - **Licence:** full-fledged (D7), so it covers showing rates in each customer's app with the customer's margin added. Keep a copy of the licence terms in the repo's private docs, not in git.
+  - **Silver:** *not stated how it arrives.* Either the feed also carries a silver quote (then silver 999 is the base and 925/800 are derived like gold), or silver is derived from gold by a ratio. A ratio is not a market price, so **this must be confirmed with the feed vendor before build** (§10 Q1). The plan assumes the feed has a silver quote.
+  - **Check the licence terms:** the licence must cover *redistribution to each customer's buyers in a per-customer app*, with the customer's margins added. Confirm that and any per-customer or per-user fee.
 - **Per-store pricing on top of the base** (the "margin"): each store sets its own buy/sell premium or discount per row (₹ or %), rounding, and an optional **spread lock** so a store can never show sell < buy. The base is shared, the display rate is per store.
 - **Manual (fallback and override):** the owner can type a base rate when the feed is down, or override a single row. A manual override is labelled as such on the owner desk and expires on its own at a time the owner sets, so a forgotten override cannot go stale silently.
 - The engine keeps one interface (`RateSource { subscribe(onTick) }`) so the vendor can be replaced. Contract tests use a recorded feed file.
@@ -282,39 +277,6 @@ Gold: fine gold bar 999 (1 kg, 100 g, 10 g), coin, 22K/18K ornament bullion (imp
 - Idempotency keys on deal confirmation so a double-tap or flaky network never creates two deals.
 - Concurrency: balance checks and ledger writes in one transaction (Firestore transactions).
 
-### The first trade release (v1)
-
-The smallest release a real dealer can use to trade, and the one we test with the pilot dealer. It is phases T1 + T2 and **nothing else**.
-
-**One trade, start to finish**
-1. The buyer opens the app and sees the board (gold 999, gold 916, silver 999 and so on, buy and sell).
-2. They tap *Sell* or *Buy* on a row and enter a quantity in grams (or kg for silver).
-3. The app asks the server for a quote. The server answers with the rate *and a lock time* (for example 30 s). The screen shows the amount and a countdown.
-4. The buyer taps *Confirm* inside the countdown. The server checks the lock is still valid, that trading is not paused, that the rate is not stale, and that quantity limits are respected, then records a **deal ticket** at the locked rate. A repeated tap returns the same ticket, never a second one.
-5. The owner gets an alert (push, plus WhatsApp where set) and sees the ticket on the **Deals desk**: buyer, metal, grams, rate, amount, time. They *Accept* or *Reject* (with a reason). A ticket nobody answers expires after a set time and the buyer is told.
-6. On *Accept*, the system posts ledger entries: the buyer owes (or is owed) fine metal and money according to the deal.
-7. Payments and metal movements are then entered by the owner as **vouchers** (cash received/paid, metal received/issued), each a ledger entry. A **rate cut** converts a metal balance to cash (or the reverse) at a rate the owner enters, as a pair of entries.
-8. The buyer sees their **account**: cash balance, fine gold and fine silver balances, and each deal and voucher, plus a statement they can share on WhatsApp.
-
-**Included in v1:** spot deals with a server-side rate lock; the Deals desk; the three-balance ledger; payment and metal vouchers; rate cut; buyer account view and statement; pause-trading switch; per-buyer and per-day quantity limits; audit trail; owner alerts.
-
-**Left out of v1 (later phases):** limit/booked orders (T3), GST invoices and e-way bills (T4), KYC, credit limits, staff roles and second approvers (T5), delivery tracking (T6), charts.
-
-**Why this cut:** it proves the hard parts (locked rates, never double-booking, an immutable ledger that always balances) with the least surface. Tax documents and KYC are the parts that depend on each customer's accountant, so they follow once the core is trusted.
-
-**v1 is done when**
-- a rate lock cannot be used after it expires, even if the phone clock is wrong (tested);
-- a stale or paused rate refuses a quote (tested);
-- tapping Confirm twice, or on two phones, makes exactly one ticket (tested);
-- the sum of every buyer's ledger equals the sum of all vouchers and accepted deals, checked by an automated reconciliation test over thousands of random deals;
-- the owner can open a buyer's statement and tie each line to a deal or voucher;
-- the pilot dealer trades a full week alongside their existing books with no unexplained difference.
-
-**What it needs first:** the rate engine and feed (phases 2 and 5, so rates are real and stale-checked), the app with login (phase 4), and the production sign-off items that touch money (§8) before real money is involved.
-
-### Risk of deferring sign-off (D9)
-Doing the §8 fixes last is workable for building, but until then: the fixed sign-in code accepted in production means *anyone who knows it can sign in as any buyer*, so do **not** put real buyers, real balances or real deals on a production store before sign-off; test stores use test phone numbers only. Do the OTP provider switch and the fixed-code removal **before the pilot dealer** touches the app, not at general launch, because the pilot is the first real-money use.
-
 ### Phases for trade (after the Live Rate phases)
 | Phase | Deliverable | Size |
 |---|---|---|
@@ -333,7 +295,7 @@ Replaces §9 where they differ.
 
 | Phase | Deliverable | Notes |
 |---|---|---|
-| **1** Product model | As §3, built as described in its "Data" note | **Done** (see §13) |
+| **1** Product model | As §3 | Unchanged |
 | **2** Rate engine on the licensed feed | `shared/rates.ts` (24K → sub-karats, silver), `rate-feed/` service, per-store margins, SSE stream, stale/pause handling, manual override with expiry | The feed is the source from the start; manual is the fallback |
 | **3** Live Rate screens | Buyer board, updates, contact; owner Rates desk; Emergent design; Hindi | Design sign-off first |
 | **4** Android app v1 | Phone+OTP sign-up, 90-day sliding session, buyer approval option, FCM push + rate alerts, offline stamp | Debug builds for testers |
@@ -347,29 +309,14 @@ Replaces §9 where they differ.
 
 ## 10. Questions still open after revision 2
 
-1. ~~Silver~~ answered (D7). Still needed from the vendor docs: feed update frequency, latency, and whether it quotes per gram, 10 g or kg, plus its connection method (push/WebSocket or polling) and outage behaviour.
-2. ~~Feed licence~~ answered (D7).
+1. **Silver:** does the feed carry a silver quote, or is silver to be derived from gold? (A ratio is not a market price; confirm with the vendor.) Also: feed update frequency, latency, and whether it quotes per gram, 10 g or kg.
+2. **Feed licence:** does it allow redistribution inside each customer's own app, with the customer's margin added? Any per-customer or per-user fee?
 3. **"Both" customers:** one app with both products (this plan) is assumed from D2. Confirm.
 4. **Public or login:** D5 says the rate app needs phone sign-up, so there is no public rate board. Confirm that is wanted even for a trial/preview.
 5. **Buyer approval:** may any phone sign up (as Catalogue does today), or should the owner approve each new buyer before they see rates? (The plan adds an optional switch; which default?)
 6. **Trade scope for the first release:** spot deals + ledger only (T1-T2), or invoices and KYC as well (T4-T5)? Which customer is the pilot dealer?
 7. **Trade rules:** settlement in cash, in metal, or both? Rate-lock seconds? Does Bhakti's "pure gram-basis, no rate slippage" model fit the pure-metal account in §11?
-8. ~~Play account~~ registered (D8). Still needed: the account's type (organisation or personal) and its testing-track requirements, which decide the first release timeline.
+8. **Play account:** is an Antarixs organisation developer account already registered (D-U-N-S)? If not, start now.
 9. **OTP provider** for production (the static code must go first), and its per-message cost at rate-app volumes. Rate alerts are many more messages than catalogue sign-ins.
 10. **Plans and prices** for Live Rate, Trade and the bundle; one trial per product or one for both.
 11. **"store.antarix.com"** is read as the store design at `[store].antarixs.com` (Emergent). Send a link if another design was meant.
-
-## 13. Build log
-
-### Phase 1: product model (done)
-- `shared/products.ts`: products, `productsOf` (absent = Catalogue only), `hasProduct`.
-- `shared/limits.ts`: provisional Live Rate limits and flags, kept apart from the Catalogue tables.
-- `server/entitlements.ts`: `PlanDoc` gains `products` and `liveRate`; `makeEntitlements` returns `products` and a per-product `liveRate` block; `requireProduct()` answers 404 when the store lacks the product.
-- `server/tenancy.ts`: `StoreRecord.products` and `.liveRate`; `planOf` passes them on.
-- `server/app.ts`: Catalogue-only routes (`/api/products`, `/categories`, `/banners`, `/tags`, `/purities`, `/hero-collections`, `/shortlist`, `/orders`, `/admin/orders`, `/enquiries`, `/admin/enquiries`, `/admin/visitors`, `/analytics`) sit behind `requireProduct('catalogue')`. Shared routes (config, entitlements, sign-in, about, buyers, summary, audit log, alerts, push, messages, photos, app build) are open to every product.
-- `server/routes/console.ts`: staff can switch products per store (`POST /stores/:id/products`), audited; Live Rate starts on a 14-day trial; removing it keeps its plan.
-- `server/routes/signup.ts`: optional `products`; omitted = the record is byte-for-byte what it was before.
-- Client: `Entitlements` carries `products` and `liveRate`; `useHasProduct()`; console "Add/Remove Live Rate" action.
-- `tests/products.test.ts`: 21 tests, the three store types across the API, per-product plans and trials, console, and sign-up. The gating tests were checked to fail with the gate removed. Full suite: 381 pass.
-
-**Deliberately not done in phase 1** (belongs to later phases): Live Rate screens and nav tabs (phase 3); a buyer-facing product choice in the sign-up UI (phase 3); trial reminders and the trial sweep for Live Rate; the Live Rate-only app build flag. **A store switched to Live Rate-only today would show empty Catalogue screens**, so the console action only adds or removes Live Rate next to the Catalogue; the API can set Live Rate-only for testing.

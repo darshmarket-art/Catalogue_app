@@ -28,8 +28,6 @@ export function useApi<T>(path: string, v = 0): ApiState<T> {
 
 export interface Row {
   id: string; name: string; subdomain: string; plan: 'basic' | 'pro' | 'founder'; effectivePlan: 'basic' | 'pro'; trialEndsAt: string | null;
-  /** Products the store has; a row from before Live Rate has ['catalogue']. */
-  products?: Array<'catalogue' | 'liveRate'>; liveRate?: { plan: string; trialEndsAt?: string } | null;
   status: string; ownApp: boolean; owner: { email?: string; phone?: string } | null; createdAt: string; buyers: number; photos: number;
   limits: { buyers: number | null; photos: number | null }; lastActiveAt: string | null;
   categories?: number; audit?: AuditRow[];
@@ -120,9 +118,5 @@ export const storeActions = (s: Row): Action[] => [
   s.status === 'active'
     ? { label: 'Suspend', path: '/suspend', body: {}, warn: 'The store and its app stop working for everyone.' }
     : { label: 'Unsuspend', path: '/unsuspend', body: {}, warn: 'The store comes back online.' },
-  // Live Rate is added next to the Catalogue. Its buyer screens arrive with phase 3 of docs/LIVE_RATE_PLAN.md, so only staff can switch it on for now.
-  (s.products ?? ['catalogue']).includes('liveRate')
-    ? { label: 'Remove Live Rate', path: '/products', body: { products: (s.products ?? []).filter((p) => p !== 'liveRate') }, warn: 'The store loses Live Rate. Its Live Rate plan is kept in case it is switched back on.' }
-    : { label: 'Add Live Rate', path: '/products', body: { products: [...(s.products ?? ['catalogue']), 'liveRate'] }, warn: 'Turns on the Live Rate product with a 14-day trial. Its screens are not built yet.' },
   { label: s.ownApp ? 'Unmark own app' : 'Mark own app', path: '/own-app', body: { ownApp: !s.ownApp }, warn: 'Own-app stores get Pro features.' },
 ];

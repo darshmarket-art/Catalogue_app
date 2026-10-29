@@ -1,19 +1,12 @@
 import type { Store } from './store';
 import { HttpError } from './http';
 import { UPGRADE_TO_PRO } from '../shared/sales';
-import { LIMITS, LIVE_RATE_LIMITS, TRIAL_DAYS, flagsFor, liveRateFlagsFor, type Limits } from '../shared/limits';
-import { productsOf, type Product } from '../shared/products';
-export { LIMITS, LIVE_RATE_LIMITS, TRIAL_DAYS, flagsFor, liveRateFlagsFor };
+import { LIMITS, TRIAL_DAYS, flagsFor, type Limits } from '../shared/limits';
+export { LIMITS, TRIAL_DAYS, flagsFor };
 export type { Limits };
 
 export type Plan = 'basic' | 'pro' | 'founder';
-/** One product's plan: the same plan names and trial rule for every product. */
-export interface ProductPlan { plan: Plan; trialEndsAt?: string }
-/**
- * `plan`, `trialEndsAt`, `ownApp` and `trialNotice` are the Catalogue plan (the original fields, so existing stores need no migration).
- * `products` says which products the store has (absent = Catalogue only); `liveRate` is the Live Rate plan.
- */
-export interface PlanDoc { plan: Plan; trialEndsAt?: string; ownApp?: boolean; trialNotice?: string; products?: Product[]; liveRate?: ProductPlan }
+export interface PlanDoc { plan: Plan; trialEndsAt?: string; ownApp?: boolean; trialNotice?: string }
 
 export const trialEnd = (from = new Date()) => new Date(from.getTime() + TRIAL_DAYS * 86400000).toISOString();
 
@@ -23,17 +16,9 @@ export function effectivePlan(doc: PlanDoc, now = Date.now()): 'basic' | 'pro' {
   return doc.trialEndsAt && Date.parse(doc.trialEndsAt) > now ? 'pro' : 'basic';
 }
 
-/** A store with Live Rate but no Live Rate plan on file starts on Basic. */
-const liveRateEntitlements = (doc: ProductPlan | undefined, now: number) => {
-  const p = doc ?? { plan: 'basic' as const };
-  const effective = effectivePlan(p, now);
-  return { plan: p.plan, effectivePlan: effective, trialEndsAt: p.trialEndsAt ?? null, limits: LIVE_RATE_LIMITS[effective], flags: liveRateFlagsFor(effective) };
-};
-
 export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {
   const effective = effectivePlan(doc, now);
-  const products = productsOf(doc);
-  return { products, liveRate: products.includes('liveRate') ? liveRateEntitlements(doc.liveRate, now) : null, plan: doc.plan, effectivePlan: effective, trialEndsAt: doc.trialEndsAt ?? null, ownApp: Boolean(doc.ownApp), trialNotice: effective === 'basic' && doc.plan === 'basic' ? doc.trialNotice || null : null, limits: LIMITS[effective], flags: flagsFor(effective) };
+  return { plan: doc.plan, effectivePlan: effective, trialEndsAt: doc.trialEndsAt ?? null, ownApp: Boolean(doc.ownApp), trialNotice: effective === 'basic' && doc.plan === 'basic' ? doc.trialNotice || null : null, limits: LIMITS[effective], flags: flagsFor(effective) };
 };
 
 
@@ -54,16 +39,6 @@ export function entitlements(store: Store, plan: () => Promise<PlanDoc>) {
   const deny = (what: string, limit: number) => new HttpError(402, `Your plan allows ${limit} ${what}. ${UPGRADE_TO_PRO}`);
   return {
     load,
-    /** Express middleware: 404 when the store does not have the product, so a Live Rate-only store has no Catalogue API at all (and the reverse). */
-    requireProduct: (product: Product) =>
-      async (_req: any, _res: any, next: (e?: unknown) => void) => {
-        try {
-          if (!(await load()).products.includes(product)) throw new HttpError(404, 'Not found.');
-          next();
-        } catch (e) {
-          next(e);
-        }
-      },
     /** Express middleware: 402 when the plan lacks the feature. `when` lets a route gate only some requests. */
     requireFlag: (flag: FlagName, what: string, when: (req: any) => boolean = () => true) =>
       async (req: any, _res: any, next: (e?: unknown) => void) => {

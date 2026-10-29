@@ -14,7 +14,6 @@ import { OTP_PHONE_PER_HOUR, devCode, phone } from './otp';
 import { hostOf, newStoreRecord, scopeStore, secretFor, type StoreRecord } from '../tenancy';
 import { isAvailableStoreName, isReservedStoreName, isValidStoreName } from '../../shared/storeName';
 import { trimmed } from '../schemas';
-import { PRODUCTS } from '../../shared/products';
 
 export const TRIAL_DAYS = 14;
 const OTP_TTL_MS = 5 * 60 * 1000;
@@ -31,8 +30,6 @@ const signupSchema = z.object({
   ownerName: trimmed(100).optional(),
   /** Optional brand colour (#rrggbb) for the store's primary colour; omitted keeps the core theme. */
   brandColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  /** What the new store wants. Omitted = Catalogue only, as before Live Rate. */
-  products: z.array(z.enum(PRODUCTS)).min(1).optional(),
   phone,
   email: z.string().trim().toLowerCase().email().max(254),
   password: trimmed(128, 10),
@@ -181,8 +178,6 @@ export function signupRoutes(config: Config, root: Store, delivery: OtpDelivery,
       const rec = newStoreRecord(merchant, {
         plan: 'basic',
         trialEndsAt: new Date(now() + TRIAL_DAYS * 86400000).toISOString(),
-        // Stored only when the owner chose products, so a plain Catalogue signup leaves the record exactly as it was.
-        ...(b.products ? { products: PRODUCTS.filter((p) => b.products!.includes(p)), ...(b.products.includes('liveRate') ? { liveRate: { plan: 'basic' as const, trialEndsAt: new Date(now() + TRIAL_DAYS * 86400000).toISOString() } } : {}) } : {}),
         status: 'active',
         owner: { email: b.email, phone: b.phone },
         createdAt: new Date(now()).toISOString()

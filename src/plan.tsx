@@ -2,21 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from './api';
 import { SALES_EMAIL, UPGRADE_TO_PRO } from '../shared/sales';
 import { I, Sheet } from './components/ui';
-import type { Product } from '../shared/products';
-import type { LiveRateLimits } from '../shared/limits';
-
-export interface LiveRateEntitlements {
-  plan: string;
-  effectivePlan: 'basic' | 'pro';
-  trialEndsAt: string | null;
-  limits: LiveRateLimits;
-  flags: Record<'rateBoard' | 'rateAlerts' | 'bullionTrade', boolean>;
-}
 
 export interface Entitlements {
-  /** The products this store has. Everything below except `liveRate` is the Catalogue plan. */
-  products: Product[];
-  liveRate: LiveRateEntitlements | null;
   effectivePlan: 'basic' | 'pro';
   plan: string;
   trialEndsAt: string | null;
@@ -30,7 +17,6 @@ export interface Entitlements {
 
 // Until the server answers (or if it cannot be reached) the app behaves as Pro, exactly as it did before plans existed. The server enforces the real limits.
 const PRO: Entitlements = {
-  products: ['catalogue'], liveRate: null,
   effectivePlan: 'pro', plan: 'pro', trialEndsAt: null,
   limits: { categories: null, photos: null, photosPerDesign: 3, users: null },
   flags: { orders: true, insights: true, liveVisitors: true, buyerEngagement: true, alerts: true, enquiries: true, auditLog: true, pdfCatalogue: true, banners: true, purities: true }
@@ -38,8 +24,6 @@ const PRO: Entitlements = {
 
 const Ctx = createContext<Entitlements>(PRO);
 export const usePlan = () => useContext(Ctx);
-/** Whether this store has the product. Gate whole screens and tabs with this; use `flags` for plan features inside a product. */
-export const useHasProduct = (product: Product) => usePlan().products.includes(product);
 
 /** Fetched once on load. */
 export const PlanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

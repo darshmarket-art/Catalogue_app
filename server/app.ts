@@ -172,11 +172,6 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   return app;
 }
 
-const CATALOGUE_PATHS = [
-  '/api/categories', '/api/hero-collections', '/api/banners', '/api/products', '/api/tags', '/api/purities', '/api/shortlist',
-  '/api/orders', '/api/admin/orders', '/api/enquiries', '/api/admin/enquiries', '/api/admin/visitors', '/api/analytics'
-];
-
 function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, patchMerchant: (fn: (m: MerchantConfig) => MerchantConfig) => Promise<void> = async () => {}) {
   const app = express();
   const auth = createAuth(config, store);
@@ -244,10 +239,6 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
 
   // Photos are private: the app is handed short-lived signed links, and only those links open a photo.
   app.get('/media/:file', mediaRoute(blobs, media));
-
-  // Catalogue-only routes: a store without the Catalogue product (Live Rate only) gets 404. Shared routes (sign-in, buyers, about us,
-  // alerts, messages, photos, app build, entitlements) stay open to every product.
-  app.use(CATALOGUE_PATHS, ent.requireProduct('catalogue'));
 
   // Pro-only features: Basic gets 402 (the app mirrors this with locked tiles).
   app.use(['/api/orders', '/api/admin/orders'], ent.requireFlag('orders', 'Ordering'));

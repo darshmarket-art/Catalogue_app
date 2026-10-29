@@ -8,8 +8,7 @@ import { z } from 'zod';
 import type { Config } from '../config';
 import type { Store } from '../store';
 import { HttpError, handler, parse } from '../http';
-import { LIMITS, effectivePlan, photosInUse, trialEnd } from '../entitlements';
-import { PRODUCTS, productsOf } from '../../shared/products';
+import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
 import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 import { activity, buyers, orders, owners, summary } from '../consoleStats';
 import { deliverySummary, type MessageDoc, type MessageLog } from '../messages';
@@ -73,7 +72,6 @@ const view = async (root: Store, rec: StoreRecord) => {
   ]);
   return {
     id: rec.id, name: rec.merchant.brand.name, subdomain: rec.subdomain, plan: rec.plan, effectivePlan: plan,
-    products: productsOf(rec), liveRate: rec.liveRate ?? null,
     trialEndsAt: rec.trialEndsAt ?? null, status: rec.status, ownApp: Boolean(rec.ownApp), owner: rec.owner ?? null, createdAt: rec.createdAt,
     buyers: buyerDocs.length, photos: photos.size, limits: { buyers: LIMITS[plan].users, photos: LIMITS[plan].photos },
     // Latest time any tracked buyer or guest was seen in the store; null when nobody has visited yet.
@@ -169,18 +167,6 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
     const from = Math.max(Date.now(), rec.trialEndsAt ? Date.parse(rec.trialEndsAt) : 0);
     const trialEndsAt = new Date(from + b.days * DAY).toISOString();
     return { patch: { trialEndsAt, remindersSent: [], trialNotice: '' }, what: `trial extended ${b.days} day(s) to ${trialEndsAt}` };
-  });
-  // Which products the store has. Turning Live Rate on starts it on a trial (Basic, Pro features for TRIAL_DAYS) unless `liveRatePlan` is given;
-  // turning it off keeps its plan record, so switching it back on restores the plan. The Catalogue plan fields are never touched here.
-  write('products', z.object({ products: z.array(z.enum(PRODUCTS)).min(1, 'A store needs at least one product.'), liveRatePlan: z.enum(['basic', 'pro']).optional() }), (rec, b) => {
-    const products = PRODUCTS.filter((p) => b.products.includes(p));
-    const patch: Partial<StoreRecord> = { products };
-    if (products.includes('liveRate')) {
-      if (b.liveRatePlan === 'pro') patch.liveRate = { plan: 'pro' };
-      else if (b.liveRatePlan === 'basic') patch.liveRate = { plan: 'basic' };
-      else if (!rec.liveRate) patch.liveRate = { plan: 'basic', trialEndsAt: trialEnd() };
-    }
-    return { patch, what: `products ${productsOf(rec).join('+')} -> ${products.join('+')}${patch.liveRate ? `, liveRate ${patch.liveRate.plan}` : ''}` };
   });
   write('suspend', z.object({}), () => ({ patch: { status: 'suspended' }, what: 'suspended' }));
   write('unsuspend', z.object({}), () => ({ patch: { status: 'active' }, what: 'unsuspended' }));
