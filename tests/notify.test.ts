@@ -7,13 +7,13 @@ import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
 import { loadMerchant } from '../server/merchant';
 import { newStoreRecord, scopeStore } from '../server/tenancy';
-import { createNotify, type Notifiers, type PushSub } from '../server/notify';
+import { createNotify, type Notifiers, type PushSub, type WebPushSub } from '../server/notify';
 
 import { STATIC_CODE, otpBuyer } from './buyerAuth';
 const KEY = 'test-master-provisioning-key';
 const A = { 'X-Store': 'bhakti' };
 const B = { 'X-Store': 'example' };
-const sub = (n: number): PushSub => ({ endpoint: `https://push.example/${n}`, keys: { p256dh: 'p', auth: 'a' } });
+const sub = (n: number): WebPushSub => ({ endpoint: `https://push.example/${n}`, keys: { p256dh: 'p', auth: 'a' } });
 
 let app: ReturnType<typeof createApp>;
 let root: MemoryStore;
@@ -30,9 +30,11 @@ const notifiers: Notifiers = {
   },
   push: {
     publicKey: 'PUB',
+    native: true,
     send: async (s) => {
-      if (dead.has(s.endpoint)) return 'gone';
-      pushed.push(s.endpoint);
+      const id = 'token' in s ? s.token : s.endpoint;
+      if (dead.has(id)) return 'gone';
+      pushed.push(id);
       return 'ok';
     }
   }
@@ -81,6 +83,22 @@ describe('owner order alerts', () => {
     await vi.waitFor(() => expect(pushed).toEqual(['https://push.example/1']));
     await request(app).post(`/api/orders/${res.body.poId}/cancel`).set(B).set(b);
     await vi.waitFor(() => expect(wa.map((w) => w.event)).toEqual(['placed', 'cancelled']));
+  });
+
+  it('an Android app registers its token and gets the same alert; a bad token is rejected', async () => {
+    const ad = await admin(A);
+    const token = 'fcm-token-'.padEnd(40, 'x');
+    expect((await request(app).post('/api/admin/push/subscribe-native').set(A).send({ token })).status).toBe(401);
+    expect((await request(app).post('/api/admin/push/subscribe-native').set(A).set(ad).send({ token: 'short' })).status).toBe(400);
+    expect((await request(app).post('/api/admin/push/subscribe-native').set(A).set(ad).send({ token })).status).toBe(201);
+    expect((await request(app).get('/api/admin/push/key').set(A).set(ad)).body.data).toMatchObject({ native: true });
+    await order(A, await buyer(A));
+    await vi.waitFor(() => expect(pushed).toContain(token));
+    expect((await request(app).post('/api/admin/push/unsubscribe').set(A).set(ad).send({ endpoint: token })).status).toBe(200);
+    pushed = [];
+    await order(A, await buyer(A));
+    await new Promise((r) => setTimeout(r, 40));
+    expect(pushed).not.toContain(token);
   });
 
   it('a failing sender never breaks the order, is retried once, and dead subscriptions are pruned', async () => {

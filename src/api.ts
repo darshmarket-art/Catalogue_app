@@ -287,10 +287,12 @@ export const trackSearch = (term: string) => pendingEvents.push({ type: 'search'
 export const trackSelect = (sku: string) => pendingEvents.push({ type: 'select', sku });
 
 export const api = {
-  pushKey: async (): Promise<string | null> => {
+  /** What this server can push to: browsers (the VAPID key) and/or the Android apps. */
+  pushKey: async (): Promise<{ web: string | null; native: boolean }> => {
     const d = (await request('/api/v1/admin/push/key')).data;
-    return d.enabled ? d.publicKey : null;
+    return { web: d.enabled ? d.publicKey : null, native: Boolean(d.native) };
   },
+  pushSubscribeNative: async (token: string) => { await post('/api/v1/admin/push/subscribe-native', { token }); },
   pushSubscribe: async (sub: unknown) => { await post('/api/v1/admin/push/subscribe', sub); },
   pushUnsubscribe: async (endpoint: string) => { await post('/api/v1/admin/push/unsubscribe', { endpoint }); },
   /** Re-checks a stored token with the server; quietly forgets it if it is no longer valid. */

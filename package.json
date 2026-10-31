@@ -1,7 +1,7 @@
 {
   "name": "bhakti-jewels-catalogue",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -26,6 +26,7 @@
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.1.3",
     "@capacitor/share": "^8.0.3",
     "@google-cloud/firestore": "^9.3.1",
     "@google-cloud/storage": "^8.2.0",

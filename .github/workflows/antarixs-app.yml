@@ -41,6 +41,18 @@ jobs:
       - run: '[ -d android ] || npx cap add android'
       - run: npx cap sync android
       - run: npx tsx scripts/build-platform-app.ts --icons
+      # App push (Firebase). The google-services.json of your Firebase project comes from the GOOGLE_SERVICES_JSON secret;
+      # without it the app still builds and runs, only phone notifications stay off.
+      - name: Add the Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "Firebase config added."
+          else
+            echo "GOOGLE_SERVICES_JSON is not set: building without phone notifications."
+          fi
       - run: ./gradlew assembleDebug
         working-directory: android
       - name: Name the APK

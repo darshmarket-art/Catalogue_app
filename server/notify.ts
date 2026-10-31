@@ -10,7 +10,11 @@ import { logger } from './logger';
 export type OrderEvent = 'placed' | 'cancelled' | 'test';
 export interface OrderAlert { event: OrderEvent; poId: string; brand: string; buyer: string; grams: number; items: number }
 export interface StoreFullAlert { brand: string; count: number; planUrl: string }
-export interface PushSub { endpoint: string; keys: { p256dh: string; auth: string } }
+/** A browser (Web Push) subscription. */
+export interface WebPushSub { endpoint: string; keys: { p256dh: string; auth: string } }
+/** An Android app install (Firebase Cloud Messaging token). */
+export interface NativePushSub { token: string }
+export type PushSub = WebPushSub | NativePushSub
 
 /** WhatsApp alerts to the owner (utility templates). Injectable; tests use a fake. Resolve to Meta's message id when there is one. */
 export interface AlertSender {
@@ -21,6 +25,8 @@ export interface AlertSender {
 /** Web Push. `send` resolves 'gone' when the subscription is dead and should be pruned. */
 export interface PushSender {
   publicKey: string | null;
+  /** True when the Android apps can be pushed to (FCM is set up). Optional: senders without it are browser-only. */
+  native?: boolean;
   send(sub: PushSub, payload: object): Promise<'ok' | 'gone'>;
 }
 export interface Notifiers { whatsapp: AlertSender; push: PushSender }
@@ -88,10 +94,53 @@ class WebPushSender implements PushSender {
   }
 }
 
+/** Push to the Android apps through the FCM HTTP v1 API. The OAuth token is made from the service-account key (no extra package) and reused until it expires. */
+export class FcmSender {
+  private access: { token: string; until: number } | null = null;
+  constructor(private f: NonNullable<Config['fcm']>) {}
+  private async accessToken(): Promise<string> {
+    if (this.access && this.access.until > Date.now() + 60_000) return this.access.token;
+    const b64u = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const now = Math.floor(Date.now() / 1000);
+    const head = `${b64u({ alg: 'RS256', typ: 'JWT' })}.${b64u({ iss: this.f.clientEmail, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 })}`;
+    const sig = crypto.createSign('RSA-SHA256').update(head).sign(this.f.privateKey).toString('base64url');
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${head}.${sig}` })
+    });
+    if (!res.ok) throw new Error(`FCM sign-in failed: ${res.status}`);
+    const j: any = await res.json();
+    this.access = { token: j.access_token, until: Date.now() + (j.expires_in ?? 3600) * 1000 };
+    return j.access_token;
+  }
+  async send(sub: NativePushSub, payload: any): Promise<'ok' | 'gone'> {
+    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${this.f.projectId}/messages:send`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await this.accessToken()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: { token: sub.token, notification: { title: String(payload.title ?? ''), body: String(payload.body ?? '') }, data: payload.tag ? { tag: String(payload.tag) } : undefined, android: { priority: 'HIGH', notification: { tag: payload.tag ? String(payload.tag) : undefined } } } })
+    });
+    if (res.ok) return 'ok';
+    if (res.status === 404 || /UNREGISTERED/.test(await res.clone().text())) return 'gone';
+    throw new Error(`FCM push failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  }
+}
+
+/** Browser push and app push behind one sender: a subscription with a `token` is an app install, anything else is a browser. */
+class CombinedPush implements PushSender {
+  readonly native: boolean;
+  constructor(private web: WebPushSender | null, private fcm: FcmSender | null) { this.native = Boolean(fcm); }
+  get publicKey() { return this.web?.publicKey ?? null; }
+  async send(sub: PushSub, payload: object) {
+    if ('token' in sub) return this.fcm ? this.fcm.send(sub, payload) : 'ok';
+    return this.web ? this.web.send(sub, payload) : 'ok';
+  }
+}
+
 export function createNotifiers(config: Config): Notifiers {
   return {
     whatsapp: config.whatsapp && config.orderTemplate ? new MetaAlertSender(config.whatsapp, config.orderTemplate, config.storeFullTemplate) : { sendOrderAlert: async () => {} },
-    push: config.vapid ? new WebPushSender(config.vapid) : { publicKey: null, send: async () => 'ok' }
+    push: config.vapid || config.fcm ? new CombinedPush(config.vapid ? new WebPushSender(config.vapid) : null, config.fcm ? new FcmSender(config.fcm) : null) : { publicKey: null, send: async () => 'ok' }
   };
 }
 
@@ -104,11 +153,11 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /** Pushes to every device of the store, pruning dead subscriptions. Returns how many went out. Never throws. */
 export async function pushAll(store: Store, push: PushSender, payload: object): Promise<number> {
-  if (!push.publicKey) return 0;
+  if (!push.publicKey && !push.native) return 0;
   let sent = 0;
   for (const sub of await store.list<PushSub>('pushSubs')) {
     try {
-      if ((await twice(() => push.send(sub, payload))) === 'gone') await store.delete('pushSubs', subId(sub.endpoint));
+      if ((await twice(() => push.send(sub, payload))) === 'gone') await store.delete('pushSubs', subId('token' in sub ? sub.token : sub.endpoint));
       else sent++;
     } catch (e) {
       logger.error('Push failed', { error: String(e) });

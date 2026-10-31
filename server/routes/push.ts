@@ -3,7 +3,7 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { Store } from '../store';
 import { HttpError, handler, parse } from '../http';
-import { subId, type Notifiers, type PushSub } from '../notify';
+import { subId, type Notifiers, type WebPushSub } from '../notify';
 
 const subSchema = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p256dh: z.string().max(200), auth: z.string().max(100) }) });
 
@@ -11,13 +11,21 @@ const subSchema = z.object({ endpoint: z.string().url().max(1000), keys: z.objec
 export function pushRoutes(store: Store, n: Notifiers, requireAdmin: RequestHandler) {
   const router = Router();
   router.use(requireAdmin);
-  router.get('/key', (_req, res) => res.json({ status: 'success', data: { enabled: Boolean(n.push.publicKey), publicKey: n.push.publicKey } }));
+  router.get('/key', (_req, res) => res.json({ status: 'success', data: { enabled: Boolean(n.push.publicKey), publicKey: n.push.publicKey, native: Boolean(n.push.native) } }));
   router.post('/subscribe', handler(async (req, res) => {
     if (!n.push.publicKey) throw new HttpError(503, 'Notifications are not set up on this service.');
-    const sub: PushSub = parse(subSchema, req.body);
+    const sub: WebPushSub = parse(subSchema, req.body);
     await store.set('pushSubs', subId(sub.endpoint), sub);
     res.status(201).json({ status: 'success' });
   }));
+  // The Android apps register their Firebase token here.
+  router.post('/subscribe-native', handler(async (req, res) => {
+    if (!n.push.native) throw new HttpError(503, 'App notifications are not set up on this service.');
+    const { token } = parse(z.object({ token: z.string().min(20).max(4096) }), req.body);
+    await store.set('pushSubs', subId(token), { token });
+    res.status(201).json({ status: 'success' });
+  }));
+  // Browsers send their endpoint, the apps their token; either way it is the id's source.
   router.post('/unsubscribe', handler(async (req, res) => {
     const { endpoint } = parse(z.object({ endpoint: z.string().max(1000) }), req.body);
     await store.delete('pushSubs', subId(endpoint));

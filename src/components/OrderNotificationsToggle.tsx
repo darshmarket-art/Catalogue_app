@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { usePlan, upgradeNotice } from '../plan';
+import { nativePushAvailable, nativePushToken, enableNativePush, disableNativePush } from '../nativePush';
 import { Notice, Switch } from './ui';
 import { Icon } from '../layouts/emergent/ui';
 import { UserError, errorText } from '../bugReport';
@@ -12,25 +13,51 @@ const b64 = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/
 export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) => {
   const { flags } = usePlan();
   const [key, setKey] = useState<string | null>(null);
+  const [nativeOk, setNativeOk] = useState(false);
+  const native = nativePushAvailable();
   const [on, setOn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supported = typeof navigator !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
+  const supported = native || (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window);
 
   useEffect(() => {
     if (!supported || !flags.alerts) return;
     api
       .pushKey()
       .then(async (k) => {
-        setKey(k);
+        if (native) {
+          setNativeOk(k.native);
+          setOn(k.native && Boolean(nativePushToken()));
+          return;
+        }
+        setKey(k.web);
         setOn(Boolean(await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription()));
       })
       .catch(() => {});
-  }, [supported, flags.alerts]);
+  }, [supported, flags.alerts, native]);
 
   const toggle = async () => {
     setError(null);
     if (!flags.alerts) return void upgradeNotice('Order alerts');
-    if (!key) return;
+    if (native) {
+      if (!nativeOk) return void setError('Phone notifications are not set up for this app yet.');
+      try {
+        if (on) {
+          const t = await disableNativePush();
+          if (t) await api.pushUnsubscribe(t);
+          setOn(false);
+        } else {
+          await api.pushSubscribeNative(await enableNativePush());
+          setOn(true);
+        }
+      } catch (e: any) {
+        setError(errorText(e, 'OrderNotificationsToggle native', 'Could not change notifications.'));
+      }
+      return;
+    }
+    if (!key) {
+      if (supported) setError('Notifications are not set up on this service yet.');
+      return;
+    }
     try {
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
@@ -49,7 +76,7 @@ export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) =
     }
   };
 
-  const note = !flags.alerts ? 'Pro feature' : key ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser';
+  const note = (native ? nativeOk : key) ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser';
   if (row) {
     return (
       <>
@@ -73,7 +100,7 @@ export const OrderNotificationsToggle: React.FC<{ row?: boolean }> = ({ row }) =
         <div>
           <div style={{ fontWeight: 500 }}>Alerts</div>
           <div className="em-mut" style={{ fontSize: '0.75rem', marginTop: 2 }}>
-            {!flags.alerts ? 'Pro feature' : key ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser'}
+            {(native ? nativeOk : key) ? 'WhatsApp and phone notifications' : supported ? 'Not set up for this store yet' : 'Not supported in this browser'}
           </div>
         </div>
         <Switch on={on} onChange={toggle} label="Alerts on this device" />

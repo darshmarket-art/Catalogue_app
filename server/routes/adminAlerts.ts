@@ -39,7 +39,7 @@ export function adminAlertRoutes(config: Config, store: Store, n: Notifiers, req
     defaultNumber: config.merchant.contact.whatsapp,
     whatsappConfigured,
     storeFullConfigured: Boolean(config.whatsapp && config.storeFullTemplate),
-    pushConfigured: Boolean(n.push.publicKey),
+    pushConfigured: Boolean(n.push.publicKey || n.push.native),
     receiptsConnected: receiptsEnabled(config),
     wording: ALERT_WORDING
   });

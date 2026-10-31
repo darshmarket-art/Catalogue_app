@@ -51,6 +51,8 @@ export interface Config {
   alertDailyCap: number;
   /** Web Push VAPID keys; null = web push off. */
   vapid: { publicKey: string; privateKey: string; subject: string } | null;
+  /** Firebase Cloud Messaging (the Android apps). FCM_SERVICE_ACCOUNT_JSON is the service-account key file's JSON; null = app push off. */
+  fcm: { projectId: string; clientEmail: string; privateKey: string } | null;
   /** OTP sends allowed per store per day. */
   otpDailyCap: number;
   /** How sign-in codes are delivered; from OTP_PROVIDER, otherwise whatsapp when credentials exist, else static when OTP_STATIC_CODE is set, else console. */
@@ -170,9 +172,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
         ? { publicKey: env.VAPID_PUBLIC_KEY.trim(), privateKey: env.VAPID_PRIVATE_KEY.trim(), subject: env.VAPID_SUBJECT?.trim() || 'mailto:admin@antarixs.com' }
         : null,
+    fcm: parseFcm(env.FCM_SERVICE_ACCOUNT_JSON),
     staticOtp: otpProvider === 'static' ? staticCode : null,
     otpProvider,
     otpDailyCap: env.OTP_DAILY_CAP ? parseInt(env.OTP_DAILY_CAP, 10) : 500,
     rateLimit: { auth: 10, adminRegister: 5, api: 1000, analytics: 300 }
   };
+}
+
+/** Reads the Firebase service-account JSON; anything unusable turns app push off instead of stopping the server. */
+function parseFcm(raw?: string): Config['fcm'] {
+  if (!raw?.trim()) return null;
+  try {
+    const j = JSON.parse(raw);
+    if (!j.project_id || !j.client_email || !j.private_key) return null;
+    return { projectId: String(j.project_id), clientEmail: String(j.client_email), privateKey: String(j.private_key) };
+  } catch {
+    return null;
+  }
 }
