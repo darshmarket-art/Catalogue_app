@@ -54,7 +54,7 @@ describe('hero collections on Home', () => {
 
   it('is limited to four, needs real collections, an admin, and is audited', async () => {
     const { app, admin, buyer, cats } = await build();
-    expect((await request(app).put('/api/hero-collections').set(admin).send({ ids: cats.slice(0, 5).map((c) => c.id) })).status).toBe(400);
+    expect((await request(app).put('/api/hero-collections').set(admin).send({ ids: Array.from({ length: 11 }, (_, i) => `cat-x${i}`) })).status).toBe(400);
     expect((await request(app).put('/api/hero-collections').set(admin).send({ ids: ['cat-nope'] })).status).toBe(404);
     expect((await request(app).put('/api/hero-collections').set(admin).send({ ids: [cats[0].id, cats[0].id] })).status).toBe(400);
     expect((await request(app).put('/api/hero-collections').set(buyer).send({ ids: [] })).status).toBe(403);

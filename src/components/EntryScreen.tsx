@@ -290,7 +290,7 @@ export const EntryScreen: React.FC = () => {
             <article className="ax-plan">
               <span className="ax-ey">Pro · {TRIAL_DAYS} days free</span>
               <h3>Orders, insights and more</h3>
-              <p>Unlimited collections and buyers. Ordering, WhatsApp alerts, insights, PDF catalogue.</p>
+              <p>Unlimited collections and buyers. Ordering, insights, PDF catalogue.</p>
             </article>
           </div>
         </section>

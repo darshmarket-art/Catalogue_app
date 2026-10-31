@@ -54,7 +54,7 @@ export const categorySchema = z.object({
 });
 
 /** The collections shown as the hero tiles on the buyers' Home: up to four, in this order. */
-export const heroCollectionsSchema = z.object({ ids: z.array(trimmed(80)).max(4) });
+export const heroCollectionsSchema = z.object({ ids: z.array(trimmed(80)).max(10) });
 
 export const cartItemSchema = z.object({
   sku: trimmed(60),

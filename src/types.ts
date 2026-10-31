@@ -71,6 +71,8 @@ export interface About {
   openingHours?: string;
   gstin?: string;
   website?: string;
+  instagram?: string;
+  facebook?: string;
   ownerRoleHi?: string;
   storyHi?: string;
   addressHi?: string;

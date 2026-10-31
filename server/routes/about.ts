@@ -25,7 +25,9 @@ export const aboutSchema = z.object({
   storyHi: field(2000),
   addressHi: field(300),
   openingHoursHi: field(160),
-  website: field(200).refine((v) => !v || (/^https?:\/\//i.test(v) && URL.canParse(v)), 'The website must start with http:// or https://')
+  website: field(200).refine((v) => !v || (/^https?:\/\//i.test(v) && URL.canParse(v)), 'The website must start with http:// or https://'),
+  instagram: field(200).refine((v) => !v || (/^https?:\/\//i.test(v) && URL.canParse(v)), 'The Instagram link must start with http:// or https://'),
+  facebook: field(200).refine((v) => !v || (/^https?:\/\//i.test(v) && URL.canParse(v)), 'The Facebook link must start with http:// or https://')
 });
 
 export type About = z.infer<typeof aboutSchema>;

@@ -106,12 +106,12 @@ describe('catalogue full: turned-away buyers and the daily owner nudge', () => {
 });
 
 describe('owner alert settings', () => {
-  it('shows defaults and wording to any admin; saving is Pro and validates numbers', async () => {
+  it('shows defaults and wording to any admin; saving works on every plan and validates numbers', async () => {
     const basic = await build('basic');
     const g = await request(basic.app).get('/api/admin/alerts').set(basic.auth);
     expect(g.status).toBe(200);
     expect(g.body.data).toMatchObject({ numbers: [basic.config.merchant.contact.whatsapp], maxNumbers: MAX_ALERT_NUMBERS, whatsappConfigured: false, receiptsConnected: false, wording: ALERT_WORDING });
-    expect((await request(basic.app).put('/api/admin/alerts').set(basic.auth).send({ numbers: ['919800000001'] })).status).toBe(402);
+    expect((await request(basic.app).put('/api/admin/alerts').set(basic.auth).send({ numbers: ['919800000001'] })).status).toBe(200);
 
     const { app, auth, store, config } = await build('pro');
     expect((await request(app).put('/api/admin/alerts').set(auth).send({ numbers: [] })).status).toBe(400);
@@ -164,6 +164,6 @@ describe('owner alert settings', () => {
     expect(f.body.data.results[0]).toMatchObject({ ok: false, error: 'meta down' });
 
     const basic = await build('basic');
-    expect((await request(basic.app).post('/api/admin/alerts/test').set(basic.auth)).status).toBe(402);
+    expect((await request(basic.app).post('/api/admin/alerts/test').set(basic.auth)).status).not.toBe(402);
   });
 });

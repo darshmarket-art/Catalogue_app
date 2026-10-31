@@ -128,6 +128,14 @@ export const AdminAboutScreen: React.FC<AdminAboutScreenProps> = ({ about, onSav
       <Field label="Website" htmlFor="ab-web">
         <input id="ab-web" type="url" className="inp" style={h} value={form.website ?? ''} onChange={set('website')} placeholder="https://" maxLength={200} />
       </Field>
+      <div className="grid2">
+        <Field label="Instagram" htmlFor="ab-ig">
+          <input id="ab-ig" type="url" className="inp" style={h} value={form.instagram ?? ''} onChange={set('instagram')} placeholder="https://instagram.com/yourstore" maxLength={200} />
+        </Field>
+        <Field label="Facebook" htmlFor="ab-fb">
+          <input id="ab-fb" type="url" className="inp" style={h} value={form.facebook ?? ''} onChange={set('facebook')} placeholder="https://facebook.com/yourstore" maxLength={200} />
+        </Field>
+      </div>
       <Field label="Address" htmlFor="ab-address">
         <AddressPicker pin={form.mapPin} onPick={(address, mapPin) => { setForm((f) => ({ ...f, address: address || f.address, mapPin })); setSaved(false); }} />
         <textarea id="ab-address" className="inp" style={{ minHeight: 72 }} value={form.address ?? ''} onChange={set('address')} maxLength={300} />

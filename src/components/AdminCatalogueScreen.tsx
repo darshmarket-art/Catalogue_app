@@ -388,7 +388,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
   const [status, setStatus] = useState<string | null>(null);
   const many = categories.length > FEW;
 
-  // The hero collections: the tiles the buyers' Home shows first. Up to four, in the order set here.
+  // The hero collections: the tiles the buyers' Home shows first. Up to ten, in the order set here.
   const heroes = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
   const notice = (msg: string) => { setStatus(msg); setTimeout(() => setStatus(null), 3500); };
   const [heroOpen, setHeroOpen] = useState(false);
@@ -396,7 +396,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
   const toggleHero = (c: Category) => {
     const ids = heroes.map((h) => h.id);
     if (ids.includes(c.id)) return void saveHeroes(ids.filter((x) => x !== c.id));
-    if (ids.length >= 4) return void notice('Home shows four hero collections. Remove one first.');
+    if (ids.length >= 10) return void notice('Home shows ten hero collections. Remove one first.');
     void saveHeroes([...ids, c.id]);
   };
   const moveHero = (i: number, d: -1 | 1) => { const ids = heroes.map((h) => h.id); [ids[i], ids[i + d]] = [ids[i + d], ids[i]]; void saveHeroes(ids); };
@@ -460,7 +460,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
         <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={heroOpen} onClick={() => setHeroOpen(!heroOpen)}>
           <b style={{ fontWeight: 600 }}>Hero collections on Home</b>
           <span className="em-row" style={{ gap: 10 }}>
-            <span className="em-mut" style={{ fontSize: '0.75rem' }}>{heroes.length} of 4</span>
+            <span className="em-mut" style={{ fontSize: '0.75rem' }}>{heroes.length} of 10</span>
             <span className="em-circ" style={{ width: 32, height: 32 }} aria-hidden="true"><Icon n={heroOpen ? 'up' : 'chev'} size={18} /></span>
           </span>
         </button>
@@ -468,7 +468,7 @@ const Collections: React.FC<Props & { onOpenDesigns: (name: string) => void }> =
           <>
             <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '8px 0 6px' }}>Buyers see these first. Tap the star on a collection to add it, then use the arrows to move it up or down.</p>
             {heroes.length === 0 ? (
-              <p className="em-hint" style={{ margin: 0 }}>None chosen yet, so Home shows your four busiest collections.</p>
+              <p className="em-hint" style={{ margin: 0 }}>None chosen yet, so Home shows your ten busiest collections.</p>
             ) : (
               heroes.map((h, i) => (
                 <div key={h.id} className="em-row" data-testid="hero-row" style={{ gap: 10, padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>

@@ -20,7 +20,9 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
     { label: t('Call'), href: `tel:${digits}`, icon: 'phone' },
     ...(about.email ? [{ label: t('Email'), href: `mailto:${about.email}`, icon: 'mail' }] : []),
     ...(mapAddress ? [{ label: t('Map'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`, icon: 'pin' }] : []),
-    ...(about.website ? [{ label: t('Website'), href: about.website, icon: 'globe' }] : [])
+    ...(about.website ? [{ label: t('Website'), href: about.website, icon: 'globe' }] : []),
+    ...(about.instagram ? [{ label: 'Instagram', href: about.instagram, icon: 'globe' }] : []),
+    ...(about.facebook ? [{ label: 'Facebook', href: about.facebook, icon: 'globe' }] : [])
   ];
 
   const details: Array<[string, string, string | undefined]> = [

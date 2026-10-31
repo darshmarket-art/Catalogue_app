@@ -100,7 +100,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
           return at >= 0 ? store.update('categories', c.id, { heroOrder: at }) : typeof c.heroOrder === 'number' ? store.update('categories', c.id, { heroOrder: null }) : Promise.resolve();
         })
       );
-      await audit(store, req, 'HERO_COLLECTIONS_UPDATED', `Home hero collections set to ${ids.length === 0 ? 'none (the busiest four)' : ids.map((id) => all.find((c) => c.id === id)!.name).join(', ')}.`);
+      await audit(store, req, 'HERO_COLLECTIONS_UPDATED', `Home hero collections set to ${ids.length === 0 ? 'none (the busiest ten)' : ids.map((id) => all.find((c) => c.id === id)!.name).join(', ')}.`);
       res.json({ status: 'success', data: { ids } });
     })
   );

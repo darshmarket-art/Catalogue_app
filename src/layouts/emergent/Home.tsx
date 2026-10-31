@@ -94,11 +94,11 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
   const q = searchQuery.trim().toLowerCase();
   const many = categories.length > FEW;
-  // The owner's hero collections in their order; short of four, the busiest others fill in.
+  // The owner's hero collections in their order; short of ten, the busiest others fill in.
   const heroes = useMemo(() => {
     const chosen = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
     const rest = categories.filter((c) => typeof c.heroOrder !== 'number').sort((a, b) => b.designCount - a.designCount);
-    return [...chosen, ...rest].slice(0, 4);
+    return [...chosen, ...rest].slice(0, 10);
   }, [categories]);
   const matches = categories.filter((c) => [c.name, c.subtitle, c.nameHi, toHindi(c.name)].some((v) => v?.toLowerCase().includes(q)));
   const shown = q ? matches : many ? heroes : categories;
