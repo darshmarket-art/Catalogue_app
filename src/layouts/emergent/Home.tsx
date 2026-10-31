@@ -21,7 +21,7 @@ const FEW = 6;
  * Home (atlas Home; the 'categories' screen): pill search, the owner's banners, one featured piece, the collections one per row as full-width square cards
  * with index badges, and "The House". The brand row and profile button are in the top bar.
  */
-export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, loading = false, isAdmin, buyerName, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
+export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, loading = false, isAdmin, buyerName, about, onEditCategory, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
   useLang();
   const [browsing, setBrowsing] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -82,10 +82,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
   const { contact } = merchant;
   // Where buyers can reach the store: only the pages the owner has set (WhatsApp and the showroom map are always offered when known).
-  // Instagram and Facebook always show; until the owner adds their pages in merchant.json they read "Coming soon" and do nothing.
+  // Instagram and Facebook always show. The owner's About us links come first, then merchant.json; with neither they read "Coming soon" and do nothing.
   const socialLinks: Array<{ id: string; label: string; href: string; style: React.CSSProperties; icon: React.ReactNode }> = [
-    { id: 'instagram', label: ts('Instagram'), href: contact.instagramUrl ?? '', style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> },
-    { id: 'facebook', label: ts('Facebook'), href: contact.facebookUrl ?? '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
+    { id: 'instagram', label: ts('Instagram'), href: about?.instagram || contact.instagramUrl || '', style: { background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)', color: '#fff' }, icon: <Instagram size={26} /> },
+    { id: 'facebook', label: ts('Facebook'), href: about?.facebook || contact.facebookUrl || '', style: { background: '#1877F2', color: '#fff' }, icon: <Facebook size={26} /> },
     ...(contact.whatsapp ? [{ id: 'whatsapp', label: ts('WhatsApp'), href: `https://wa.me/${contact.whatsapp}`, style: { background: 'var(--em-wa)', color: '#fff' }, icon: <MessageCircle size={26} /> }] : []),
     ...(contact.address
       ? [{ id: 'location', label: contact.showroomLabel ? ts(contact.showroomLabel) : t('Location'), href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.mapPin || contact.address)}`, style: { background: 'var(--em-primary)', color: 'var(--em-on-primary)' }, icon: <MapPin size={26} /> }]

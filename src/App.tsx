@@ -302,12 +302,13 @@ export default function App() {
     }
     let live = true;
     const fetchData = async () => {
-      const [catsData, prodsData, bannerData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners()]);
+      // About us comes with the rest, so Home has the owner's Instagram and Facebook links the moment it shows (getAbout never rejects).
+      const [catsData, prodsData, bannerData, aboutData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners(), api.getAbout()]);
       if (!live) return;
       setBanners(bannerData);
+      setAbout(aboutData);
       api.getPurities().then((list) => list && setPurities(list)).catch(() => {});
       api.getTags().then((list) => list && setTagList(list)).catch(() => {});
-      api.getAbout().then(setAbout).catch(() => {});
       if (catsData.length > 0) setCategories(catsData);
       if (prodsData.length > 0) setProducts(prodsData);
     };
@@ -937,6 +938,7 @@ export default function App() {
             loading={!catalogueReady}
             isAdmin={isAdminLoggedIn}
             buyerName={currentMerchant?.ownerName || currentMerchant?.storeName}
+            about={about}
             onEditCategory={openCategoryForm}
             onNavigate={handleNavigate}
             onFilterCategoryInCatalogue={handleFilterCategoryInCatalogue}

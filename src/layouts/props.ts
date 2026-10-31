@@ -38,6 +38,8 @@ export interface CategoriesProps {
   isAdmin: boolean;
   /** The signed-in buyer's name, for the desktop greeting beside the search. */
   buyerName?: string;
+  /** The owner's About us details: Home links to the Instagram and Facebook pages set there. */
+  about?: About;
   onEditCategory: (category: Category) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onFilterCategoryInCatalogue: (categoryName: string) => void;
