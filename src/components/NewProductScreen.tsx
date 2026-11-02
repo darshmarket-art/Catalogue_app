@@ -44,7 +44,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const maxPhotos = Math.max(limits.photosPerDesign, editing?.images.length ?? 0);
 
   const problem = uploading
-    ? 'Photo is uploading…'
+    ? 'Photo is uploading or rendering…'
     : photos.length === 0
       ? 'Add at least one photo'
       : !title.trim()
@@ -105,7 +105,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         <span className="lab">
           Photos {limits.photosPerDesign > 1 && <span className="pro" style={{ marginLeft: 4 }}>Up to {limits.photosPerDesign}</span>}
         </span>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={maxPhotos} kind="design" onBusyChange={setUploading} locked={Math.max(0, 3 - maxPhotos)} onLocked={() => upgradeNotice('Extra photos per design')} />
+        <PhotoPicker photos={photos} onChange={setPhotos} max={maxPhotos} kind="design" onBusyChange={setUploading} locked={Math.max(0, 3 - maxPhotos)} onLocked={() => upgradeNotice('Extra photos per design')} aiRender />
         {limits.photosPerDesign < 3 && <p className="hint">Basic allows {limits.photosPerDesign} photo per design. Pro allows 3.</p>}
       </div>
 

@@ -58,7 +58,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
   const min = parseFloat(minWt);
   const max = parseFloat(maxWt);
   const problem = uploading
-    ? 'Photo is uploading…'
+    ? 'Photo is uploading or rendering…'
     : photos.length === 0
       ? 'Add a photo for the collection'
       : !name.trim()
@@ -148,7 +148,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
       <div>
         <span className="lab">Cover photo</span>
-        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="square" kind="collection" />
+        <PhotoPicker photos={photos} onChange={setPhotos} max={1} onBusyChange={setUploading} tile="square" kind="collection" aiRender />
       </div>
 
       <Field label="Collection name" htmlFor="ac-name">

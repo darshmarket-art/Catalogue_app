@@ -4,12 +4,8 @@ import { fitCheck, PHOTO_SPECS, type PhotoKind } from '../../shared/photoSpecs';
 import { I, Photo } from './ui';
 import { PhotoCropper } from './PhotoCropper';
 import { errorText } from '../bugReport';
-
-/** A photo on a form: `ref` is what gets saved, `url` is what is shown. */
-export interface PhotoItem {
-  ref: string;
-  url: string;
-}
+import { swapRender, type PhotoItem } from '../aiRender';
+export type { PhotoItem };
 
 interface PhotoPickerProps {
   photos: PhotoItem[];
@@ -24,13 +20,15 @@ interface PhotoPickerProps {
   /** Extra slots shown locked (Basic: photos 2 and 3), tapping one calls onLocked. */
   locked?: number;
   onLocked?: () => void;
+  /** Offers the "AI render" switch (on by default); new uploads are then re-drawn as a CAD-style studio render, original kept. */
+  aiRender?: boolean;
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 25 * 1024 * 1024;
 
 /** Photos on a form, as the canvas draws them: a row of tiles with dashed "Add" slots (artboards 3.3, 4.2, 3.7). */
-export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', kind, locked = 0, onLocked }) => {
+export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', kind, locked = 0, onLocked, aiRender = false }) => {
   const [crop, setCrop] = useState<File[]>([]);
   const spec = kind ? PHOTO_SPECS[kind] : null;
   const [uploading, setUploading] = useState<Array<{ id: number; name: string }>>([]);
@@ -40,10 +38,34 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   const nextId = useRef(0);
   const input = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
+  const [aiOn, setAiOn] = useState(true);
+  const [rendering, setRendering] = useState<string[]>([]);
+  const renderingRef = useRef(rendering);
+  renderingRef.current = rendering;
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   useEffect(() => {
-    onBusyChange?.(uploading.length > 0);
-  }, [uploading.length]);
+    onBusyChange?.(uploading.length > 0 || rendering.length > 0);
+  }, [uploading.length, rendering.length]);
+
+  /** Replaces the just-uploaded photo with its AI render when it arrives; any failure leaves the original in place and says why. */
+  const render = async (ref: string) => {
+    setRendering((r) => [...r, ref]);
+    try {
+      const out = await api.renderPhoto(ref);
+      if (!renderingRef.current.includes(ref)) return; // the owner tapped "Use original" while it was rendering
+      photosRef.current = photosRef.current.map((p) => (p.ref === ref ? out : p));
+      onChange(photosRef.current);
+    } catch (err) {
+      if (renderingRef.current.includes(ref) && !(err instanceof ApiError && err.handled)) {
+        setAiNote(err instanceof ApiError ? err.message : 'AI render did not work for this photo. Your original photo is used.');
+      }
+      // Switched off on the server, or this month's renders used up: stop trying for the rest of this form.
+      if (err instanceof ApiError && (err.status === 503 || err.status === 402)) setAiOn(false);
+    } finally {
+      setRendering((r) => r.filter((x) => x !== ref));
+    }
+  };
 
   const room = max - photos.length - uploading.length;
 
@@ -55,6 +77,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
       // Uploads of a multi-select finish independently, so build on the latest list rather than the last render's.
       photosRef.current = [...photosRef.current, { ref, url }];
       onChange(photosRef.current);
+      if (aiRender && aiOn) void render(ref);
     } catch (err) {
       if (!(err instanceof ApiError && err.handled)) {
         setError(errorText(err, 'PhotoPicker', 'The photo could not be uploaded.'));
@@ -107,6 +130,14 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   return (
     <div className="col" style={{ gap: 8 }}>
       {spec && <p className="hint" style={{ margin: 0 }}>{spec.tip}</p>}
+      {aiRender && (
+        <label className="row" style={{ gap: 8, alignItems: 'flex-start', fontSize: '0.875rem', cursor: 'pointer' }}>
+          <input type="checkbox" data-testid="ai-render-toggle" checked={aiOn} onChange={(e) => { setAiOn(e.target.checked); setAiNote(null); }} style={{ marginTop: 3 }} />
+          <span>
+            <b>AI render</b>: turn new photos into a precise, CAD-style studio render. The piece stays the same; your original photo is kept and you can switch back.
+          </span>
+        </label>
+      )}
       {crop[0] && spec && (
         <PhotoCropper
           file={crop[0]}
@@ -134,6 +165,30 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
             <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => remove(i)} className="ib over" style={{ top: 6, right: 6, width: 30, height: 30, borderRadius: 10 }}>
               <I n="x" size="s" />
             </button>
+            {photo.original && (
+              <span className="tag gold over" style={{ left: 6, top: 6 }}>
+                AI render
+              </span>
+            )}
+            {rendering.includes(photo.ref) && (
+              <div data-testid="photo-rendering" className="over animate-pulse" style={{ inset: 0, display: 'grid', placeItems: 'center', alignContent: 'center', gap: 4, background: 'rgb(0 0 0 / 0.45)', color: '#fff', fontSize: '0.75rem', fontWeight: 700 }}>
+                Rendering…
+                <button type="button" className="lnk" style={{ color: '#fff', minHeight: 28 }} onClick={() => setRendering((r) => r.filter((x) => x !== photo.ref))}>
+                  Use original
+                </button>
+              </div>
+            )}
+            {(photo.original || photo.render) && (
+              <button
+                type="button"
+                data-testid="photo-swap-render"
+                className="tag over"
+                style={{ right: 6, bottom: 6, background: 'var(--card)', border: 0, cursor: 'pointer' }}
+                onClick={() => onChange(photos.map((p, j) => (j === i ? swapRender(p) : p)))}
+              >
+                {photo.original ? 'Revert to original' : 'Use AI render'}
+              </button>
+            )}
           </Photo>
         ))}
         {uploading.map((u) => (
@@ -185,6 +240,11 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
           e.target.value = '';
         }}
       />
+      {aiNote && (
+        <p role="status" className="hint" style={{ margin: 0 }}>
+          {aiNote}
+        </p>
+      )}
       {error && (
         <p role="alert" className="err">
           {error}
