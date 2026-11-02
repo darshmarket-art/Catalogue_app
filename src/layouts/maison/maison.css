@@ -42,6 +42,8 @@
 
   background: var(--mx-paper);
   color: var(--mx-ink);
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1;
   font-family: var(--mx-sans);
   font-weight: 300;
 
@@ -358,9 +360,11 @@
   & .mx-bag-sum dd { margin: 0; font-family: var(--mx-serif); font-size: 1.125rem; }
   & .mx-bag-act { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
   & .mx-bag-act .mx-btn > span { white-space: nowrap; }
-  & .mx-wish .mx-bag-act { flex-direction: row; }
+  & .mx-wish .mx-bag-act { flex-direction: row; min-width: 0; }
   & .mx-wish .mx-bag-act .mx-btn { flex: 1; padding: 0 10px; }
   & .mx-wish .mx-bag-act .mx-btn:first-child { flex: none; white-space: nowrap; }
+  & .mx-wish .mx-bag-act .mx-btn:last-child { min-width: 0; padding: 0 8px; letter-spacing: 0.1em; font-size: 0.625rem; }
+  & .mx-wish .mx-bag-act .mx-btn:last-child > span { white-space: normal; text-align: center; }
   & .mx-bag-title, & .mx-bag-conf { display: none; }
   & :is(.mx-wish, .mx-bag.has-lines) { padding-bottom: 210px; }
   & .mx-tabs { display: flex; gap: 28px; padding: 0 20px; border-bottom: 1px solid var(--mx-line); }
@@ -396,6 +400,9 @@
   & .mx-btn.lt.sec { background: transparent; color: #fff; }
   & .mx-btn.sec { background: transparent; color: var(--mx-ink); }
 
+  & .mx-report-wrap { display: flex; justify-content: center; padding: 32px 20px 0; }
+  & .mx-report { display: flex; flex-direction: column; gap: 8px; width: min(420px, 100%); }
+  & .mx-report textarea { width: 100%; padding: 12px; border: 1px solid var(--mx-line); background: var(--mx-paper); font-family: var(--mx-sans); font-size: 0.875rem; }
   /* shared sheets (collection browser, profile menu) stay white */
   & .em-sheet { background: var(--mx-paper); }
   /* sign-in: breathing room at the sides, ink buttons (no green) */
@@ -469,9 +476,9 @@
     /* design page: breadcrumb, thumbnail rail, one large photo, a narrow info column that stays in view */
     & .mx-pd .mx-crumbs { padding: 10px 32px; }
     & .mx-pd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }
-    & .mx-pd-media:has(.mx-rail) { display: grid; grid-template-columns: 96px minmax(0, 1fr); }
+    & .mx-pd-media:has(.mx-rail) { display: grid; grid-template-columns: 104px minmax(0, 1fr); }
     & .mx-rail { display: flex; flex-direction: column; gap: 8px; padding: 20px 16px; position: sticky; top: 0; align-self: start; }
-    & .mx-rail button { position: relative; width: 64px; height: 64px; padding: 0; border: 1px solid transparent; background: var(--mx-stone); cursor: pointer; overflow: hidden; }
+    & .mx-rail button { position: relative; flex: none; width: 72px; min-width: 72px; height: 72px; min-height: 72px; padding: 0; border: 1px solid transparent; background: var(--mx-stone); cursor: pointer; overflow: hidden; }
     & .mx-rail button.on { border-color: var(--mx-ink); }
     & .mx-gal { height: calc(100dvh - var(--header-h) - var(--sat) - 49px); }
     & .mx-gal > button { aspect-ratio: auto; }

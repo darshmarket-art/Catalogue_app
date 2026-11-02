@@ -5,6 +5,7 @@ import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Reveal } from '../../components/Reveal';
 import { type KitProps } from '../emergent/ui';
 import { hl, hn, t, tl, ts, useLang } from '../../i18n';
+import { reportProblem } from '../../bugReport';
 
 /** Maison About: the name large, the story as a lede, details as a hairline list, and contact as uppercase text links. Same data rules as Emergent's About. */
 export const About: React.FC<KitProps<'About'>> = ({ about }) => {
@@ -59,7 +60,39 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
           </ul>
         </div>
       </div>
+      <div className="mx-report-wrap"><ReportProblem /></div>
       <div className="mx-foot-b"><PoweredByAntarixs /><span className="mx-note">{window.location.hostname}</span><LegalLinks /></div>
+    </div>
+  );
+};
+
+/** Something looked wrong but nothing failed (so nothing reported itself): a note goes to Bug reports with the steps that led here. */
+const ReportProblem: React.FC = () => {
+  const [open, setOpen] = React.useState(false);
+  const [note, setNote] = React.useState('');
+  const [sent, setSent] = React.useState(false);
+  if (sent) return <p className="mx-note mx-center-note">{t('Thank you, we have it.')}</p>;
+  if (!open) {
+    return (
+      <button type="button" className="mx-cta" data-testid="report-problem" onClick={() => setOpen(true)}>
+        {t('Report a problem')}
+      </button>
+    );
+  }
+  return (
+    <div className="mx-report">
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={3} placeholder={t('What went wrong?')} aria-label={t('Report a problem')} />
+      <button
+        type="button"
+        className="mx-btn sec sm"
+        disabled={note.trim().length < 3}
+        onClick={() => {
+          reportProblem(note.trim());
+          setSent(true);
+        }}
+      >
+        {t('Send')}
+      </button>
     </div>
   );
 };
