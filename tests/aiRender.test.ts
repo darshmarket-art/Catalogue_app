@@ -1,0 +1,101 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import request from 'supertest';
+import sharp from 'sharp';
+import { loadConfig } from '../server/config';
+import { MemoryStore } from '../server/store';
+import { MemoryBlobs } from '../server/blobs';
+import { createApp } from '../server/app';
+import { seedDemoCatalogue } from '../server/seed';
+import { scopeStore } from '../server/tenancy';
+import { swapRender } from '../src/aiRender';
+
+// The provider is mocked: no test ever calls Google.
+const renderStudio = vi.fn();
+vi.mock('../server/aiRender', async (orig) => ({ ...(await orig<typeof import('../server/aiRender')>()), renderStudio: (...a: unknown[]) => renderStudio(...a) }));
+
+const MASTER_KEY = 'test-master-provisioning-key';
+type App = ReturnType<typeof createApp>;
+let app: App;
+let blobs: MemoryBlobs;
+let auth: Record<string, string>;
+
+const png = (r: number) => sharp({ create: { width: 40, height: 40, channels: 3, background: { r, g: 120, b: 40 } } }).png().toBuffer();
+
+beforeEach(async () => {
+  const config = { ...loadConfig({ NODE_ENV: 'test', STORE: 'memory', JWT_SECRET: 'x'.repeat(48), MASTER_PROVISIONING_KEY: MASTER_KEY }), rateLimit: { auth: 1000, adminRegister: 1000, api: 100000, analytics: 100000 } };
+  const root = new MemoryStore();
+  blobs = new MemoryBlobs();
+  await seedDemoCatalogue(scopeStore(root, 'bhakti'), 'bhakti');
+  app = createApp(config, root, blobs);
+  const res = await request(app).post('/api/auth/admin/register').send({ email: 'owner@example.com', password: 'AdminPass@2026', role: 'owner', masterProvisioningKey: MASTER_KEY });
+  auth = { Authorization: `Bearer ${res.body.sessionToken}` };
+  process.env.AI_RENDER_ENABLED = 'true';
+  process.env.AI_RENDER_MONTHLY_CAP = '2';
+  renderStudio.mockReset();
+});
+afterEach(() => {
+  delete process.env.AI_RENDER_ENABLED;
+  delete process.env.AI_RENDER_MONTHLY_CAP;
+});
+
+const upload = async () => (await request(app).post('/api/admin/photos').set(auth).set('Content-Type', 'image/png').send(await png(10))).body.data.ref as string;
+const render = (ref: string) => request(app).post('/api/admin/photos/render').set(auth).send({ ref });
+const stored = (ref: string) => blobs.get(`stores/bhakti/photos/${ref.slice(6)}`).then((b) => b ?? blobs.get(`photos/${ref.slice(6)}`));
+
+describe('AI render', () => {
+  it('toggle on: stores a new rendered photo and keeps the original untouched', async () => {
+    const ref = await upload();
+    const before = (await stored(ref))!.data;
+    renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
+    const res = await render(ref);
+    expect(res.status).toBe(201);
+    expect(res.body.data.ref).toMatch(/^media:[a-f0-9]{32}\.png$/);
+    expect(res.body.data.ref).not.toBe(ref);
+    expect(res.body.data.original.ref).toBe(ref);
+    expect(res.body.data.url).toContain('/media/');
+    expect((await stored(ref))!.data.equals(before)).toBe(true);
+    expect(await stored(res.body.data.ref)).toBeTruthy();
+    expect(renderStudio).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggle off (server switch): no provider call, and the reason is given', async () => {
+    delete process.env.AI_RENDER_ENABLED;
+    const res = await render(await upload());
+    expect(res.status).toBe(503);
+    expect(res.body.message).toMatch(/switched off.*original photo is used/);
+    expect(renderStudio).not.toHaveBeenCalled();
+  });
+
+  it('stops at the monthly cap per store', async () => {
+    renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
+    const ref = await upload();
+    expect((await render(ref)).status).toBe(201);
+    expect((await render(ref)).status).toBe(201);
+    const res = await render(ref);
+    expect(res.status).toBe(402);
+    expect(res.body.message).toMatch(/used its 2 AI renders/);
+    expect(renderStudio).toHaveBeenCalledTimes(2);
+  });
+
+  it('provider failure: 502 with a reason, original still there', async () => {
+    const ref = await upload();
+    renderStudio.mockRejectedValue(new Error('the AI declined this photo'));
+    const res = await render(ref);
+    expect(res.status).toBe(502);
+    expect(res.body.message).toMatch(/declined.*original photo is used/);
+    expect(await stored(ref)).toBeTruthy();
+  });
+
+  it('only renders photos uploaded here, and only for admins', async () => {
+    expect((await render('https://example.com/a.jpg')).status).toBe(400);
+    expect((await request(app).post('/api/admin/photos/render').send({ ref: 'media:' + 'a'.repeat(32) + '.jpg' })).status).toBe(401);
+  });
+
+  it('revert: swapping goes to the original and back without losing either', () => {
+    const rendered = { ref: 'media:r', url: '/r', original: { ref: 'media:o', url: '/o' } };
+    const reverted = swapRender(rendered);
+    expect(reverted).toEqual({ ref: 'media:o', url: '/o', render: { ref: 'media:r', url: '/r' } });
+    expect(swapRender(reverted)).toEqual(rendered);
+    expect(swapRender({ ref: 'media:x', url: '/x' })).toEqual({ ref: 'media:x', url: '/x' });
+  });
+});

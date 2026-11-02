@@ -454,6 +454,11 @@ export const api = {
     return json.data;
   },
 
+  /** CAD-style AI render of a just-uploaded photo. The original stays stored; the server says why when it cannot render. */
+  async renderPhoto(ref: string): Promise<{ ref: string; url: string; original: { ref: string; url: string } }> {
+    return (await post('/api/v1/admin/photos/render', { ref })).data;
+  },
+
   async getProducts(params?: { search?: string; category?: string; purity?: string }): Promise<Product[]> {
     try {
       const query = new URLSearchParams(params as Record<string, string>).toString();

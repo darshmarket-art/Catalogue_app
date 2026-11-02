@@ -42,7 +42,7 @@ async function token(): Promise<string> {
   tok = { value: j.access_token, exp: Date.now() + (j.expires_in ?? 300) * 1000 };
   return tok.value;
 }
-async function projectId(): Promise<string> {
+export async function projectId(): Promise<string> {
   const env = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
   if (env) return env;
   return cached('project', async () => {

@@ -2,8 +2,10 @@ import { bulkImportExempt } from '../bulkImport';
 import express, { Router } from 'express';
 import type { RequestHandler } from 'express';
 import type { Blob, Blobs } from '../blobs';
-import { newPhotoFile, objectName, type Media } from '../media';
+import { newPhotoFile, normalizePhoto, objectName, type Media } from '../media';
 import type { Entitlements } from '../entitlements';
+import type { Store } from '../store';
+import { renderEnabled, renderMonthlyCap, renderStudio } from '../aiRender';
 import { HttpError, handler } from '../http';
 import { logger } from '../logger';
 import sharp from 'sharp';
@@ -45,7 +47,7 @@ export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/pn
 }
 
 /** Admin-only: the browser sends the photo as the raw request body; it is stored in the merchant's bucket. */
-export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements, bulkImportKey: string | null = null) {
+export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements, bulkImportKey: string | null, store: Store) {
   const router = Router();
 
   router.post(
@@ -66,6 +68,46 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const file = newPhotoFile(TYPES[result.type]);
       await blobs.put(objectName(file), result.buffer, result.type);
       res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: result.buffer.length } });
+    })
+  );
+
+  /**
+   * AI render of a photo just uploaded: a NEW file is stored next to the original, which is never changed or deleted.
+   * `renders/<new file>` records which original it came from. Any refusal leaves the caller with the original photo.
+   */
+  router.post(
+    '/render',
+    requireAdmin,
+    handler(async (req, res) => {
+      if (!renderEnabled()) throw new HttpError(503, 'AI render is switched off on this server. Your original photo is used.');
+      const ref = normalizePhoto(String((req.body as { ref?: unknown } | undefined)?.ref ?? ''));
+      if (!ref?.startsWith('media:')) throw new HttpError(400, 'Only a photo uploaded here can be rendered.');
+      const original = await blobs.get(objectName(ref.slice(6)));
+      if (!original) throw new HttpError(404, 'Photo not found. Upload it again.');
+
+      // ponytail: read-then-increment, so two renders racing at the cap can overshoot by one. Use a Firestore transaction if that ever matters.
+      const month = new Date().toISOString().slice(0, 7);
+      const cap = renderMonthlyCap();
+      if (Number((await store.get('aiRenderMonthly', month))?.count ?? 0) >= cap) {
+        throw new HttpError(402, `This store has used its ${cap} AI renders for this month. Your original photo is used.`);
+      }
+      await store.increment('aiRenderMonthly', month, { count: 1 }, { month });
+
+      let rendered: Awaited<ReturnType<typeof optimisePhoto>>;
+      try {
+        const out = await renderStudio(original.data, original.contentType);
+        const type = sniff(out.data);
+        if (!type) throw new Error('the AI returned an unreadable image');
+        rendered = await optimisePhoto(out.data, type);
+      } catch (err) {
+        const why = err instanceof Error && err.name !== 'TimeoutError' ? err.message : 'the AI did not answer in time';
+        logger.warn('AI render failed; keeping the original', { error: err instanceof Error ? err.message : String(err) });
+        throw new HttpError(502, `AI render did not work for this photo (${why}). Your original photo is used.`);
+      }
+      const file = newPhotoFile(TYPES[rendered.type]);
+      await blobs.put(objectName(file), rendered.buffer, rendered.type);
+      await blobs.put(`renders/${file}`, Buffer.from(ref), 'text/plain');
+      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), original: { ref, url: media.url(ref) } } });
     })
   );
 
