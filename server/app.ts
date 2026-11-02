@@ -9,7 +9,9 @@ import { bulkImportExempt } from './bulkImport';
 import type { Config } from './config';
 import type { Store } from './store';
 import { ADMIN_REMEMBER_TTL, claimsOf, createAuth, isNativeClient, NATIVE_TOKEN_TTL, RETAILER_TOKEN_TTL, signToken, user } from './auth';
-import { errorHandler, handler, notFoundApi, requestLogger } from './http';
+import { audit, errorHandler, handler, notFoundApi, parse, requestLogger } from './http';
+import { z } from 'zod';
+import { LAYOUT_IDS } from '../shared/layouts';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
 import { shortlistRoutes } from './routes/shortlist';
@@ -266,6 +268,13 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
     })
   ));
   app.use(brandLogoRoutes(blobs, auth.requireAdmin, patchMerchant));
+  // The owner picks the storefront layout (Store settings); every plan may use every layout.
+  app.put('/api/admin/layout', auth.requireAdmin, handler(async (req, res) => {
+    const { layout } = parse(z.object({ layout: z.enum(LAYOUT_IDS) }), req.body);
+    await patchMerchant((m) => ({ ...m, layout }));
+    await audit(store, req, 'LAYOUT_CHANGED', `Storefront layout set to ${layout}.`);
+    res.json({ status: 'success', data: { layout } });
+  }));
   app.use('/api/shortlist', shortlistRoutes(store, auth.requireRetailer));
   app.use('/api/orders', orderRoutes(store, config.merchant, pack, media, auth.requireRetailer, notify));
   app.use('/api/admin/orders', adminOrderRoutes(store, media, auth.requireAdmin, notify));

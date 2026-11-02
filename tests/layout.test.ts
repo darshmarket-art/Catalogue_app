@@ -45,37 +45,35 @@ async function build(patch: Partial<StoreRecord> = {}, opts: Opts = {}) {
   return { app, root, store, auth, page, config };
 }
 
-describe('Emergent is the only layout, for every plan', () => {
-  it('shared registry: one live layout, available to every plan', () => {
-    expect([...LAYOUT_IDS]).toEqual(['emergent']);
+describe('store layout setting (emergent default, maison optional)', () => {
+  it('shared registry: emergent (default) and maison, both on every plan', () => {
+    expect([...LAYOUT_IDS]).toEqual(['emergent', 'maison']);
     expect(DEFAULT_LAYOUT).toBe('emergent');
-    expect(LAYOUTS).toEqual([expect.objectContaining({ id: 'emergent', plan: 'basic' })]);
+    expect(LAYOUTS.every((l) => l.plan === 'basic')).toBe(true);
   });
 
-  it('a legacy layout (gilded, unknown, or none) in a config parses and is dropped', () => {
+  it('a missing or retired layout in a config parses as the default; maison is kept', () => {
     const raw = JSON.parse(JSON.stringify(loadMerchant({ MERCHANT: 'example' })));
-    for (const layout of ['gilded', 'neon', undefined]) {
-      expect(parseMerchant({ ...raw, layout }, 'test')).not.toHaveProperty('layout');
-    }
-    expect(loadMerchant({ MERCHANT: 'bhakti' })).not.toHaveProperty('layout');
+    for (const layout of ['gilded', 'neon', undefined]) expect(parseMerchant({ ...raw, layout }, 'test').layout).toBe('emergent');
+    expect(parseMerchant({ ...raw, layout: 'maison' }, 'test').layout).toBe('maison');
+    expect(loadMerchant({ MERCHANT: 'bhakti' }).layout).toBe('emergent');
   });
 
-  it('the layout route and the console layout action are gone', async () => {
-    process.env.CONSOLE_DEV_OPEN = 'true';
-    const { app, auth } = await build({ plan: 'pro' });
-    expect((await request(app).put('/api/v1/admin/layout').set(auth).send({ layout: 'emergent' })).status).toBe(404);
-    expect((await request(app).post('/api/v1/console/stores/bhakti/layout').send({ layout: 'emergent' })).status).toBe(404);
+  it('the owner saves maison (v1 path), the page then carries it; invalid values and buyers are refused', async () => {
+    const { app, auth, page } = await build({ plan: 'basic' });
+    expect((await page()).layout ?? 'emergent').toBe('emergent');
+    const put = (layout: unknown, h: Record<string, string> = auth) => request(app).put('/api/v1/admin/layout').set(h).send({ layout });
+    expect((await put('gilded')).status).toBe(400);
+    expect((await put(undefined)).status).toBe(400);
+    expect((await put('maison', {})).status).toBe(401);
+    expect((await page()).layout ?? 'emergent').toBe('emergent');
+    const ok = await put('maison');
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.layout).toBe('maison');
+    expect((await page()).layout).toBe('maison');
+    expect((await put('emergent')).status).toBe(200);
+    expect((await page()).layout).toBe('emergent');
   });
-
-  it('the page never forces or carries a layout choice, on any plan, even for a stored legacy gilded record', async () => {
-    for (const patch of [{ plan: 'basic' as const }, { plan: 'pro' as const }, {}, { plan: 'basic' as const, trialEndsAt: trialEnd() }, { plan: 'basic' as const, trialEndsAt: past() }]) {
-      for (const stored of [undefined, 'gilded', 'emergent']) {
-        const { page } = await build(patch, { merchant: { layout: stored } as unknown as Partial<MerchantConfig> });
-        const m = await page();
-        expect(m).toMatchObject({ id: 'bhakti', sector: 'jewellery', brand: { name: expect.any(String) }, productFields: expect.any(Array) });
-      }
-    }
- }, 60000);
 
   it('premiumLayouts no longer exists as a plan flag', async () => {
     expect(flagsFor('basic')).not.toHaveProperty('premiumLayouts');

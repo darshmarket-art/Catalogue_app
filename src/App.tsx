@@ -11,8 +11,12 @@ import { isTidying } from './backLayer';
 import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
 import { getLang, hn, pur, t, tErr, ts, useLang } from './i18n';
 import { merchant } from './merchant';
-import { emergent as K } from './layouts/emergent';
-import { DEFAULT_LAYOUT } from '../shared/layouts';
+import { emergent } from './layouts/emergent';
+import { maison } from './layouts/maison';
+import { DEFAULT_LAYOUT, type LayoutId } from '../shared/layouts';
+import type { LayoutKit } from './layouts/props';
+
+const KITS: Record<LayoutId, LayoutKit> = { emergent, maison };
 import { sector } from './sector';
 import { RetailerAuthScreen } from './components/RetailerAuthScreen';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
@@ -128,6 +132,15 @@ export default function App() {
   
   // Which way the last screen change went, so the page animation slides the right way.
   const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
+  // Buyers get the layout the owner picked; the owner's own screens always use the standard one.
+  const layout: LayoutId = !isAdminLoggedIn && merchant.layout in KITS ? merchant.layout : DEFAULT_LAYOUT;
+  const K = KITS[layout];
+  // Maison's two typefaces load only for stores that use it.
+  useEffect(() => {
+    if (layout !== 'maison' || document.getElementById('maison-fonts')) return;
+    const l = Object.assign(document.createElement('link'), { id: 'maison-fonts', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Jost:wght@300;400;500&display=swap' });
+    document.head.appendChild(l);
+  }, [layout]);
   // Switching between the four tabs fades; going deeper or back slides.
   const lastScreen = useRef<ActiveScreen>(currentScreen);
   const firstKey = useRef<ActiveScreen | null | undefined>(undefined);
@@ -148,7 +161,9 @@ export default function App() {
     else if (target === 'admin-enquiries') { screen = 'admin-buyers'; setBuyersSeg('enquiries'); }
     else if (target === 'admin-banners') { screen = 'catalogue'; setCatalogueSeg('banners'); }
     else if (target === 'admin-purities') { screen = 'catalogue'; setCatalogueSeg('purities'); }
-    setNavDir((TABS.includes(screen) && !TABS.includes(screenRef.current)) || (screen === 'categories' && screenRef.current === 'catalogue') ? 'back' : 'forward');
+    const from = screenRef.current;
+    // Between two tabs the direction follows the tab order (Maison turns the page that way); otherwise out to a tab is back.
+    setNavDir(TABS.includes(screen) && TABS.includes(from) ? (TABS.indexOf(screen) < TABS.indexOf(from) ? 'back' : 'forward') : TABS.includes(screen) ? 'back' : 'forward');
     setCurrentScreen(screen);
     // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
     // A tab swaps the entry; going deeper (a form, About, a sub-screen) adds one, so Back walks back out the way you came.
@@ -805,7 +820,7 @@ export default function App() {
   if (firstKey.current === undefined) firstKey.current = activeScreen;
 
   return (
-    <div data-layout={DEFAULT_LAYOUT} data-role={isAdminLoggedIn ? 'owner' : 'buyer'} className="min-h-dvh bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+    <div data-layout={layout} data-nav={navDir} data-role={isAdminLoggedIn ? 'owner' : 'buyer'} className="min-h-dvh bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {touring && currentMerchant && !isAdminLoggedIn && (
         <BuyerTour
           buyerName={currentMerchant.ownerName || currentMerchant.storeName}
@@ -836,6 +851,10 @@ export default function App() {
           currentMerchant={currentMerchant}
           onLogout={handleLogout}
           onOpenOrders={openOrders}
+          categories={categories}
+          shortlistCount={shortlist.length}
+          orderCount={flags.orders ? orders.length : undefined}
+          onOpenCollection={handleFilterCategoryInCatalogue}
           isEditing={(activeScreen === 'new-product' && editingProduct !== null) || (activeScreen === 'add-category' && editingCategory !== null)}
           eyebrow={
             activeScreen === 'admin-hub'

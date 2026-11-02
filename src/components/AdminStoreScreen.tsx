@@ -6,6 +6,9 @@ import { Icon, Title } from '../layouts/emergent/ui';
 import { Notice } from './ui';
 import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 import { errorText } from '../bugReport';
+import { merchant } from '../merchant';
+import { notify } from '../notify';
+import { DEFAULT_LAYOUT, LAYOUTS, type LayoutId } from '../../shared/layouts';
 
 interface Props {
   summary: AdminSummary;
@@ -21,6 +24,23 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
   const { flags } = ent;
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [layout, setLayout] = useState<LayoutId>(merchant.layout ?? DEFAULT_LAYOUT);
+  const [savingLayout, setSavingLayout] = useState<LayoutId | null>(null);
+
+  const pickLayout = (id: LayoutId) => {
+    if (id === layout || savingLayout) return;
+    setSavingLayout(id);
+    setError(null);
+    api
+      .setLayout(id)
+      .then(() => {
+        merchant.layout = id;
+        setLayout(id);
+        notify(`Buyers now see the ${LAYOUTS.find((l) => l.id === id)?.name} layout.`);
+      })
+      .catch((e) => setError(errorText(e, 'AdminStoreScreen', 'Could not change the layout.')))
+      .finally(() => setSavingLayout(null));
+  };
 
   const exportAudit = () => {
     if (!flags.auditLog) return void upgradeNotice('The audit log');
@@ -60,6 +80,16 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
           <Row icon="share" title="Share store" note="Link and QR for buyers" testId="store-share" onClick={onShare} />
           <Row icon="eye" title="View as a buyer" note="See the catalogue the way buyers do" testId="store-view-buyer" onClick={onViewAsBuyer} />
         </Group>
+        <div className="em-ey" style={{ marginTop: 8 }}>Store layout</div>
+        <div role="radiogroup" aria-label="Store layout" data-testid="store-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {LAYOUTS.map((l) => (
+            <button key={l.id} type="button" role="radio" aria-checked={layout === l.id} data-testid={`layout-${l.id}`} disabled={savingLayout !== null} onClick={() => pickLayout(l.id)} className="em-card" style={{ padding: 10, textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer', outline: layout === l.id ? '2px solid var(--em-primary)' : undefined, outlineOffset: -2 }}>
+              <LayoutPreview id={l.id} />
+              <b style={{ display: 'block', fontWeight: 600, marginTop: 8 }}>{l.name}{layout === l.id ? ' · in use' : savingLayout === l.id ? ' · saving…' : ''}</b>
+              <span className="em-mut" style={{ fontSize: '0.75rem' }}>{l.id === 'maison' ? 'Black and white, large serif, full-width photos' : 'Your colours, rounded cards, tab bar'}</span>
+            </button>
+          ))}
+        </div>
         <Group title="Alerts">
           <OrderNotificationsToggle row />
         </Group>
@@ -77,5 +107,32 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
         </Group>
       </div>
     </div>
+  );
+};
+
+/** A miniature of each layout's Home, drawn in CSS so it needs no screenshots. */
+const LayoutPreview: React.FC<{ id: LayoutId }> = ({ id }) => {
+  const box: React.CSSProperties = { position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', borderRadius: id === 'maison' ? 0 : 12 };
+  if (id === 'maison')
+    return (
+      <span aria-hidden="true" style={{ ...box, display: 'block', background: '#fff', border: '1px solid #ddd' }}>
+        <span style={{ display: 'block', height: '12%', borderBottom: '1px solid #ddd', textAlign: 'center', font: '400 9px/2.2 Georgia, serif', letterSpacing: '0.3em', color: '#111' }}>{merchant.brand.name.slice(0, 10).toUpperCase()}</span>
+        <span style={{ display: 'block', height: '46%', background: 'linear-gradient(160deg,#3a3a3a,#0c0c0c)', position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 8, bottom: 8, font: '300 18px/1 Georgia, serif', color: '#fff' }}>Aa</span>
+        </span>
+        <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 6, background: '#f1efec', height: '42%' }}>
+          <span style={{ background: '#e2ded8' }} /><span style={{ background: '#e2ded8' }} />
+        </span>
+      </span>
+    );
+  return (
+    <span aria-hidden="true" style={{ ...box, display: 'block', background: 'var(--em-bg)', border: '1px solid var(--em-line)', padding: 6 }}>
+      <span style={{ display: 'block', height: 10, width: '55%', borderRadius: 99, background: 'var(--em-tint)' }} />
+      <span style={{ display: 'block', height: '40%', marginTop: 6, borderRadius: 10, background: 'var(--em-primary)' }} />
+      <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 6, height: '30%' }}>
+        <span style={{ borderRadius: 8, background: 'var(--em-tint)' }} /><span style={{ borderRadius: 8, background: 'var(--em-tint)' }} />
+      </span>
+      <span style={{ position: 'absolute', left: 6, right: 6, bottom: 6, height: 12, borderRadius: 99, background: 'var(--em-card)', border: '1px solid var(--em-line)' }} />
+    </span>
   );
 };

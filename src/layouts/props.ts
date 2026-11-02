@@ -18,6 +18,11 @@ export interface HeaderProps {
   eyebrow?: string;
   /** Tag at the right of the title, e.g. "142 designs" or the plan. */
   aside?: ReactNode;
+  /** For layouts whose top bar carries the whole navigation (Maison): the collections menu and the bag and shortlist counts. */
+  categories?: Category[];
+  shortlistCount?: number;
+  orderCount?: number;
+  onOpenCollection?: (name: string) => void;
 }
 export interface BottomNavProps {
   currentScreen: ActiveScreen;

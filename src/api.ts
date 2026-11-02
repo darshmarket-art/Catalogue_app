@@ -380,6 +380,10 @@ export const api = {
     return (await post('/api/v1/about/hindi', { texts })).data.texts;
   },
 
+  /** Owner picks the storefront layout ('emergent' or 'maison'). */
+  async setLayout(layout: string): Promise<string> {
+    return (await request('/api/v1/admin/layout', { method: 'PUT', body: JSON.stringify({ layout }) })).data.layout;
+  },
   async saveAbout(about: About): Promise<About> {
     return (await request('/api/v1/about', { method: 'PUT', body: JSON.stringify(about) })).data;
   },

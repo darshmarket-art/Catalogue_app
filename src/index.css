@@ -254,7 +254,7 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .live-dot,
   .welcome-ring,
-  [data-layout="emergent"] .em-ordcard {
+  :is([data-layout="emergent"],[data-layout="maison"]) .em-ordcard {
     animation: none;
   }
   .step-in,
