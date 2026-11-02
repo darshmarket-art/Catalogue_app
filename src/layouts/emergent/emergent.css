@@ -1083,6 +1083,29 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
   [data-layout="emergent"][data-role="owner"] .scroll.em-desk { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+/* Owner at desktop width: the tab bar becomes a left sidebar (same four tabs, same screen ids), the top bar and pages sit to its right, and Today
+   lays out in two columns. Below 1024px none of this applies, so the phone and tablet bottom bar is untouched (apple-design sidebars.md: a sidebar
+   for top-level navigation on wide screens; apple-motion section 7: the active pill moves where the eye already is, a short ease-out, none under reduced motion). */
+@media (min-width: 1024px) {
+  [data-layout="emergent"][data-role="owner"] { --em-tab-h: 0px; --em-side: 232px; padding-left: var(--em-side); }
+  [data-layout="emergent"][data-role="owner"] :is(.em-top, .em-dock) { left: var(--em-side); }
+  [data-layout="emergent"][data-role="owner"] .em-tabs { top: 0; bottom: 0; left: 0; right: auto; width: var(--em-side); padding: calc(var(--sat) + 24px) 14px 24px; background: var(--em-card); border-right: 1px solid var(--em-line); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  [data-layout="emergent"][data-role="owner"] .em-tabs nav { flex-direction: column; align-items: stretch; gap: 4px; max-width: none; min-height: 0; margin: 0; }
+  [data-layout="emergent"][data-role="owner"] .em-tab { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 44px; padding: 0 14px; border-radius: 12px; font-size: 0.9375rem; text-align: left; transition: background-color 0.2s ease-out, color 0.2s ease-out; }
+  [data-layout="emergent"][data-role="owner"] .em-tab::after { display: none; }
+  [data-layout="emergent"][data-role="owner"] .em-tab.on { background: var(--em-tint); }
+  [data-layout="emergent"][data-role="owner"] .em-tab-l { flex: 1; }
+  [data-layout="emergent"][data-role="owner"] .em-bd { position: static; margin-left: auto; }
+  @media (hover: hover) { [data-layout="emergent"][data-role="owner"] .em-tab:not(.on):hover { background: color-mix(in srgb, var(--em-tint) 60%, transparent); color: var(--em-ink); } }
+  /* Today: needs-you at the left, this week and New design at the right; the rest keeps the full width. */
+  [data-layout="emergent"][data-role="owner"] .hub-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  [data-layout="emergent"][data-role="owner"] .hub-need, [data-layout="emergent"][data-role="owner"] .hub-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  [data-layout="emergent"][data-role="owner"] .hub-side > div:first-child { margin-top: 0 !important; }
+  [data-layout="emergent"][data-role="owner"] .em-page:not(.home):not(.wide):not(.notabs), [data-layout="emergent"][data-role="owner"] .scroll.em-desk, [data-layout="emergent"][data-role="owner"] .em-trialbar { max-width: 1120px; }
+  [data-layout="emergent"][data-role="owner"] .em-top-in:not(.sub) { max-width: 1120px; }
+}
+@media (prefers-reduced-motion: reduce) { [data-layout="emergent"][data-role="owner"] .em-tab { transition: none; } }
+
 /* Tablet only: list and detail side by side. Wider than this the buyer gets the desktop design window instead; narrower, the overlay.
    The design pane also needs room to be tall (560px: PANE_MIN_H in useDesktop.ts, which must match): a phone on its side has a regular
    width but a compact height, and there the design stays a full-screen overlay. */
@@ -1173,3 +1196,7 @@ html.native [data-layout="emergent"] .dock.low > .card { padding-bottom: calc(14
 @media (prefers-contrast: more) {
   [data-layout="emergent"] { --em-line: var(--em-field); --em-mut: color-mix(in srgb, var(--color-on-surface-variant) 70%, var(--color-on-surface)); }
 }
+
+/* Today's two columns exist only at desktop width (the wrappers add no box below it). */
+@media (max-width: 1023.98px) { [data-layout="emergent"] :is(.hub-cols, .hub-need, .hub-side) { display: contents; } }
+@media (min-width: 1024px) { [data-layout="emergent"][data-role="buyer"] :is(.hub-cols, .hub-need, .hub-side) { display: contents; } }

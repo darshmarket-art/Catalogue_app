@@ -98,6 +98,8 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
           </button>
         )}
 
+        <div className="hub-cols">
+        <div className="hub-need">
         <div className="em-ey" style={{ marginTop: 4 }}>Needs you</div>
         {waiting.length > 0 ? (
           <div data-testid="needs-you" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -118,6 +120,8 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
           </div>
         )}
 
+        </div>
+        <div className="hub-side">
         {flags.insights ? (
           <div style={{ marginTop: 6 }}>
             <div className="em-row em-sb">
@@ -192,6 +196,8 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
           <Icon n="right" size={20} className="em-chev" />
         </button>
 
+        </div>
+        </div>
         <div style={{ marginTop: 6 }}>
           <div className="em-rule" style={{ width: 40, margin: '0 0 8px' }} />
           <div className="em-h3" style={{ marginBottom: 14 }}>Quick actions</div>
