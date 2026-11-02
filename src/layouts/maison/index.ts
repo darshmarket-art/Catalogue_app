@@ -1,14 +1,13 @@
 import type { LayoutKit } from '../props';
-import { Catalogue } from '../emergent/Catalogue';
-import { Shortlist } from '../emergent/Shortlist';
-import { Orders } from '../emergent/Orders';
 import './maison.css';
 import { Header } from './Header';
 import { Welcome } from './Welcome';
 import { Home } from './Home';
 import { About } from './About';
+import { Catalogue } from './Catalogue';
+import { Shortlist } from './Shortlist';
+import { Orders } from './Orders';
 
-// Maison: black and white, thin display serif, square and full-bleed. Header, Welcome, Home and About are its own markup; the catalogue,
-// design page, shortlist and orders reuse Emergent's screens (all the filter, cart and order logic) and are restyled by maison.css.
-// The masthead carries the navigation, so there is no tab bar.
+// Maison: black and white, thin display serif, square and full-bleed. Every screen has its own markup; the Catalogue and the design page share
+// their state and server calls with Emergent through useCatalogue and useProductDetail. The masthead carries the navigation, so there is no tab bar.
 export const maison: LayoutKit = { Header, BottomNav: () => null, Welcome, Categories: Home, Catalogue, Shortlist, Orders, About };

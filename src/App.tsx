@@ -12,11 +12,9 @@ import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components
 import { getLang, hn, pur, t, tErr, ts, useLang } from './i18n';
 import { merchant } from './merchant';
 import { emergent } from './layouts/emergent';
-import { maison } from './layouts/maison';
 import { DEFAULT_LAYOUT, type LayoutId } from '../shared/layouts';
 import type { LayoutKit } from './layouts/props';
 
-const KITS: Record<LayoutId, LayoutKit> = { emergent, maison };
 import { sector } from './sector';
 import { RetailerAuthScreen } from './components/RetailerAuthScreen';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
@@ -132,9 +130,16 @@ export default function App() {
   
   // Which way the last screen change went, so the page animation slides the right way.
   const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
-  // Buyers get the layout the owner picked; the owner's own screens always use the standard one.
-  const layout: LayoutId = !isAdminLoggedIn && merchant.layout in KITS ? merchant.layout : DEFAULT_LAYOUT;
-  const K = KITS[layout];
+  // Buyers get the layout the owner picked; the owner's own screens always use the standard one (the Maison kit has no owner chrome).
+  // Maison is its own chunk (code and CSS): Classic stores never download it.
+  const [maisonKit, setMaisonKit] = useState<LayoutKit | null>(null);
+  const [maisonFailed, setMaisonFailed] = useState(false); // the chunk could not load (offline): fall back to Classic
+  const wantsMaison = !isAdminLoggedIn && merchant.layout === 'maison' && !maisonFailed;
+  useEffect(() => {
+    if (wantsMaison && !maisonKit) void import('./layouts/maison').then((m) => setMaisonKit(m.maison), () => setMaisonFailed(true));
+  }, [wantsMaison, maisonKit]);
+  const layout: LayoutId = wantsMaison && maisonKit ? 'maison' : DEFAULT_LAYOUT;
+  const K = layout === 'maison' && maisonKit ? maisonKit : emergent;
   // Maison's two typefaces load only for stores that use it.
   useEffect(() => {
     if (layout !== 'maison' || document.getElementById('maison-fonts')) return;
@@ -815,7 +820,7 @@ export default function App() {
         <p>This version is no longer supported. Install the latest version to continue.</p>
       </div>
     );
-  if (booting) return <BootSplash />;
+  if (booting || (wantsMaison && !maisonKit)) return <BootSplash />;
   // The first screen after loading fades in over the loading screen instead of sliding; later screens slide as usual.
   if (firstKey.current === undefined) firstKey.current = activeScreen;
 

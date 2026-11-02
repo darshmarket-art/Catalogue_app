@@ -112,11 +112,11 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
 
 /** A miniature of each layout's Home, drawn in CSS so it needs no screenshots. */
 const LayoutPreview: React.FC<{ id: LayoutId }> = ({ id }) => {
-  const box: React.CSSProperties = { position: 'relative', aspectRatio: '3 / 4', overflow: 'hidden', borderRadius: id === 'maison' ? 0 : 12 };
+  const box: React.CSSProperties = { position: 'relative', aspectRatio: '4 / 5', overflow: 'hidden', borderRadius: id === 'maison' ? 0 : 12 };
   if (id === 'maison')
     return (
       <span aria-hidden="true" style={{ ...box, display: 'block', background: '#fff', border: '1px solid #ddd' }}>
-        <span style={{ display: 'block', height: '12%', borderBottom: '1px solid #ddd', textAlign: 'center', font: '400 9px/2.2 Georgia, serif', letterSpacing: '0.3em', color: '#111' }}>{merchant.brand.name.slice(0, 10).toUpperCase()}</span>
+        <span style={{ display: 'block', height: '12%', borderBottom: '1px solid #ddd', textAlign: 'center', font: '400 8px/2.6 Georgia, serif', letterSpacing: '0.18em', color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 4px' }}>{merchant.brand.name.toUpperCase()}</span>
         <span style={{ display: 'block', height: '46%', background: 'linear-gradient(160deg,#3a3a3a,#0c0c0c)', position: 'relative' }}>
           <span style={{ position: 'absolute', left: 8, bottom: 8, font: '300 18px/1 Georgia, serif', color: '#fff' }}>Aa</span>
         </span>

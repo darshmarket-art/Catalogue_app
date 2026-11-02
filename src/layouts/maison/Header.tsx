@@ -78,6 +78,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
         <div className="mx-side r">
           {!sub && desk && account}
           {!sub && counts}
+          {sub && !desk && <LangToggle />}
         </div>
       </div>
 
@@ -103,7 +104,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
             <div className="mx-mega-feat">
               {cols.slice(0, 2).map((c, i) => (
                 <button key={c.id} type="button" onClick={() => openCol(c.name)}>
-                  <Ph src={c.image} tone={i} className="mx-fill" sizes={SIZES_GRID} alt="" />
+                  <span className="mx-mega-ph"><Ph src={c.image} tone={i} className="mx-fill" sizes={SIZES_GRID} alt="" /></span>
                   <span className="mx-ey">{t('Collection')}</span>
                   <span className="mx-cap">{hn(c.name, c.nameHi)}</span>
                 </button>
