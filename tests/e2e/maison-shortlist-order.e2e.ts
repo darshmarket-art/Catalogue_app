@@ -13,7 +13,7 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 test('profile holds the shortlist; Order all leaves in one step; the placed moment plays and skips', async ({ page }) => {
   const put = await page.request.put('/api/admin/layout', { headers: { Authorization: `Bearer ${sessions().owner.token}`, 'X-Store': STORE_ID }, data: { layout: 'maison' } });
   expect(put.ok()).toBe(true);
-  await seedRole(page, 'buyer');
+  await seedRole(page, 'buyer', 'maison');
   await page.request.put('/api/v1/shortlist', { headers: { Authorization: `Bearer ${sessions().buyer.token}`, 'X-Store': STORE_ID }, data: { skus: [] } });
   await page.goto(`/?store=${STORE_ID}`);
   await page.getByTestId('mx-menu').click();

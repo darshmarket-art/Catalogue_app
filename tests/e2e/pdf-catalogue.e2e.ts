@@ -34,8 +34,8 @@ async function servePhotos(page: Page, delayMs = 0) {
   });
 }
 
-async function openPdfScreen(page: Page) {
-  await seedRole(page, 'owner');
+async function openPdfScreen(page: Page, layout: 'emergent' | 'maison' = 'emergent') {
+  await seedRole(page, 'owner', layout);
   await page.goto(`/?store=${STORE_ID}`);
   await page.getByTestId('admin-today').waitFor();
   await page.getByTestId('tile-pdf').click();
@@ -68,7 +68,7 @@ for (const layout of ['emergent', 'maison']) {
   test(`${layout}: 12 designs from two collections make a 6-page PDF; options persist`, async ({ page, request }) => {
     expect((await request.put('/api/admin/layout', { headers: auth(), data: { layout } })).ok()).toBe(true);
     await servePhotos(page);
-    await openPdfScreen(page);
+    await openPdfScreen(page, layout as 'emergent' | 'maison');
     await pickAll(page);
     await expect(page.getByTestId('pdf-page-preview')).toBeVisible();
 

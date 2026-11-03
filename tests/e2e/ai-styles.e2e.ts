@@ -33,7 +33,7 @@ async function setLayout(page: Page, layout: 'emergent' | 'maison', w: number, h
   const put = await page.request.put('/api/admin/layout', { headers: { Authorization: `Bearer ${sessions().owner.token}`, 'X-Store': STORE_ID }, data: { layout } });
   expect(put.ok()).toBe(true);
   await page.setViewportSize({ width: w, height: h });
-  await seedRole(page, 'owner');
+  await seedRole(page, 'owner', layout);
   await page.goto(`/?store=${STORE_ID}`);
 }
 

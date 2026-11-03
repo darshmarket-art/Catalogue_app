@@ -41,7 +41,7 @@ async function openEditDesign(page: Page, layout: 'emergent' | 'maison', w: numb
   const put = await page.request.put('/api/admin/layout', { headers: { Authorization: `Bearer ${s.owner.token}`, 'X-Store': STORE_ID }, data: { layout } });
   expect(put.ok()).toBe(true);
   await page.setViewportSize({ width: w, height: h });
-  await seedRole(page, 'owner');
+  await seedRole(page, 'owner', layout);
   await page.goto(`/?store=${STORE_ID}`);
   await page.locator('[data-tab="catalogue"], [data-tab="designs"], [data-tab="admin-catalogue"]').first().click({ timeout: 8000 }).catch(async () => {
     await page.getByRole('button', { name: /^Catalogue$/i }).first().click();

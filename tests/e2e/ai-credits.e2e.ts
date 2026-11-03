@@ -117,7 +117,7 @@ for (const layout of ['emergent', 'maison'] as const) {
         const put = await page.request.put('/api/admin/layout', { headers: { Authorization: `Bearer ${sessions().owner.token}`, 'X-Store': STORE_ID }, data: { layout } });
         expect(put.ok()).toBe(true);
         await page.setViewportSize({ width: w, height: h });
-        await seedRole(page, 'owner');
+        await seedRole(page, 'owner', layout);
         await page.goto(`/?store=${STORE_ID}`);
         await page.getByTestId('admin-today').waitFor();
 
@@ -175,7 +175,7 @@ for (const layout of ['emergent', 'maison'] as const) {
       const put = await page.request.put('/api/admin/layout', { headers: { Authorization: `Bearer ${sessions().owner.token}`, 'X-Store': STORE_ID }, data: { layout } });
       expect(put.ok()).toBe(true);
       await page.setViewportSize({ width: w, height: h });
-      await seedRole(page, 'owner');
+      await seedRole(page, 'owner', layout);
       await page.goto(`/?store=${STORE_ID}`);
       await page.getByTestId('admin-today').waitFor();
       await page.getByTestId('new-design-card').click();

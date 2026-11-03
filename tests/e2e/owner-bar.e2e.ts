@@ -52,7 +52,7 @@ async function setup(page: Page, layout: 'emergent' | 'maison', w: number, h: nu
   const put = await page.request.put('/api/admin/layout', { headers: { Authorization: `Bearer ${s.owner.token}`, 'X-Store': STORE_ID }, data: { layout } });
   expect(put.ok()).toBe(true);
   await page.setViewportSize({ width: w, height: h });
-  await seedRole(page, 'owner');
+  await seedRole(page, 'owner', layout);
   // The first moment the bar is really painted, from navigation start.
   await page.addInitScript(() => {
     const win = window as unknown as { __bar?: number };
