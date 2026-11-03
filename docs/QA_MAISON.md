@@ -318,3 +318,15 @@ Scope: the user's last feedback (flush in-tile cards, type scale, 3D, no-hamburg
 Not defects: desktop mega-menu "All designs" button sits alone in a grid cell with a stray underline (cosmetic); OTP card top padding is tight on phone.
 
 Notes: dev servers stopped. `qa-scratch/` (outside the repo) holds the scripts (`r3-*.mjs`) and the Classic comparison pairs. No worktree removed; the node_modules junction in `qa-scratch/base-2ed` is intact.
+
+## 9. QA: square Maison tile (uncommitted change, 2026-11-03)
+
+Spec `tests/e2e/maison-tile-qa.e2e.ts` (kept; `PW_CHANNEL=msedge PW_WORKERS=1 npx playwright test maison-tile-qa`), screenshots in `docs/qa-maison/tile/` at 390 and 1440. `tsc --noEmit` clean, `vitest run` 413/413.
+
+PASS, no defects found:
+- Large grid: photo ratio 1.00 to 1.03 (the drift is the mouse-hover 3D tilt, not layout); no SKU text on any card; `.mx-wt` computed weight 700; Add to cart sits below the name and inside the card bounds (not clipped), at 390 (2 across) and 1440 (4 across).
+- Compact (3 across): squares, weight bold, Add to cart hidden by design. List: square photo left, details right, Add to cart beside the details (row layout), fits at both widths.
+- Hearts top-right of the photo, not overlapping text; Shortlist tiles square, no SKU, weight bold, Add to cart under the name; Home "Recently viewed" tiles square with bold weight (no Add to cart there, same as before).
+- Product detail still shows the SKU.
+- Note: the Shortlist last row is covered by the sticky totals bar in a full-page screenshot only (scrolls clear in use).
+- No existing test asserted the 1:2 ratio or a SKU on the card (`maisonTokens.test.ts` only checks the `--mx-tile-ratio` token exists), so no expectations were changed. The CSS comment at maison.css ~line 529 still says the default idea of "1 / 2 for portrait photos" as an alternative, which is fine as a knob note.

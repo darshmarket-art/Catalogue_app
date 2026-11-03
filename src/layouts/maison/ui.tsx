@@ -82,7 +82,7 @@ export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen
       <div className="mx-pbody">
         <div className="mx-pcap" onClick={open}>
           <span className="mx-pt">{name}</span>
-          <span className="mx-pw"><span>{pur(prod.purity)} · {fmtG(prod.netWt)}</span><span className="mx-sku">{prod.sku}</span></span>
+          <span className="mx-pw"><span>{pur(prod.purity)}</span><b className="mx-wt">{fmtG(prod.netWt)}</b></span>
         </div>
         {onAdd && (
           <button type="button" className="mx-cta" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>

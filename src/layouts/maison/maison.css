@@ -63,7 +63,7 @@
   --mx-logo: 30px;
   --mx-wordmark: clamp(0.8125rem, 4.2vw, 1.125rem);
   --mx-wordmark-track: 0.1em;
-  --mx-tile-ratio: 1 / 2;
+  --mx-tile-ratio: 1 / 1;
 }
 @media (min-width: 600px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-logo: 36px; --mx-wordmark: 1.375rem; --mx-wordmark-track: 0.2em; } }
 @media (min-width: 1024px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-hero-ratio: 12 / 5; --mx-bar-h: 5.25rem; --mx-logo: 52px; --mx-wordmark: clamp(1.5rem, 2.3vw, 2.25rem); --mx-wordmark-track: 0.3em; } }
@@ -547,12 +547,11 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   & .mx-pgrid.large .mx-pcap { flex: none; }
   & .mx-pgrid.large .mx-ptile .mx-cta { align-self: flex-start; padding: 8px 0; }
   & .mx-pcap .mx-pw { display: flex; flex-wrap: wrap; gap: 2px 14px; }
-  & .mx-sku { letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.6875rem; }
+  & .mx-pcap .mx-wt { font-weight: 700; font-size: 0.875rem; letter-spacing: 0.02em; color: var(--mx-ink); }
   & .mx-ptile .mx-cta { flex: none; white-space: nowrap; padding: 6px 0; font-size: 0.6875rem; letter-spacing: 0.16em; }
   & .mx-pgrid.compact .mx-pbody { padding: 8px 8px 10px; }
   & .mx-pgrid.compact .mx-pt { font-size: 0.8125rem; }
   & .mx-pgrid.compact .mx-pw { font-size: 0.6875rem; letter-spacing: 0.02em; }
-  & .mx-pgrid.compact .mx-sku { display: none; }
   & .mx-pgrid.compact .mx-ptile .mx-cta { display: none; }
   & .mx-pgrid.compact .mx-heart { width: 32px; height: 32px; top: 2px; right: 2px; }
   & .mx-ptile.current .mx-pframe { outline: 1px solid var(--mx-ink); outline-offset: -1px; }
