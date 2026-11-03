@@ -33,7 +33,6 @@
   & .em-tabs.mxo-tabs { background: var(--mx-paper); -webkit-backdrop-filter: none; backdrop-filter: none; border-top: 1px solid var(--mx-line); }
   & .mxo-tabs nav { max-width: 640px; }
   & .mxo-tabs .mxo-brand, & .mxo-tabs .mxo-side-f { display: none; }
-  & .em-tabs.mxo-tabs.sub { display: none; }
   & .mxo-tabs .em-tab { font-family: var(--mx-sans); font-size: 0.625rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mx-mut); gap: 0; flex-direction: row; justify-content: center; }
   & .mxo-tabs .em-tab::after { content: ""; position: absolute; left: 22%; right: 22%; top: -1px; bottom: auto; width: auto; height: 1px; margin: 0; border-radius: 0; background: var(--mx-ink); transform: scaleX(0); transition: transform 0.45s var(--mx-ease); }
   & .mxo-tabs .em-tab.on { color: var(--mx-ink); }
@@ -188,6 +187,9 @@
     & .mxo-bar .mxo-menu-l { display: inline; }
 
     & .em-tabs.mxo-tabs, & .em-tabs.mxo-tabs.sub { top: 0; bottom: 0; left: 0; right: auto; width: var(--em-side); padding: calc(var(--sat) + 28px) 0 28px; border-top: 0; border-right: 1px solid var(--mx-line); display: flex; flex-direction: column; }
+    /* the sidebar is not at the bottom: the save bar goes back to the page's own foot */
+    & :is(.em-savebar, .dock.low) { bottom: 0; }
+    & .em-savebar { padding-bottom: calc(14px + var(--sab)); }
     & .mxo-tabs .mxo-brand { display: inline-flex; align-items: center; gap: 12px; margin: 0 32px 40px; padding: 0; background: none; border: 0; cursor: pointer; color: var(--mx-ink); text-align: left; }
     & .mxo-tabs .mxo-brand span { font-family: var(--mx-serif); font-size: 1rem; letter-spacing: 0.18em; text-transform: uppercase; line-height: 1.2; white-space: nowrap; }
     & .mxo-tabs nav { flex-direction: column; align-items: stretch; gap: 0; max-width: none; min-height: 0; margin: 0; padding: 0 32px; }

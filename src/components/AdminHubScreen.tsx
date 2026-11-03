@@ -1,4 +1,5 @@
-import React, { Suspense, lazy } from 'react';
+import { LazyPanel } from './LazyPanel';
+import React, { lazy } from 'react';
 import { ActiveScreen, AdminSummary, AnalyticsData, About } from '../types';
 import { trialDaysLeft } from '../../shared/trial';
 import { Icon, Title } from '../layouts/emergent/ui';
@@ -222,7 +223,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
           </div>
         </div>
 
-        {maison && flags.insights && <Suspense fallback={null}><TodayCharts analytics={analytics} /></Suspense>}
+        {maison && flags.insights && <LazyPanel><TodayCharts analytics={analytics} /></LazyPanel>}
 
         {doneCount < checklist.length && (
           <div className="em-card" data-testid="setup-checklist">

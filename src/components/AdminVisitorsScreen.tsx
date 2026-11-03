@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { LazyPanel } from './LazyPanel';
+import React, { lazy, useEffect, useState } from 'react';
 import { merchant } from '../merchant';
 
 const VisitorsPanel = lazy(() => import('../layouts/maison/owner/panels').then((m) => ({ default: m.VisitorsPanel })));
@@ -152,7 +153,7 @@ export const AdminVisitorsScreen: React.FC<{ analytics: AnalyticsData }> = ({ an
     );
   }
 
-  if (merchant.layout === 'maison') return <div className="scroll" style={{ gap: 12 }}>{error && <Notice tone="error">{error}</Notice>}<Suspense fallback={null}><VisitorsPanel analytics={analytics} rows={rows} onOpen={setOpenId} /></Suspense></div>;
+  if (merchant.layout === 'maison') return <div className="scroll" style={{ gap: 12 }}>{error && <Notice tone="error">{error}</Notice>}<LazyPanel><VisitorsPanel analytics={analytics} rows={rows} onOpen={setOpenId} /></LazyPanel></div>;
 
   return (
     <div className="scroll" style={{ gap: 12 }}>

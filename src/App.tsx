@@ -780,10 +780,10 @@ export default function App() {
     if (window.history.state?.screen !== 'guard') window.history.replaceState({ screen: activeScreen, g: guardArmed.current ? 1 : undefined, ld: window.history.state?.ld }, '');
   }, [activeScreen]);
 
+  // The owner's bar is on every owner screen from the first paint, whichever layout (it needs no data: badges fill in later). Buyer tabs are unchanged.
   const shouldShowBottomNav =
     ['catalogue', 'categories', 'orders', 'shortlist', 'admin-hub', 'admin-buyers', 'admin-store'].includes(activeScreen) ||
-    // Maison's owner sidebar stays on every owner screen at desktop width (the bar hides itself on phones where a sub-page has its own bar).
-    (layout === 'maison' && isAdminLoggedIn && adminScreens.includes(activeScreen));
+    (isAdminLoggedIn && adminScreens.includes(activeScreen) && !mustChangePassword);
 
   const ownTop: Partial<Record<ActiveScreen, { title: string; back: ActiveScreen }>> = {
     'admin-pdf': { title: 'PDF catalogue', back: 'admin-hub' },

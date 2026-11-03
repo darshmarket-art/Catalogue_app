@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { LazyPanel } from './LazyPanel';
+import React, { lazy, useEffect, useState } from 'react';
 import { merchant } from '../merchant';
 
 const InsightsPanel = lazy(() => import('../layouts/maison/owner/panels').then((m) => ({ default: m.InsightsPanel })));
@@ -20,7 +21,7 @@ export const AdminInsightsScreen: React.FC = () => {
   if (err) return <div className="scroll no-tabs"><Notice tone="error">{err}</Notice></div>;
   if (!d) return <div className="scroll no-tabs" style={{ gap: 12 }}><div className="card em-skel" style={{ height: 120 }} /><div className="card em-skel" style={{ height: 180 }} /></div>;
 
-  if (merchant.layout === 'maison') return <Suspense fallback={null}><InsightsPanel d={d} /></Suspense>;
+  if (merchant.layout === 'maison') return <LazyPanel><InsightsPanel d={d} /></LazyPanel>;
   const maxViews = Math.max(1, ...d.weeks.map((w) => w.views));
   const maxCol = Math.max(1, ...d.collections.map((c) => c.views));
   const k = d.kpis;

@@ -530,6 +530,10 @@ html[data-scrolled] :is([data-layout="emergent"],[data-layout="maison"]) .em-sti
 :is([data-layout="emergent"],[data-layout="maison"]) :is(.em-tabs, .em-cartbar, .em-fab, .em-dock) { transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.24s; }
 html[data-typing] :is([data-layout="emergent"],[data-layout="maison"]) :is(.em-tabs, .em-cartbar, .em-fab, .em-dock) { opacity: 0; visibility: hidden; transform: translateY(var(--em-bar-hide)); }
 html[data-typing] :is([data-layout="emergent"],[data-layout="maison"]) .em-savebar { position: static; }
+/* The owner has a bottom tab bar on every screen: the sticky save bar and the low dock sit above it, not under it. */
+:is([data-layout="emergent"],[data-layout="maison"])[data-role="owner"] :is(.em-savebar, .dock.low) { bottom: calc(var(--em-tab-h) + var(--sab)); }
+:is([data-layout="emergent"],[data-layout="maison"])[data-role="owner"] .em-savebar { padding-bottom: 14px; }
+:is([data-layout="emergent"],[data-layout="maison"])[data-role="owner"] .dock.low > .card { padding-bottom: 14px; }
 /* Reduced motion: no drop, a short fade (visibility joins the list the shared rule above allows). */
 @media (prefers-reduced-motion: reduce) {
   :is([data-layout="emergent"],[data-layout="maison"]) { --em-bar-hide: 0px; }

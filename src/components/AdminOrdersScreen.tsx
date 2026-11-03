@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { LazyPanel } from './LazyPanel';
+import React, { lazy, useCallback, useEffect, useState } from 'react';
 import { merchant } from '../merchant';
 
 const OrdersPanel = lazy(() => import('../layouts/maison/owner/panels').then((m) => ({ default: m.OrdersPanel })));
@@ -80,7 +81,7 @@ export const AdminOrdersScreen: React.FC<{ initialFilter?: OrderStatus | 'all'; 
       <div data-testid="orders-count">
         <Title eyebrow={`${count('new')} waiting for you · ${orders?.length ?? 0} ${orders?.length === 1 ? 'order' : 'orders'}`} title="Orders" />
       </div>
-      {merchant.layout === 'maison' && orders && <Suspense fallback={null}><OrdersPanel orders={orders} /></Suspense>}
+      {merchant.layout === 'maison' && orders && <LazyPanel><OrdersPanel orders={orders} /></LazyPanel>}
       <div className="chips">
         {(['all', ...STATUSES] as const).map((st) => (
           <button key={st} type="button" className={`chip${filter === st ? ' on' : ''}`} aria-pressed={filter === st} onClick={() => setFilter(st)}>
