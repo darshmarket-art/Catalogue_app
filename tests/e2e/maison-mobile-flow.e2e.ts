@@ -122,7 +122,22 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await expect(page.getByTestId('mx-shop-by')).toBeVisible();
   await expect(page.getByTestId('mx-tag-page')).toHaveCount(0);
 
-  // search opens a full-screen layer and searches the designs
+  // the menu opened at the top (masthead floating, light text): the panel's text is still ink on its ground, not white on ivory
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
+  expect(await floating(page)).toBe(true);
+  await page.getByTestId('mx-profile').click();
+  await expect(page.getByTestId('mx-profile-panel')).toBeVisible();
+  const [closeFg, panelBg] = await page.evaluate(() => [
+    getComputedStyle(document.querySelector('[data-testid="mx-drawer-close"]')!).color,
+    getComputedStyle(document.querySelector('.mx-drawer')!).backgroundColor
+  ]);
+  expect(closeFg).not.toBe(panelBg);
+  expect(closeFg).not.toBe('rgb(255, 255, 255)');
+  await page.getByTestId('mx-drawer-close').click();
+  await expect(page.getByTestId('mx-profile-panel')).toHaveCount(0);
+
+  // search opens a full-screen layer and searches the designs; closing it hands focus back to the search button
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByTestId('mx-search').click();
   await expect(page.getByTestId('mx-search-input')).toBeFocused();
@@ -130,6 +145,7 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await page.screenshot({ path: `${OUT}/m390-search-open.png` });
   await page.keyboard.press('Escape');
   await expect(page.locator('.mx-srch.on')).toHaveCount(0);
+  await expect(page.getByTestId('mx-search')).toBeFocused();
   await page.getByTestId('mx-search').click();
   await page.getByTestId('mx-search-input').fill(sku!);
   await page.getByTestId('mx-search-input').press('Enter');

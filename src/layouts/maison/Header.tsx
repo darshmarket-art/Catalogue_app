@@ -238,7 +238,13 @@ const SearchLayer: React.FC<{ open: boolean; tags: string[]; onClose: () => void
   useBackLayer(open, onClose);
   useEffect(() => {
     if (!open) return;
+    // as the Drawer does: remember the opener and hand focus back when the layer closes (it turns inert, so focus would drop to <body>)
+    const opener = document.activeElement as HTMLElement | null;
     input.current?.focus({ preventScroll: true });
+    return () => opener?.focus?.({ preventScroll: true });
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);

@@ -15,6 +15,8 @@ export const HI: Record<string, string> = {
   Back: 'वापस',
   Close: 'बंद करें',
   Cancel: 'रद्द करें',
+  'Report a problem': 'समस्या बताएं',
+  'What went wrong?': 'क्या गड़बड़ हुई?',
   'Message on WhatsApp': 'WhatsApp पर मैसेज करें',
   'This store takes orders on WhatsApp. Shortlist the designs you like and send them, or message the store.': 'यह स्टोर WhatsApp पर ऑर्डर लेता है। पसंद के डिज़ाइन शॉर्टलिस्ट करके भेजें, या स्टोर को मैसेज करें।',
   'Order on WhatsApp': 'WhatsApp पर ऑर्डर करें',

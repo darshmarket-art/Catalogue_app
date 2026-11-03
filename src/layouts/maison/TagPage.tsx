@@ -61,7 +61,6 @@ export const TagPage: React.FC<{ tag: string; cols: Category[]; cover?: string; 
       </div>
       <div className="mx-tagp-intro">
         <h1 className="mx-h2">{name}</h1>
-        <p className="mx-note">{count}</p>
       </div>
       <div className="mx-sbar">
         <b data-testid="mx-tag-count">{count}</b>

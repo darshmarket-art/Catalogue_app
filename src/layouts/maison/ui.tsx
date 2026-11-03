@@ -4,6 +4,7 @@ import { useBackLayer } from '../../backLayer';
 import { Icon, Ph, fmtG } from '../emergent/ui';
 import { getLang, hn, pur, t } from '../../i18n';
 import { SIZES_GRID } from '../../photoSrcSet';
+import { useDesktop } from '../emergent/useDesktop';
 
 /** A panel that slides in from the right on desktop and up from the bottom on phones (filters, Add to cart). Back and Escape close it. */
 export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: string; tall?: boolean; children: React.ReactNode }> = ({ label, onClose, testId, tall, children }) => {
@@ -38,7 +39,7 @@ export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: str
   );
 };
 
-/** Buyer weight on Maison cards and the design page: two decimals (42.50 g). The specifications list keeps the stored value (fmtG). */
+/** Buyer weight on Maison cards and the design page on phones: two decimals (42.50 g); desktop keeps fmtG. The specifications list keeps the stored value (fmtG). */
 export const fmtG2 = (n: number) => `${n.toFixed(2)} ${getLang() === 'hi' ? 'ग्राम' : 'g'}`;
 
 /** A tag or collection card on phones: a photo (square on phones), the name in capitals under it, a count under that. The photo element is passed on for the view transition. */
@@ -80,6 +81,7 @@ const tilt = {
 /** A product tile, one card: the photo (ratio --mx-tile-ratio) with the name, purity, weight and code directly under it on the same ground. */
 export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen, onHeart, onAdd, current, testId = 'product-card', hitTestId, heartLabel, exactWt }) => {
   const name = hn(prod.title, prod.titleHi);
+  const desk = useDesktop();
   const open = (e: React.MouseEvent<HTMLElement>) => onOpen(e.currentTarget.closest('.mx-ptile')?.querySelector('.em-ph') ?? null);
   return (
     <article className={`mx-ptile${current ? ' current' : ''}`} style={{ ['--i' as string]: index }} data-sku={prod.sku} data-testid={testId} {...tilt}>
@@ -96,7 +98,7 @@ export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen
       <div className="mx-pbody">
         <div className="mx-pcap" onClick={open}>
           <span className="mx-pt">{name}</span>
-          <span className="mx-pw"><span>{pur(prod.purity)}</span><b className="mx-wt">{(exactWt ? fmtG : fmtG2)(prod.netWt)}</b></span>
+          <span className="mx-pw"><span>{pur(prod.purity)}</span><b className="mx-wt">{(exactWt || desk ? fmtG : fmtG2)(prod.netWt)}</b></span>
         </div>
         {onAdd && (
           <button type="button" className="mx-cta" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>

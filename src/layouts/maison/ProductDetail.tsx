@@ -117,7 +117,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
               <StockPill status={product.stockStatus} />
               {product.huid && <span className="mx-tag">HUID {product.huid}</span>}
             </div>
-            <p className="mx-pd-net"><b>{(isAdmin ? fmtG : fmtG2)(product.netWt)}</b> <span className="mx-ey">{t('Net weight')}</span></p>
+            <p className="mx-pd-net"><b>{(isAdmin || desk ? fmtG : fmtG2)(product.netWt)}</b> <span className="mx-ey">{t('Net weight')}</span></p>
             {description && <p className="mx-pd-desc" data-testid="product-description">{description}</p>}
             <details className="mx-acc" open>
               <summary>{t('Specifications')}</summary>

@@ -1051,7 +1051,7 @@ export default function App() {
               // New buyers get the guided tour once (it can be replayed from the profile menu).
               if (isNew && !tourSeen(user.phone)) setTimeout(() => setTouring(true), 450);
               // Back to where they were asked to sign in (adding to the order), else Home.
-              handleNavigate(afterSignIn.current ?? (categoryFilter ? 'catalogue' : 'categories'), true);
+              handleNavigate(afterSignIn.current ?? (categoryFilter || tagFilter ? 'catalogue' : 'categories'), true);
               afterSignIn.current = null;
               if (flags.orders) api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
             }}

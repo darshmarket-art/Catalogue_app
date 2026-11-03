@@ -13,6 +13,8 @@ import { hn, pur, t, tn, ts } from '../../i18n';
 import { Drawer, Tile } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
+import { tagCover } from './TagPage';
+import { useTagCovers } from '../../tagCovers';
 
 /** After this many tiles an editorial tile (the way into the collections) sits in the grid, as the Maison pages do. */
 const EDITORIAL_AT = 7;
@@ -34,6 +36,9 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
   const col = categoryFilter ? categories.find((c) => c.name === categoryFilter) : undefined;
   const current = categoryFilter ? hn(categoryFilter, col?.nameHi) : tagFilter ? ts(tagFilter) : t('All collections');
   const narrowed = Boolean(categoryFilter || tagFilter);
+  // the banner: the collection's photo, or on an "All <tag>" listing the tag's cover (as its tag page shows)
+  const covers = useTagCovers();
+  const banner = col ? col.image : tagFilter ? tagCover(covers[tagFilter], categories.filter((c) => c.tag === tagFilter), items) : undefined;
   const narrowing = active.length + (sort !== 'newest' ? 1 : 0);
   const cols = !desk ? 'large' : view === 'list' ? 'list' : view === 'grid3' ? 'compact' : 'large';
   void purityTitle;
@@ -42,9 +47,9 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
     <div className="mx-cat">
       {addedNotice && <Toast>{t('Added {name} to your order', { name: addedNotice })}</Toast>}
       {/* Phones, as swarovski.com's listing: the collection's photo under the floating masthead, a title block, then the sticky results bar. */}
-      {!desk && col?.image && !searchQuery && (
+      {!desk && banner && !searchQuery && (
         <div className="mx-tagp-ban mx-cat-ban" data-mx-float="">
-          <Ph src={col.image} className="mx-fill" sizes={SIZES_FULL} priority eager alt="" />
+          <Ph src={banner} className="mx-fill" sizes={SIZES_FULL} priority eager alt="" />
         </div>
       )}
       {!desk && (
@@ -207,7 +212,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
             </div>
           </div></>}
           <div className="mx-drawer-f">
-            <button type="button" className="mx-cta" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>{t('Reset')}</button>
+            <button type="button" className="mx-cta" onClick={() => { if (!sortOnly) setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={sortOnly ? draftSort === 'newest' : draftCount === 0}>{t('Reset')}</button>
             <button type="button" className="mx-btn" data-testid="apply-filters" onClick={applyDraft}>
               {draftCount ? tn(draftCount, 'Apply {n} change', 'Apply {n} changes') : t('Show all designs')}
             </button>

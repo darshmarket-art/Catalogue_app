@@ -20,7 +20,7 @@ type CatalogueProps = KitProps<'Catalogue'>;
  * The state and the server calls live in useCatalogue (shared with the other layouts); this file is Emergent's markup.
  */
 export const Catalogue: React.FC<CatalogueProps> = (props) => {
-  const { isAdmin, categoryFilter, categories, onCategoryChange, onEditProduct, purities, orderCount, onNavigate, onToggleShortlist } = props;
+  const { isAdmin, categoryFilter, tagFilter, categories, onCategoryChange, onEditProduct, purities, orderCount, onNavigate, onToggleShortlist } = props;
   const {
     desk, pane, searchQuery, setSearchQuery, debounced, picking, setPicking, view, filters, setFilters, draft, setDraft, sheet, setSheet, sort, draftSort, setDraftSort, flags, addedNotice, addedCount, openProductId, setOpenProductId, cartFor, setCartFor, selecting, setSelecting, picked, setPicked, pdfStatus, gridRef, sentinelRef, hideBar, hearted, items, total, hasMore, loading, loadingMore, error, setRetry, openProduct, openIndex, pickView, loadMore, handleAdd, togglePick, stopSelecting, makePdf, openOrPick, toggleHeart, collectionChips, inOrder, showCartBar, purityTitle, active, anyNarrowing, clearAll, openSheet, applyDraft, draftCount
   } = useCatalogue(props);
@@ -147,11 +147,11 @@ export const Catalogue: React.FC<CatalogueProps> = (props) => {
         {/* The collection in view is named here; tapping opens every collection (grouped by tag) to switch. */}
         {!selecting && (
           <div className="em-cat-pick" style={{ padding: '2px var(--em-px) 10px' }}>
-            <button type="button" className={`em-colpick${categoryFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
+            <button type="button" className={`em-colpick${categoryFilter || tagFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
               <Icon n="grid" size={16} />
               <span className="em-grow em-clip" data-testid="collection-current" style={{ textAlign: 'left' }}>
-                {categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : t('All collections')}
-                <i style={{ fontStyle: 'normal', opacity: 0.65 }}> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : collectionChips.length}</i>
+                {categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : tagFilter ? ts(tagFilter) : t('All collections')}
+                <i style={{ fontStyle: 'normal', opacity: 0.65 }}> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : tagFilter ? total : collectionChips.length}</i>
               </span>
               <Icon n="right" size={14} />
             </button>

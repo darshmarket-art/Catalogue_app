@@ -614,6 +614,10 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-ph::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to bottom, var(--mx-glass), var(--mx-glass) 40%, transparent); opacity: 0; transition: opacity 0.3s ease-in-out; }
     & .mx-ph[data-float]:not(.srch) { background-color: transparent; color: var(--mx-photo-fg); }
     & .mx-ph[data-float]:not(.srch)::before { opacity: 1; }
+    /* the menu panel renders inside the masthead: keep its text in ink, not the light float colour */
+    & .mx-ph[data-float]:not(.srch) .mx-drawer { color: var(--mx-ink); }
+    /* Powered by Antarixs: the chip is on the surface colour, so its wordmark is in ink, not the dark footer's light text */
+    & .mx-foot-b > span:first-child { color: var(--mx-ink); }
     & .mx-ph[data-float]:not(.srch) .mx-logo:not(img) { color: inherit; border-color: currentColor; }
     & .mx-ph[data-float]:not(.srch) img.mx-logo { filter: brightness(0) invert(1); }
     /* the design page opens over a collection's banner: the masthead is solid there */
@@ -696,6 +700,9 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-pgrid { gap: 4px; }
     & .mx-pbody { padding: 12px 13px 16px; }
     & .mx-heart { top: 4px; right: 4px; background: none; filter: drop-shadow(0 0 1.5px var(--mx-ground)); }
+    /* the bare heart sits on a photo, not the ground: a fixed dark outline with a light halo in every theme (swarovski.com), the accent when on */
+    & .mx-heart:not(.big) { color: var(--mx-deep); filter: drop-shadow(0 0 1.5px var(--mx-photo-fg)); }
+    & .mx-heart.on:not(.big) { color: var(--mx-accent); }
     /* design page: the masthead carries Back; round dots on the ground under the photo; the title first, Previous / Next at the foot */
     & .mx-pd .mx-crumbs { display: none; }
     & .mx-stage { background: var(--mx-ground); }
