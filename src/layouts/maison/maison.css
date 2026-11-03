@@ -23,7 +23,7 @@
  *
  * TRANSITION: --mx-xition-name / --mx-xition-dur / --mx-xition-ease (screen and tab changes; default is a 200ms fade).
  * MASTHEAD: --mx-bar-h, --mx-logo (store logo size) and --mx-wordmark / --mx-wordmark-track (brand name size and tracking).
- * LAYOUT VARIABLES: --mx-hero-ratio (home banner: 2 / 1 wide (width twice the height) on every screen), --mx-tile-ratio (design tile
+ * LAYOUT VARIABLES: --mx-hero-ratio (home banner: 1 / 2 tall on phones (capped at the screen height), 2 / 1 wide on desktop), --mx-tile-ratio (design tile
  * inside a collection, width / height: 2 / 1 wide; set it to 1 / 2 for portrait, one place).
  * ---------------------------------------------------------------------------------------------------------------------------------
  */
@@ -53,7 +53,7 @@
   --mx-stone: var(--mx-surface);
   --mx-mut: var(--mx-muted);
   --mx-line: var(--mx-hair);
-  --mx-hero-ratio: 2 / 1;
+  --mx-hero-ratio: 1 / 2;
   /* screen and tab transition (see the end of this file): one plain fade */
   --mx-xition-name: fade-in;
   --mx-xition-dur: 0.2s;
