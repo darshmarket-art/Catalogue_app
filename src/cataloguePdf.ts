@@ -3,80 +3,79 @@ import type { Category, Product } from './types';
 import { logoSrc, merchant } from './merchant';
 import { antarixsMarkPng } from './antarixsLogo';
 import { saveFile } from './saveFile';
-import { CARD_PAD, CELL, COLS, FIRST_TOP, GAP, H, MARGIN, NEXT_TOP, PHOTO_H, PHOTO_W, W, cardHeight, pdfPages } from './pdfLayout';
 import { UserError } from './bugReport';
+import { PHOTO_VARIANT_WIDTHS } from '../shared/photoSpecs';
+import {
+  GOLD, MAX_PDF_DESIGNS, PALETTES, caption, ellipsize, geometry, groupByCollection, loadPdfOptions, mixHex, normaliseOptions, photoBox, planPages, rgb,
+  type PdfOptions, type PdfPage
+} from './pdfLayout';
 
-const PHOTO_PX = 560;
-const PHOTO_PY = Math.round(PHOTO_PX * (PHOTO_H / PHOTO_W));
-const GOLD: [number, number, number] = [201, 169, 97];
+type RGB = [number, number, number];
+const PT = 0.352778; // mm per point
+const PX_PER_MM = 6; // photos are drawn at about 150 dpi
+const MEDIA_LINK = /\/media\/[a-f0-9]{32}\.(?:jpg|png|webp)\?/;
 
-/** The theme's main colour as RGB, so the PDF carries the merchant's own colour. */
-function themeColour(): [number, number, number] {
-  const hex = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  return m ? [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)] : [92, 31, 58];
+/** A signed /media link is fetched at the width the PDF needs (never the 1440 px original for a 85 mm card). */
+function sized(src: string, mm: number) {
+  if (!MEDIA_LINK.test(src)) return src;
+  const need = mm * PX_PER_MM;
+  const w = PHOTO_VARIANT_WIDTHS.find((v) => v >= need) ?? PHOTO_VARIANT_WIDTHS[PHOTO_VARIANT_WIDTHS.length - 1];
+  return `${src}&w=${w}`;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
+    const timer = setTimeout(() => resolve(null), 20_000); // a photo that never answers is a missing photo
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onload = () => (clearTimeout(timer), resolve(img));
+    img.onerror = () => (clearTimeout(timer), resolve(null));
     img.src = new URL(src, window.location.origin).href;
   });
 }
 
-/** One brand mark across the middle of the photo, in the pixels themselves, so it cannot be peeled off the PDF as a separate layer and does not blur the design. */
-function stamp(ctx: CanvasRenderingContext2D, text: string) {
+/** One brand mark across the middle of the photo, in the pixels themselves, so it cannot be peeled off the PDF as a separate layer. */
+function stamp(ctx: CanvasRenderingContext2D, text: string, w: number, h: number) {
   const label = text.toUpperCase();
   ctx.save();
-  ctx.translate(PHOTO_PX / 2, PHOTO_PY / 2);
+  ctx.translate(w / 2, h / 2);
   ctx.rotate(-Math.PI / 6);
-  // the largest size that keeps the name within 70% of the photo width
-  let size = 40;
+  let size = w * 0.07;
   do ctx.font = `700 ${size--}px Helvetica, Arial, sans-serif`;
-  while (ctx.measureText(label).width > PHOTO_PX * 0.7 && size > 14);
+  while (ctx.measureText(label).width > w * 0.7 && size > 10);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = Math.max(1, w * 0.005);
   ctx.strokeStyle = 'rgba(0,0,0,0.28)';
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.strokeText(label, 0, 0);
   ctx.fillText(label, 0, 0);
   ctx.restore();
 }
 
-/** The whole photo fitted inside the card's photo box (never cropped; white margins match the card), with the watermark; null if the browser will not let us read it. */
-function cardJpeg(img: HTMLImageElement, watermark: string): string | null {
+/** The photo as a JPEG exactly the size of its box: whole (never cropped) on the tile colour, or cropped to fill (cover page). Null if the browser will not let us read it. */
+function photoJpeg(img: HTMLImageElement, boxMm: { w: number; h: number }, fill: boolean, tile: string, watermark: string | null): string | null {
+  const w = Math.round(boxMm.w * PX_PER_MM);
+  const h = Math.round(boxMm.h * PX_PER_MM);
+  const canvas = document.createElement('canvas');
   try {
-    const k = Math.min(PHOTO_PX / img.naturalWidth, PHOTO_PY / img.naturalHeight);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = tile;
+    ctx.fillRect(0, 0, w, h);
+    const k = (fill ? Math.max : Math.min)(w / img.naturalWidth, h / img.naturalHeight);
     const dw = img.naturalWidth * k;
     const dh = img.naturalHeight * k;
-    const canvas = document.createElement('canvas');
-    canvas.width = PHOTO_PX;
-    canvas.height = PHOTO_PY;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, PHOTO_PX, PHOTO_PY);
-    ctx.drawImage(img, (PHOTO_PX - dw) / 2, (PHOTO_PY - dh) / 2, dw, dh);
-    stamp(ctx, watermark);
-    return canvas.toDataURL('image/jpeg', 0.82);
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    if (watermark) stamp(ctx, watermark, w, h);
+    return canvas.toDataURL('image/jpeg', 0.8);
   } catch {
     return null;
+  } finally {
+    canvas.width = canvas.height = 0; // hands the pixels back at once (phones)
+    img.src = '';
   }
-}
-
-/** The atlas's store mark: a gold-ringed circle with a hexagon in it. */
-function hexMark(doc: any, cx: number, cy: number, r: number, fill: [number, number, number], hexR = r * 0.46) {
-  doc.setFillColor(...fill);
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(0.25);
-  doc.circle(cx, cy, r, 'FD');
-  const hr = hexR;
-  const pts = Array.from({ length: 6 }, (_, i) => [cx + hr * Math.cos(Math.PI / 6 + (i * Math.PI) / 3), cy + hr * Math.sin(Math.PI / 6 + (i * Math.PI) / 3)]);
-  const d = pts.map((p, i) => [pts[(i + 1) % 6][0] - p[0], pts[(i + 1) % 6][1] - p[1]]);
-  doc.lines(d.slice(0, 5), pts[0][0], pts[0][1], [1, 1], 'S', true);
 }
 
 /** The store logo as a PNG for the PDF, with its shape; null when there is none or it cannot be read. */
@@ -104,223 +103,325 @@ export async function downloadCataloguePdf(category: Category, products: Product
   return downloadDesignsPdf(category.name, items, onProgress);
 }
 
+export interface PdfRun {
+  options?: Partial<PdfOptions>;
+  /** Aborting stops the build between pages; the promise rejects with an AbortError. */
+  signal?: AbortSignal;
+}
+
 /**
- * The same PDF for designs the owner picked by hand (Emergent atlas "PDF layout"): store header, gold-bordered design cards in
- * two columns, a "Net weight per piece" footer, and a dark "Thank you" page with the store's QR and phone number.
- * The file is downloaded (on phones too); every photo carries one brand watermark in its pixels.
+ * The catalogue PDF ("Editorial grid", see docs/pdf-picker): a cover, per collection a divider page and 2 x 3 hairline cards (3 x 2 on landscape),
+ * and a dark contact page with the store's QR and phone. Without `run.options` the owner's last-used options apply.
+ * Pages are built one at a time and only that page's photos are in memory; photos are fetched at the size they are printed.
+ * The file is downloaded (on phones too); every photo carries one brand watermark in its pixels unless the owner turned it off.
  */
-export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void, _mode: 'save' | 'share' = 'save') {
+export async function downloadDesignsPdf(title: string, items: Product[], onProgress?: (done: number, total: number) => void, run: PdfRun = {}) {
   if (items.length === 0) throw new UserError('Pick at least one design first.');
+  if (items.length > MAX_PDF_DESIGNS) throw new UserError(`A PDF holds up to ${MAX_PDF_DESIGNS} designs. Pick fewer, or make one PDF per collection.`);
+  const o = normaliseOptions({ ...loadPdfOptions(merchant.id), ...run.options });
+  const signal = run.signal;
+  const stop = () => {
+    if (signal?.aborted) throw new DOMException('PDF cancelled', 'AbortError');
+  };
 
   const { jsPDF } = await import('jspdf');
-  const [r, g, b] = themeColour();
-  const deep: [number, number, number] = [Math.round(r * 0.68), Math.round(g * 0.68), Math.round(b * 0.68)];
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  // The store's own product fields (merchant.productFields) get a line under the weights, when it records any.
-  const detail = (p: Product) => merchant.productFields.filter((f) => p.extra?.[f.key] !== undefined).map((f) => `${f.label} ${p.extra![f.key]}${f.unit ? ` ${f.unit}` : ''}`).join(' · ');
-  const withDetail = items.some((p) => detail(p) !== '');
-  const phone = merchant.contact.deskPhone || `+${merchant.contact.whatsapp}`;
+  const g = geometry(o.land);
+  const { W, H, u } = g;
+  const P = PALETTES[o.theme];
+  const dark = { g: P.dp, i: P.dpf };
+  const darkM = mixHex(P.dpf, P.dp, 0.62);
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: o.land ? 'landscape' : 'portrait', compress: true });
   const brand = merchant.brand.name;
-  // The store's logo in the gold ring (header and thank-you page); the hexagon mark when there is no logo.
+  const phone = merchant.contact.deskPhone || `+${merchant.contact.whatsapp}`;
+  const address = (merchant.contact.address || '').split(',').map((s) => s.trim()).filter(Boolean).slice(-2).join(', ');
+  const coverTitle = o.title.trim() || title;
+  const groups = groupByCollection(items);
+  const pages = planPages(groups.map((x) => x.items.length));
+  const fields = merchant.productFields;
+  const caps = items.map((p) => caption(p, o, fields));
+  const withExtra = caps.some((c) => c.extra !== '');
+  const withPrice = caps.some((c) => c.price !== null);
+  const box = photoBox(g, withExtra, withPrice);
   const logo = await logoPng();
-  const mark = (cx: number, cy: number, r: number, fill: [number, number, number], hexR?: number) => {
-    if (!logo) return hexMark(doc, cx, cy, r, fill, hexR);
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.25);
-    doc.circle(cx, cy, r, 'FD');
-    const k = (r * 1.3) / Math.max(logo.w, logo.h);
-    doc.addImage(logo.data, 'PNG', cx - (logo.w * k) / 2, cy - (logo.h * k) / 2, logo.w * k, logo.h * k);
+  const mark = antarixsMarkPng(160, true);
+  let done = 0;
+  const contactQr = { y: 0 };
+
+  // ---- drawing helpers (sizes in u = 1% of page width; `dry` measures without drawing) ----
+  let dry = false;
+  const set = (c: RGB | string) => (typeof c === 'string' ? rgb(c) : c);
+  interface TxtOpt { size: number; font?: 'times' | 'helvetica'; bold?: boolean; color: RGB | string; track?: number; align?: 'l' | 'c' | 'r'; upper?: boolean }
+  /** Draws one line; returns its width. `size` is in u, `track` in em. */
+  const txt = (s: string, x: number, y: number, t: TxtOpt) => {
+    const str = t.upper ? s.toUpperCase() : s;
+    doc.setFont(t.font ?? 'helvetica', t.bold ? 'bold' : 'normal');
+    doc.setFontSize((t.size * u) / PT);
+    doc.setCharSpace((t.track ?? 0) * t.size * u);
+    const w = doc.getTextWidth(str) + str.length * (t.track ?? 0) * t.size * u; // jsPDF leaves the letter-spacing out of its width
+    if (!dry) {
+      doc.setTextColor(...set(t.color));
+      doc.text(str, t.align === 'c' ? x - w / 2 : t.align === 'r' ? x - w : x, y);
+    }
+    doc.setCharSpace(0);
+    return w;
+  };
+  const measure = (s: string, t: Pick<TxtOpt, 'size' | 'font' | 'bold' | 'track' | 'upper'>) => {
+    const was = dry;
+    dry = true;
+    const w = txt(s, 0, 0, { ...t, color: '#000' });
+    dry = was;
+    return w;
+  };
+  /** Wraps to `max` mm in at most `lines` lines, the last one cut with an ellipsis. */
+  const wrap = (s: string, max: number, lines: number, t: Pick<TxtOpt, 'size' | 'font' | 'bold' | 'track' | 'upper'>) => {
+    const out: string[] = [];
+    let line = '';
+    for (const word of s.split(/\s+/).filter(Boolean)) {
+      const next = line ? `${line} ${word}` : word;
+      if (measure(next, t) <= max || !line) line = next;
+      else (out.push(line), (line = word));
+    }
+    if (line) out.push(line);
+    const shown = out.slice(0, lines);
+    if (out.length > lines) shown[lines - 1] = ellipsize(out.slice(lines - 1).join(' '), max, (x) => measure(x, t));
+    return shown.map((l) => ellipsize(l, max, (x) => measure(x, t)));
+  };
+  const fill = (c: RGB | string) => doc.setFillColor(...set(c));
+  const hair = (c: RGB | string, w = 0.2) => (doc.setDrawColor(...set(c)), doc.setLineWidth(w));
+  const page = (bg: RGB | string) => (fill(bg), doc.rect(0, 0, W, H, 'F'));
+  /** Runs `body(y)` once dry to learn its height, then draws it with its top at the place that centres (or bottom-anchors) it. */
+  const place = (top: number, bottom: number, body: (y: number) => number, anchor: 'mid' | 'end' = 'mid') => {
+    dry = true;
+    const h = body(0);
+    dry = false;
+    body(anchor === 'mid' ? top + (bottom - top - h) / 2 : bottom - h);
+  };
+  const loadPhoto = async (p: Product | undefined, boxMm: { w: number; h: number }, fillBox: boolean) => {
+    if (!p?.image) return null;
+    const img = await loadImage(sized(p.image, boxMm.w));
+    return img ? photoJpeg(img, boxMm, fillBox, P.tile, o.watermark ? brand : null) : null;
+  };
+  const circleMark = (cx: number, cy: number, r: number, c: RGB | string, letter: string) => {
+    if (logo) {
+      fill('#ffffff');
+      hair(c, 0.25);
+      doc.circle(cx, cy, r, 'FD');
+      const k = (r * 1.3) / Math.max(logo.w, logo.h);
+      doc.addImage(logo.data, 'PNG', cx - (logo.w * k) / 2, cy - (logo.h * k) / 2, logo.w * k, logo.h * k);
+    } else {
+      hair(c, 0.25);
+      doc.circle(cx, cy, r, 'S');
+      txt(letter, cx, cy + 1.1 * u, { size: 3.2, font: 'times', color: c, align: 'c' });
+    }
   };
 
-  // Photos are fetched a few at a time so a big collection does not flood the connection.
-  const photos: Array<string | null> = [];
-  for (let i = 0; i < items.length; i += 4) {
-    const batch = await Promise.all(items.slice(i, i + 4).map(async (p) => (p.image ? await loadImage(p.image).then((img) => (img ? cardJpeg(img, brand) : null)) : null)));
-    photos.push(...batch);
-    onProgress?.(Math.min(i + 4, items.length), items.length);
+  // ---- pages ----
+  const cover = async () => {
+    const band = !o.land;
+    const textW = band ? W : W * 0.54;
+    const textH = band ? H * 0.54 : H;
+    const px = band ? 0 : W * 0.54;
+    const py = band ? H * 0.54 : 0;
+    const pw = band ? W : W * 0.46;
+    const ph = band ? H * 0.46 : H;
+    page(P.g);
+    const photo = await loadPhoto(items.find((p) => p.image), { w: pw, h: ph }, true);
+    fill(P.tile);
+    doc.rect(px, py, pw, ph, 'F');
+    if (photo) doc.addImage(photo, 'JPEG', px, py, pw, ph);
+    let lx = 8 * u;
+    if (logo) {
+      const k = (4.2 * u) / Math.max(logo.w, logo.h);
+      doc.addImage(logo.data, 'PNG', lx, 4.6 * u, logo.w * k, logo.h * k);
+      lx += logo.w * k + 1.6 * u;
+    }
+    txt(brand, lx, 6 * u + 1 * u * 0.75, { size: 1, track: 0.3, upper: true, color: P.i });
+    const tSize = band ? 7.6 : 5;
+    const title1 = { size: tSize, font: 'times' as const };
+    place(0, textH, (y) => {
+      txt('Catalogue', 8 * u, y + 1.15 * u * 0.8, { size: 1.15, track: 0.34, upper: true, color: P.m });
+      y += 1.15 * u + 1 * u + 2.2 * u;
+      for (const l of wrap(coverTitle, textW - 16 * u, 3, title1)) {
+        txt(l, 8 * u, y + tSize * u * 0.72, { ...title1, color: P.i });
+        y += tSize * u * 1.0;
+      }
+      y += 2 * u;
+      if (!dry) (hair(P.i, 0.25), doc.line(8 * u, y, 14 * u, y));
+      y += 2.1 * u;
+      for (const l of o.subtitle.trim() ? wrap(o.subtitle.trim(), textW - 16 * u, 2, { size: 1.3, track: 0.3, upper: true }) : []) {
+        txt(l, 8 * u, y + 1.3 * u * 0.8, { size: 1.3, track: 0.3, upper: true, color: P.m });
+        y += 1.3 * u * 1.5;
+      }
+      return y;
+    });
+  };
+
+  const divider = (gi: number) => {
+    const grp = groups[gi];
+    const no = String(gi + 1).padStart(2, '0');
+    page(P.s);
+    const big = o.land ? 30 : 22;
+    txt(no, 8 * u, 10 * u + big * u * 0.72, { size: big, font: 'times', color: mixHex(P.i, P.s, 0.14) });
+    const tSize = o.land ? 8 : 9.5;
+    const t = { size: tSize, font: 'times' as const };
+    place(0, H - (o.land ? 6 : 14) * u, (y) => {
+      txt(`Collection ${no}`, 9 * u, y + 1.15 * u * 0.8, { size: 1.15, track: 0.34, upper: true, color: P.m });
+      y += 1.15 * u + 2 * u;
+      for (const l of wrap(grp.name, W - 18 * u, 3, t)) {
+        txt(l, 9 * u, y + tSize * u * 0.72, { ...t, color: P.i });
+        y += tSize * u;
+      }
+      y += 2 * u;
+      if (!dry) (hair(P.i, 0.25), doc.line(9 * u, y, 15 * u, y));
+      y += 2.4 * u;
+      txt(`${grp.items.length} ${grp.items.length === 1 ? 'design' : 'designs'}`, 9 * u, y + 1.3 * u * 0.8, { size: 1.3, track: 0.3, upper: true, color: P.m });
+      return y + 1.3 * u;
+    }, 'end');
+  };
+
+  const designs = async (pg: Extract<PdfPage, { kind: 'designs' }>, n: number) => {
+    const grp = groups[pg.group];
+    const list = grp.items.slice(pg.from, pg.to);
+    // this page's photos only, a few at a time
+    const photos: Array<string | null> = [];
+    for (const p of list) {
+      stop();
+      photos.push(await loadPhoto(p, box, false));
+      onProgress?.(++done, items.length);
+    }
+    page(P.g);
+    const top = 3.6 * u;
+    const hdY = top + 1.05 * u * 0.8;
+    const half = (W - 12 * u) / 2;
+    txt(ellipsize(brand, half, (s) => measure(s, { size: 1.05, track: 0.24, upper: true })), 6 * u, hdY, { size: 1.05, track: 0.24, upper: true, color: P.i });
+    txt(ellipsize(grp.name, half, (s) => measure(s, { size: 1.05, track: 0.24, upper: true })), W - 6 * u, hdY, { size: 1.05, track: 0.24, upper: true, color: P.m, align: 'r' });
+    hair(P.h, 0.2);
+    doc.line(6 * u, top + 2.45 * u, W - 6 * u, top + 2.45 * u);
+    const ftY = H - 3 * u;
+    doc.line(6 * u, ftY - 2.45 * u, W - 6 * u, ftY - 2.45 * u);
+    if (o.weights) txt('Net weight per piece', 6 * u, ftY - 0.2 * u, { size: 1.05, track: 0.24, upper: true, color: P.m });
+    txt(`Page ${n} of ${pages.length}`, W - 6 * u, ftY - 0.2 * u, { size: 1.05, track: 0.24, upper: true, color: P.m, align: 'r' });
+
+    list.forEach((p, k) => {
+      const c = caps[items.indexOf(p)];
+      const x = g.bodyX + (k % g.cols) * (g.cellW + g.gap);
+      const y = g.bodyY + Math.floor(k / g.cols) * (g.cellH + g.gap);
+      hair(P.h, 0.2);
+      doc.rect(x, y, g.cellW, g.cellH, 'S');
+      fill(P.tile);
+      doc.rect(x + box.x, y + box.y, box.w, box.h, 'F');
+      if (photos[k]) doc.addImage(photos[k]!, 'JPEG', x + box.x, y + box.y, box.w, box.h);
+      const inner = g.cellW - 2 * g.pad;
+      let cy = y + box.y + box.h + g.innerGap;
+      const nameT = { size: g.nameU, font: 'times' as const };
+      txt(ellipsize(c.name, inner, (s) => measure(s, nameT)), x + g.pad, cy + g.nameU * u * 0.8, { ...nameT, color: P.i });
+      cy += g.nameU * u * 1.15 + 0.7 * u;
+      // SKU, purity and weight on one line; the type shrinks until they fit
+      let ms = g.metaU;
+      const sep = ' · ';
+      const lineW = (s: number) => c.meta.reduce((a, m) => a + measure(m, { size: s, track: 0.14, upper: true }), 0) + (c.meta.length - 1) * measure(sep, { size: s, track: 0.14 });
+      while (ms > g.metaU * 0.55 && lineW(ms) > inner) ms -= g.metaU * 0.05;
+      let mx = x + g.pad;
+      c.meta.forEach((m, i) => {
+        const last = i === c.meta.length - 1 && c.meta.length > 1;
+        mx += txt(m, mx, cy + ms * u * 0.8, { size: ms, track: 0.14, upper: true, color: last ? P.i : P.m });
+        if (i < c.meta.length - 1) mx += txt(sep, mx, cy + ms * u * 0.8, { size: ms, track: 0.14, color: P.m });
+      });
+      cy += g.metaU * 1.5 * u;
+      if (c.price) {
+        cy += 0.6 * u;
+        txt(c.price, x + g.pad, cy + g.nameU * 0.8 * u * 0.8, { size: g.nameU * 0.8, font: 'times', color: P.i });
+        cy += g.nameU * 0.8 * 1.25 * u;
+      }
+      if (c.extra) {
+        const ex = { size: g.metaU * 0.95, track: 0.02 };
+        txt(ellipsize(c.extra, inner, (s) => measure(s, ex)), x + g.pad, cy + 0.5 * u + g.metaU * 0.95 * u * 0.8, { ...ex, color: P.m });
+      }
+    });
+  };
+
+  const contact = async () => {
+    page(dark.g);
+    const cx = W / 2;
+    const pw = 'Scan to open our store, shortlist designs and send your order on WhatsApp.';
+    const qrSize = o.land ? 15 : 19;
+    const nameSize = o.land ? 4.6 : 6;
+    const nameT = { size: nameSize, font: 'times' as const };
+    const body = { size: 1.2, track: 0.06 };
+    place(0, H - 7 * u, (y) => {
+      y += 0;
+      if (!dry) circleMark(cx, y + 3.75 * u, 3.75 * u, GOLD, brand.charAt(0).toUpperCase());
+      y += 7.5 * u + (o.land ? 1.6 : 4) * u;
+      txt('Thank you', cx, y + 1.15 * u * 0.8, { size: 1.15, track: 0.34, upper: true, color: GOLD, align: 'c' });
+      y += 1.15 * u + 1.6 * u;
+      for (const l of wrap(brand, W - 24 * u, 2, nameT)) {
+        txt(l, cx, y + nameSize * u * 0.72, { ...nameT, color: dark.i, align: 'c' });
+        y += nameSize * u * 1.0;
+      }
+      y += 2.2 * u;
+      if (!dry) (hair(GOLD, 0.25), doc.line(cx - 3 * u, y, cx + 3 * u, y));
+      y += 2.2 * u;
+      for (const l of wrap(pw, 34 * u, 4, body)) {
+        txt(l, cx, y + 1.2 * u * 0.8, { ...body, color: darkM, align: 'c' });
+        y += 1.2 * u * 1.6;
+      }
+      y += 2.6 * u;
+      if (!dry) {
+        fill('#ffffff');
+        doc.rect(cx - (qrSize / 2 + 2.2) * u, y, (qrSize + 4.4) * u, (qrSize + 4.4) * u, 'F');
+      }
+      const qy = y;
+      y += (qrSize + 4.4) * u + 2 * u;
+      txt(phone, cx, y + 2.6 * u * 0.8, { size: 2.6, font: 'times', color: GOLD, align: 'c' });
+      const phoneW = measure(phone, { size: 2.6, font: 'times' });
+      if (!dry) doc.link(cx - phoneW / 2, y, phoneW, 2.6 * u, { url: `https://wa.me/${merchant.contact.whatsapp.replace(/[^0-9]/g, '')}` });
+      y += 2.6 * u * 1.2;
+      if (address) {
+        y += 0.8 * u;
+        txt(ellipsize(address, W - 16 * u, (s) => measure(s, { size: 1, track: 0.24, upper: true })), cx, y + 1 * u * 0.8, { size: 1, track: 0.24, upper: true, color: darkM, align: 'c' });
+        y += 1 * u;
+      }
+      if (!dry) contactQr.y = qy;
+      return y;
+    });
+    // the QR is a nicety; the phone number above still reaches the store
+    try {
+      const qr = await QRCode.toDataURL(window.location.origin, { margin: 0, width: 480, color: { dark: '#111111', light: '#ffffff' } });
+      doc.addImage(qr, 'PNG', cx - (qrSize / 2) * u, contactQr.y + 2.2 * u, qrSize * u, qrSize * u);
+      doc.link(cx - (qrSize / 2 + 2.2) * u, contactQr.y, (qrSize + 4.4) * u, (qrSize + 4.4) * u, { url: window.location.origin });
+    } catch {
+      // see above
+    }
+    // "Powered by [mark] Antarixs", linking to antarixs.com
+    const pb = { size: 0.95, track: 0.24, upper: true };
+    const by = H - 4 * u;
+    const pbW = measure('Powered by', pb);
+    const axT = { size: 1.7, font: 'times' as const };
+    const axW = measure('Antarixs', axT);
+    const mk = 2.2 * u;
+    const total = pbW + 1.2 * u + (mark ? mk + 0.8 * u : 0) + axW;
+    let bx = cx - total / 2;
+    txt('Powered by', bx, by, { ...pb, color: darkM });
+    bx += pbW + 1.2 * u;
+    if (mark) (doc.addImage(mark, 'PNG', bx, by - mk * 0.8, mk, mk), (bx += mk + 0.8 * u));
+    txt('Antarixs', bx, by, { ...axT, color: dark.i });
+    doc.link(cx - total / 2, by - 2 * u, total, 3 * u, { url: 'https://antarixs.com' });
+  };
+
+  // ponytail: built-in Times / Helvetica stand in for Cormorant Garamond / Jost (no font files to embed, so the PDF stays small); names in Hindi or other scripts the built-in fonts lack are not drawn.
+  for (let i = 0; i < pages.length; i++) {
+    stop();
+    const pg = pages[i];
+    if (i > 0) doc.addPage();
+    if (pg.kind === 'cover') await cover();
+    else if (pg.kind === 'divider') divider(pg.group);
+    else if (pg.kind === 'designs') await designs(pg, i + 1);
+    else await contact();
+    await new Promise((r) => setTimeout(r)); // lets the screen repaint (progress, Cancel) between pages
   }
 
-  const pages = pdfPages(items.length, withDetail);
-  const totalPages = pages.length + 1;
-  const cardH = cardHeight(withDetail);
-
-  const header = () => {
-    mark(MARGIN + 10.7, 23, 10.7, [247, 240, 228], 5);
-    doc.setTextColor(26, 26, 26);
-    doc.setFont('times', 'normal');
-    doc.setFontSize(30);
-    doc.text(doc.splitTextToSize(brand, 100).slice(0, 1), MARGIN + 25, 22);
-    if (merchant.brand.tagline) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(112, 104, 99);
-      doc.text(doc.splitTextToSize(merchant.brand.tagline.toUpperCase(), 100).slice(0, 1), MARGIN + 25, 30.5, { charSpace: 0.5 });
-    }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(r, g, b);
-    doc.text(phone, W - MARGIN, 19, { align: 'right' });
-    const place = (merchant.contact.address || '').split(',').map((s) => s.trim()).filter(Boolean).slice(-2).join(', ');
-    if (place) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(12.5);
-      doc.setTextColor(112, 104, 99);
-      doc.text(doc.splitTextToSize(place, 70).slice(0, 1), W - MARGIN, 26, { align: 'right' });
-    }
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.3);
-    doc.line(MARGIN, 40, W - MARGIN, 40);
-  };
-
-  const footer = (page: number) => {
-    const y = H - 9;
-    doc.setDrawColor(230, 221, 208);
-    doc.setLineWidth(0.25);
-    doc.line(MARGIN, y - 6, W - MARGIN, y - 6);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(13);
-    doc.setTextColor(112, 104, 99);
-    doc.text('Net weight per piece', MARGIN, y);
-    doc.text(`Page ${page + 1} of ${totalPages}`, W - MARGIN, y, { align: 'right' });
-  };
-
-  let index = 0;
-  pages.forEach((count, page) => {
-    if (page > 0) doc.addPage();
-    doc.setFillColor(250, 246, 241);
-    doc.rect(0, 0, W, H, 'F');
-    if (page === 0) header();
-    const top = page === 0 ? FIRST_TOP : NEXT_TOP;
-    for (let n = 0; n < count; n++, index++) {
-      const p = items[index];
-      const x = MARGIN + (n % COLS) * (CELL + GAP);
-      const y = top + Math.floor(n / COLS) * (cardH + GAP);
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(...GOLD);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(x, y, CELL, cardH, 5, 5, 'FD');
-      const photo = photos[index];
-      if (photo) doc.addImage(photo, 'JPEG', x + CARD_PAD, y + CARD_PAD, PHOTO_W, PHOTO_H);
-      else {
-        doc.setFillColor(240, 230, 216);
-        doc.roundedRect(x + CARD_PAD, y + CARD_PAD, PHOTO_W, PHOTO_H, 3, 3, 'F');
-      }
-      const ty = y + CARD_PAD + PHOTO_H;
-      const tx = x + CARD_PAD + 1.5;
-      doc.setTextColor(26, 26, 26);
-      doc.setFont('times', 'normal');
-      doc.setFontSize(20);
-      doc.text(doc.splitTextToSize(p.title, CELL - 10).slice(0, 1), tx, ty + 11);
-      // SKU, purity (bold) and net weight share one line; the type shrinks until they fit with a gap, so they never run together.
-      const room = CELL - 2 * CARD_PAD - 3;
-      const lineY = ty + 19.5;
-      const weight = `${p.netWt.toFixed(3)} g`;
-      let size = 15;
-      let skuW = 0;
-      let purW = 0;
-      let wtW = 0;
-      for (; size >= 8; size -= 0.5) {
-        doc.setFontSize(size);
-        doc.setFont('helvetica', 'normal');
-        skuW = doc.getTextWidth(`${p.sku} · `);
-        doc.setFont('helvetica', 'bold');
-        purW = doc.getTextWidth(p.purity);
-        wtW = doc.getTextWidth(weight);
-        if (skuW + purW + wtW + 4 <= room) break;
-      }
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(112, 104, 99);
-      doc.text(`${p.sku} · `, tx, lineY);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(r, g, b);
-      doc.text(p.purity, tx + skuW, lineY);
-      doc.text(weight, x + CELL - CARD_PAD - 1.5, lineY, { align: 'right' });
-      const extra = detail(p);
-      if (extra) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.setTextColor(112, 104, 99);
-        doc.text(doc.splitTextToSize(extra, CELL - 10).slice(0, 1), tx, ty + 25.5);
-      }
-    }
-    footer(page);
-  });
-
-  // Last page, drawn to the atlas "Page 2 / Last page" at its proportions: the atlas page is 334 px wide, so 1 px = 0.6287 mm and 1 px of type = 1.78 pt.
-  // Top to bottom: mark circle, THANK YOU, store name, gold rule, one line of copy, QR, phone, "Powered by Antarixs" at the foot.
-  const mm = 0.6287;
-  const pt = 1.782;
-  const mix = (c: number[], d: number[], k: number): [number, number, number] => [0, 1, 2].map((i) => Math.round(d[i] + (c[i] - d[i]) * k)) as [number, number, number];
-  const cream = [250, 246, 241];
-  doc.addPage();
-  doc.setFillColor(...deep);
-  doc.rect(0, 0, W, H, 'F');
-  // The logo stays on the cover; the thank-you page keeps the plain mark.
-  hexMark(doc, W / 2, 85 * mm, 23 * mm, mix(GOLD, deep, 0.16), 21 * 0.46 * mm);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5 * pt);
-  doc.setTextColor(...GOLD);
-  doc.text('THANK YOU', W / 2, 136.5 * mm, { align: 'center', charSpace: 0.2 * 7.5 * mm });
-  doc.setFont('times', 'normal');
-  doc.setFontSize(25 * pt);
-  doc.setTextColor(...(cream as [number, number, number]));
-  const nameLines = doc.splitTextToSize(brand, 286 * mm).slice(0, 2);
-  doc.text(nameLines, W / 2, 168 * mm, { align: 'center', lineHeightFactor: 1.2 });
-  const afterName = (168 + (nameLines.length - 1) * 30) * mm + 23 * mm;
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(0.3);
-  doc.line(W / 2 - 22 * mm, afterName, W / 2 + 22 * mm, afterName);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11.2 * pt);
-  doc.setTextColor(...mix(cream, deep, 0.75));
-  doc.text(doc.splitTextToSize('Scan to open our store, shortlist designs and send your order on WhatsApp.', 262 * mm), W / 2, afterName + 26 * mm, { align: 'center', lineHeightFactor: 1.55 });
-  const qrTop = afterName + 66 * mm;
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(W / 2 - 48 * mm, qrTop, 96 * mm, 96 * mm, 6 * mm, 6 * mm, 'F');
-  try {
-    const qr = await QRCode.toDataURL(window.location.origin, { margin: 0, width: 480, color: { dark: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`, light: '#ffffff' } });
-    doc.addImage(qr, 'PNG', W / 2 - 40 * mm, qrTop + 8 * mm, 80 * mm, 80 * mm);
-    doc.link(W / 2 - 48 * mm, qrTop, 96 * mm, 96 * mm, { url: window.location.origin }); // tapping the QR opens the owner's store
-  } catch {
-    // the QR is a nicety; the phone number below still reaches the store
-  }
-  doc.setFont('times', 'normal');
-  doc.setFontSize(15 * pt);
-  doc.setTextColor(...GOLD);
-  doc.text(phone, W / 2, qrTop + 96 * mm + 30 * mm, { align: 'center' });
-  const phoneW = doc.getTextWidth(phone);
-  doc.link(W / 2 - phoneW / 2, qrTop + 96 * mm + 21 * mm, phoneW, 12, { url: `https://wa.me/${merchant.contact.whatsapp.replace(/[^0-9]/g, '')}` });
-  // "Powered by [logo] Antarixs": the same pill as the store pages (rounded, hairline border, soft fill), linking to antarixs.com.
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  const pbText = 'Powered by';
-  const pbW = doc.getTextWidth(pbText);
-  doc.setFont('times', 'normal');
-  doc.setFontSize(12);
-  const axW = doc.getTextWidth('Antarixs');
-  const markSize = 5.5;
-  const pillW = 5 + pbW + 2.2 + markSize + 2.2 + axW + 5;
-  const pillH = 9.5;
-  const pillX = (W - pillW) / 2;
-  const pillY = H - 12 - pillH;
-  doc.setFillColor(...mix(cream, deep, 0.08));
-  doc.setDrawColor(...mix(cream, deep, 0.28));
-  doc.setLineWidth(0.25);
-  doc.roundedRect(pillX, pillY, pillW, pillH, pillH / 2, pillH / 2, 'FD');
-  const baseY = pillY + pillH / 2 + 1.3;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...mix(cream, deep, 0.7));
-  doc.text(pbText, pillX + 5, baseY - 0.2);
-  const markDark = antarixsMarkPng(160, true);
-  if (markDark) doc.addImage(markDark, 'PNG', pillX + 5 + pbW + 2.2, pillY + (pillH - markSize) / 2, markSize, markSize);
-  doc.setFont('times', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(...(cream as [number, number, number]));
-  doc.text('Antarixs', pillX + 5 + pbW + 2.2 + markSize + 2.2, baseY);
-  doc.link(pillX, pillY, pillW, pillH, { url: 'https://antarixs.com' });
-
+  doc.setProperties({ title: `${brand} - ${coverTitle}` });
   const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  stop();
   await saveFile(doc.output('blob'), `${safe(brand)}-${safe(title)}.pdf`);
 }

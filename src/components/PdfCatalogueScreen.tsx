@@ -3,7 +3,8 @@ import type { Category, Product } from '../types';
 import { merchant } from '../merchant';
 import { downloadDesignsPdf } from '../cataloguePdf';
 import { api } from '../api';
-import { Chip, Notice } from './ui';
+import { Chip, Field, Notice, Segmented, Switch } from './ui';
+import { DEFAULT_PDF_OPTIONS, MAX_PDF_DESIGNS, PALETTES, caption, loadPdfOptions, priceOf, savePdfOptions, type PdfOptions, type PdfTheme } from '../pdfLayout';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
 import { errorText } from '../bugReport';
 import { SIZES_GRID } from '../photoSrcSet';
@@ -13,6 +14,37 @@ import { SIZES_GRID } from '../photoSrcSet';
  * A screen of its own, so it works the same in every layout (the buyer Catalogue screen is layout-specific).
  */
 const PAGE = 120;
+
+const THEME_LABELS: Record<PdfTheme, string> = { ivory: 'Ivory / ink', midnight: 'Midnight', garnet: 'Garnet' };
+
+/** The first design page as it will print: the same grid (2 x 3, or 3 x 2 on landscape), theme and caption lines, at thumbnail size. */
+const PagePreview: React.FC<{ items: Product[]; o: PdfOptions }> = ({ items, o }) => {
+  const P = PALETTES[o.theme];
+  const cols = o.land ? 3 : 2;
+  const rows = o.land ? 2 : 3;
+  return (
+    <div data-testid="pdf-page-preview" aria-label="Preview of the first design page" role="img" style={{ boxSizing: 'border-box', width: o.land ? 220 : 150, height: o.land ? 155 : 212, background: P.g, color: P.i, border: `1px solid ${P.h}`, padding: o.land ? '14px 13px 12px' : '19px 9px 17px', display: 'grid', alignContent: 'stretch', justifyContent: 'stretch', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, gap: 4, flex: 'none', fontSize: 3.5, lineHeight: 1.15, overflow: 'hidden' }}>
+      {Array.from({ length: cols * rows }, (_, i) => {
+        const p = items[i];
+        const c = p ? caption(p, o, merchant.productFields) : null;
+        return (
+          <div key={i} style={{ border: `1px solid ${P.h}`, padding: 2, display: 'flex', flexDirection: 'column', gap: 1, minHeight: 0 }}>
+            <div style={{ flex: 1, minHeight: 0, background: P.tile, overflow: 'hidden' }}>
+              {p?.image && <img src={p.image} alt="" onError={(e) => (e.currentTarget.style.display = 'none')} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />}
+            </div>
+            {c && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+                <div style={{ color: P.m, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.meta.join(' · ')}</div>
+                {c.price && <div>{c.price}</div>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Category[] }> = ({ products: firstPage, categories }) => {
   // The picked designs themselves, not just ids: a pick made in one collection stays when another collection is opened.
@@ -26,6 +58,14 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [opts, setOpts] = useState<PdfOptions>(() => loadPdfOptions(merchant.id));
+  const cancel = useRef<AbortController | null>(null);
+  const setOpt = <K extends keyof PdfOptions>(k: K, v: PdfOptions[K]) =>
+    setOpts((prev) => {
+      const next = { ...prev, [k]: v };
+      savePdfOptions(merchant.id, next);
+      return next;
+    });
 
   const load = async (offset: number) => {
     const mine = ++request.current;
@@ -53,6 +93,9 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
   const title = collections === 1 ? chosen[0].category : 'Selection';
   const allVisiblePicked = visible.length > 0 && visible.every((p) => picked.has(p.id));
   const none = !loading && visible.length === 0;
+  // The price switch only exists for a store whose designs carry prices.
+  const hasPrices = chosen.some((p) => priceOf(p) !== null);
+  const previewOpts = { ...opts, price: opts.price && hasPrices };
 
   const toggle = (p: Product) =>
     setPicked((prev) => {
@@ -76,14 +119,21 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
     setBusy(true);
     setError(null);
     setStatus('Preparing the PDF…');
+    const ctl = (cancel.current = new AbortController());
     try {
-      await downloadDesignsPdf(title, chosen, (done, total) => setStatus(`Preparing the PDF… ${done} of ${total} photos`));
+      await downloadDesignsPdf(title, chosen, (done, total) => setStatus(`Preparing the PDF… ${done} of ${total} photos`), { options: previewOpts, signal: ctl.signal });
       setStatus('PDF downloaded');
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
-      setStatus(null);
-      setError(errorText(err, 'admin PDF catalogue', 'Could not create the PDF.'));
+      if ((err as { name?: string })?.name === 'AbortError') {
+        setStatus('Cancelled');
+        setTimeout(() => setStatus(null), 2000);
+      } else {
+        setStatus(null);
+        setError(errorText(err, 'admin PDF catalogue', 'Could not create the PDF.'));
+      }
     }
+    cancel.current = null;
     setBusy(false);
   };
 
@@ -127,9 +177,36 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
         <div className="em-rule" style={{ width: 40, margin: '0 0 8px' }} />
         <h2 style={{ fontSize: '1.25rem' }}>Pick designs</h2>
         <p className="hint" style={{ marginTop: 4 }}>
-          Includes photo, name, SKU, purity and net weight. No prices.
+          Includes photo, name and purity, and SKU, weights and price as you choose below.
         </p>
       </div>
+
+      <section className="card col" data-testid="pdf-options" style={{ gap: 14, padding: 16 }}>
+        <div className="row" style={{ alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+          <div className="col grow" style={{ gap: 14, minWidth: 220 }}>
+            <Field label="Page" htmlFor="pdf-orient">
+              <Segmented options={[{ key: 'p', label: 'A4 portrait' }, { key: 'l', label: 'A4 landscape' }]} value={opts.land ? 'l' : 'p'} onChange={(k) => setOpt('land', k === 'l')} />
+            </Field>
+            <Field label="Colour theme" htmlFor="pdf-theme">
+              <Segmented options={(Object.keys(THEME_LABELS) as PdfTheme[]).map((k) => ({ key: k, label: THEME_LABELS[k] }))} value={opts.theme} onChange={(k) => setOpt('theme', k as PdfTheme)} />
+            </Field>
+            {([['weights', 'Weights'], ['sku', 'SKU'], ['watermark', 'Watermark on photos'], ...(hasPrices ? [['price', 'Price']] : [])] as Array<['weights' | 'sku' | 'watermark' | 'price', string]>).map(([k, label]) => (
+              <div key={k} className="row" data-testid={`pdf-opt-${k}`}>
+                <span className="grow">{label}</span>
+                <Switch on={opts[k]} onChange={() => setOpt(k, !opts[k])} label={label} />
+              </div>
+            ))}
+            <Field label="Cover title" htmlFor="pdf-title">
+              <input id="pdf-title" data-testid="pdf-title" className="inp" maxLength={60} value={opts.title} placeholder={title} onChange={(e) => setOpt('title', e.target.value)} />
+            </Field>
+            <Field label="Cover subtitle" htmlFor="pdf-sub">
+              <input id="pdf-sub" data-testid="pdf-subtitle" className="inp" maxLength={70} value={opts.subtitle} placeholder="Autumn / Winter 2026" onChange={(e) => setOpt('subtitle', e.target.value)} />
+            </Field>
+          </div>
+          <PagePreview items={chosen.length ? chosen : visible} o={previewOpts} />
+        </div>
+        {picked.size > MAX_PDF_DESIGNS && <Notice tone="warn">A PDF holds up to {MAX_PDF_DESIGNS} designs. Pick fewer, or make one PDF per collection.</Notice>}
+      </section>
 
       {error && <Notice tone="error">{error}</Notice>}
 
@@ -213,10 +290,15 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
                 )}
               </div>
               <div className="row" style={{ gap: 10 }}>
-                <button type="button" data-testid="pdf-export" className="btn" style={{ flex: 1, whiteSpace: 'nowrap', padding: '0 12px' }} disabled={busy || picked.size === 0} onClick={() => run()}>
+                <button type="button" data-testid="pdf-export" className="btn" style={{ flex: 1, whiteSpace: 'nowrap', padding: '0 12px' }} disabled={busy || picked.size === 0 || picked.size > MAX_PDF_DESIGNS} onClick={() => run()}>
                   <Icon n="down" size={18} />
                   Export PDF{picked.size > 0 ? ` · ${picked.size}` : ''}
                 </button>
+                {busy && (
+                  <button type="button" data-testid="pdf-cancel" className="btn alt" style={{ padding: '0 16px' }} onClick={() => cancel.current?.abort()}>
+                    Cancel
+                  </button>
+                )}
               </div>
             </div>
           </div>
