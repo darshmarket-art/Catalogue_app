@@ -14,17 +14,18 @@ import { ReportProblem } from './About';
  * The buyer's profile, in Maison's look: a full-height panel on phones and a side panel on desktop (the Drawer). It carries the same things as the
  * Classic profile menu (name, phone, orders, about, the app tour, sign out) plus language, shortlist, report a problem and install.
  */
-export const ProfilePanel: React.FC<{ buyer: ProfileUser; onClose: () => void; onOpenOrders: (tab: 'current' | 'past') => void; onGo: (s: ActiveScreen) => void; onLogout: () => void }> = ({ buyer, onClose, onOpenOrders, onGo, onLogout }) => {
+export const ProfilePanel: React.FC<{ buyer: ProfileUser; shortlistCount?: number; orderCount?: number; onClose: () => void; onOpenOrders: (tab: 'current' | 'past') => void; onGo: (s: ActiveScreen) => void; onLogout: () => void }> = ({ buyer, shortlistCount = 0, orderCount = 0, onClose, onOpenOrders, onGo, onLogout }) => {
   useLang();
   const orders = usePlan().flags.orders;
   const [installable, setInstallable] = useState(canInstall());
   useEffect(() => onInstallChange(() => setInstallable(canInstall())), []);
   const gst = buyer.gstin && buyer.gstin !== 'PENDING-VERIFY' ? buyer.gstin : undefined;
   const details: Array<[string, string | undefined]> = [[t('Owner'), buyer.ownerName], [t('Mobile'), buyer.phone], [t('GST'), gst]];
-  const row = (label: string, onClick: () => void, opts: { testId?: string; icon: string } = { icon: 'next' }) => (
+  const row = (label: string, onClick: () => void, opts: { testId?: string; icon: string; count?: number } = { icon: 'next' }) => (
     <li key={label}>
       <button type="button" className="mx-prow" data-testid={opts.testId} onClick={onClick}>
-        <span>{label}</span><Icon n={opts.icon} size={16} />
+        <span>{label}</span>
+        <span className="mx-prow-r">{opts.count ? <b className="mx-rc" data-testid={opts.testId ? `${opts.testId}-count` : undefined}>{opts.count}</b> : null}<Icon n={opts.icon} size={16} /></span>
       </button>
     </li>
   );
@@ -38,9 +39,9 @@ export const ProfilePanel: React.FC<{ buyer: ProfileUser; onClose: () => void; o
         </dl>
       </section>
       <ul className="mx-prows">
-        {orders && row(t('My order'), () => onOpenOrders('current'), { icon: 'bag' })}
+        {orders && row(t('My order'), () => onOpenOrders('current'), { icon: 'bag', testId: 'mx-orders-row', count: orderCount })}
         {orders && row(t('Past orders'), () => onOpenOrders('past'), { icon: 'package' })}
-        {row(t('Shortlist'), () => onGo('shortlist'), { icon: 'heart' })}
+        {row(t('Shortlist'), () => onGo('shortlist'), { icon: 'heart', testId: 'mx-shortlist-row', count: shortlistCount })}
         {row(t('About us'), () => onGo('about'), { icon: 'info' })}
         {row(t('Take the app tour'), () => { onClose(); window.dispatchEvent(new Event('app-tour')); }, { icon: 'star', testId: 'menu-tour' })}
         {installable && row(t('Install app'), () => { void promptInstall(); }, { icon: 'down', testId: 'menu-install' })}

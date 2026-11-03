@@ -19,7 +19,6 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
   useLang();
   const [adding, setAdding] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false); // two taps, so one stray tap does not wipe the list
-  const [added, setAdded] = useState(false);
   const [open, setOpen] = useState<Product | null>(null);
   const [cartFor, setCartFor] = useState<Product | null>(null);
 
@@ -40,10 +39,9 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
 
   const addAll = async () => {
     setAdding(true);
-    await onAddAllToOrder(items);
+    // The lines go into the order, then the list empties and the Orders tab opens as ONE transition (App.handleAddAllToOrder).
+    await onAddAllToOrder(items, true);
     setAdding(false);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
   };
 
   if (items.length === 0) {
@@ -102,7 +100,7 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
           {canOrder ? (
             <>
               <button type="button" className="mx-btn" data-testid="shortlist-order-all" onClick={addAll} disabled={adding}>
-                {t(adding ? 'Adding…' : added ? 'Added to order' : 'Order all')}
+                {t(adding ? 'Adding…' : 'Order all')}
               </button>
               <button type="button" className="mx-btn sec" onClick={sendOnWhatsApp} aria-label={t('Send shortlist on WhatsApp')}>
                 <Icon n="wa" size={16} />

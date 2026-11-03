@@ -63,7 +63,7 @@
   --mx-logo: 30px;
   --mx-wordmark: clamp(0.8125rem, 4.2vw, 1.125rem);
   --mx-wordmark-track: 0.1em;
-  --mx-tile-ratio: 2 / 1;
+  --mx-tile-ratio: 1 / 2;
 }
 @media (min-width: 600px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-logo: 36px; --mx-wordmark: 1.375rem; --mx-wordmark-track: 0.2em; } }
 @media (min-width: 1024px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-hero-ratio: 12 / 5; --mx-bar-h: 5.25rem; --mx-logo: 52px; --mx-wordmark: clamp(1.5rem, 2.3vw, 2.25rem); --mx-wordmark-track: 0.3em; } }
@@ -503,9 +503,7 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   & .mx-hero-media { position: relative; aspect-ratio: var(--mx-hero-ratio); max-height: var(--mx-hero-max); overflow: hidden; background: var(--mx-tile); }
   & .mx-hero-img { position: absolute; inset: 0; }
   & .mx-hero-img .em-ph { position: absolute; inset: 0; }
-  & .mx-hero-txt { position: relative; z-index: 1; padding: 28px 24px 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
-  & .mx-hero .mx-display { max-width: 14ch; text-wrap: balance; }
-  & .mx-hero .mx-cta.lt { color: var(--mx-ink); }
+  & .mx-hero-hit { position: absolute; inset: 0; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
   /* the dots sit in a box shaped like the banner, bottom aligned, so they follow --mx-hero-ratio on any screen */
   & .mx-hero-dots { position: absolute; left: 0; right: 0; top: 0; aspect-ratio: var(--mx-hero-ratio); max-height: var(--mx-hero-max); display: flex; align-items: flex-end; padding: 0 12px 2px; pointer-events: none; z-index: 2; }
   & .mx-hero-dots button { pointer-events: auto; width: 32px; height: 32px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: pointer; }
@@ -524,13 +522,13 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   & .mx-split-img { position: relative; aspect-ratio: 4 / 5; overflow: hidden; }
   & .mx-split-txt { padding: 40px 24px 56px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
   & .mx-strip { display: flex; gap: 3px; overflow-x: auto; padding: 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
-  & .mx-strip .mx-ptile { flex: 0 0 78%; scroll-snap-align: start; }
+  & .mx-strip .mx-ptile { flex: 0 0 46%; scroll-snap-align: start; }
   & .mx-links button { display: block; width: 100%; padding: 16px 0; background: none; border: 0; text-align: left; font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; color: inherit; cursor: pointer; }
 
   /* ---------- design tiles (Catalogue, Shortlist, Home): ONE card, the photo and its details flowing on the same ground ----------
    * --mx-tile-ratio (width / height of the photo, 2 / 1 wide) and --mx-tile-cols (cards across) are the two knobs. For portrait photos set
    * --mx-tile-ratio: 1 / 2 and --mx-tile-cols: 2 (phones) / 4 (desktop). Compact stays square, list is a row (photo left, details right). */
-  & .mx-pgrid { --mx-tile-cols: 1; display: grid; gap: 6px; }
+  & .mx-pgrid { --mx-tile-cols: 2; display: grid; gap: 6px; }
   & .mx-pgrid.large { grid-template-columns: repeat(var(--mx-tile-cols), minmax(0, 1fr)); }
   & .mx-pgrid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   & .mx-pgrid.list { grid-template-columns: 1fr; }
@@ -544,6 +542,10 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   & .mx-heart.on { color: var(--mx-accent); }
   & .mx-pbody { flex: 1; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 12px 14px 14px; min-width: 0; }
   & .mx-pcap { flex: 1; min-width: 0; text-align: left; cursor: pointer; }
+  /* portrait cards are narrow (2 across on a phone): the Add to cart link goes under the details instead of squeezing them */
+  & .mx-pgrid.large .mx-pbody { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 10px; }
+  & .mx-pgrid.large .mx-pcap { flex: none; }
+  & .mx-pgrid.large .mx-ptile .mx-cta { align-self: flex-start; padding: 8px 0; }
   & .mx-pcap .mx-pw { display: flex; flex-wrap: wrap; gap: 2px 14px; }
   & .mx-sku { letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.6875rem; }
   & .mx-ptile .mx-cta { flex: none; white-space: nowrap; padding: 6px 0; font-size: 0.6875rem; letter-spacing: 0.16em; }
@@ -555,7 +557,7 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   & .mx-pgrid.compact .mx-heart { width: 32px; height: 32px; top: 2px; right: 2px; }
   & .mx-ptile.current .mx-pframe { outline: 1px solid var(--mx-ink); outline-offset: -1px; }
   & .mx-pgrid .mx-ed { grid-column: 1 / -1; }
-  @media (min-width: 600px) { & .mx-pgrid.large { --mx-tile-cols: 2; } & .mx-pgrid.list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 600px) { & .mx-pgrid.large { --mx-tile-cols: 3; } & .mx-pgrid.list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
   /* 3D hover and press on cards (mouse only; touch gets the press) */
   @media (hover: hover) and (pointer: fine) {
@@ -578,6 +580,8 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
 
   /* ---------- accent, profile panel ---------- */
   & .mx-ct { background: var(--mx-accent); color: var(--mx-btn-fg); }
+  & .mx-prow-r { display: inline-flex; align-items: center; gap: 12px; }
+  & .mx-rc { min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; background: var(--mx-accent); color: var(--mx-btn-fg); font-family: var(--mx-sans); font-size: 0.75rem; font-weight: 500; line-height: 1; }
   & .mx-nl::after { background: var(--mx-accent); }
   & .mx-drawer-wrap.tall .mx-drawer { max-height: none; height: 100dvh; }
   & .mx-drawer-wrap.tall .mx-drawer-b { flex: 1; }
@@ -605,10 +609,6 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-hero { aspect-ratio: var(--mx-hero-ratio); min-height: 460px; }
     & .mx-hero-strip, & .mx-slide { height: 100%; }
     & .mx-hero-media { position: absolute; inset: 0; aspect-ratio: auto; max-height: none; }
-    & .mx-hero-txt { position: absolute; left: 64px; bottom: 64px; max-width: 560px; padding: 40px 44px; color: var(--mx-photo-fg); background: var(--mx-glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-    & .mx-hero-txt .mx-ey { color: color-mix(in srgb, var(--mx-photo-fg) 80%, transparent); }
-    & .mx-hero .mx-display { color: var(--mx-photo-fg); font-size: clamp(3rem, 5.4vw, 5.25rem); }
-    & .mx-hero .mx-cta.lt { color: var(--mx-photo-fg); }
     & .mx-hero-dots { inset: 0; aspect-ratio: auto; max-height: none; justify-content: flex-end; padding: 0 40px 24px; }
     & .mx-grid { max-width: 1340px; margin: 0 auto; padding: 0 48px; grid-template-columns: repeat(3, 1fr); }
     & .mx-tile.lead { grid-column: span 2; grid-row: span 2; }
@@ -619,7 +619,7 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-strip .mx-ptile { flex: none; }
     & .mx-pgrid.compact { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     & .mx-pgrid .mx-ed { grid-column: span 2; }
-    & .mx-pgrid.large { --mx-tile-cols: 3; }
+    & .mx-pgrid.large { --mx-tile-cols: 4; }
     & .mx-pbody { padding: 14px 18px 18px; }
     & .mx-pt { font-size: 1.125rem; }
     & .mx-pgrid.list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -716,6 +716,28 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
 [data-layout="maison"][data-role] main:is(.animate-page-in, .animate-page-forward, .animate-page-back, .animate-fade-in) { animation: var(--mx-xition-name) var(--mx-xition-dur) var(--mx-xition-ease) both; }
 @keyframes mx-fade { from { opacity: 0; } to { opacity: 1; } }
 
+/* ---------- order placed: a full-screen moment (about 1.75s) ----------
+ * 0.0 page in, 0.15 ring draws, 0.65 tick draws, 0.8 words rise in, 0.9 the designs glide into the Orders icon, 1.5 page out. Tap skips. */
+[data-layout="maison"] .mx-pl { position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 32px 24px; text-align: center; cursor: pointer; background: var(--mx-btn-bg); color: var(--mx-btn-fg); animation: mx-fade 0.2s ease-out both, mx-pl-out 0.25s ease-in 1.5s forwards; }
+[data-layout="maison"] .mx-pl-mark { width: 96px; height: 96px; overflow: visible; fill: none; stroke: var(--mx-deep-fg); stroke-width: 1.5; stroke-linecap: square; }
+[data-layout="maison"] .mx-pl-ring { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mx-pl-draw 0.6s var(--mx-ease) 0.15s forwards; }
+[data-layout="maison"] .mx-pl-tick { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mx-pl-draw 0.35s var(--mx-ease) 0.65s forwards; }
+[data-layout="maison"] .mx-pl-txt { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: min(92vw, 760px); animation: mx-pl-rise 0.45s var(--mx-ease) 0.8s backwards; }
+[data-layout="maison"] .mx-pl .mx-ey { color: color-mix(in srgb, var(--mx-deep-fg) 70%, transparent); }
+[data-layout="maison"] .mx-pl .mx-lede { color: color-mix(in srgb, var(--mx-deep-fg) 85%, transparent); }
+[data-layout="maison"] .mx-pl-row { display: flex; gap: 12px; min-height: 56px; animation: mx-fade 0.3s ease-out 0.85s backwards; }
+[data-layout="maison"] .mx-pl-th { width: 56px; height: 56px; }
+[data-layout="maison"] .mx-pl-in { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; background: var(--mx-tile); animation: mx-pl-glide 0.5s cubic-bezier(0.5, 0, 0.2, 1) calc(0.9s + var(--i, 0) * 50ms) forwards; }
+@keyframes mx-pl-draw { to { stroke-dashoffset: 0; } }
+@keyframes mx-pl-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes mx-pl-glide { to { opacity: 0; transform: translate3d(var(--dx, 0), var(--dy, -200px), 0) scale(0.2); } }
+@keyframes mx-pl-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  [data-layout="maison"] .mx-pl { animation: none; }
+  [data-layout="maison"] .mx-pl :is(.mx-pl-ring, .mx-pl-tick, .mx-pl-txt, .mx-pl-row, .mx-pl-in) { animation: none; stroke-dashoffset: 0; }
+  [data-layout="maison"] .mx-pl-row { display: none; }
+}
+
 /* First-load entrance (hero, tiles, menus): layered 3D (rotateX/rotateY over translateZ), staggered; transform and opacity only. `backwards` so the
  * resting style (and the hover tilt) is never pinned by the animation. */
 @media (prefers-reduced-motion: no-preference) {
@@ -723,10 +745,11 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   [data-layout="maison"] .mx-mega { animation: mx-mega-in 0.55s var(--mx-ease) both; }
   [data-layout="maison"] .mx-tix-tags li { animation: mx-layer-in 0.7s var(--mx-ease) calc(120ms + var(--i, 0) * 70ms) backwards; }
   [data-layout="maison"] .mx-slide:first-child .mx-hero-media { transform-origin: 50% 100%; animation: mx-hero-in 1.1s var(--mx-turn) backwards; }
-  [data-layout="maison"] .mx-slide:first-child .mx-hero-txt { animation: mx-layer-in 1s var(--mx-ease) 0.3s backwards; }
   [data-layout="maison"] .mx-tile.ax-rv { transform: perspective(1000px) translate3d(0, 44px, -240px) rotateX(-20deg) rotateY(10deg); }
   [data-layout="maison"] .mx-tile.ax-rv.in { transform: none; }
   [data-layout="maison"] .mx-pgrid .mx-ptile:nth-child(-n+10) { animation: mx-tile-in 0.9s var(--mx-turn) calc(0.12s + var(--i, 0) * 70ms) backwards; }
+  /* the Shortlist is something you open to act on: its tiles are there at once, no staggered entrance (it read as a slow load) */
+  [data-layout="maison"] .mx-wish .mx-pgrid .mx-ptile { animation: none; }
   [data-layout="maison"] :is(.mx-flip, .mx-cat-head, .mx-tabs) { animation: var(--mx-xition-name) var(--mx-xition-dur) var(--mx-xition-ease) backwards; }
 }
 @keyframes mx-hero-in { from { opacity: 0; transform: perspective(1400px) translate3d(0, 5%, -320px) rotateX(18deg); } to { opacity: 1; transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0deg); } }

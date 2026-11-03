@@ -44,6 +44,7 @@ import { errorText } from './bugReport';
 import { BootSplash } from './components/BootSplash';
 import { NoticeHost, notify } from './notify';
 import * as haptics from './haptics';
+import { withTransition } from './viewTransition';
 import { OrdersUnavailable } from './components/OrdersUnavailable';
 
 
@@ -80,6 +81,12 @@ export default function App() {
   const setShortlist = (next: string[]) => {
     shortlistRef.current = next;
     setShortlistState(next);
+  };
+  // True once the buyer has changed the list on this device: the server copy loaded at sign-in must not overwrite it.
+  const shortlistTouched = useRef(false);
+  const setShortlistByBuyer = (next: string[]) => {
+    shortlistTouched.current = true;
+    setShortlist(next);
   };
   const [about, setAbout] = useState<About>({});
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -368,18 +375,22 @@ export default function App() {
   // The buyer's shortlist is kept on the server so it follows them to another phone.
   useEffect(() => {
     if (!currentMerchant) return;
-    api.getShortlist().then(setShortlist);
+    shortlistTouched.current = false;
+    api.getShortlist().then((list) => { if (!shortlistTouched.current) setShortlist(list); });
   }, [currentMerchant?.phone]);
 
   // Shortlisted designs outside the first page of products are fetched by SKU; a SKU that no longer exists is dropped, so the counter matches the list.
+  // Designs the buyer hearts are kept locally the moment they are hearted (toggleShortlist), so this only fills in designs saved on another device.
+  // The request is never cancelled by the next tap (that restarted the wait on every heart) and a SKU is asked for once; a failure is retried.
+  const askedSkus = useRef(new Set<string>());
+  const [skuRetry, setSkuRetry] = useState(0);
   useEffect(() => {
     if (!currentMerchant || !catalogueReady) return;
     const have = new Set(products.map((p) => p.sku));
-    const missing = shortlist.filter((sku) => !have.has(sku));
+    const missing = shortlist.filter((sku) => !have.has(sku) && !askedSkus.current.has(sku));
     if (missing.length === 0) return;
-    let live = true;
+    missing.forEach((sku) => askedSkus.current.add(sku));
     api.getProductsBySku(missing).then((found) => {
-      if (!live) return;
       if (found.length) setProducts((prev) => [...prev, ...found.filter((f) => !prev.some((p) => p.sku === f.sku))]);
       const gone = missing.filter((sku) => !found.some((f) => f.sku === sku));
       if (gone.length) {
@@ -387,26 +398,30 @@ export default function App() {
         setShortlist(next);
         api.saveShortlist(next).catch(() => {});
       }
-    }).catch(() => {});
-    return () => { live = false; };
-  }, [shortlist, catalogueReady, currentMerchant?.phone]);
+    }).catch(() => {
+      missing.forEach((sku) => askedSkus.current.delete(sku));
+      setTimeout(() => setSkuRetry((n) => n + 1), 3000);
+    });
+  }, [shortlist, catalogueReady, currentMerchant?.phone, skuRetry]);
 
   const clearShortlist = () => {
-    setShortlist([]);
+    setShortlistByBuyer([]);
     api.saveShortlist([]).catch(() => {});
   };
 
   const toggleShortlist = (product: Product) => {
     const cur = shortlistRef.current;
     const next = cur.includes(product.sku) ? cur.filter((sku) => sku !== product.sku) : [...cur, product.sku];
-    setShortlist(next);
+    // Keep the design itself: the Shortlist opens from this, with no wait for the server.
+    if (!cur.includes(product.sku)) setProducts((prev) => (prev.some((p) => p.sku === product.sku) ? prev : [...prev, product]));
+    setShortlistByBuyer(next);
     api.saveShortlist(next).catch(() => {
       // keep what the buyer sees; it is saved again on their next tap
     });
   };
 
   // Add Item to Order (needs an account)
-  const handleAddToOrder = async (product: Product, quantity: number, purity?: string, quiet = false): Promise<boolean> => {
+  const handleAddToOrder = async (product: Product, quantity: number, purity?: string, quiet = false, keepShortlist = false): Promise<boolean> => {
     try {
       const newItem = await api.addOrderItem({ sku: product.sku, batchQty: quantity, ...(purity ? { purity } : {}) });
       // The server merges a repeat add into the existing line, so replace by id rather than append.
@@ -414,9 +429,9 @@ export default function App() {
       // A light knock on the phone in the same moment the cart updates ("Add all" knocks once, at the end).
       if (!quiet) haptics.tap();
       // Once a design is in the order it leaves the shortlist.
-      if (shortlistRef.current.includes(product.sku)) {
+      if (!keepShortlist && shortlistRef.current.includes(product.sku)) {
         const next = shortlistRef.current.filter((sku) => sku !== product.sku);
-        setShortlist(next);
+        setShortlistByBuyer(next);
         api.saveShortlist(next).catch(() => {});
       }
       return true;
@@ -646,10 +661,21 @@ export default function App() {
     }
   };
 
-  const handleAddAllToOrder = async (items: Product[]) => {
-    let added = false;
-    for (const product of items) added = (await handleAddToOrder(product, 1, undefined, true)) || added;
-    if (added) haptics.tap();
+  // Order all: every design goes into the order first, then the shortlist is emptied of them in ONE update (never one by one). `land` (Maison)
+  // makes that update and the move to the Orders tab a single view transition, so the whole list leaves together.
+  const handleAddAllToOrder = async (items: Product[], land = false) => {
+    const done: string[] = [];
+    for (const product of items) if (await handleAddToOrder(product, 1, undefined, true, true)) done.push(product.sku);
+    if (done.length === 0) return;
+    haptics.tap();
+    const next = shortlistRef.current.filter((sku) => !done.includes(sku));
+    const settle = () => {
+      setShortlistByBuyer(next);
+      if (land) handleNavigate('orders');
+    };
+    if (land) withTransition(settle);
+    else settle();
+    api.saveShortlist(next).catch(() => {});
   };
 
   const handleAboutSaved = async (next: About): Promise<string | null> => {

@@ -15,7 +15,7 @@ import { Tile } from './ui';
 const FEW = 6;
 const AUTOPLAY_MS = 6500;
 
-interface Slide { id: string; image?: string; title: string; eyebrow?: string; cta: string; open: () => void }
+interface Slide { id: string; image?: string; title: string; open: () => void }
 
 /**
  * The hero: the store's banners as full-width slides in a scroll-snap strip. The browser does the finger tracking, momentum and snapping;
@@ -70,11 +70,7 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean }> = ({ slides, loading
               <div className="mx-hero-img">
                 {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={SIZES_FULL} priority={i === 0} eager alt="" />}
               </div>
-            </div>
-            <div className="mx-hero-txt">
-              {sl.eyebrow && <span className="mx-ey">{sl.eyebrow}</span>}
-              <h2 className="mx-display">{sl.title}</h2>
-              <button type="button" className="mx-cta lt" tabIndex={i >= n ? -1 : undefined} onClick={sl.open}>{sl.cta}</button>
+              <button type="button" className="mx-hero-hit" aria-label={sl.title} tabIndex={i >= n ? -1 : undefined} onClick={sl.open} />
             </div>
           </div>
         ))}
@@ -113,11 +109,9 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
         id: b.id,
         image: b.image,
         title: b.category ? catName(b.category) : ts(merchant.brand.name),
-        eyebrow: b.category ? t('Collection') : undefined,
-        cta: t('Discover'),
         open: () => (b.category ? onFilterCategoryInCatalogue(b.category) : onNavigate('catalogue'))
       }))
-    : [{ id: 'store', image: heroes[0]?.image, title: ts(merchant.brand.name), cta: t('Discover'), open: () => onNavigate('catalogue') }];
+    : [{ id: 'store', image: heroes[0]?.image, title: ts(merchant.brand.name), open: () => onNavigate('catalogue') }];
   const features = banners.slice(1, 3);
 
   const { contact } = merchant;
