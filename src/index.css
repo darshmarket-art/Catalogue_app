@@ -377,3 +377,28 @@ html {
     --color-primary-fixed-dim: #e2c389;
   }
 }
+/* AI render in progress (PhotoPicker): a shimmer over the photo, the message, elapsed time, a progress bar and "Use original". */
+.rnd { inset: 0; z-index: 5; display: grid; place-content: center; justify-items: center; gap: 4px; padding: 6px; text-align: center; background: rgb(0 0 0 / 0.62); color: #fff; font-size: 0.625rem; line-height: 1.25; overflow: hidden; }
+.rnd > * { position: relative; }
+.rnd::before { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.28) 50%, transparent 70%); transform: translateX(-100%); animation: rnd-shimmer 1.8s ease-in-out infinite; }
+.rnd-time { font-variant-numeric: tabular-nums; opacity: 0.9; }
+.rnd-bar { display: block; width: 80%; height: 3px; background: rgb(255 255 255 / 0.3); }
+.rnd-bar > i { display: block; height: 100%; background: currentColor; transition: width 1s linear; }
+@keyframes rnd-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .rnd::before { animation: none; transform: none; background: rgb(255 255 255 / 0.12); } .rnd-bar > i { transition: none; } }
+
+/* Before / after sheet: side by side from tablet width; on a phone the toggle shows one at a time. */
+.sheet.rnd-cmp { display: flex; flex-direction: column; gap: 14px; max-height: 92dvh; overflow-y: auto; }
+.rnd-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rnd-pair figure { margin: 0; display: grid; gap: 6px; }
+.rnd-pair img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: #eee; }
+.rnd-pair figcaption { font-size: 0.75rem; opacity: 0.75; text-align: center; }
+.rnd-tabs { display: none; gap: 0; }
+.rnd-tabs button { flex: 1; min-height: 40px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; opacity: 0.6; }
+.rnd-tabs button.on { opacity: 1; background: rgb(128 128 128 / 0.18); }
+@media (max-width: 719px) {
+  .rnd-tabs { display: flex; }
+  .rnd-pair { grid-template-columns: 1fr; }
+  .rnd-pair[data-view="a"] .rnd-b, .rnd-pair[data-view="b"] .rnd-a { display: none; }
+}
+@media (min-width: 720px) { .sheet.rnd-cmp { max-width: 880px !important; } }

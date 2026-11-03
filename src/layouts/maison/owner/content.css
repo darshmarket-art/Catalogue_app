@@ -78,6 +78,11 @@
   & .photo { background: var(--mx-stone); }
   & .photo::before { display: none; }
   & .photo:not(:has(> img))::after { background: var(--mx-line); }
+  & .rnd { background: rgb(246 244 240 / 0.9); color: var(--mx-ink); font-family: var(--mx-sans); letter-spacing: 0.04em; }
+  & .rnd::before { background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.9) 50%, transparent 70%); }
+  & .rnd-bar { height: 2px; background: var(--mx-line); }
+  & .rnd-tabs button { border-radius: 0; font-family: var(--mx-sans); font-size: 0.625rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; }
+  & .rnd-tabs button.on { background: var(--mx-ink); color: #fff; }
   & .em-netbanner { background: var(--mx-stone); color: var(--mx-ink); padding: 18px 20px; border-top: 1px solid var(--mx-ink); }
   & .em-netbanner .em-ey { color: var(--mx-mut); }
   & .em-netbanner .em-ser { font-size: 2rem; }
@@ -189,3 +194,7 @@
   & table.t td b { font-weight: 500; }
   & .card:has(> table.t) { border: 1px solid var(--mx-line); padding: 0; }
 }
+
+/* AI render compare sheet: the secondary button stays an outline (the sheet sits outside the scoped form rules). */
+[data-layout="maison"] .rnd-cmp :is(.btn.alt, .rnd-tabs button) { background: transparent !important; color: var(--mx-ink) !important; border: 1px solid var(--mx-ink) !important; }
+[data-layout="maison"] .rnd-cmp .rnd-tabs button.on { background: var(--mx-ink) !important; color: #fff !important; }

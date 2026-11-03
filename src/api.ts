@@ -217,8 +217,8 @@ async function request<T = any>(path: string, init: RequestInit = {}): Promise<T
   return json as T;
 }
 
-const post = (path: string, body?: unknown) =>
-  request(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+const post = (path: string, body?: unknown, signal?: AbortSignal) =>
+  request(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), signal });
 
 let memorySessionId: string | null = null;
 
@@ -455,8 +455,13 @@ export const api = {
   },
 
   /** CAD-style AI render of a just-uploaded photo. The original stays stored; the server says why when it cannot render. */
-  async renderPhoto(ref: string): Promise<{ ref: string; url: string; original: { ref: string; url: string } }> {
-    return (await post('/api/v1/admin/photos/render', { ref })).data;
+  async renderPhoto(ref: string, signal?: AbortSignal): Promise<{ ref: string; url: string; original: { ref: string; url: string } }> {
+    return (await post('/api/v1/admin/photos/render', { ref }, signal)).data;
+  },
+
+  /** Is AI render on for this server, and how many renders are left this month. */
+  async renderStatus(): Promise<{ enabled: boolean; cap: number; used: number; left: number }> {
+    return (await request('/api/v1/admin/photos/render')).data;
   },
 
   async getProducts(params?: { search?: string; category?: string; purity?: string }): Promise<Product[]> {
