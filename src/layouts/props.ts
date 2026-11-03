@@ -48,6 +48,8 @@ export interface CategoriesProps {
   onEditCategory: (category: Category) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onFilterCategoryInCatalogue: (categoryName: string) => void;
+  /** Opens the Catalogue on every design under one collection tag (the phone tag page's "All <tag>"). */
+  onFilterTagInCatalogue?: (tag: string) => void;
   /** Opens the Catalogue with this search already typed (Home's "search designs"). */
   onSearchDesigns?: (query: string) => void;
   /** Opens a design straight from Home's Recently viewed strip. */
@@ -58,6 +60,8 @@ export interface CatalogueProps {
   isAdmin: boolean;
   /** Only show designs from this collection. */
   categoryFilter: string | null;
+  /** Only show designs from the collections carrying this tag (never set together with categoryFilter). */
+  tagFilter?: string | null;
   categories: Category[];
   onCategoryChange: (name: string | null) => void;
   onClearCategoryFilter: () => void;

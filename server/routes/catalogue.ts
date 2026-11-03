@@ -238,11 +238,16 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
       const cursorAfter = typeof req.query.cursorAfter === 'string' ? req.query.cursorAfter : undefined;
       // Strip cursor params before the standard query schema validation.
-      const { cursor: _c, cursorAfter: _ca, ...rest } = req.query;
+      const { cursor: _c, cursorAfter: _ca, tag: _t, ...rest } = req.query;
       const q = parse(pack.querySchema, rest);
+      // ?tag=Rings: only designs in the collections carrying that tag (the phone tag page's "All <tag>"); an unknown tag matches nothing.
+      const tag = typeof req.query.tag === 'string' ? req.query.tag.trim().slice(0, 30) : '';
+      const [cats, tags] = tag ? await Promise.all([store.list('categories'), loadTags(store)]) : [[], []];
+      const inTag = new Set(cats.filter((c) => sameTag(resolveTag(c as { name: string; tag?: string }, tags), tag)).map((c) => String(c.name).toLowerCase()));
       // From the in-memory index: filter/sort/count there, then fetch only this page's documents by id. A store too big to index falls back to the scan.
       const index = await catalogue.index();
-      const list: Array<Doc | Slim> = index ? index.query(pack, q) : pack.applyQuery(await store.list('products'), q);
+      let list: Array<Doc | Slim> = index ? index.query(pack, q) : pack.applyQuery(await store.list('products'), q);
+      if (tag) list = list.filter((p) => inTag.has(String(p.category).toLowerCase()));
 
       let start = offset;
       if (cursor && cursorAfter) {

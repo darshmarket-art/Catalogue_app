@@ -99,6 +99,13 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await page.getByTestId('mx-back').click();
   await expect(page.getByTestId('mx-tag-page')).toBeVisible();
   await expect(page.locator('.mx-tagp-intro h1')).toHaveText(new RegExp(tagName, 'i'));
+  // "All <tag>" lists only that tag's designs: the bar names the tag and counts its collections' designs; Back returns to the tag page
+  const inTag = cats.filter((c) => c.tag.toLowerCase() === tagName.toLowerCase()).reduce((n, c) => n + c.designCount, 0);
+  await page.getByTestId('mx-tag-all').click();
+  await expect(page.getByTestId('collection-current')).toHaveText(new RegExp(`^${tagName}$`, 'i'));
+  await expect(page.getByTestId('result-count')).toHaveText(new RegExp(`^${inTag} design`));
+  await page.getByTestId('mx-back').click();
+  await expect(page.getByTestId('mx-tag-page')).toBeVisible();
   await page.getByTestId('mx-back').click();
   await expect(page.getByTestId('mx-shop-by')).toBeVisible();
   await expect(page.getByTestId('mx-tag-page')).toHaveCount(0);

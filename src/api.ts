@@ -127,6 +127,8 @@ export type RestoredSession =
 export interface ProductQuery {
   search?: string;
   category?: string;
+  /** Only designs in the collections carrying this tag. */
+  tag?: string;
   purity?: string;
   minWt?: string | number;
   maxWt?: string | number;

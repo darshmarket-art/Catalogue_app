@@ -67,6 +67,38 @@ describe('catalogue over HTTP', () => {
     }
   });
 
+  it('?tag= lists exactly the union of the collections under that tag, with exact counts and paging; an unknown tag lists nothing', async () => {
+    const t = await build(400);
+    // Rings and Pendants carry "Rings"; the rest keep "Other"; a tag combines with a collection filter.
+    await t.data.update('categories', 'cat-0', { tag: 'Rings' });
+    await t.data.update('categories', 'cat-2', { tag: 'Rings' });
+    for (const [raw, cats] of [[{ tag: 'Rings' }, ['Rings', 'Pendants']], [{ tag: 'rings', sort: 'weight-asc' }, ['Rings', 'Pendants']], [{ tag: 'Other', category: 'Jhumka' }, ['Jhumka']], [{ tag: 'Other', category: 'Rings' }, []]] as Array<[Record<string, string>, string[]]>) {
+      const q = jewelleryPack.querySchema.parse(raw);
+      const all = jewelleryPack.applyQuery([...t.docs].sort((a, b) => (a.id < b.id ? -1 : 1)), q).filter((p) => cats.includes(String(p.category)));
+      const qs = new URLSearchParams(raw).toString();
+      const ids: string[] = [];
+      let next = '';
+      for (;;) {
+        const res = await request(t.app).get(`/api/products?${qs}&limit=30${next}`).set(t.buyer);
+        expect(res.status).toBe(200);
+        expect(res.body.total, qs).toBe(all.length);
+        ids.push(...res.body.data.map((p: Doc) => p.id));
+        if (!res.body.hasMore) break;
+        next = `&cursor=${encodeURIComponent(res.body.cursor)}&cursorAfter=${encodeURIComponent(res.body.cursorAfter)}`;
+      }
+      expect(ids, qs).toEqual(all.map((p) => p.id));
+    }
+    const rings = await request(t.app).get('/api/products?tag=Rings&limit=1').set(t.buyer);
+    expect(rings.body.total).toBe((await designCount(t, 'Rings')) + (await designCount(t, 'Pendants')));
+    const none = await request(t.app).get('/api/products?tag=Nope&limit=24').set(t.buyer);
+    expect(none.status).toBe(200);
+    expect(none.body).toMatchObject({ total: 0, hasMore: false, data: [] });
+    // still served from the index: no product scan
+    t.root.reset();
+    await request(t.app).get('/api/products?tag=Rings&limit=24').set(t.buyer);
+    expect(t.root.counts.byCollection['stores/bhakti/products']).toBe(24);
+  });
+
   it('a page costs the control doc plus the page in reads, whatever the store size', async () => {
     const small = await build(60);
     const big = await build(3000);

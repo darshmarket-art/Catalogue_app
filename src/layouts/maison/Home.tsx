@@ -95,7 +95,7 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean }> = ({ slides, loading
  * Maison Home: a banner carousel (the store's own banners), a one-line statement, the collections as a flush grid of tiles with the name
  * inside, later banners as split features, recently viewed, and contact lines.
  */
-export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, loading = false, about, onNavigate, onFilterCategoryInCatalogue, onSearchDesigns, onOpenDesign }) => {
+export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, banners, loading = false, about, onNavigate, onFilterCategoryInCatalogue, onFilterTagInCatalogue, onSearchDesigns, onOpenDesign }) => {
   useLang();
   const [q, setQ] = useState('');
   const [browsing, setBrowsing] = useState(false);
@@ -168,7 +168,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   if (tagGroup)
     return (
       <div className="mx-home">
-        <TagPage tag={tagGroup[0]} cols={tagGroup[1]} cover={tagCover(covers[tagGroup[0]], tagGroup[1], products)} onCollection={openCollection} onAll={allDesigns} />
+        <TagPage tag={tagGroup[0]} cols={tagGroup[1]} cover={tagCover(covers[tagGroup[0]], tagGroup[1], products)} onCollection={openCollection} onAll={onFilterTagInCatalogue ? () => withTransition(() => onFilterTagInCatalogue(tagGroup[0])) : allDesigns} />
       </div>
     );
 

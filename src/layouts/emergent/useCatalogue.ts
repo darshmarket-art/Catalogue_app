@@ -37,6 +37,7 @@ export type CatalogueProps = KitProps<'Catalogue'>;
 export function useCatalogue({
   isAdmin,
   categoryFilter,
+  tagFilter,
   categories,
   onCategoryChange,
   onClearCategoryFilter,
@@ -125,13 +126,14 @@ export function useCatalogue({
     () => ({
       search: debounced,
       category: categoryFilter ?? '',
+      tag: tagFilter ?? '',
       purity: filters.purity.join(','),
       minWt: filters.minWt,
       maxWt: filters.maxWt,
       availability: filters.availability.join(','),
       sort
     }),
-    [debounced, categoryFilter, filters, sort]
+    [debounced, categoryFilter, tagFilter, filters, sort]
   );
 
   // First page for the current search, filters and sort. A later answer never overwrites a newer question.
@@ -279,7 +281,7 @@ export function useCatalogue({
       : []),
     ...filters.availability.map((v) => ({ key: `avail:${v}`, label: t(v), clear: () => setFilters((f) => ({ ...f, availability: f.availability.filter((x) => x !== v) })) }))
   ];
-  const anyNarrowing = Boolean(debounced || categoryFilter || active.length);
+  const anyNarrowing = Boolean(debounced || categoryFilter || tagFilter || active.length);
   const clearAll = () => {
     setSearchQuery('');
     setFilters(NO_FILTERS);

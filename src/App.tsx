@@ -118,10 +118,16 @@ export default function App() {
   const [sharing, setSharing] = useState(false);
   // The New collection form opened from the New design form goes back there, not to the admin hub.
   const [categoryFromProduct, setCategoryFromProduct] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(
+  const [categoryFilter, setCategoryOnly] = useState<string | null>(
     // A shared link like /?category=Rings opens that category once the buyer is signed in.
     () => new URLSearchParams(window.location.search).get('category')
   );
+  // Every design under one collection tag (/?tagAll=Rings, or the phone tag page's "All <tag>"). Choosing or clearing a collection clears it.
+  const [tagFilter, setTagFilter] = useState<string | null>(() => (categoryFilter ? null : new URLSearchParams(window.location.search).get('tagAll')));
+  const setCategoryFilter = (name: string | null) => {
+    setTagFilter(null);
+    setCategoryOnly(name);
+  };
   // Which Orders tab to open first (the profile menu links straight to past orders).
   // The guided tour for buyers: after a new buyer's first sign-in, or from the profile menu.
   const [touring, setTouring] = useState(false);
@@ -721,6 +727,11 @@ export default function App() {
     noteCollection(catName);
     handleNavigate('catalogue');
   };
+  const handleFilterTagInCatalogue = (tag: string) => {
+    setCategoryOnly(null);
+    setTagFilter(tag);
+    handleNavigate('catalogue');
+  };
   const handleSearchDesigns = (search: string) => {
     setCategoryFilter(null);
     setHandoff({ search, sku: null });
@@ -793,7 +804,7 @@ export default function App() {
   if (!flags.alerts && screen === 'admin-alerts') screen = 'admin-hub';
   if (!flags.insights && screen === 'admin-insights') screen = 'admin-hub';
   // Home is the 'categories' screen; the Catalogue tab is the 'catalogue' screen.
-  if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter ? 'catalogue' : 'categories') : 'admin-hub';
+  if (isSignedIn && (screen === 'welcome' || screen === 'retailer-auth')) screen = currentMerchant ? (categoryFilter || tagFilter ? 'catalogue' : 'categories') : 'admin-hub';
   if (isAdminLoggedIn && screen === 'admin-login') screen = 'admin-hub';
   if (isAdminLoggedIn && mustChangePassword) screen = 'admin-password';
   const activeScreen: ActiveScreen =
@@ -965,6 +976,7 @@ export default function App() {
             products={products}
             isAdmin={isAdminLoggedIn}
             categoryFilter={categoryFilter}
+            tagFilter={tagFilter}
             categories={categories}
             onCategoryChange={setCategoryFilter}
             onClearCategoryFilter={() => setCategoryFilter(null)}
@@ -1008,6 +1020,7 @@ export default function App() {
             onEditCategory={openCategoryForm}
             onNavigate={handleNavigate}
             onFilterCategoryInCatalogue={handleFilterCategoryInCatalogue}
+            onFilterTagInCatalogue={handleFilterTagInCatalogue}
             onSearchDesigns={handleSearchDesigns}
             onOpenDesign={handleOpenDesign}
           />

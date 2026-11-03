@@ -21,7 +21,7 @@ const EDITORIAL_AT = 7;
  * never a sidebar. State, paging and the server calls are Emergent's (useCatalogue).
  */
 export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
-  const { isAdmin, categoryFilter, categories, onCategoryChange, onEditProduct, purities, orderCount, onNavigate, onToggleShortlist } = props;
+  const { isAdmin, categoryFilter, tagFilter, categories, onCategoryChange, onEditProduct, purities, orderCount, onNavigate, onToggleShortlist } = props;
   const {
     searchQuery, setSearchQuery, picking, setPicking, view, pickView, filters, setFilters, draft, setDraft, sheet, setSheet, sort, draftSort, setDraftSort,
     flags, addedNotice, openProductId, setOpenProductId, cartFor, setCartFor, gridRef, sentinelRef, hearted, items, total, hasMore, loading, loadingMore, error, setRetry,
@@ -30,7 +30,8 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
   // Phones: a sticky bar (name, count, Filter, Sort) replaces the title block and the search and filter bar; Sort opens the drawer with only the sort.
   const desk = useDesktop();
   const [sortOnly, setSortOnly] = useState(false);
-  const current = categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : t('All collections');
+  const current = categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : tagFilter ? ts(tagFilter) : t('All collections');
+  const narrowed = Boolean(categoryFilter || tagFilter);
   const narrowing = active.length + (sort !== 'newest' ? 1 : 0);
   const cols = !desk ? 'large' : view === 'list' ? 'list' : view === 'grid3' ? 'compact' : 'large';
   void purityTitle;
@@ -40,7 +41,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
       {addedNotice && <Toast>{t('Added {name} to your order', { name: addedNotice })}</Toast>}
       {!desk && (
         <div className="mx-sbar" data-testid="mx-col-bar">
-          <b data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : categoryFilter ? current : t('All designs')}</b>
+          <b data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : narrowed ? current : t('All designs')}</b>
           {searchQuery && <button type="button" aria-label={t('Clear search')} className="mx-x" onClick={() => setSearchQuery('')}><Icon n="x" size={14} /></button>}
           <span className="mx-sbar-n" data-testid="result-count">{tn(total, '{n} design', '{n} designs')}</span>
           <button type="button" className={`mx-pill${active.length ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-haspopup="dialog" onClick={() => { setSortOnly(false); openSheet(); }}>{t('Filter')}{active.length > 0 && <i> · {active.length}</i>}</button>
@@ -55,7 +56,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
             <span className="mx-crumb-d" aria-current="page">{t('Catalogue')}</span>
           </nav>
         )}
-        <h1 className="mx-h2">{categoryFilter ? current : t('Catalogue')}</h1>
+        <h1 className="mx-h2">{narrowed ? current : t('Catalogue')}</h1>
         <span className="mx-ey" data-testid="catalogue-count">
           {loading && items.length === 0 ? `${ts(merchant.brand.name)} · ${t('searching…')}` : `${ts(merchant.brand.name)} · ${tn(total, '{n} design', '{n} designs')}`}
         </span>
@@ -71,8 +72,8 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
             </button>
           )}
         </label>
-        <button type="button" className={`mx-fb${categoryFilter ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
-          <span data-testid="collection-current">{current}<i> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : collectionChips.length}</i></span>
+        <button type="button" className={`mx-fb${narrowed ? ' on' : ''}`} data-testid="collection-picker" aria-haspopup="dialog" onClick={() => setPicking(true)}>
+          <span data-testid="collection-current">{current}<i> · {categoryFilter ? (categories.find((c) => c.name === categoryFilter)?.designCount ?? total) : tagFilter ? total : collectionChips.length}</i></span>
           <Icon n="chev" size={14} />
         </button>
         <button type="button" className={`mx-fb${narrowing ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-label={t('Filter and sort')} aria-haspopup="dialog" onClick={openSheet}>
@@ -111,11 +112,11 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
           </span>
         </div>}
 
-        <div key={`${cols}|${categoryFilter ?? ""}|${active.length}|${sort}`} ref={gridRef} className={`mx-pgrid mx-flip ${cols}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1 }}>
+        <div key={`${cols}|${categoryFilter ?? ""}|${tagFilter ?? ""}|${active.length}|${sort}`} ref={gridRef} className={`mx-pgrid mx-flip ${cols}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1 }}>
           {loading && items.length === 0 && !error && Array.from({ length: 8 }, (_, i) => <div key={`skel-${i}`} className="mx-ptile" aria-hidden="true"><div className="mx-pframe em-skel" /></div>)}
           {items.map((prod, i) => (
             <React.Fragment key={prod.id}>
-              {i === EDITORIAL_AT && view === 'grid2' && !categoryFilter && (
+              {i === EDITORIAL_AT && view === 'grid2' && !narrowed && (
                 <button type="button" className="mx-ed" onClick={() => setPicking(true)}>
                   <span className="mx-ey">{t('Collections')}</span>
                   <span className="mx-h2 sm">{ts(merchant.brand.tagline)}</span>
