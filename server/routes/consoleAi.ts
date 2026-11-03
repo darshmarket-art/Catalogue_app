@@ -10,6 +10,7 @@ import {
   DEFAULT_CONFIG, MAX_CREDITS, activeModel, change, configureWallet, getConfig, ledgerSince, newWallet, priceFor, setConfig, storeLedger, usageSince, type AiConfig, type Usage, type Wallet
 } from '../aiCredits';
 import { renderEnabled, renderMonthlyCap } from '../aiRender';
+import { isConnected } from '../billing';
 
 const DAY = 86400000;
 const credits = z.number().int().min(0).max(MAX_CREDITS);
@@ -91,7 +92,9 @@ export function consoleAiRoutes(root: Store) {
         daily: [...daily.values()].map((d) => ({ ...d, costInr: Math.round(d.costInr * 100) / 100 })),
         byStyle: [...byStyle.values()].sort((a, b) => b.calls - a.calls),
         topStores: [...byStore.values()].sort((a, b) => b.calls - a.calls).slice(0, 10),
-        billing: { connected: false, note: 'Cost is estimated from the model table below. Cloud Billing is not connected.' }
+        billing: isConnected()
+          ? { connected: true, note: 'Actual Google cost vs this estimate: Billing > AI.' }
+          : { connected: false, note: 'Cost is estimated from the model table below. Cloud Billing is not connected.' }
       }
     });
   }));

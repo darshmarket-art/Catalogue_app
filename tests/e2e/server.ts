@@ -42,6 +42,7 @@ const config = { ...loadConfig(), rateLimit: { auth: 1e6, adminRegister: 1e6, ap
 const store = createStore(config);
 await seedDemoCatalogue(scopeStore(store, config.defaultStore), config.merchant.id);
 if (process.env.AI_E2E_SEED === '1') await (await import('./aiSeed')).seedAi(store);
+if (process.env.BILLING_E2E === 'connected') (await import('../../server/billing')).setBillingSource(async () => (await import('./billingSeed')).fakeBilling());
 const app = createApp(config, store, createBlobs(config));
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });

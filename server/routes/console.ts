@@ -12,6 +12,7 @@ import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
 import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 import { activity, buyers, orders, owners, summary } from '../consoleStats';
 import { consoleAiRoutes } from './consoleAi';
+import { consoleBillingRoutes } from './consoleBilling';
 import { CatalogueStore } from '../catalogueIndex';
 import { deliverySummary, type MessageDoc, type MessageLog } from '../messages';
 
@@ -186,6 +187,7 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   }));
 
   r.use('/ai', consoleAiRoutes(root));
+  r.use('/billing', consoleBillingRoutes(root));
 
   r.use((_req, _res, next) => next(new HttpError(404, 'Not found.')));
   r.use((e: any, _req: any, res: any, _next: any) => {

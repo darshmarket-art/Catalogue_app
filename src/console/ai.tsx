@@ -217,7 +217,7 @@ function OverviewTab({ v }: { v: number }) {
         <div className="cn-k"><div className="ey">Credits sold</div><div className="ser">{num(o.credits.sold)}</div><b>{o.credits.granted ? `+ ${num(o.credits.granted)} granted free` : 'None granted free'}</b></div>
         <div className="cn-k"><div className="ey">Credits spent</div><div className="ser">{num(o.credits.spent)}</div><b>{num(o.credits.refunded)} refunded</b></div>
         <div className="cn-k"><div className="ey">Provider cost</div><div className="ser">{rs(o.money.costInr)}</div><b>Estimated · model {o.model}</b></div>
-        <div className="cn-k"><div className="ey">Google billing</div><div className="ser cn-nc">{NOT_CONNECTED}</div><b>{o.billing.note}</b></div>
+        <div className="cn-k"><div className="ey">Google billing</div><div className="ser cn-nc">{o.billing.connected ? 'Connected' : NOT_CONNECTED}</div><b>{o.billing.note}</b></div>
       </div>
       {none ? <p className="cn-card mut">No AI renders in the last 30 days yet. Charts fill in as stores use AI render. Days are UTC.</p> : (
         <>
@@ -231,7 +231,7 @@ function OverviewTab({ v }: { v: number }) {
           </div>
         </>
       )}
-      <small>Cost is estimated from the editable per-model table (Prices tab) at the USD to INR rate you set; it is not read from Cloud Billing. A failed call is counted as cost and its credits are returned.</small>
+      <small>Cost is estimated from the editable per-model table (Prices tab) at the USD to INR rate you set; it is not read from Cloud Billing here (see the Billing section for actuals). A failed call is counted as cost and its credits are returned.</small>
     </>
   );
 }
