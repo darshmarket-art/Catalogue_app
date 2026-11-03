@@ -138,6 +138,9 @@ export default function App() {
   // Maison is its own chunk (code and CSS): Classic stores never download it.
   const [maisonKit, setMaisonKit] = useState<LayoutKit | null>(null);
   const [maisonFailed, setMaisonFailed] = useState(false); // the chunk could not load (offline): fall back to Classic
+  // Store settings changes merchant.layout in place; this makes the shell follow at once instead of after a reload.
+  const [, bumpLayout] = useState(0);
+  useEffect(() => { const f = () => bumpLayout((n) => n + 1); window.addEventListener('store-layout-changed', f); return () => window.removeEventListener('store-layout-changed', f); }, []);
   const wantsMaison = layoutFor(merchant.layout, maisonFailed) === 'maison';
   useEffect(() => {
     if (wantsMaison && !maisonKit) void import('./layouts/maison').then((m) => setMaisonKit(m.maison), () => setMaisonFailed(true));

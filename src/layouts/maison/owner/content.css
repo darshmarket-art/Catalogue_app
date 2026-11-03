@@ -9,9 +9,9 @@
 
   /* ---------- page frame ---------- */
   & .scroll, & .em-page { padding-top: 28px; }
-  & .scroll { max-width: 1100px; gap: var(--mo-gap) !important; }
-  & .scroll > .sub, & .em-page .sub { font-family: var(--mx-serif); font-size: 1.25rem; line-height: 1.4; color: var(--mx-ink); font-weight: 300; max-width: 46ch; }
-  & .scroll h2 { font-family: var(--mx-serif); font-weight: 300; font-size: 1.75rem !important; margin: 0; }
+  & .scroll { gap: var(--mo-gap) !important; }
+  & .scroll > .sub, & .em-page .sub { font-family: var(--mx-sans); font-size: 0.9375rem; line-height: 1.6; color: var(--mx-mut); font-weight: 300; max-width: 60ch; }
+  & .scroll h2:not(.mx-ey) { font-family: var(--mx-serif); font-weight: 300; font-size: 1.75rem !important; margin: 0; }
   & .sub { color: var(--mx-mut); }
 
   /* ---------- labels, inputs: hairline, no box ---------- */
@@ -55,7 +55,6 @@
   /* ---------- chips, tags, notes, cards ---------- */
   & .chip { min-height: 40px; padding: 0 16px; border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; }
   & .chip.on { background: var(--mx-ink); border-color: var(--mx-ink); color: #fff; }
-  & .em-seg .chip { flex: 1 1 0; }
   & :is(.tag, .pro) { border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); font-size: 0.625rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; padding: 3px 8px; }
   & :is(.tag.over, .tag.gold) { background: #fff; }
   & .tag.bad { color: #8a2b22; border-color: #8a2b22; }
@@ -106,7 +105,10 @@
     display: grid; grid-template-columns: 380px minmax(0, 1fr); column-gap: 80px; align-items: start; max-width: 1060px;
   }
   [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > * { grid-column: 2; min-width: 0; }
-  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > div:has(.dashtile, .photo) { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 120px; }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > div:has(.dashtile, .photo) { grid-column: 1; grid-row: 1 / span 40; align-self: start; position: sticky; top: 120px; }
+  /* empty implicit rows must not add gap height: spacing comes from margins instead */
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) { row-gap: 0 !important; }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > * { margin-bottom: var(--mo-gap); }
   /* a sticky column traps the crop dialog's fixed layer under the header, so it lets go while the dialog is open */
   [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > div:has([role="dialog"]) { position: static; }
   [data-layout="maison"][data-role="owner"] .scroll.no-tabs > .em-savebar { margin-inline: 0; padding-inline: 0; border-top: 0; }
@@ -126,9 +128,7 @@
 /* ---------- second pass: catalogue tabs, rows, plan, PDF, sheets ---------- */
 [data-layout="maison"][data-role="owner"] {
   & :is(b, strong) { font-weight: 500; }
-  & .em-seg .em-chip[data-seg] { border-color: var(--mx-line) !important; background: transparent !important; color: var(--mx-ink) !important; }
-  & .em-seg .em-chip[data-seg][aria-pressed="true"] { background: var(--mx-ink) !important; border-color: var(--mx-ink) !important; color: #fff !important; }
-  & .em-seg-bar { height: 1px; background: var(--mx-ink) !important; margin-top: -2px; }
+  & .em-seg-bar { display: none; }
   & .em-embed .card.pur-on, & .em-embed .card.pur-off { border-left: 0; background: transparent; border-top: 1px solid var(--mx-line); padding: 14px 0; }
   & .card.pur-on b { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem; }
   & .em-li b { font-family: var(--mx-serif); font-weight: 400; font-size: 1.1875rem; }
@@ -149,7 +149,9 @@
   & input[type="range"] { accent-color: var(--mx-ink); }
   & .dock .card { background: #fff; border: 0; border-top: 1px solid var(--mx-ink); padding: 14px 20px; }
   & .topbar { background: #fff; border-bottom: 1px solid var(--mx-line); backdrop-filter: none; }
-  & .topbar h1 { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem; text-align: center; }
+  & .topbar .top h1 { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem !important; text-align: center; color: var(--mx-ink) !important; letter-spacing: 0; }
+  & .topbar .top { max-width: 640px; padding-inline: 0; }
+  & .topbar .top .ib { margin-left: 0; }
   & .em-sheet { border-radius: 0; background: var(--mx-paper); padding: 22px 24px calc(28px + var(--sab)); gap: 18px; }
   & .em-sheet .em-ser { font-family: var(--mx-serif); font-weight: 300; font-size: 1.75rem !important; }
   & .em-sheet .em-card { border: 0; padding: 8px 0; }
@@ -198,3 +200,19 @@
 /* AI render compare sheet: the secondary button stays an outline (the sheet sits outside the scoped form rules). */
 [data-layout="maison"] .rnd-cmp :is(.btn.alt, .rnd-tabs button) { background: transparent !important; color: var(--mx-ink) !important; border: 1px solid var(--mx-ink) !important; }
 [data-layout="maison"] .rnd-cmp .rnd-tabs button.on { background: var(--mx-ink) !important; color: #fff !important; }
+
+/* Buyers row on phones: name first, the three actions in one even row beneath it. */
+@media (max-width: 767px) {
+  [data-layout="maison"][data-role="owner"] .em-buyer { flex-wrap: wrap; row-gap: 10px; }
+  [data-layout="maison"][data-role="owner"] .em-buyer > .em-row:last-child { flex: 1 0 100%; flex-direction: row !important; align-items: center; justify-content: flex-start; gap: 28px !important; padding-left: 66px; flex-wrap: nowrap; }
+  [data-layout="maison"][data-role="owner"] .em-buyer .em-rm { padding: 0; min-height: 44px; width: auto; flex: none; white-space: nowrap; text-align: left !important; }
+  /* collections: one full-width tile per row (a lone tile in a 2-up grid left the right half empty) */
+  [data-layout="maison"][data-role="owner"] .em-grid.em-grid-c2:not([data-testid]) { grid-template-columns: 1fr; }
+  [data-layout="maison"][data-role="owner"] .em-grid.em-grid-c2:not([data-testid]) :is(.em-ph, .em-sq) { aspect-ratio: 16 / 9 !important; height: auto !important; padding: 0 !important; }
+  [data-layout="maison"][data-role="owner"] .em-buyer .em-rm { margin: 0; height: 44px; display: inline-flex; align-items: center; }
+}
+[data-layout="maison"][data-role="owner"] .scroll:not(.no-tabs):not(.wide) { max-width: none; }
+@media (min-width: 1024px) {
+  /* the sticky bar of a screen that brings its own top bar starts after the sidebar, like the shell bar */
+  [data-layout="maison"][data-role="owner"] .topbar { left: var(--em-side, 264px); }
+}

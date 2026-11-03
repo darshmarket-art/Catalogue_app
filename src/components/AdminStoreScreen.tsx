@@ -35,6 +35,7 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
       .setLayout(id)
       .then(() => {
         merchant.layout = id;
+        window.dispatchEvent(new Event('store-layout-changed'));
         setLayout(id);
         notify(`Buyers now see the ${LAYOUTS.find((l) => l.id === id)?.name} layout.`);
       })

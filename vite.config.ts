@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +17,8 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    // A bare `vitest run` from the main checkout must not pick up the tests of agent worktrees under .claude/.
+    test: { exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'] },
     build: { rollupOptions: { input: { main: path.resolve(__dirname, 'index.html'), console: path.resolve(__dirname, 'console.html') } } },
     server: {
       // Dev behind a tunnel or preview proxy: VITE_ALLOW_ANY_HOST=true lets Vite answer for any Host header (default: localhost only).
