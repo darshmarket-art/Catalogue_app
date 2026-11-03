@@ -325,6 +325,8 @@ export const HI: Record<string, string> = {
   'Tap the photo for details and every photo. On the design page, swipe left or right for the next design, and tap a photo to zoom.': 'पूरी जानकारी और सारी फ़ोटो के लिए फ़ोटो पर टैप करें। डिज़ाइन पेज पर अगले डिज़ाइन के लिए बाएँ या दाएँ स्वाइप करें, और फ़ोटो बड़ी करने के लिए टैप करें।',
   'Shortlist with a heart': 'दिल दबाकर शॉर्टलिस्ट करें',
   'Tap the heart to save a design for later. We have hearted one for you, so you can see where it goes.': 'डिज़ाइन बाद के लिए सेव करने को दिल दबाइए। हमने एक डिज़ाइन आपके लिए सेव किया है, ताकि आप देख सकें वह कहाँ जाता है।',
+  'Your Shortlist': 'आपकी शॉर्टलिस्ट',
+  'Your Orders': 'आपके ऑर्डर',
   'Your Shortlist tab': 'आपका शॉर्टलिस्ट टैब',
   'Everything you heart is kept here. Let us open it.': 'जिस पर भी आप दिल दबाते हैं, वह यहाँ रहता है। चलिए, खोलते हैं।',
   'Saved designs, with weights': 'सेव किए डिज़ाइन, वज़न के साथ',

@@ -44,11 +44,11 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   );
   const counts = (
     <>
-      <button type="button" className="mx-ib" aria-label={t('Shortlist')} onClick={() => go('shortlist')}>
+      <button type="button" className="mx-ib" data-tab="shortlist" aria-label={t('Shortlist')} onClick={() => go('shortlist')}>
         <Icon n="heart" size={20} />{shortlistCount > 0 && <b className="mx-ct">{shortlistCount}</b>}
       </button>
       {orderCount !== undefined && (
-        <button type="button" className="mx-ib" aria-label={t('Orders')} onClick={() => go('orders')}>
+        <button type="button" className="mx-ib" data-tab="orders" aria-label={t('Orders')} onClick={() => go('orders')}>
           <Icon n="bag" size={20} />{orderCount > 0 && <b className="mx-ct">{orderCount}</b>}
         </button>
       )}
@@ -70,7 +70,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
           ) : desk ? (
             <button type="button" className="mx-ib" aria-label={t('Search the catalogue')} onClick={() => go('catalogue')}><Icon n="search" size={20} /></button>
           ) : (
-            <button type="button" className="mx-nl mx-coll" aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu(true)}>{t('Collections')}</button>
+            <button type="button" className="mx-nl mx-coll" data-tab="catalogue" aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu(true)}>{t('Collections')}</button>
           )}
           {desk && <LangToggle />}
         </div>
