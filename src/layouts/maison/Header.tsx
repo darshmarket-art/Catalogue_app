@@ -84,11 +84,11 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
 
       {desk && !sub && (
         <nav className="mx-nav" aria-label="Main">
-          {nav.slice(0, 1).map((n) => <NavBtn key={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
+          {nav.slice(0, 1).map((n) => <NavBtn key={n.screen} tab={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
           {cols.length > 0 && (
             <button type="button" className={`mx-nl${mega ? ' on' : ''}`} aria-expanded={mega} onMouseEnter={() => setMega(true)} onClick={() => setMega((m) => !m)}>{t('Collections')}</button>
           )}
-          {nav.slice(1).map((n) => <NavBtn key={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
+          {nav.slice(1).map((n) => <NavBtn key={n.screen} tab={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
         </nav>
       )}
 
@@ -119,8 +119,8 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   );
 };
 
-const NavBtn: React.FC<{ on: boolean; onClick: () => void; children: React.ReactNode }> = ({ on, onClick, children }) => (
-  <button type="button" className={`mx-nl${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} onClick={onClick}>{children}</button>
+const NavBtn: React.FC<{ tab: string; on: boolean; onClick: () => void; children: React.ReactNode }> = ({ tab, on, onClick, children }) => (
+  <button type="button" data-tab={tab} className={`mx-nl${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} onClick={onClick}>{children}</button>
 );
 
 const MobileMenu: React.FC<{ nav: typeof NAV; cols: NonNullable<KitProps<'Header'>['categories']>; current: ActiveScreen; account: React.ReactNode; onGo: (s: ActiveScreen) => void; onCol: (n: string) => void; onClose: () => void }> = ({ nav, cols, current, account, onGo, onCol, onClose }) => {

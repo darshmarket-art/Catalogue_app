@@ -825,7 +825,7 @@ export default function App() {
   if (firstKey.current === undefined) firstKey.current = activeScreen;
 
   return (
-    <div data-layout={layout} data-nav={navDir} data-role={isAdminLoggedIn ? 'owner' : 'buyer'} className="min-h-dvh bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
+    <div data-layout={layout} data-nav={navDir} data-touring={touring && !isAdminLoggedIn ? '' : undefined} data-role={isAdminLoggedIn ? 'owner' : 'buyer'} className="min-h-dvh bg-surface text-on-surface flex flex-col overflow-x-hidden font-sans selection:bg-primary-fixed selection:text-primary">
       {touring && currentMerchant && !isAdminLoggedIn && (
         <BuyerTour
           buyerName={currentMerchant.ownerName || currentMerchant.storeName}

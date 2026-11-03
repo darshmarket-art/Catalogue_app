@@ -27,6 +27,8 @@ interface Step {
   target?: () => Element | null;
   /** Leave the step out when its element is not on screen (e.g. Browse all only exists with many collections). */
   optional?: boolean;
+  /** Whether the element is part of the layout rather than loaded data (a tab bar, the language switch): when it is missing the step is dropped at once instead of waiting for it. */
+  soon?: boolean;
   /** Something the tour does itself before lighting up this step (heart the sample, add it to the cart, remove it). */
   enter?: () => Promise<void> | void;
   icon: string;
@@ -41,6 +43,8 @@ interface Step {
 
 const $ = (sel: string) => () => document.querySelector(sel);
 const tab = (screen: string) => () => document.querySelector(`nav[aria-label="Main"] button[data-tab="${screen}"]`);
+/** The heart on a design tile (Classic .em-heart, Maison .mx-heart); the one already on when there is one. */
+const heart = () => document.querySelector('.em-heart.on, .mx-heart.on') ?? document.querySelector('.em-heart, .mx-heart');
 /** The first of these that is on screen (phones show the filter button, desktop the filter panel). */
 const visibleOf = (sel: string) => () => [...document.querySelectorAll(sel)].find((e) => e.getClientRects().length) ?? null;
 const near = (sel: string, up: string) => () => document.querySelector(sel)?.closest(up) ?? document.querySelector(sel);
@@ -81,17 +85,17 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
       const s = sample;
       const list: Step[] = [
         { id: 'hello', screen: 'categories', icon: 'star', pickLang: true, title: first ? 'Welcome, {name}' : 'Welcome', body: 'This is your private showroom at {brand}. A short tour shows you how to find designs, save favourites and {action}. First, choose your language.', vars: () => ({ name: first, brand: ts(merchant.brand.name), action: t(orders ? 'place an order' : 'ask about a design') }) },
-        { id: 'lang', screen: 'categories', target: $('[data-testid="lang-toggle"]'), optional: true, icon: 'globe', title: 'English or हिन्दी', body: 'Switch the app between English and Hindi here, any time. Your choice is remembered on this phone.' },
+        { id: 'lang', screen: 'categories', target: $('[data-testid="lang-toggle"]'), optional: true, soon: true, icon: 'globe', title: 'English or हिन्दी', body: 'Switch the app between English and Hindi here, any time. Your choice is remembered on this phone.' },
         { id: 'search', screen: 'categories', target: near('[data-testid="home-search"]', '.em-srch'), icon: 'search', title: 'Search anything', body: 'Type a design name, SKU or collection. Press enter to search every design in the catalogue.' },
         { id: 'featured', screen: 'categories', target: $('[data-testid="home-collections"]'), icon: 'grid', title: 'Featured collections', body: 'The store picks these for you. Tap one to see all of its designs.' },
         { id: 'browse', screen: 'categories', target: $('[data-testid="browse-collections"]'), optional: true, icon: 'layers', title: 'Every collection, by type', body: 'Browse all collections grouped by type: rings together, pendants together, and so on.' },
-        { id: 'catalogue-tab', screen: 'categories', target: tab('catalogue'), icon: 'grid', title: 'The Catalogue', body: 'Every design in one place. Let us open it.' },
+        { id: 'catalogue-tab', screen: 'categories', target: tab('catalogue'), optional: true, soon: true, icon: 'grid', title: 'The Catalogue', body: 'Every design in one place. Let us open it.' },
         { id: 'picker', screen: 'catalogue', target: $('[data-testid="collection-picker"]'), icon: 'layers', title: 'Switch collection', body: 'The collection you are looking at is named here. Tap to pick another one.' },
         { id: 'filter', screen: 'catalogue', target: visibleOf('[data-testid="catalogue-filter-button"], [data-testid="filter-panel"] .em-fcard'), icon: 'sliders', title: 'Filter and sort', body: 'Narrow by purity, weight range or availability, and sort lightest or heaviest first.' },
         { id: 'layout', screen: 'catalogue', target: $('[data-testid="layout-switch"]'), icon: 'dense', title: 'Your view', body: 'Large photos, a compact grid of three, or a quick list. The app remembers your choice.' },
         { id: 'card', screen: 'catalogue', target: near('[data-testid="product-card"]', '.em-cardwrap'), optional: true, icon: 'eye', title: 'Open a design', body: 'Tap the photo for details and every photo. On the design page, swipe left or right for the next design, and tap a photo to zoom.' },
-        { id: 'heart', screen: 'catalogue', target: () => document.querySelector('.em-heart.on') ?? document.querySelector('.em-heart'), optional: true, icon: 'heart', title: 'Shortlist with a heart', body: 'Tap the heart to save a design for later. We have hearted one for you, so you can see where it goes.', enter: () => { if (s && s.heart()) made.current.hearted = true; } },
-        { id: 'shortlist-tab', screen: 'catalogue', target: tab('shortlist'), icon: 'heart', title: 'Your Shortlist tab', body: 'Everything you heart is kept here. Let us open it.' },
+        { id: 'heart', screen: 'catalogue', target: heart, optional: true, soon: true, icon: 'heart', title: 'Shortlist with a heart', body: 'Tap the heart to save a design for later. We have hearted one for you, so you can see where it goes.', enter: () => { if (s && s.heart()) made.current.hearted = true; } },
+        { id: 'shortlist-tab', screen: 'catalogue', target: tab('shortlist'), optional: true, soon: true, icon: 'heart', title: 'Your Shortlist tab', body: 'Everything you heart is kept here. Let us open it.' },
         { id: 'shortlist-list', screen: 'shortlist', target: near('[data-testid="shortlist-open"]', '.em-li'), optional: true, icon: 'heart', title: 'Saved designs, with weights', body: 'Each saved design shows its net weight. Tap it to open the design again, or tap the heart to remove it.' },
         ...(orders
           ? [{ id: 'shortlist-order', screen: 'shortlist' as const, target: $('[data-testid="shortlist-order-all"]'), optional: true, icon: 'bag', title: 'Order the whole list', body: 'Order all adds one piece of every saved design to your order. The green button sends the list to the store on WhatsApp.' }]
@@ -99,15 +103,15 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
         ...(orders
           ? [
               { id: 'add', screen: 'catalogue' as const, target: $('[data-testid="card-add-to-cart"]'), optional: true, icon: 'bag', title: 'Add to cart', body: 'Choose how many pieces you want in each purity. The net weight adds up as you go. We are adding a sample piece for you now.', enter: async () => { if (s && !made.current.line) made.current.line = await s.addToCart(); } },
-              { id: 'orders-tab', screen: 'catalogue' as const, target: tab('orders'), icon: 'package', title: 'The Orders tab', body: 'Your order waits here until you place it. Let us open it.' },
+              { id: 'orders-tab', screen: 'catalogue' as const, target: tab('orders'), optional: true, soon: true, icon: 'package', title: 'The Orders tab', body: 'Your order waits here until you place it. Let us open it.' },
               { id: 'orders-line', screen: 'orders' as const, target: () => lineOf(s?.title() ?? null) ?? document.querySelector('.em-li'), optional: true, icon: 'package', title: 'This is a sample order', body: 'We put one piece of a design in your order as a sample. Change pieces with + and −. The total net weight is at the bottom.' },
               { id: 'orders-note', screen: 'orders' as const, target: $('[data-testid="order-note-input"]'), optional: true, icon: 'edit', title: 'A note for the store', body: 'Add a delivery date, finish or size change. The store sees it with your order.' },
               { id: 'orders-place', screen: 'orders' as const, target: $('[data-testid="place-order"]'), optional: true, icon: 'check', title: 'Place order', body: 'When you are ready, tap Place order. The store confirms on WhatsApp. We will not place this sample.' },
               { id: 'orders-remove', screen: 'orders' as const, target: () => removeBtn(s?.title() ?? null) ?? document.querySelector('[data-testid="order-line-remove"]'), optional: true, icon: 'x', title: 'Remove the sample', body: 'Tap × to take a line out of your order. Tap Next and we will remove the sample for you.' },
               { id: 'orders-past', screen: 'orders' as const, target: $('[data-testid="orders-tab-past"]'), icon: 'clock', title: 'Past orders', body: 'Sample removed. Every order you place appears under Past orders with its status: new, confirmed or dispatched. A new order can still be cancelled with two taps.', enter: async () => { if (s && made.current.line) { await s.removeFromCart(made.current.line); made.current.line = null; } } }
             ]
-          : [{ id: 'orders-skip', screen: 'catalogue' as const, target: $('.em-heart'), optional: true, icon: 'chat', title: 'Ask on WhatsApp', body: 'Open a design and tap Enquire on WhatsApp to ask the store about price and availability.' }]),
-        { id: 'profile', screen: orders ? 'orders' : 'catalogue', target: $('[aria-label="Profile menu"]'), icon: 'user', title: 'Your profile', body: 'Your details, past orders, About {brand} and this tour again, whenever you want it.', vars: () => ({ brand: ts(merchant.brand.name) }), enter: () => { if (s && made.current.hearted) { s.unheart(); made.current.hearted = false; } } },
+          : [{ id: 'orders-skip', screen: 'catalogue' as const, target: heart, optional: true, soon: true, icon: 'chat', title: 'Ask on WhatsApp', body: 'Open a design and tap Enquire on WhatsApp to ask the store about price and availability.' }]),
+        { id: 'profile', screen: orders ? 'orders' : 'catalogue', target: $('[aria-label="Profile menu"]'), optional: true, soon: true, icon: 'user', title: 'Your profile', body: 'Your details, past orders, About {brand} and this tour again, whenever you want it.', vars: () => ({ brand: ts(merchant.brand.name) }), enter: () => { if (s && made.current.hearted) { s.unheart(); made.current.hearted = false; } } },
         { id: 'done', screen: 'categories', icon: 'check', title: 'You are all set', body: 'The sample is gone and nothing was sent to the store. Use your phone’s Back button to step back at any time. Happy browsing!' }
       ];
       return list;
@@ -251,7 +255,7 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
           setAimed(true);
           setShown(at);
           setPlacing(false);
-        } else if (Date.now() - started < 2500) setTimeout(look, 80);
+        } else if (Date.now() - started < (s.soon ? 400 : 2500)) setTimeout(look, 80);
         else if (s.optional) setAt((i) => Math.min(all.length - 1, Math.max(0, i + dir.current)));
         else centreOn();
       };
