@@ -19,6 +19,13 @@ export async function seedRole(page: Page, role: Role) {
   const s = sessions();
   const items: Record<string, string> =
     role === 'buyer' ? { catalogue_session: s.buyer.token, store: STORE_ID, [`tour-done:${s.buyer.phone}`]: '1' } : role === 'owner' ? { catalogue_session: s.owner.token, store: STORE_ID } : {};
+  // The store's layout is server state that other specs flip to Maison (and leave there), and specs run in parallel. These screens are the Classic ones
+  // (bottom tab bar, [data-tab="catalogue"]), so the page is always served as Classic whatever the server currently says.
+  await page.route((u) => !u.pathname.startsWith('/api/') && !u.pathname.startsWith('/src/') && !u.pathname.startsWith('/assets/') && !u.pathname.startsWith('/@') && !u.pathname.startsWith('/node_modules/'), async (route) => {
+    if (route.request().resourceType() !== 'document') return route.fallback();
+    const res = await route.fetch({ timeout: 60_000 });
+    await route.fulfill({ status: res.status(), contentType: 'text/html; charset=utf-8', body: (await res.text()).replace('"layout":"maison"', '"layout":"emergent"') });
+  });
   await page.addInitScript((kv) => {
     try {
       for (const [k, v] of Object.entries(kv)) localStorage.setItem(k, v);
