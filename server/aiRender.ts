@@ -64,16 +64,20 @@ export async function renderStudio(image: Buffer, mimeType: string, prompt = REN
   const loc = process.env.AI_RENDER_LOCATION || 'global';
   const host = loc === 'global' ? 'aiplatform.googleapis.com' : `${loc}-aiplatform.googleapis.com`;
   const project = await projectId();
-  const res = await fetch(`https://${host}/v1/projects/${project}/locations/${loc}/publishers/google/models/${model}:generateContent`, {
+  const call = async (imageSize?: string) => fetch(`https://${host}/v1/projects/${project}/locations/${loc}/publishers/google/models/${model}:generateContent`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image.toString('base64') } }, { text: prompt }] }],
-      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'], ...(imageSize ? { imageConfig: { imageSize } } : {}) }
     }),
     // Measured 38-104 s per image on the global endpoint (docs/DESIGN_BENCHMARK.md D0); Cloud Run's default request timeout is 300 s.
     signal: AbortSignal.timeout(150_000)
   });
+  // Default output is ~1K, which turns soft when zoomed. Ask for 2K (AI_RENDER_IMAGE_SIZE, '' = model default); if the model rejects the setting, retry once without it.
+  const size = process.env.AI_RENDER_IMAGE_SIZE ?? '2K';
+  let res = await call(size || undefined);
+  if (res.status === 400 && size) res = await call();
   const j: any = await res.json().catch(() => ({}));
   if (res.status === 401 || res.status === 403) throw new Error('the server is not allowed to use Vertex AI (grant roles/aiplatform.user)');
   if (!res.ok) throw new Error(`Google returned ${res.status}`);
