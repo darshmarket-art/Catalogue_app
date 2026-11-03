@@ -5,7 +5,7 @@ import { SIZES_THUMB } from '../../photoSrcSet';
 import { t } from '../../i18n';
 import { sector } from '../../sector';
 
-const MS = 1750;
+const MS = 2700;
 const THUMBS = 4;
 
 /**
@@ -29,6 +29,9 @@ export const Placed: React.FC<{ poId: string; grams: number; images: Array<strin
       el.style.setProperty('--dy', `${ty - (r.top + r.height / 2)}px`);
     });
   }, []);
+
+  // Fetched before the designs appear, so they do not pop in mid-animation.
+  useEffect(() => { images.slice(0, THUMBS).forEach((src) => { if (src) new Image().src = src; }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const id = window.setTimeout(onDone, reduce ? 2400 : MS);
