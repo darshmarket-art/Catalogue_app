@@ -35,7 +35,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const openCol = (name: string) => { setMenu(false); setMega(false); onOpenCollection?.(name); };
   const nav = NAV;
   const tagOrder = useTagList();
-  const groups = groupByTag([...categories].sort((a, b) => b.designCount - a.designCount), tagOrder);
+  const groups = groupByTag(categories.filter((c) => c.designCount > 0).sort((a, b) => b.designCount - a.designCount), tagOrder);
 
   const account = currentMerchant ? (
     <ProfileMenu buyer={currentMerchant} isAdmin={false} onOpenOrders={onOpenOrders} onOpenAdminConsole={() => {}} onOpenAbout={() => go('about')} onLogout={onLogout} onNavigate={onNavigate} />

@@ -57,6 +57,7 @@ const removeBtn = (title: string | null) => lineOf(title)?.querySelector('[data-
 /** Where the lit-up window is, in the viewport. A zero-size box in the middle means "no element": the window closes to a point. */
 type Box = { top: number; left: number; width: number; height: number; r: number };
 const PAD = 8;
+const CLAMP = new Set(['featured', 'filter', 'picker']);
 const centre = (): Box => ({ top: window.innerHeight / 2, left: window.innerWidth / 2, width: 0, height: 0, r: 40 });
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -137,6 +138,8 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
   const dir = useRef<1 | -1>(1);
   useBackLayer(true, finish);
   const step = all[shown];
+  const shownRef = useRef(0);
+  shownRef.current = shown;
   const vars = step.vars?.();
 
   /*
@@ -160,7 +163,14 @@ export const BuyerTour: React.FC<{ buyerName: string; sample: TourSample | null;
       if (aimedRef.current && el && !el.isConnected) el = target.current = retarget.current?.() ?? el;
       if (aimedRef.current && el && el.isConnected) {
         const r = el.getBoundingClientRect();
-        if (r.width || r.height) want = { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2, r: radius.current };
+        if (r.width || r.height) {
+          want = { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2, r: radius.current };
+          // Tall or edge-hugging targets (featured tile, picker, filter) would poke out of the screen: keep the window inside it.
+          if (CLAMP.has(all[shownRef.current].id)) {
+            const t0 = Math.max(0, want.top), l0 = Math.max(0, want.left);
+            want = { ...want, top: t0, left: l0, height: Math.min(want.top + want.height, window.innerHeight) - t0, width: Math.min(want.left + want.width, window.innerWidth) - l0 };
+          }
+        }
       } else if (!aimedRef.current) want = centre();
       // while the next screen is still arriving the window waits where it is, instead of darting to the middle and back.
       // A critically damped spring: it starts from rest, gathers speed and settles without overshoot (about 0.6 s).

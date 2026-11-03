@@ -68,7 +68,7 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean }> = ({ slides, loading
           <div key={sl.id} className="mx-slide" role="group" aria-roledescription="slide" aria-label={`${(i % n) + 1} / ${n}`} aria-hidden={i >= n || undefined}>
             <div className="mx-hero-media">
               <div className="mx-hero-img">
-                {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={SIZES_FULL} priority={i === 0} alt="" />}
+                {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={SIZES_FULL} priority={i === 0} eager alt="" />}
               </div>
             </div>
             <div className="mx-hero-txt">
