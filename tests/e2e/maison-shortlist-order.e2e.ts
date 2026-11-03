@@ -20,10 +20,14 @@ test('profile holds the shortlist; Order all leaves in one step; the placed mome
   await page.locator('.mx-heart').first().waitFor();
 
   await expect(page.locator('.mx-top [data-tab="shortlist"]')).toHaveCount(0);
+  // the badge is shortlist + orders, and other specs share this buyer (orders pile up), so count from where it starts
+  const badgeEl = page.getByTestId('mx-profile-badge');
+  await page.waitForLoadState('networkidle');
+  const base = (await badgeEl.count()) ? Number(await badgeEl.textContent()) : 0;
   const hearts = page.locator('.mx-heart');
   const n = Math.min(3, await hearts.count());
   for (let i = 0; i < n; i++) await hearts.nth(i).click();
-  await expect(page.getByTestId('mx-profile-badge')).toHaveText(String(n));
+  await expect(badgeEl).toHaveText(String(base + n));
 
   await page.getByTestId('mx-profile').click();
   await expect(page.getByTestId('mx-shortlist-row-count')).toHaveText(String(n));

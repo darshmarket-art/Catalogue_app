@@ -627,12 +627,13 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     &:has(.mx-pd) .mx-ph[data-float]:not(.srch) img.mx-logo { filter: none; }
 
     /* search: a full-screen layer that fades and settles in (opacity and transform only), a close X, a serif input on an underline, then the tags */
-    & .mx-srch { position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain; padding-top: var(--sat); background: var(--mx-ground); color: var(--mx-ink); opacity: 0; visibility: hidden; transform: translateY(-12px); transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s 0.3s; }
-    & .mx-srch.on { opacity: 1; visibility: visible; transform: none; transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
-    & .mx-srch-top { display: flex; align-items: center; justify-content: flex-end; height: var(--mx-bar-h); padding: 0 10px; }
-    & .mx-srch-in { display: flex; align-items: center; gap: 12px; margin: 0 21px; border-bottom: 1px solid var(--mx-ink); }
+    /* search: a bar that slides down under the masthead (owner decision), revealed top-down so it never covers the bar itself */
+    & .mx-srch { position: fixed; left: 0; right: 0; top: calc(var(--mx-bar-h) + var(--sat)); z-index: 60; max-height: calc(100dvh - var(--mx-bar-h) - var(--sat)); overflow-y: auto; overscroll-behavior: contain; background: var(--mx-ground); color: var(--mx-ink); border-bottom: 1px solid var(--mx-hair); visibility: hidden; clip-path: inset(0 0 100% 0); transform: translateY(-8px); transition: clip-path 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s 0.3s; }
+    & .mx-srch.on { visibility: visible; clip-path: inset(0); transform: none; transition: clip-path 0.3s ease-in-out, transform 0.3s ease-in-out; }
+    & .mx-srch-top { display: none; }
+    & .mx-srch-in { display: flex; align-items: center; gap: 12px; margin: 16px 21px 0; border-bottom: 1px solid var(--mx-ink); }
     & .mx-srch-in input { flex: 1; min-width: 0; height: 48px; border: 0; background: none; outline: none; color: var(--mx-ink); font-family: var(--mx-serif); font-size: 1.3125rem; font-weight: 500; }
-    & .mx-srch-sug { padding: 32px 21px 40px; }
+    & .mx-srch-sug { padding: 20px 21px 24px; }
     & .mx-srch-h { margin: 0 0 8px; font-family: var(--mx-sans); font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
     & .mx-srch-sug ul { list-style: none; margin: 0; padding: 0; }
     & .mx-srch-sug button { display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.875rem; letter-spacing: 0.03em; text-align: left; cursor: pointer; }

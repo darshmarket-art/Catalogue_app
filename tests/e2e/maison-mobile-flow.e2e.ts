@@ -137,7 +137,7 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await page.getByTestId('mx-drawer-close').click();
   await expect(page.getByTestId('mx-profile-panel')).toHaveCount(0);
 
-  // search opens a full-screen layer and searches the designs; closing it hands focus back to the search button
+  // search slides a bar down under the masthead and searches the designs; closing it hands focus back to the search button
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByTestId('mx-search').click();
   await expect(page.getByTestId('mx-search-input')).toBeFocused();
