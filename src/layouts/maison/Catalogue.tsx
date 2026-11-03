@@ -98,7 +98,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
           </span>
         </div>
 
-        <div ref={gridRef} className={`mx-pgrid ${cols}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1 }}>
+        <div key={`${cols}|${categoryFilter ?? ""}|${active.length}|${sort}`} ref={gridRef} className={`mx-pgrid mx-flip ${cols}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1 }}>
           {loading && items.length === 0 && !error && Array.from({ length: 8 }, (_, i) => <div key={`skel-${i}`} className="mx-ptile" aria-hidden="true"><div className="mx-pframe em-skel" /></div>)}
           {items.map((prod, i) => (
             <React.Fragment key={prod.id}>

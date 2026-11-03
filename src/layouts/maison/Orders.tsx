@@ -199,6 +199,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
         ))}
       </div>
 
+      <div key={tab} className="mx-flip">
       {tab === 'past' ? (
         <PastOrders orders={history} onCancel={cancelOrder} />
       ) : orders.length === 0 ? (
@@ -260,6 +261,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
           </aside>
         </div>
       )}
+      </div>
     </div>
   );
 };
