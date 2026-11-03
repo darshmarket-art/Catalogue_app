@@ -7,6 +7,8 @@ import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
 import { scopeStore } from '../server/tenancy';
+import { KEEP_IDENTICAL, RENDER_PROMPT, STYLES } from '../server/aiRender';
+import { placementForTag, STYLE_IDS } from '../shared/aiStyles';
 import { acceptRender, enhanceBlocked, swapRender } from '../src/aiRender';
 
 // The provider is mocked: no test ever calls Google.
@@ -104,7 +106,7 @@ describe('Enhance to CAD render (existing photos)', () => {
   const status = () => request(app).get('/api/admin/photos/render').set(auth);
 
   it('status says on/off and renders left; counts renders already used', async () => {
-    expect((await status()).body.data).toEqual({ enabled: true, cap: 2, used: 0, left: 2 });
+    expect((await status()).body.data).toMatchObject({ enabled: true, cap: 2, used: 0, left: 2 });
     renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
     await render(await upload());
     expect((await status()).body.data.left).toBe(1);
@@ -147,5 +149,60 @@ describe('Enhance to CAD render (existing photos)', () => {
     expect(enhanceBlocked({ enabled: true, cap: 5, left: 3 })).toBeNull();
     expect(enhanceBlocked({ enabled: false, cap: 5, left: 3 })).toMatch(/switched off/);
     expect(enhanceBlocked({ enabled: true, cap: 5, left: 0 })).toMatch(/used its 5 AI renders/);
+  });
+});
+
+describe('AI render styles', () => {
+  const withStyle = (ref: string, body: Record<string, unknown>) => request(app).post('/api/admin/photos/render').set(auth).send({ ref, ...body });
+  const ok = async () => renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
+
+  it('every style prompt keeps the piece identical; on-model carries the placement', () => {
+    for (const id of STYLE_IDS) expect(STYLES[id]('finger')).toContain(KEEP_IDENTICAL);
+    expect(STYLES.cad()).toBe(RENDER_PROMPT);
+    expect(STYLES['on-model']('ear')).toMatch(/ear in profile/);
+    expect(STYLES['on-model']('wrist')).toMatch(/wrist and forearm/);
+    expect(STYLES['on-model']('ear')).toMatch(/FULL contrast/);
+  });
+
+  it('server validates the style id and placement; unknown is 400 and costs nothing', async () => {
+    await ok();
+    const ref = await upload();
+    expect((await withStyle(ref, { style: 'nope' })).status).toBe(400);
+    expect((await withStyle(ref, { style: 'on-model' })).status).toBe(400);
+    expect((await withStyle(ref, { style: 'on-model', placement: 'knee' })).status).toBe(400);
+    expect(renderStudio).not.toHaveBeenCalled();
+    expect((await request(app).get('/api/admin/photos/render').set(auth)).body.data.used).toBe(0);
+    const res = await withStyle(ref, { style: 'on-model', placement: 'neck' });
+    expect(res.status).toBe(201);
+    expect(res.body.data.style).toBe('on-model');
+    expect(renderStudio.mock.calls[0][2]).toMatch(/neck and collarbone/);
+    const file = res.body.data.ref.slice(6);
+    const rec = JSON.parse(((await blobs.get(`stores/bhakti/renders/${file}`)) ?? (await blobs.get(`renders/${file}`)))!.data.toString());
+    expect(rec).toEqual({ original: ref, style: 'on-model', placement: 'neck' });
+  });
+
+  it('no style sent means cad; AI_RENDER_STYLES hides the others; each render counts once', async () => {
+    await ok();
+    const ref = await upload();
+    expect((await render(ref)).body.data.style).toBe('cad');
+    process.env.AI_RENDER_STYLES = 'cad,silk';
+    try {
+      expect((await request(app).get('/api/admin/photos/render').set(auth)).body.data.styles).toEqual(['cad', 'silk']);
+      expect((await withStyle(ref, { style: 'macro' })).status).toBe(400);
+      expect((await withStyle(ref, { style: 'silk' })).status).toBe(201);
+      expect((await withStyle(ref, { style: 'silk' })).status).toBe(402); // cap is 2 and both renders counted
+    } finally {
+      delete process.env.AI_RENDER_STYLES;
+    }
+  });
+
+  it('collection tag to placement, with a fallback for tags with no body part', () => {
+    const want: Array<[string, string | null]> = [
+      ['Rings', 'finger'], ['Necklaces', 'neck'], ['Pendants', 'neck'], ['Chains', 'neck'], ['Earrings', 'ear'], ['Bangles', 'wrist'], ['Bracelets', 'wrist'],
+      ['Mangalsutra', 'neck'], ['Haar', 'neck'], ['Jhumka', 'ear'], ['Kada', 'wrist'], ['Nose Pin', 'nose'], ['Anklets', 'ankle'], ['Payal', 'ankle'], ['Maang Tikka', 'forehead'],
+      ['Brooch', null], ['Coins & Bars', null], ['Sets', null], ['Other', null], ['Something new', null]
+    ];
+    for (const [tag, p] of want) expect([tag, placementForTag(tag)]).toEqual([tag, p]);
+    expect(placementForTag(undefined)).toBeNull();
   });
 });

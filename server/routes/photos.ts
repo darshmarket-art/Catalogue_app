@@ -5,7 +5,8 @@ import type { Blob, Blobs } from '../blobs';
 import { newPhotoFile, normalizePhoto, objectName, type Media } from '../media';
 import type { Entitlements } from '../entitlements';
 import type { Store } from '../store';
-import { renderEnabled, renderMonthlyCap, renderStudio } from '../aiRender';
+import { allowedStyles, renderEnabled, renderMonthlyCap, renderStudio, STYLES } from '../aiRender';
+import { PLACEMENTS, STYLE_IDS, type Placement, type StyleId } from '../../shared/aiStyles';
 import { HttpError, handler } from '../http';
 import { logger } from '../logger';
 import sharp from 'sharp';
@@ -78,7 +79,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
     handler(async (_req, res) => {
       const cap = renderMonthlyCap();
       const used = Number((await store.get('aiRenderMonthly', new Date().toISOString().slice(0, 7)))?.count ?? 0);
-      res.json({ status: 'success', data: { enabled: renderEnabled(), cap, used, left: Math.max(0, cap - used) } });
+      res.json({ status: 'success', data: { enabled: renderEnabled(), styles: allowedStyles(), cap, used, left: Math.max(0, cap - used) } });
     })
   );
 
@@ -94,6 +95,11 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       if (!renderEnabled()) throw new HttpError(503, 'AI render is switched off on this server. Your original photo is used.');
       const ref = normalizePhoto(String((req.body as { ref?: unknown } | undefined)?.ref ?? ''));
       if (!ref?.startsWith('media:')) throw new HttpError(400, 'Only a photo uploaded here can be rendered.');
+      const body = req.body as { style?: unknown; placement?: unknown };
+      const style = (body.style ?? 'cad') as StyleId;
+      if (!STYLE_IDS.includes(style) || !allowedStyles().includes(style)) throw new HttpError(400, 'Choose one of the available AI render styles.');
+      const placement = body.placement as Placement | undefined;
+      if (style === 'on-model' && !PLACEMENTS.includes(placement as Placement)) throw new HttpError(400, 'Choose where the piece is worn.');
       const original = await blobs.get(objectName(ref.slice(6)));
       if (!original) throw new HttpError(404, 'Photo not found. Upload it again.');
 
@@ -107,7 +113,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
 
       let rendered: Awaited<ReturnType<typeof optimisePhoto>>;
       try {
-        const out = await renderStudio(original.data, original.contentType);
+        const out = await renderStudio(original.data, original.contentType, STYLES[style](placement));
         const type = sniff(out.data);
         if (!type) throw new Error('the AI returned an unreadable image');
         rendered = await optimisePhoto(out.data, type);
@@ -118,8 +124,8 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       }
       const file = newPhotoFile(TYPES[rendered.type]);
       await blobs.put(objectName(file), rendered.buffer, rendered.type);
-      await blobs.put(`renders/${file}`, Buffer.from(ref), 'text/plain');
-      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), original: { ref, url: media.url(ref) } } });
+      await blobs.put(`renders/${file}`, Buffer.from(JSON.stringify({ original: ref, style, ...(style === 'on-model' ? { placement } : {}) })), 'application/json');
+      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), style, original: { ref, url: media.url(ref) } } });
     })
   );
 

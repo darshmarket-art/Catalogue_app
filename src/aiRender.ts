@@ -12,6 +12,7 @@ export interface PhotoItem {
 export interface RenderResult {
   ref: string;
   url: string;
+  style?: string;
   original: { ref: string; url: string };
 }
 

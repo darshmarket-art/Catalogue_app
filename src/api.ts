@@ -455,12 +455,12 @@ export const api = {
   },
 
   /** CAD-style AI render of a just-uploaded photo. The original stays stored; the server says why when it cannot render. */
-  async renderPhoto(ref: string, signal?: AbortSignal): Promise<{ ref: string; url: string; original: { ref: string; url: string } }> {
-    return (await post('/api/v1/admin/photos/render', { ref }, signal)).data;
+  async renderPhoto(ref: string, signal?: AbortSignal, style?: string, placement?: string): Promise<{ ref: string; url: string; style?: string; original: { ref: string; url: string } }> {
+    return (await post('/api/v1/admin/photos/render', { ref, style, placement }, signal)).data;
   },
 
   /** Is AI render on for this server, and how many renders are left this month. */
-  async renderStatus(): Promise<{ enabled: boolean; cap: number; used: number; left: number }> {
+  async renderStatus(): Promise<{ enabled: boolean; cap: number; used: number; left: number; styles?: string[] }> {
     return (await request('/api/v1/admin/photos/render')).data;
   },
 

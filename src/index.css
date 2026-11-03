@@ -402,3 +402,27 @@ html {
   .rnd-pair[data-view="a"] .rnd-b, .rnd-pair[data-view="b"] .rnd-a { display: none; }
 }
 @media (min-width: 720px) { .sheet.rnd-cmp { max-width: 880px !important; } }
+
+/* AI render style picker: cards with abstract CSS swatches (never the owner's piece). */
+.sheet.stl-sheet { display: flex; flex-direction: column; gap: 12px; max-height: 92dvh; overflow-y: auto; }
+.stl-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.stl-card { border: 1px solid rgb(128 128 128 / 0.35); display: grid; }
+.stl-card.on { border-color: var(--gold, currentColor); box-shadow: 0 0 0 2px var(--gold, currentColor) inset; }
+.stl-main { display: grid; grid-template-columns: 56px 1fr; column-gap: 12px; row-gap: 2px; align-items: center; text-align: left; padding: 10px; min-height: 64px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.stl-main:disabled { opacity: 0.55; cursor: not-allowed; }
+.stl-main .stl-sw { grid-row: 1 / span 3; width: 56px; height: 56px; }
+.stl-main b { font-size: 0.9375rem; }
+.stl-main span, .stl-main em { grid-column: 2; font-size: 0.75rem; opacity: 0.8; font-style: normal; }
+.stl-main em { opacity: 1; font-weight: 600; }
+.stl-place { display: flex; align-items: center; gap: 8px; padding: 0 10px 10px 78px; font-size: 0.75rem; }
+.stl-place select { min-height: 36px; font: inherit; }
+.stl-sw { display: block; border-radius: 10px; background: #ccc; }
+.stl-sw[data-s="cad"] { background: linear-gradient(180deg, #f1f1f3 0 62%, #d9d9dd 62%); box-shadow: inset 0 0 0 1px #0002; }
+.stl-sw[data-s="silk"] { background: repeating-linear-gradient(115deg, #f3e7cf 0 9px, #e4d1ab 9px 15px, #f8efdc 15px 24px); }
+.stl-sw[data-s="studio-dark"] { background: radial-gradient(circle at 50% 28%, #6a6a70 0, #1b1b1f 45%, #050507 100%); }
+.stl-sw[data-s="editorial"] { background: linear-gradient(135deg, #ece9e4 0 40%, #d6d1c9 40% 43%, #ece9e4 43% 70%, #c9c3b9 70% 72%, #ece9e4 72%); }
+.stl-sw[data-s="giftbox"] { background: linear-gradient(180deg, #7a1f2b 0 38%, #f4ead8 38% 46%, #3a0f16 46%); }
+.stl-sw[data-s="festive"] { background: radial-gradient(circle at 50% 60%, #ffd66b 0, #f2a03a 28%, #7a3b0c 70%, #2a1204 100%); }
+.stl-sw[data-s="on-model"] { background: radial-gradient(ellipse at 50% 100%, #2b2320 0 45%, transparent 46%), linear-gradient(180deg, #0d0b0b, #1c1716); }
+.stl-sw[data-s="macro"] { background: conic-gradient(from 20deg at 50% 50%, #e8e8ea, #9b9ba3, #f6f6f8, #7d7d86, #e8e8ea); }
+@media (min-width: 720px) { .sheet.stl-sheet { max-width: 760px !important; } .stl-grid { grid-template-columns: 1fr 1fr; } }

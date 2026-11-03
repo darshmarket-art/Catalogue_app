@@ -4,6 +4,9 @@ import { fitCheck, PHOTO_SPECS, type PhotoKind } from '../../shared/photoSpecs';
 import { I, Photo } from './ui';
 import { PhotoCropper } from './PhotoCropper';
 import { errorText } from '../bugReport';
+import { RenderStylePicker } from './RenderStylePicker';
+import { ON_MODEL_NOTE } from './RenderStylePicker';
+import { STYLE_IDS, STYLE_INFO, type Placement, type StyleId } from '../../shared/aiStyles';
 import { acceptRender, enhanceBlocked, swapRender, type PhotoItem, type RenderResult } from '../aiRender';
 export type { PhotoItem };
 
@@ -24,6 +27,8 @@ interface PhotoPickerProps {
   aiRender?: boolean;
   /** Offers "Enhance to CAD render" on each existing photo. The owner compares and chooses; nothing changes unless they accept and Save. */
   enhance?: boolean;
+  /** Tag of the collection being edited: decides where "Worn on model" places the piece. */
+  tag?: string;
 }
 
 /** Shimmer, message, elapsed seconds and a way out, laid over a photo while its render is made (40 to 105 s). */
@@ -46,13 +51,15 @@ const RenderProgress: React.FC<{ since: number; onCancel: () => void }> = ({ sin
 };
 
 /** Before and after, side by side on a desktop and one at a time (toggle) on a phone. Only "Use AI render" changes anything. */
-const CompareSheet: React.FC<{ before: string; after: string; onUse: () => void; onKeep: () => void }> = ({ before, after, onUse, onKeep }) => {
+const CompareSheet: React.FC<{ before: string; after: string; style?: string; onUse: () => void; onKeep: () => void }> = ({ before, after, style, onUse, onKeep }) => {
   const [view, setView] = useState<'a' | 'b'>('b');
   return (
     <div className="sheet-wrap" role="dialog" aria-modal="true" aria-label="Compare AI render" data-testid="render-compare">
       <button type="button" aria-label="Keep original" className="scrim" onClick={onKeep} />
       <div className="sheet rnd-cmp">
         <h3 style={{ margin: 0 }}>Your photo and the AI render</h3>
+        {style && STYLE_IDS.includes(style as StyleId) && <span className="tag gold rnd-style" data-testid="render-style-tag">{STYLE_INFO[style as StyleId].name}</span>}
+        {style === 'on-model' && <p className="hint" style={{ margin: 0 }}>{ON_MODEL_NOTE}.</p>}
         <div className="rnd-tabs" role="group" aria-label="Show">
           <button type="button" aria-pressed={view === 'a'} className={view === 'a' ? 'on' : ''} onClick={() => setView('a')}>Original</button>
           <button type="button" aria-pressed={view === 'b'} className={view === 'b' ? 'on' : ''} onClick={() => setView('b')}>AI render</button>
@@ -76,7 +83,7 @@ const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 25 * 1024 * 1024;
 
 /** Photos on a form, as the canvas draws them: a row of tiles with dashed "Add" slots (artboards 3.3, 4.2, 3.7). */
-export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', kind, locked = 0, onLocked, aiRender = false, enhance = false }) => {
+export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max, onBusyChange, tile = 'square', kind, locked = 0, onLocked, aiRender = false, enhance = false, tag }) => {
   const [crop, setCrop] = useState<File[]>([]);
   const spec = kind ? PHOTO_SPECS[kind] : null;
   const [uploading, setUploading] = useState<Array<{ id: number; name: string }>>([]);
@@ -93,6 +100,9 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   const [ready, setReady] = useState<Record<string, RenderResult>>({});
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
+  // Photos waiting for the owner to choose a style (first one is shown), and the styles the server allows.
+  const [picking, setPicking] = useState<Array<{ ref: string; mode: 'auto' | 'enhance' }>>([]);
+  const [allowed, setAllowed] = useState<StyleId[] | null>(null);
   const busy = Object.keys(rendering).length;
 
   useEffect(() => {
@@ -100,7 +110,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   }, [uploading.length, busy]);
 
   useEffect(() => {
-    if (enhance) api.renderStatus().then((s) => setBlocked(enhanceBlocked(s))).catch(() => {});
+    if (enhance || aiRender) api.renderStatus().then((s) => { if (enhance) setBlocked(enhanceBlocked(s)); if (s.styles) setAllowed(s.styles as StyleId[]); }).catch(() => {});
     return () => Object.values(jobs.current).forEach((c) => c.abort()); // leaving the screen stops waiting; nothing is applied
   }, []);
 
@@ -114,14 +124,14 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
    * Renders one photo. 'auto' (just uploaded): the render replaces it when it arrives. 'enhance' (existing photo): the render waits in the
    * compare sheet for the owner's choice. Any failure, or "Use original", leaves the photo as it is and says why.
    */
-  const render = async (ref: string, mode: 'auto' | 'enhance' = 'auto') => {
+  const render = async (ref: string, mode: 'auto' | 'enhance' = 'auto', style: StyleId = 'cad', placement?: Placement) => {
     if (jobs.current[ref]) return;
     const ctl = new AbortController();
     jobs.current[ref] = ctl;
     setRendering((r) => ({ ...r, [ref]: Date.now() }));
     setAiNote(null);
     try {
-      const out = await api.renderPhoto(ref, ctl.signal);
+      const out = await api.renderPhoto(ref, ctl.signal, style, placement);
       if (ctl.signal.aborted || !photosRef.current.some((p) => p.ref === ref)) return;
       if (mode === 'auto') {
         photosRef.current = photosRef.current.map((p) => (p.ref === ref ? out : p));
@@ -142,6 +152,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
     }
   };
 
+  const ask = (ref: string, mode: 'auto' | 'enhance') => setPicking((q) => (q.some((x) => x.ref === ref) ? q : [...q, { ref, mode }]));
   const closeReady = (ref: string) => setReady((r) => { const { [ref]: _gone, ...rest } = r; return rest; });
   const useReady = (ref: string) => {
     const out = ready[ref];
@@ -162,7 +173,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
       // Uploads of a multi-select finish independently, so build on the latest list rather than the last render's.
       photosRef.current = [...photosRef.current, { ref, url }];
       onChange(photosRef.current);
-      if (aiRender && aiOn) void render(ref);
+      if (aiRender && aiOn) ask(ref, 'auto');
     } catch (err) {
       if (!(err instanceof ApiError && err.handled)) {
         setError(errorText(err, 'PhotoPicker', 'The photo could not be uploaded.'));
@@ -209,6 +220,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
 
   const remove = (index: number) => {
     stop(photos[index].ref);
+    setPicking((q) => q.filter((x) => x.ref !== photos[index].ref));
     closeReady(photos[index].ref);
     onChange(photos.filter((_, i) => i !== index));
   };
@@ -296,7 +308,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
         photo.original || photo.render || !photo.ref ? null : blocked ? (
           i === 0 && <p key={photo.ref} className="hint" style={{ margin: 0 }} data-testid="enhance-blocked">Enhance to CAD render is not available: {blocked}</p>
         ) : (
-          <button key={photo.ref} type="button" className="lnk" data-testid="photo-enhance" style={{ minHeight: 32, alignSelf: 'flex-start' }} disabled={!!rendering[photo.ref]} onClick={() => void render(photo.ref, 'enhance')}>
+          <button key={photo.ref} type="button" className="lnk" data-testid="photo-enhance" style={{ minHeight: 32, alignSelf: 'flex-start' }} disabled={!!rendering[photo.ref]} onClick={() => ask(photo.ref, 'enhance')}>
             {max > 1 ? `Enhance photo ${i + 1} to CAD render` : 'Enhance to CAD render'}
           </button>
         )
@@ -331,8 +343,20 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
           e.target.value = '';
         }}
       />
+      {picking[0] && photos.some((p) => p.ref === picking[0].ref) && (
+        <RenderStylePicker
+          tag={tag}
+          allowed={allowed}
+          onCancel={() => setPicking((q) => q.slice(1))}
+          onPick={(style, placement) => {
+            const { ref, mode } = picking[0];
+            setPicking((q) => q.slice(1));
+            void render(ref, mode, style, placement);
+          }}
+        />
+      )}
       {reviewing && (
-        <CompareSheet before={photos.find((p) => p.ref === reviewing)!.url} after={ready[reviewing].url} onUse={() => useReady(reviewing)} onKeep={() => closeReady(reviewing)} />
+        <CompareSheet before={photos.find((p) => p.ref === reviewing)!.url} after={ready[reviewing].url} style={ready[reviewing].style} onUse={() => useReady(reviewing)} onKeep={() => closeReady(reviewing)} />
       )}
       {aiNote && (
         <p role="status" className="hint" style={{ margin: 0 }}>
