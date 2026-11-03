@@ -44,11 +44,11 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   );
   const counts = (
     <>
-      <button type="button" className="mx-ib" aria-label={t('Shortlist')} onClick={() => go('shortlist')}>
+      <button type="button" className="mx-ib" data-tab="shortlist" aria-label={t('Shortlist')} onClick={() => go('shortlist')}>
         <Icon n="heart" size={20} />{shortlistCount > 0 && <b className="mx-ct">{shortlistCount}</b>}
       </button>
       {orderCount !== undefined && (
-        <button type="button" className="mx-ib" aria-label={t('Orders')} onClick={() => go('orders')}>
+        <button type="button" className="mx-ib" data-tab="orders" aria-label={t('Orders')} onClick={() => go('orders')}>
           <Icon n="bag" size={20} />{orderCount > 0 && <b className="mx-ct">{orderCount}</b>}
         </button>
       )}
@@ -70,7 +70,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
           ) : desk ? (
             <button type="button" className="mx-ib" aria-label={t('Search the catalogue')} onClick={() => go('catalogue')}><Icon n="search" size={20} /></button>
           ) : (
-            <button type="button" className="mx-nl mx-coll" aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu(true)}>{t('Collections')}</button>
+            <button type="button" className="mx-nl mx-coll" data-tab="catalogue" aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu(true)}>{t('Collections')}</button>
           )}
           {desk && <LangToggle />}
         </div>
@@ -84,11 +84,11 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
 
       {desk && !sub && (
         <nav className="mx-nav" aria-label="Main">
-          <NavBtn on={currentScreen === 'categories'} onClick={() => go('categories')}>{t('Home')}</NavBtn>
+          <NavBtn tab="categories" on={currentScreen === 'categories'} onClick={() => go('categories')}>{t('Home')}</NavBtn>
           {groups.length > 0 && (
             <button type="button" className={`mx-nl${mega ? ' on' : ''}`} aria-expanded={mega} onMouseEnter={() => setMega(true)} onClick={() => setMega((m) => !m)}>{t('Collections')}</button>
           )}
-          {nav.slice(1).map((n) => <NavBtn key={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
+          {nav.slice(1).map((n) => <NavBtn key={n.screen} tab={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
         </nav>
       )}
 
@@ -103,8 +103,8 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   );
 };
 
-const NavBtn: React.FC<{ on: boolean; onClick: () => void; children: React.ReactNode }> = ({ on, onClick, children }) => (
-  <button type="button" className={`mx-nl${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} onClick={onClick}>{children}</button>
+const NavBtn: React.FC<{ tab: string; on: boolean; onClick: () => void; children: React.ReactNode }> = ({ tab, on, onClick, children }) => (
+  <button type="button" data-tab={tab} className={`mx-nl${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} onClick={onClick}>{children}</button>
 );
 
 type Groups = ReturnType<typeof groupByTag<NonNullable<KitProps<'Header'>['categories']>[number]>>;

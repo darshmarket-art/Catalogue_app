@@ -602,6 +602,9 @@
   [data-layout="maison"][data-role] main.animate-page-forward { animation: mx-push 0.8s var(--mx-turn); }
   [data-layout="maison"][data-role] main.animate-page-back { animation: mx-pull 0.8s var(--mx-turn); }
   [data-layout="maison"][data-role] main.animate-fade-in { animation: fade-in 0.8s ease-out; }
+  /* The guided tour moves between screens on its own and measures the lit-up control as soon as it arrives: a 3D turn would have the spotlight chase a
+     rotating, scaled target for 0.6 s, so while it runs a screen change is a plain fade (opacity only, the layout never moves). */
+  [data-layout="maison"][data-touring] main { animation: mx-fade 0.2s ease-out both !important; backface-visibility: visible; }
 }
 @keyframes mx-turn-fwd { from { opacity: 0; transform: perspective(1400px) translate3d(22%, 0, -380px) rotateY(-26deg); } to { opacity: 1; transform: perspective(1400px) translate3d(0, 0, 0) rotateY(0deg); } }
 @keyframes mx-turn-back { from { opacity: 0; transform: perspective(1400px) translate3d(-22%, 0, -380px) rotateY(26deg); } to { opacity: 1; transform: perspective(1400px) translate3d(0, 0, 0) rotateY(0deg); } }
