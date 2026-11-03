@@ -1,0 +1,191 @@
+/*
+ * Maison owner content screens: forms, settings, photo picker, sheets, sign-in. Scoped to [data-layout="maison"][data-role="owner"]
+ * (and the sign-in screens, which render before the owner role is set). These screens keep their Gilded / Emergent markup; this file only
+ * restyles it: hairline inputs, square uppercase buttons, no pills or rounded cards, editorial two-column forms on desktop.
+ * Tokens (--mx-*) come from maison.css. Written to sit under the shared primitives in maison-owner.css: same tokens, no conflicting layout rules.
+ */
+:is([data-layout="maison"][data-role="owner"], [data-layout="maison"] .mx-form) {
+  --mo-gap: 28px;
+
+  /* ---------- page frame ---------- */
+  & .scroll, & .em-page { padding-top: 28px; }
+  & .scroll { max-width: 1100px; gap: var(--mo-gap) !important; }
+  & .scroll > .sub, & .em-page .sub { font-family: var(--mx-serif); font-size: 1.25rem; line-height: 1.4; color: var(--mx-ink); font-weight: 300; max-width: 46ch; }
+  & .scroll h2 { font-family: var(--mx-serif); font-weight: 300; font-size: 1.75rem !important; margin: 0; }
+  & .sub { color: var(--mx-mut); }
+
+  /* ---------- labels, inputs: hairline, no box ---------- */
+  & .lab, & .eyebrow { font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.24em; text-transform: uppercase; color: var(--mx-mut); margin-bottom: 4px; }
+  & .inp {
+    min-height: 48px !important; height: auto; padding: 0; border: 0; border-bottom: 1px solid var(--mx-line); background: transparent;
+    font-family: var(--mx-sans); font-size: 1rem; font-weight: 300; letter-spacing: 0.02em; color: var(--mx-ink); transition: border-color 0.3s;
+  }
+  & .inp::placeholder { color: #a3a09b; font-weight: 300; }
+  & .inp:focus, & .inp:focus-within, & .inp.on { border-color: var(--mx-ink); box-shadow: inset 0 -1px 0 var(--mx-ink); outline: none; }
+  & textarea.inp { padding: 10px 0; min-height: 96px; border: 1px solid var(--mx-line); padding-inline: 14px; }
+  & textarea.inp:focus { box-shadow: none; }
+  & select.inp { background-position: right 2px center; background-size: 16px; padding-right: 28px; }
+  & :is(.inp-icon > .inp) { padding-left: 30px; }
+  & :is(.inp-icon > .em-ic) { left: 0; }
+  & .hint { font-size: 0.8125rem; color: var(--mx-mut); line-height: 1.5; margin-top: 8px; }
+  & .err { font-weight: 400; color: #8a2b22; }
+  & button.inp { border-bottom: 1px solid var(--mx-line); }
+
+  /* ---------- buttons: square, tracked ---------- */
+  & .btn {
+    min-height: 48px; padding: 0 28px; border: 1px solid var(--mx-ink); background: var(--mx-ink); color: #fff;
+    font-family: var(--mx-sans); font-size: 0.75rem; font-weight: 400; letter-spacing: 0.15em; text-transform: uppercase; filter: none; transform: none;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  & .btn.alt, & .btn.soft { background: transparent; color: var(--mx-ink); border-color: var(--mx-ink); }
+  & .btn.alt.danger { color: #8a2b22; border-color: #8a2b22; }
+  & .btn.gold, & .btn.wa { background: var(--mx-ink); border-color: var(--mx-ink); color: #fff; }
+  & .btn.sm { min-height: 40px; padding: 0 18px; font-size: 0.6875rem; }
+  & .btn.off, & .btn:disabled { opacity: 1; background: #c9c6c1; border-color: #c9c6c1; color: #fff; cursor: not-allowed; }
+  & .btn.alt:disabled { background: transparent; color: #a3a09b; border-color: var(--mx-line); }
+  @media (hover: hover) {
+    & .btn:hover:not(:disabled) { background: #fff; color: var(--mx-ink); filter: none; transform: none; }
+    & :is(.btn.alt, .btn.soft):hover:not(:disabled) { background: var(--mx-ink); color: #fff; }
+    & .btn.alt.danger:hover:not(:disabled) { background: #8a2b22; color: #fff; }
+  }
+  & .lnk { font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mx-ink); text-decoration-color: var(--mx-ink); text-decoration-thickness: 1px; }
+  & .ib { border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); }
+  & :is(.em-circ) { border: 1px solid var(--mx-line); background: transparent; }
+
+  /* ---------- chips, tags, notes, cards ---------- */
+  & .chip { min-height: 40px; padding: 0 16px; border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; }
+  & .chip.on { background: var(--mx-ink); border-color: var(--mx-ink); color: #fff; }
+  & .em-seg .chip { flex: 1 1 0; }
+  & :is(.tag, .pro) { border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); font-size: 0.625rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; padding: 3px 8px; }
+  & :is(.tag.over, .tag.gold) { background: #fff; }
+  & .tag.bad { color: #8a2b22; border-color: #8a2b22; }
+  & .note { background: var(--mx-stone); color: var(--mx-ink); border: 0; border-left: 1px solid var(--mx-ink); padding: 14px 18px; font-size: 0.875rem; font-weight: 300; line-height: 1.55; }
+  & :is(.note.warn, .note.ok, .note.trial) { background: var(--mx-stone); color: var(--mx-ink); border: 0; border-left: 1px solid var(--mx-ink); }
+  & .note.bad { background: #fff; color: #8a2b22; border-left-color: #8a2b22; }
+  & :is(.card, .em-card) { background: transparent; border: 0; border-top: 1px solid var(--mx-line); padding: 18px 0; }
+  & .kvs { padding: 0; }
+  & .kv { font-size: 0.875rem; }
+  & .kv b { font-weight: 400; }
+  & .meter { height: 2px; background: var(--mx-line); }
+  & .meter > i { background: var(--mx-ink); }
+  & .meter.over > i { background: #8a2b22; }
+  & .sw { width: 44px; height: 24px; background: var(--mx-ink); border: 1px solid var(--mx-ink); }
+  & .sw::after { width: 16px; height: 16px; top: 3px; right: 3px; background: #fff; }
+  & .sw.off { background: transparent; border-color: var(--mx-mut); }
+  & .sw.off::after { left: 3px; background: var(--mx-mut); }
+  & .dashtile { border: 1px dashed var(--mx-mut); color: var(--mx-ink); font-family: var(--mx-sans); font-weight: 400; font-size: 0.625rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  & .dashtile.on { border-color: var(--mx-ink); }
+  & .photo { background: var(--mx-stone); }
+  & .photo::before { display: none; }
+  & .photo:not(:has(> img))::after { background: var(--mx-line); }
+  & .em-netbanner { background: var(--mx-stone); color: var(--mx-ink); padding: 18px 20px; border-top: 1px solid var(--mx-ink); }
+  & .em-netbanner .em-ey { color: var(--mx-mut); }
+  & .em-netbanner .em-ser { font-size: 2rem; }
+
+  /* ---------- sheets (share, profile, crop, plans) ---------- */
+  & .scrim { background: rgb(27 27 27 / 0.4); backdrop-filter: none; }
+}
+
+/* Sheets and dialogs are portalled or fixed to the root, so scope them to the layout alone. */
+[data-layout="maison"] :is(.sheet-wrap, .em-sheet-wrap) .sheet { background: var(--mx-paper); border-radius: 0; max-width: 520px; padding: 20px 24px calc(28px + var(--sab)); gap: 18px; }
+[data-layout="maison"] .grab { display: none; }
+[data-layout="maison"] .sheet h2, [data-layout="maison"] .sheet h3 { font-family: var(--mx-serif); font-weight: 300; font-size: 1.75rem; }
+@media (min-width: 768px) {
+  [data-layout="maison"] .sheet-wrap { align-items: center; }
+}
+
+/* ---------- desktop: editorial two-column forms (photos left and pinned, fields right) ---------- */
+@media (min-width: 1024px) {
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs { max-width: 760px; padding-top: 48px; }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) {
+    display: grid; grid-template-columns: 380px minmax(0, 1fr); column-gap: 80px; align-items: start; max-width: 1060px;
+  }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > * { grid-column: 2; min-width: 0; }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > div:has(.dashtile, .photo) { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 120px; }
+  /* a sticky column traps the crop dialog's fixed layer under the header, so it lets go while the dialog is open */
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs:has(.dashtile, .photo) > div:has([role="dialog"]) { position: static; }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs > .em-savebar { margin-inline: 0; padding-inline: 0; border-top: 0; }
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs > .btn { width: auto; justify-self: start; min-width: 240px; }
+}
+
+/* ---------- phone: one column, the primary action pinned to the bottom ---------- */
+@media (max-width: 1023px) {
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs > .btn:not(.alt):not(.off):last-of-type,
+  [data-layout="maison"][data-role="owner"] .scroll.no-tabs > .btn[type="submit"] {
+    position: sticky; bottom: calc(10px + var(--sab)); z-index: 20; outline: 10px solid #fff; box-shadow: 0 0 0 11px #fff !important;
+  }
+}
+[data-layout="maison"][data-role="owner"] .em-savebar { background: #fff; border-top: 1px solid var(--mx-line); }
+[data-layout="maison"][data-role="owner"] .em-savebar .hint { font-family: var(--mx-sans); font-size: 0.6875rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 400 !important; }
+
+/* ---------- second pass: catalogue tabs, rows, plan, PDF, sheets ---------- */
+[data-layout="maison"][data-role="owner"] {
+  & :is(b, strong) { font-weight: 500; }
+  & .em-seg .em-chip[data-seg] { border-color: var(--mx-line) !important; background: transparent !important; color: var(--mx-ink) !important; }
+  & .em-seg .em-chip[data-seg][aria-pressed="true"] { background: var(--mx-ink) !important; border-color: var(--mx-ink) !important; color: #fff !important; }
+  & .em-seg-bar { height: 1px; background: var(--mx-ink) !important; margin-top: -2px; }
+  & .em-embed .card.pur-on, & .em-embed .card.pur-off { border-left: 0; background: transparent; border-top: 1px solid var(--mx-line); padding: 14px 0; }
+  & .card.pur-on b { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem; }
+  & .em-li b { font-family: var(--mx-serif); font-weight: 400; font-size: 1.1875rem; }
+  & .em-li .em-circ { border: 1px solid var(--mx-line); background: transparent !important; }
+  & [data-testid="store-layout"] { max-width: 520px; }
+  & .em-countdown { background: var(--mx-stone); color: var(--mx-ink); padding: 28px; border-top: 1px solid var(--mx-ink); }
+  & .em-countdown .big { font-weight: 300; font-size: 3rem; }
+  & .em-countdown .of, & .em-countdown p { color: var(--mx-mut); opacity: 1; }
+  & .em-countdown.urgent { box-shadow: none; border-top-width: 2px; }
+  & .em-countdown.urgent p { color: #8a2b22; }
+  & .em-bullets li::before { border-radius: 0; background: var(--mx-ink); width: 5px; height: 1px; margin-top: 12px; }
+  & .em-usage .em-ser { color: var(--mx-ink); font-size: 1.125rem; }
+  & .em-cover { background: var(--mx-stone); color: var(--mx-ink); border: 0; border-top: 1px solid var(--mx-ink); }
+  & .em-cover .em-ey { color: var(--mx-mut); }
+  & .em-pickcard { border: 1px solid var(--mx-line); }
+  & .em-pickcard.on { border-color: var(--mx-ink); outline: 1px solid var(--mx-ink); }
+  & [role="dialog"] > .card { background: #fff; border: 0; border-top: 1px solid var(--mx-ink); padding: 24px; }
+  & input[type="range"] { accent-color: var(--mx-ink); }
+  & .dock .card { background: #fff; border: 0; border-top: 1px solid var(--mx-ink); padding: 14px 20px; }
+  & .topbar { background: #fff; border-bottom: 1px solid var(--mx-line); backdrop-filter: none; }
+  & .topbar h1 { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem; text-align: center; }
+  & .em-sheet { border-radius: 0; background: var(--mx-paper); padding: 22px 24px calc(28px + var(--sab)); gap: 18px; }
+  & .em-sheet .em-ser { font-family: var(--mx-serif); font-weight: 300; font-size: 1.75rem !important; }
+  & .em-sheet .em-card { border: 0; padding: 8px 0; }
+  & .em-sheet .em-btn { padding-inline: 12px; letter-spacing: 0.1em; }
+  & .em-sheet .grab::before { display: none; }
+  & .em-scrim { background: rgb(27 27 27 / 0.4); }
+}
+@media (min-width: 768px) {
+  [data-layout="maison"][data-role="owner"] .em-sheet-wrap { align-items: center; padding: 32px; }
+  [data-layout="maison"][data-role="owner"] .em-sheet { max-width: 520px; }
+  [data-layout="maison"][data-role="owner"] .em-sheet .grab { display: none; }
+}
+
+/* Profile menu (shared by buyers and staff): a square hairline panel, tracked uppercase items. */
+[data-layout="maison"] .em-pmenu { background: var(--mx-paper); border: 1px solid var(--mx-ink); width: 18rem; }
+[data-layout="maison"] .em-pmenu .serif { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem; }
+[data-layout="maison"] .em-pmenu [role="menuitem"] { font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; border-top-color: var(--mx-line); min-height: 48px; }
+[data-layout="maison"] .em-pmenu [role="menuitem"]:hover, [data-layout="maison"] .em-pmenu [role="menuitem"]:focus { background: var(--mx-stone); }
+[data-layout="maison"] .em-pmenu [role="menuitem"].\!text-error { color: #8a2b22; }
+[data-layout="maison"] .em-pmenu dd { font-weight: 400; }
+
+/* Photo picker: the cover photo is shown large, extra photos and the add slots sit in a row beneath it. */
+[data-layout="maison"][data-role="owner"] .grid2[style*="repeat(3"] > .photo:first-child { grid-column: 1 / -1; height: auto !important; aspect-ratio: 1 / 1; }
+[data-layout="maison"][data-role="owner"] .photo > .tag.over, [data-layout="maison"][data-role="owner"] .photo > button.tag { font-size: 0.5625rem; padding: 4px 8px; min-height: 0; }
+[data-layout="maison"][data-role="owner"] .photo > .ib.over { background: #fff; border: 0; position: absolute; left: auto; right: 6px; top: 6px; }
+[data-layout="maison"][data-role="owner"] [style*="aspect-ratio: 2 / 1"] { max-height: 260px; }
+[data-layout="maison"][data-role="owner"] :is(.em-h3, .em-h2) { font-family: var(--mx-serif); font-weight: 300; }
+[data-layout="maison"][data-role="owner"] .em-embed .em-chip { border-color: var(--mx-line); }
+
+/* Plans: one ink and stone palette; the platform's purple banner becomes a stone band. */
+[data-layout="maison"][data-role="owner"] {
+  & .em-antarixs { background: var(--mx-stone); color: var(--mx-ink); border: 0; border-top: 1px solid var(--mx-ink); padding: 22px; }
+  & .em-antarixs .em-ey { color: var(--mx-mut) !important; }
+  & .em-antarixs .em-ser { font-family: var(--mx-serif); font-weight: 300; font-size: 1.5rem !important; }
+  & .em-antarixs > .em-row > span:first-child { background: var(--mx-ink) !important; }
+  & .em-plan { background: transparent; border: 1px solid var(--mx-line); }
+  & .em-plan.hi { background: var(--mx-ink); color: #fff; border-color: var(--mx-ink); }
+  & .em-plan.hi :is(.pro, .tag) { color: #fff; border-color: #fff; }
+  & .pro.dark { background: transparent; color: inherit; border-color: currentColor; }
+  & table.t th { background: var(--mx-stone); color: var(--mx-mut); font-weight: 400; letter-spacing: 0.2em; font-size: 0.6875rem; }
+  & table.t td { border-bottom-color: var(--mx-line); font-weight: 300; }
+  & table.t td b { font-weight: 500; }
+  & .card:has(> table.t) { border: 1px solid var(--mx-line); padding: 0; }
+}
