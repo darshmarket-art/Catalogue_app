@@ -102,7 +102,7 @@ describe('AI render', () => {
   });
 });
 
-describe('Enhance to CAD render (existing photos)', () => {
+describe('AI Enhance (existing photos)', () => {
   const status = () => request(app).get('/api/admin/photos/render').set(auth);
 
   it('status says on/off and renders left; counts renders already used', async () => {

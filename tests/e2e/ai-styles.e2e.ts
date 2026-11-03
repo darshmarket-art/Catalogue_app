@@ -71,6 +71,7 @@ for (const layout of ['emergent', 'maison'] as const) {
       await page.getByTestId('photo-enhance').first().click();
       await expect(picker).toBeVisible();
       await picker.getByTestId('style-silk').click();
+      await page.getByTestId('style-continue').click();
       await expect(picker).toBeHidden();
       await expect(page.getByTestId('photo-rendering')).toBeVisible();
       const sheet = page.getByTestId('render-compare');

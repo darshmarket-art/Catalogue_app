@@ -56,7 +56,8 @@ export function scopeStore(root: Store, storeId: string): Store {
     delete: (col, id) => root.delete(c(col), id),
     list: (col, o) => root.list(c(col), o),
     update: (col, id, data) => root.update(c(col), id, data),
-    increment: (col, id, f, extra) => root.increment(c(col), id, f, extra)
+    increment: (col, id, f, extra) => root.increment(c(col), id, f, extra),
+    transact: (fn) => root.transact((tx) => fn({ get: (col, id) => tx.get(c(col), id), set: (col, id, d) => tx.set(c(col), id, d) }))
   } as Store;
 }
 

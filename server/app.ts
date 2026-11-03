@@ -30,6 +30,7 @@ import { enquiryRoutes } from './routes/enquiries';
 import { adminSummaryRoutes } from './routes/adminSummary';
 import { adminBuyerRoutes } from './routes/adminBuyers';
 import { mediaRoute, photoUploadRoutes } from './routes/photos';
+import { aiCreditsOwnerRoutes } from './routes/aiCreditsOwner';
 import { createBlobs, type Blobs } from './blobs';
 import { createMedia } from './media';
 import { createOtpDelivery, createOtpSender, type OtpSender } from './whatsapp';
@@ -163,7 +164,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
       await root.update('stores', id, { merchant: next });
       resolver.invalidate(id);
     };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, patchMerchant);
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, root, patchMerchant);
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root, undefined, log));
@@ -174,7 +175,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, patchMerchant: (fn: (m: MerchantConfig) => MerchantConfig) => Promise<void> = async () => {}) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, root: Store, patchMerchant: (fn: (m: MerchantConfig) => MerchantConfig) => Promise<void> = async () => {}) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -283,7 +284,10 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/enquiries', enquiries.buyer);
   app.use('/api/admin/enquiries', enquiries.admin);
   app.use('/api/admin/summary', adminSummaryRoutes(config, store, log, ent, auth.requireAdmin));
-  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent, config.bulkImportKey, store));
+  // AI credits are platform data (the console reads every store), so they sit in `root`; this store's id is fixed here, not taken from the request.
+  const ai = { root, storeId: config.merchant.id, founder: async () => (await plan()).plan === 'founder' };
+  app.use('/api/admin/photos', photoUploadRoutes(blobs, media, auth.requireAdmin, ent, config.bulkImportKey, store, ai));
+  app.use('/api/admin/ai-credits', aiCreditsOwnerRoutes(ai, auth.requireAdmin));
   app.use('/api', analyticsRoutes(config, store, auth.requireAdmin, auth, { log, receiptsConnected: receiptsEnabled(config) }));
 
   app.use('/api', notFoundApi);

@@ -388,7 +388,7 @@ html {
 @media (prefers-reduced-motion: reduce) { .rnd::before { animation: none; transform: none; background: rgb(255 255 255 / 0.12); } .rnd-bar > i { transition: none; } }
 
 /* Before / after sheet: side by side from tablet width; on a phone the toggle shows one at a time. */
-.sheet.rnd-cmp { display: flex; flex-direction: column; gap: 14px; max-height: 92dvh; overflow-y: auto; }
+.sheet.rnd-cmp { display: flex; flex-direction: column; gap: 14px; max-height: min(85dvh, calc(100dvh - var(--sheet-bar, 0px) - 16px)); overflow-y: auto; overscroll-behavior: contain; }
 .rnd-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .rnd-pair figure { margin: 0; display: grid; gap: 6px; }
 .rnd-pair img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: #eee; }
@@ -404,7 +404,17 @@ html {
 @media (min-width: 720px) { .sheet.rnd-cmp { max-width: 880px !important; } }
 
 /* AI render style picker: cards with abstract CSS swatches (never the owner's piece). */
-.sheet.stl-sheet { display: flex; flex-direction: column; gap: 12px; max-height: 92dvh; overflow-y: auto; }
+/* Render sheets (style picker, compare): above the tab bar in stacking order AND ending above it (--sheet-bar is its measured height, set by sheetKit),
+   a visible scrim, an internal scroll, and a header/footer that never scroll away. A bottom sheet on a phone, a centred dialog from 720px. */
+.stl-wrap, .rnd-wrap { z-index: 80; padding-bottom: var(--sheet-bar, 0px); }
+.stl-wrap .scrim, .rnd-wrap .scrim { position: fixed; background: rgb(31 20 24 / 0.6); }
+.sheet.stl-sheet { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; max-height: min(85dvh, calc(100dvh - var(--sheet-bar, 0px) - 16px)); border-radius: 24px 24px 0 0; }
+.stl-head { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 16px 20px 10px; border-bottom: 1px solid var(--line, rgb(128 128 128 / 0.25)); }
+.stl-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 20px; }
+.stl-foot { flex: none; display: flex; gap: 10px; padding: 12px 20px calc(12px + var(--sheet-sab, var(--sab, 0px))); border-top: 1px solid var(--line, rgb(128 128 128 / 0.25)); background: inherit; }
+.stl-foot .btn { flex: 1 1 0; min-height: 44px; }
+.stl-foot .btn:last-child { flex: 2 1 0; }
+.stl-price { font-weight: 600; }
 .stl-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .stl-card { border: 1px solid rgb(128 128 128 / 0.35); display: grid; }
 .stl-card.on { border-color: var(--gold, currentColor); box-shadow: 0 0 0 2px var(--gold, currentColor) inset; }
@@ -425,4 +435,7 @@ html {
 .stl-sw[data-s="festive"] { background: radial-gradient(circle at 50% 60%, #ffd66b 0, #f2a03a 28%, #7a3b0c 70%, #2a1204 100%); }
 .stl-sw[data-s="on-model"] { background: radial-gradient(ellipse at 50% 100%, #2b2320 0 45%, transparent 46%), linear-gradient(180deg, #0d0b0b, #1c1716); }
 .stl-sw[data-s="macro"] { background: conic-gradient(from 20deg at 50% 50%, #e8e8ea, #9b9ba3, #f6f6f8, #7d7d86, #e8e8ea); }
-@media (min-width: 720px) { .sheet.stl-sheet { max-width: 760px !important; } .stl-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 720px) { .stl-wrap, .rnd-wrap { align-items: center; padding: 24px; } .sheet.stl-sheet, .sheet.rnd-cmp { border-radius: 24px; max-height: 85dvh; } .sheet.stl-sheet { max-width: 760px !important; } .stl-grid { grid-template-columns: 1fr 1fr; } }
+
+/* The compare sheet's buttons stay in view while the photos scroll. */
+.rnd-foot { position: sticky; bottom: 0; background: inherit; padding-top: 8px; margin-bottom: -4px; }

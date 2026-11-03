@@ -21,6 +21,7 @@ import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { noteApiCall } from './bugReport';
+import type { AiCreditsInfo, RenderResult, RenderStatus } from './aiRender';
 
 // Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
 const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
@@ -455,13 +456,23 @@ export const api = {
   },
 
   /** CAD-style AI render of a just-uploaded photo. The original stays stored; the server says why when it cannot render. */
-  async renderPhoto(ref: string, signal?: AbortSignal, style?: string, placement?: string): Promise<{ ref: string; url: string; style?: string; original: { ref: string; url: string } }> {
-    return (await post('/api/v1/admin/photos/render', { ref, style, placement }, signal)).data;
+  async renderPhoto(ref: string, signal?: AbortSignal, style?: string, placement?: string, renderId?: string): Promise<RenderResult> {
+    return (await post('/api/v1/admin/photos/render', { ref, style, placement, renderId }, signal)).data;
   },
 
   /** Is AI render on for this server, and how many renders are left this month. */
-  async renderStatus(): Promise<{ enabled: boolean; cap: number; used: number; left: number; styles?: string[] }> {
+  async renderStatus(): Promise<RenderStatus> {
     return (await request('/api/v1/admin/photos/render')).data;
+  },
+
+  /** This store's AI credit balance, prices, recent renders and last top-ups (read-only; Antarixs tops up). */
+  async aiCredits(): Promise<AiCreditsInfo> {
+    return (await request('/api/v1/admin/ai-credits')).data;
+  },
+
+  /** Tells the server whether the owner kept a render (reporting only; the charge stands). */
+  async keepRender(renderId: string, kept: boolean): Promise<void> {
+    await post('/api/v1/admin/ai-credits/keep', { renderId, kept });
   },
 
   async getProducts(params?: { search?: string; category?: string; purity?: string }): Promise<Product[]> {

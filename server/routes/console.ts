@@ -11,6 +11,7 @@ import { HttpError, handler, parse } from '../http';
 import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
 import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 import { activity, buyers, orders, owners, summary } from '../consoleStats';
+import { consoleAiRoutes } from './consoleAi';
 import { deliverySummary, type MessageDoc, type MessageLog } from '../messages';
 
 const IAP_KEYS_URL = 'https://www.gstatic.com/iap/verify/public_key';
@@ -171,6 +172,8 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   write('suspend', z.object({}), () => ({ patch: { status: 'suspended' }, what: 'suspended' }));
   write('unsuspend', z.object({}), () => ({ patch: { status: 'active' }, what: 'unsuspended' }));
   write('own-app', z.object({ ownApp: z.boolean() }), (_rec, b) => ({ patch: { ownApp: b.ownApp }, what: `ownApp ${b.ownApp}` }));
+
+  r.use('/ai', consoleAiRoutes(root));
 
   r.use((_req, _res, next) => next(new HttpError(404, 'Not found.')));
   r.use((e: any, _req: any, res: any, _next: any) => {

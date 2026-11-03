@@ -35,6 +35,16 @@ export interface Store {
   update(collection: string, id: string, data: Doc): Promise<void>;
   /** Atomically adds to numeric fields, creating the document (with `extra` fields) if needed. */
   increment(collection: string, id: string, fields: Record<string, number>, extra?: Doc): Promise<void>;
+  /**
+   * Runs `fn` as one atomic read-modify-write: every `get` sees a consistent state and the `set`s apply together or not at all.
+   * Do all reads before any write (Firestore requires it). Firestore may re-run `fn` on contention, so keep it free of side effects.
+   */
+  transact<T>(fn: (tx: Tx) => Promise<T>): Promise<T>;
+}
+
+export interface Tx {
+  get<T = Doc>(collection: string, id: string): Promise<T | null>;
+  set(collection: string, id: string, data: Doc): void;
 }
 
 function matches(doc: Doc, filters: Filter[] = []): boolean {
@@ -132,6 +142,24 @@ export class MemoryStore implements Store {
     c.set(id, doc);
     this.persist();
   }
+
+  // Transactions run one at a time, so a read-modify-write inside one can never interleave with another.
+  private lock: Promise<unknown> = Promise.resolve();
+  transact<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+    const run = async () => {
+      const writes: Array<[string, string, Doc]> = [];
+      const out = await fn({
+        get: async (col, id) => this.get(col, id) as any,
+        set: (col, id, data) => void writes.push([col, id, structuredClone(data)])
+      });
+      for (const [col, id, data] of writes) this.col(col).set(id, data);
+      if (writes.length) this.persist();
+      return out;
+    };
+    const next = this.lock.then(run, run);
+    this.lock = next.catch(() => {});
+    return next;
+  }
 }
 
 export class FirestoreStore implements Store {
@@ -189,6 +217,21 @@ export class FirestoreStore implements Store {
   async increment(collection: string, id: string, fields: Record<string, number>, extra: Doc = {}) {
     const counters = Object.fromEntries(Object.entries(fields).map(([k, by]) => [k, FieldValue.increment(by)]));
     await this.db.collection(collection).doc(id).set({ ...extra, ...counters }, { merge: true });
+  }
+
+  transact<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+    return this.db.runTransaction(async (t) => {
+      const writes: Array<[string, string, Doc]> = [];
+      const out = await fn({
+        get: async (col, id) => {
+          const snap = await t.get(this.db.collection(col).doc(id));
+          return snap.exists ? (snap.data() as any) : null;
+        },
+        set: (col, id, data) => void writes.push([col, id, data])
+      });
+      for (const [col, id, data] of writes) t.set(this.db.collection(col).doc(id), data);
+      return out;
+    });
   }
 }
 

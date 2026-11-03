@@ -41,6 +41,7 @@ const { createServer } = await import('vite');
 const config = { ...loadConfig(), rateLimit: { auth: 1e6, adminRegister: 1e6, api: 1e9, analytics: 1e9 } };
 const store = createStore(config);
 await seedDemoCatalogue(scopeStore(store, config.defaultStore), config.merchant.id);
+if (process.env.AI_E2E_SEED === '1') await (await import('./aiSeed')).seedAi(store);
 const app = createApp(config, store, createBlobs(config));
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });

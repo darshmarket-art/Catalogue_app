@@ -5,6 +5,7 @@ import type { ActiveScreen, AdminSummary } from '../types';
 import { Icon, Title } from '../layouts/emergent/ui';
 import { Notice } from './ui';
 import { OrderNotificationsToggle } from './OrderNotificationsToggle';
+import { AiCreditsCard } from './AiCredits';
 import { errorText } from '../bugReport';
 import { merchant } from '../merchant';
 import { notify } from '../notify';
@@ -99,6 +100,8 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
           <Row icon="wa" title="WA Lighthouse" note="WhatsApp numbers, test alert and message log" testId="store-wa-lighthouse" onClick={() => (flags.alerts ? onNavigate('admin-alerts') : upgradeNotice('WA Lighthouse'))} extra={!flags.alerts ? <> <span className="pro">Pro</span></> : summary.messagesFailed > 0 ? <> <span className="pill conf" style={{ background: 'var(--em-bad)', color: '#fff' }}>{summary.messagesFailed}</span></> : undefined} />
           <Row icon="file" title="Audit log" note={downloading ? 'Downloading…' : 'Export every change as CSV'} testId="store-audit" onClick={exportAudit} extra={!flags.auditLog ? <> <span className="pro">Pro</span></> : undefined} />
         </Group>
+        <div className="em-ey" style={{ marginTop: 8 }}>AI credits</div>
+        <AiCreditsCard />
         <Group title="Plan">
           <Row icon="award" title="Plan and usage" note={`${planNote} · limits and what Pro adds`} testId="store-plan" onClick={() => onNavigate('admin-plan')} />
         </Group>

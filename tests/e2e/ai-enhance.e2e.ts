@@ -8,7 +8,7 @@ import { sessions } from './env';
 import { seedRole, settle } from './screens';
 
 /**
- * "Enhance to CAD render" on an existing design photo, with the provider mocked at the network (no Google call is ever made):
+ * "AI Enhance" on an existing design photo, with the provider mocked at the network (no Google call is ever made):
  * rendering state, compare sheet, keep / use / revert / cancel, in both layouts at phone and desktop width. Screenshots: docs/qa-maison/ai/.
  * Runs one at a time because the store's layout is shared server state.
  */
@@ -71,6 +71,7 @@ for (const layout of ['emergent', 'maison'] as const) {
       // loading state: nothing changes, Save is held, the owner can cancel
       await enhance.click();
       await page.getByTestId('style-cad').click();
+      await page.getByTestId('style-continue').click();
       const busy = page.getByTestId('photo-rendering');
       await expect(busy).toContainText('Rendering your design - about a minute');
       await expect(page.getByTestId('np-save')).toBeDisabled();
@@ -102,6 +103,7 @@ for (const layout of ['emergent', 'maison'] as const) {
       // accept: the form now points at the render, with Revert to original
       await page.getByTestId('photo-enhance').first().click();
       await page.getByTestId('style-cad').click();
+      await page.getByTestId('style-continue').click();
       await expect(sheet).toBeVisible({ timeout: 8000 });
       await sheet.getByTestId('render-use').click();
       await expect(firstImg).toHaveAttribute('src', /mock\/after\.png/);
@@ -122,6 +124,7 @@ test('cancel while rendering, and the failure, cap and off messages', async ({ p
   const original = await firstImg.getAttribute('src');
   await page.getByTestId('photo-enhance').first().click();
   await page.getByTestId('style-cad').click();
+      await page.getByTestId('style-continue').click();
   await page.getByTestId('photo-rendering').getByRole('button', { name: 'Use original' }).click();
   await expect(page.getByTestId('photo-rendering')).toHaveCount(0);
   await page.waitForTimeout(RENDER_MS + 800); // the late answer must not open a sheet or change the photo
@@ -142,6 +145,7 @@ for (const [name, post] of [
     const original = await firstImg.getAttribute('src');
     await page.getByTestId('photo-enhance').first().click();
     await page.getByTestId('style-cad').click();
+      await page.getByTestId('style-continue').click();
     await expect(page.getByRole('status').filter({ hasText: post.message })).toBeVisible({ timeout: 8000 });
     expect(await firstImg.getAttribute('src')).toBe(original);
     if (name !== 'failure') await expect(page.getByTestId('enhance-blocked')).toBeVisible();

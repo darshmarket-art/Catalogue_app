@@ -166,3 +166,15 @@ dialog.cn-dlg h2 { font-size: 1.25rem; margin-bottom: 8px; }
 /* Small controls keep their size and get an invisible 44px hit box centred on them. */
 .cn-btn.sm, .cn-link { position: relative; }
 .cn-btn.sm::after, .cn-link::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+
+/* AI section */
+.cn-tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.cn-tabs a { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 600; }
+.cn-tabs a[aria-current="page"] { background: var(--plum); color: #faf6f1; }
+.cn-tabs a em { font-style: normal; font-size: 0.75rem; background: var(--gold); color: #1a1a1a; border-radius: 999px; padding: 0 7px; }
+.cn-fld { display: flex; flex-direction: column; gap: 4px; font-weight: 500; }
+.cn-fld .cn-inp { border-radius: 12px; }
+.cn-chk { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.cn-chk input { width: 18px; height: 18px; accent-color: var(--plum); }
+.ai-kill { border-color: var(--bad); background: #fbeff0; }
+.cn-btn.sm[href], a.cn-btn { text-decoration: none; }

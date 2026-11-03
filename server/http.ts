@@ -8,7 +8,9 @@ export class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
-    public code?: string
+    public code?: string,
+    /** Extra machine-readable fields merged into the JSON body, e.g. { reason: 'credits' }. */
+    public extra?: Record<string, unknown>
   ) {
     super(message);
   }
@@ -57,7 +59,7 @@ export function notFoundApi(_req: Request, res: Response) {
 
 export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof HttpError) {
-    return res.status(err.status).json({ status: 'error', message: err.message, ...(err.code && { code: err.code }) });
+    return res.status(err.status).json({ status: 'error', message: err.message, ...(err.code && { code: err.code }), ...err.extra });
   }
   if (err?.type === 'entity.too.large') {
     return res.status(413).json({ status: 'error', message: 'Request body is too large.' });

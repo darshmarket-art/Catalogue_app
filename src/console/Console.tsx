@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { Activity, Award, Bug, FileText, Globe, HardDrive, LayoutDashboard, Package, RefreshCw, Search, Store, UserRound, Users } from 'lucide-react';
+import { Activity, Award, Bug, FileText, Globe, HardDrive, LayoutDashboard, Package, RefreshCw, Search, Sparkles, Store, UserRound, Users } from 'lucide-react';
 import { markSvgInner } from '../../shared/antarixsMark';
+import { AiPage } from './ai';
 import { call, num, revisionNo, useApi, type Action, type Row, type Summary } from './api';
 import { ActivityPage, AuditPage, BugsPage, BuyersPage, Overview, OrdersPage, OwnersPage, PlansPage, StoragePage, StoreDetail, SubdomainsPage, StoresPage, type PageProps } from './pages';
 
@@ -11,6 +12,7 @@ const NAV: Array<{ id: string; label: string; icon: ComponentType<{ size?: numbe
   { id: 'buyers', label: 'Buyers', icon: Users, page: BuyersPage },
   { id: 'orders', label: 'Orders', icon: Package, page: OrdersPage },
   { id: 'plans', label: 'Plans & trials', icon: Award, page: PlansPage },
+  { id: 'ai', label: 'AI', icon: Sparkles, page: () => null },
   { id: 'activity', label: 'Activity', icon: Activity, page: ActivityPage },
   { id: 'storage', label: 'Storage', icon: HardDrive, page: StoragePage },
   { id: 'subdomains', label: 'Subdomains', icon: Globe, page: SubdomainsPage },
@@ -76,7 +78,7 @@ export default function Console() {
   const first = useRef(true);
 
   const nav = NAV.find((n) => n.id === page)!;
-  const heading = id ? 'Store' : nav.label;
+  const heading = id && page !== 'ai' ? 'Store' : nav.label;
   useEffect(() => {
     document.title = `${heading} · Antarixs console`;
     if (first.current) first.current = false;
@@ -133,7 +135,7 @@ export default function Console() {
           </div>
         </header>
         {notice && <p role="status" className="cn-note ok">{notice}</p>}
-        {id ? <StoreDetail {...props} id={id} /> : <Page {...props} />}
+        {page === 'ai' ? <AiPage sub={id} /> : id ? <StoreDetail {...props} id={id} /> : <Page {...props} />}
       </main>
       <Confirm pending={pending} busy={busy} error={error} onYes={() => void run()} onNo={() => { if (!busy) { setPending(null); setError(''); } }} />
     </div>

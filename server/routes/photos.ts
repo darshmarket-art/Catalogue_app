@@ -8,6 +8,7 @@ import type { Store } from '../store';
 import { allowedStyles, renderEnabled, renderMonthlyCap, renderStudio, STYLES } from '../aiRender';
 import { PLACEMENTS, STYLE_IDS, type Placement, type StyleId } from '../../shared/aiStyles';
 import { HttpError, handler } from '../http';
+import { RENDER_ID, activeModel, finish, getConfig, getWallet, newRenderId, priceFor, reserve } from '../aiCredits';
 import { logger } from '../logger';
 import sharp from 'sharp';
 import { PHOTO_VARIANT_WIDTHS } from '../../shared/photoSpecs';
@@ -48,7 +49,10 @@ export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/pn
 }
 
 /** Admin-only: the browser sends the photo as the raw request body; it is stored in the merchant's bucket. */
-export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements, bulkImportKey: string | null, store: Store) {
+/** The credit wallet lives at the platform level (`root`); `storeId` is this store's own id, fixed when the app is built, so a request can never name another store. */
+export interface AiWallet { root: Store; storeId: string; founder: () => Promise<boolean> }
+
+export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements, bulkImportKey: string | null, store: Store, ai: AiWallet) {
   const router = Router();
 
   router.post(
@@ -79,7 +83,18 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
     handler(async (_req, res) => {
       const cap = renderMonthlyCap();
       const used = Number((await store.get('aiRenderMonthly', new Date().toISOString().slice(0, 7)))?.count ?? 0);
-      res.json({ status: 'success', data: { enabled: renderEnabled(), styles: allowedStyles(), cap, used, left: Math.max(0, cap - used) } });
+      const [cfg, wallet] = await Promise.all([getConfig(ai.root), ai.founder().then((f) => getWallet(ai.root, ai.storeId, f))]);
+      const myCap = wallet.monthlyCap ?? cap;
+      const prices = Object.fromEntries(STYLE_IDS.map((x) => [x, wallet.aiFree ? 0 : priceFor(cfg, wallet, x)]));
+      res.json({
+        status: 'success',
+        data: {
+          enabled: renderEnabled() && !cfg.killSwitch && wallet.aiEnabled, styles: allowedStyles(), cap: myCap, used, left: Math.max(0, myCap - used),
+          // Why it is off, when it is: the app words the message. Balance and prices are the server's; the app only shows them.
+          offReason: !renderEnabled() ? 'server' : cfg.killSwitch ? 'paused' : !wallet.aiEnabled ? 'store' : null,
+          credits: { balance: wallet.balance, free: wallet.aiFree, prices, low: !wallet.aiFree && wallet.balance <= cfg.lowBalance }
+        }
+      });
     })
   );
 
@@ -95,7 +110,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       if (!renderEnabled()) throw new HttpError(503, 'AI render is switched off on this server. Your original photo is used.');
       const ref = normalizePhoto(String((req.body as { ref?: unknown } | undefined)?.ref ?? ''));
       if (!ref?.startsWith('media:')) throw new HttpError(400, 'Only a photo uploaded here can be rendered.');
-      const body = req.body as { style?: unknown; placement?: unknown };
+      const body = req.body as { style?: unknown; placement?: unknown; renderId?: unknown };
       const style = (body.style ?? 'cad') as StyleId;
       if (!STYLE_IDS.includes(style) || !allowedStyles().includes(style)) throw new HttpError(400, 'Choose one of the available AI render styles.');
       const placement = body.placement as Placement | undefined;
@@ -103,11 +118,30 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const original = await blobs.get(objectName(ref.slice(6)));
       if (!original) throw new HttpError(404, 'Photo not found. Upload it again.');
 
-      // ponytail: read-then-increment, so two renders racing at the cap can overshoot by one. Use a Firestore transaction if that ever matters.
+      const renderId = typeof body.renderId === 'string' ? body.renderId : newRenderId();
+      if (!RENDER_ID.test(renderId)) throw new HttpError(400, 'Invalid render id.');
+      const founder = await ai.founder();
+      const wallet = await getWallet(ai.root, ai.storeId, founder);
+
+      // ponytail: read-then-increment, so two renders racing at the cap can overshoot by one. The balance itself is race-safe (aiCredits.reserve); use a transaction here if the cap ever must be exact.
       const month = new Date().toISOString().slice(0, 7);
-      const cap = renderMonthlyCap();
-      if (Number((await store.get('aiRenderMonthly', month))?.count ?? 0) >= cap) {
-        throw new HttpError(402, `This store has used its ${cap} AI renders for this month. Your original photo is used.`);
+      const cap = wallet.monthlyCap ?? renderMonthlyCap();
+      const capReached = Number((await store.get('aiRenderMonthly', month))?.count ?? 0) >= cap;
+      const r = await reserve(ai.root, { storeId: ai.storeId, renderId, style, model: activeModel(), founder, capReached });
+      if (!r.ok) {
+        const credits = { balance: r.wallet.balance, price: r.price };
+        if (r.reason === 'credits') throw new HttpError(402, `Not enough AI credits (this style costs ${r.price}, your balance is ${r.wallet.balance}). Your original photo is used.`, 'credits', { reason: 'credits', ...credits });
+        if (r.reason === 'cap') throw new HttpError(402, `This store has used its ${cap} AI renders for this month. Your original photo is used.`, 'cap', { reason: 'cap' });
+        throw new HttpError(503, r.reason === 'paused' ? 'AI render is paused by Antarixs for now. Your original photo is used.' : 'AI render is switched off for this store. Contact Antarixs. Your original photo is used.', r.reason, { reason: r.reason });
+      }
+      if (r.replay) {
+        // The same render id again: never charged twice and never sent to Google twice.
+        const file = r.usage.resultRef?.slice(6);
+        const meta = file ? await blobs.get(`renders/${file}`) : null;
+        if (r.usage.outcome !== 'ok' || !file || !meta) throw new HttpError(409, 'That render is already in progress or finished. Start a new one.', 'duplicate', { reason: 'duplicate' });
+        const was = JSON.parse(meta.data.toString()) as { original: string };
+        res.json({ status: 'success', data: { ref: r.usage.resultRef, url: media.linkFor(file), style, original: { ref: was.original, url: media.url(was.original) }, renderId, credits: { balance: r.wallet.balance, charged: r.usage.price }, replay: true } });
+        return;
       }
       await store.increment('aiRenderMonthly', month, { count: 1 }, { month });
 
@@ -120,12 +154,19 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       } catch (err) {
         const why = err instanceof Error && err.name !== 'TimeoutError' ? err.message : 'the AI did not answer in time';
         logger.warn('AI render failed; keeping the original', { error: err instanceof Error ? err.message : String(err) });
-        throw new HttpError(502, `AI render did not work for this photo (${why}). Your original photo is used.`);
+        const closed = await finish(ai.root, ai.storeId, renderId, { outcome: 'provider_failed' });
+        throw new HttpError(502, `AI render did not work for this photo (${why}). ${r.usage.price ? 'Your credits were returned. ' : ''}Your original photo is used.`, undefined, { renderId, credits: { balance: closed?.balanceAfter ?? r.wallet.balance, refunded: r.usage.price } });
       }
       const file = newPhotoFile(TYPES[rendered.type]);
-      await blobs.put(objectName(file), rendered.buffer, rendered.type);
-      await blobs.put(`renders/${file}`, Buffer.from(JSON.stringify({ original: ref, style, ...(style === 'on-model' ? { placement } : {}) })), 'application/json');
-      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), style, original: { ref, url: media.url(ref) } } });
+      try {
+        await blobs.put(objectName(file), rendered.buffer, rendered.type);
+        await blobs.put(`renders/${file}`, Buffer.from(JSON.stringify({ original: ref, style, ...(style === 'on-model' ? { placement } : {}) })), 'application/json');
+      } catch (err) {
+        await finish(ai.root, ai.storeId, renderId, { outcome: 'provider_failed' }); // our storage failed, not the owner's fault: give the credits back
+        throw err;
+      }
+      const closed = await finish(ai.root, ai.storeId, renderId, { outcome: 'ok', resultRef: `media:${file}` });
+      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), style, original: { ref, url: media.url(ref) }, renderId, credits: { balance: closed?.balanceAfter ?? r.wallet.balance, charged: r.usage.price } } });
     })
   );
 
