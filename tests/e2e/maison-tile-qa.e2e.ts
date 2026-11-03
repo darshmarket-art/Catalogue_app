@@ -12,6 +12,12 @@ for (const [w, h, tag] of [[390, 844, 'm390'], [1440, 900, 'd1440']] as const) {
     const auth = { Authorization: `Bearer ${sessions().owner.token}`, 'X-Store': STORE_ID };
     await page.request.put('/api/admin/layout', { headers: auth, data: { layout: 'maison' } });
     await seedRole(page, 'buyer');
+    // seedRole serves the page as Classic (other specs share the store); this spec is Maison, so serve it as Maison. Registered last, it runs first and does not fall back.
+    await page.route((u) => !u.pathname.startsWith('/api/') && !u.pathname.startsWith('/src/') && !u.pathname.startsWith('/assets/') && !u.pathname.startsWith('/@') && !u.pathname.startsWith('/node_modules/'), async (route) => {
+      if (route.request().resourceType() !== 'document') return route.fallback();
+      const res = await route.fetch({ timeout: 60_000 });
+      await route.fulfill({ status: res.status(), contentType: 'text/html; charset=utf-8', body: (await res.text()).replace('"layout":"emergent"', '"layout":"maison"') });
+    });
     await page.request.put('/api/v1/shortlist', { headers: { Authorization: `Bearer ${sessions().buyer.token}`, 'X-Store': STORE_ID }, data: { skus: [] } });
     await page.goto(`/?store=${STORE_ID}`);
     await page.screenshot({ path: `${OUT}/${tag}-home-first.png` });

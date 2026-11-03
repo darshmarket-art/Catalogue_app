@@ -54,7 +54,8 @@ document.addEventListener('focusin', (e) => {
   if (!field) return; // a button taking focus leaves the pending release alone
   window.clearTimeout(release);
   const root = document.documentElement;
-  const typing = touchPhone.matches && field.matches(TEXT_FIELD);
+  // A select raises no keyboard, but in a landscape phone's short window the bars would leave it no room either, so it clears them too.
+  const typing = touchPhone.matches && (field.matches(TEXT_FIELD) || window.innerHeight < 480);
   root.toggleAttribute('data-typing', typing);
   let top = 0;
   for (const bar of document.querySelectorAll('.em-top, .topbar')) if (floating(bar)) top = Math.max(top, bar.getBoundingClientRect().bottom);
