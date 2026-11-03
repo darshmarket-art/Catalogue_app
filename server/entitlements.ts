@@ -1,5 +1,6 @@
 import type { Store } from './store';
 import { HttpError } from './http';
+import { loadTagCovers } from './tags';
 import { UPGRADE_TO_PRO } from '../shared/sales';
 import { LIMITS, TRIAL_DAYS, flagsFor, type Limits } from '../shared/limits';
 export { LIMITS, TRIAL_DAYS, flagsFor };
@@ -22,14 +23,15 @@ export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {
 };
 
 
-/** Distinct photos in use across designs, categories and banners. Uploaded-but-unused (orphan) files are not counted. */
+/** Distinct photos in use across designs, categories, banners and tag covers. Uploaded-but-unused (orphan) files are not counted. */
 export async function photosInUse(store: Store, products?: { photos(): Promise<Set<string> | null> }): Promise<Set<string>> {
   // With a catalogue handle the design photos come from its in-memory index; without one (or when the store is too big to index) the products are scanned.
   const fromIndex = await products?.photos();
-  const [productDocs, categories, banners] = await Promise.all([fromIndex ? [] : store.list('products'), store.list('categories'), store.list('banners')]);
+  const [productDocs, categories, banners, covers] = await Promise.all([fromIndex ? [] : store.list('products'), store.list('categories'), store.list('banners'), loadTagCovers(store)]);
   const used = new Set<string>(fromIndex ?? []);
   for (const p of productDocs) for (const i of p.images ?? [p.image]) if (i) used.add(i);
   for (const d of [...categories, ...banners]) if (d.image) used.add(d.image);
+  for (const ref of Object.values(covers)) used.add(ref);
   return used;
 }
 

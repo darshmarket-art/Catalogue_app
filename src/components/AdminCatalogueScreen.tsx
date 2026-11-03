@@ -7,6 +7,8 @@ import { downloadDesignsPdf } from '../cataloguePdf';
 import { AdminBannersScreen } from './AdminBannersScreen';
 import { AdminPuritiesScreen } from './AdminPuritiesScreen';
 import { groupByTag, setTagList, useTagList } from '../tagList';
+import { getTagCovers, setTagCovers, useTagCovers } from '../tagCovers';
+import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { UserError, errorText } from '../bugReport';
 import { SIZES_GRID } from '../photoSrcSet';
 
@@ -306,20 +308,43 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
   const [moveTo, setMoveTo] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const covers = useTagCovers();
+  const [coverFor, setCoverFor] = useState<string | null>(null);
+  const [coverPhotos, setCoverPhotos] = useState<PhotoItem[]>([]);
+  const [uploading, setUploading] = useState(false);
   const countOf = (t: string) => categories.filter((c) => c.tag === t).length;
-  const run = async (job: () => Promise<string[]>, after?: () => void) => {
+  const act = async (job: () => Promise<void>, failed: string) => {
     setBusy(true);
     setProblem(null);
     try {
-      setTagList(await job());
-      after?.();
-      onChanged();
+      await job();
     } catch (err) {
-      setProblem(errorText(err, 'AdminCatalogueScreen', 'Could not save the tag.'));
+      setProblem(errorText(err, 'AdminCatalogueScreen', failed));
     } finally {
       setBusy(false);
     }
   };
+  const run = (job: () => Promise<string[]>, after?: () => void) =>
+    act(async () => {
+      setTagList(await job());
+      after?.();
+      onChanged();
+      // A rename or delete moves or drops the tag's cover on the server.
+      api.getTagCovers().then((map) => map && setTagCovers(map)).catch(() => {});
+    }, 'Could not save the tag.');
+  const openCover = (t: string | null) => { setCoverFor(t); setCoverPhotos([]); setEditing(null); setDeleting(null); setProblem(null); };
+  const saveCover = (t: string) =>
+    act(async () => {
+      const url = await api.setTagCover(t, coverPhotos[0].ref);
+      setTagCovers({ ...getTagCovers(), [t]: url });
+      openCover(null);
+    }, 'Could not save the photo.');
+  const removeCover = (t: string) =>
+    act(async () => {
+      await api.clearTagCover(t);
+      const { [t]: _gone, ...rest } = getTagCovers();
+      setTagCovers(rest);
+    }, 'Could not remove the photo.');
   return (
     <div className="em-card" data-testid="tag-manager">
       <button type="button" className="em-row em-sb" style={{ width: '100%', border: 0, background: 'none', font: 'inherit', color: 'inherit', padding: 0, cursor: 'pointer' }} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -331,7 +356,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
       </button>
       {open && (
         <div style={{ marginTop: 8 }}>
-          <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '0 0 6px' }}>Every collection is filed under one tag. Buyers browse collections by tag.</p>
+          <p className="em-mut" style={{ fontSize: '0.7813rem', margin: '0 0 6px' }}>Every collection is filed under one tag. Buyers browse collections by tag; a tag's photo is shown on its card (without one, its newest design's photo).</p>
           {problem && <p role="alert" style={{ color: 'var(--em-bad)', fontSize: '0.8125rem', margin: '4px 0' }}>{problem}</p>}
           {tags.map((t, i) => (
             <div key={t} data-testid="tag-row" style={{ padding: '8px 0', borderTop: i ? '1px solid var(--em-line)' : 0 }}>
@@ -343,10 +368,26 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
                 </form>
               ) : (
                 <div className="em-row" style={{ gap: 8 }}>
-                  <span className="em-grow em-clip" style={{ fontWeight: 500 }}>{t}</span>
+                  <Ph src={covers[t]} tone={i} alt="" style={{ width: 40, height: 40, borderRadius: 8, flex: 'none' }} />
+                  <span className="em-grow em-clip" style={{ fontWeight: 500 }}>
+                    {t}
+                    <span className="em-row" style={{ gap: 12, marginTop: 2 }}>
+                      <button type="button" className="em-link" style={{ fontSize: '0.75rem' }} data-testid="tag-cover-set" aria-label={`${covers[t] ? 'Change' : 'Set'} photo for ${t}`} onClick={() => openCover(coverFor === t ? null : t)}>{covers[t] ? 'Change' : 'Set photo'}</button>
+                      {covers[t] && <button type="button" className="em-link" style={{ fontSize: '0.75rem' }} data-testid="tag-cover-remove" aria-label={`Remove photo for ${t}`} disabled={busy} onClick={() => void removeCover(t)}>Remove</button>}
+                    </span>
+                  </span>
                   <span className="em-mut" style={{ fontSize: '0.75rem' }}>{countOf(t)} {countOf(t) === 1 ? 'collection' : 'collections'}</span>
-                  <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-edit" aria-label={`Rename ${t}`} onClick={() => { setEditing(t); setDraft(t); setDeleting(null); setProblem(null); }}><Icon n="edit" size={14} /></button>
-                  <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-delete" disabled={tags.length <= 1} aria-label={`Delete ${t}`} onClick={() => { setDeleting(deleting === t ? null : t); setMoveTo(''); setEditing(null); setProblem(null); }}><Icon n="x" size={14} /></button>
+                  <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-edit" aria-label={`Rename ${t}`} onClick={() => { setEditing(t); setDraft(t); setDeleting(null); setCoverFor(null); setProblem(null); }}><Icon n="edit" size={14} /></button>
+                  <button type="button" className="em-circ" style={{ width: 32, height: 32 }} data-testid="tag-delete" disabled={tags.length <= 1} aria-label={`Delete ${t}`} onClick={() => { setDeleting(deleting === t ? null : t); setMoveTo(''); setEditing(null); setCoverFor(null); setProblem(null); }}><Icon n="x" size={14} /></button>
+                </div>
+              )}
+              {coverFor === t && (
+                <div style={{ marginTop: 8 }} data-testid="tag-cover-picker">
+                  <PhotoPicker photos={coverPhotos} onChange={setCoverPhotos} max={1} onBusyChange={setUploading} kind="collection" />
+                  <div className="em-row" style={{ gap: 8, marginTop: 8 }}>
+                    <button type="button" className="em-btn sm" data-testid="tag-cover-save" disabled={busy || uploading || !coverPhotos[0]?.ref} onClick={() => void saveCover(t)}>{uploading ? 'Photo is uploading…' : 'Save photo'}</button>
+                    <button type="button" className="em-link" onClick={() => openCover(null)}>Cancel</button>
+                  </div>
                 </div>
               )}
               {deleting === t && (

@@ -7,6 +7,7 @@ import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, Anal
 import { api, ApiError, hasStoredSession, hasToken, setAuthToken, setUnauthorizedHandler } from './api';
 import { noteCollection, recentSkus } from './recent';
 import { setTagList } from './tagList';
+import { setTagCovers } from './tagCovers';
 import { isTidying } from './backLayer';
 import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
 import { getLang, hn, pur, t, tErr, ts, useLang } from './i18n';
@@ -344,6 +345,7 @@ export default function App() {
       setAbout(aboutData);
       api.getPurities().then((list) => list && setPurities(list)).catch(() => {});
       api.getTags().then((list) => list && setTagList(list)).catch(() => {});
+      api.getTagCovers().then((map) => map && setTagCovers(map)).catch(() => {});
       if (catsData.length > 0) setCategories(catsData);
       // Designs for the Home strip and the tour come AFTER Home is up and never gate it: the recent SKUs, plus a small first page.
       const recent = recentSkus().slice(0, 8);

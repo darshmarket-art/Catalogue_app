@@ -409,6 +409,21 @@ export const api = {
   async deleteTag(name: string, moveTo?: string): Promise<string[]> {
     return (await request(`/api/v1/tags/${encodeURIComponent(name)}${moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : ''}`, { method: 'DELETE' })).data;
   },
+  /** Tag name -> cover photo link, for the tags that have one. */
+  async getTagCovers(): Promise<Record<string, string> | null> {
+    try {
+      return (await request('/api/v1/tag-covers')).data;
+    } catch {
+      return null;
+    }
+  },
+  /** Sets a tag's cover from a photo uploaded with uploadPhoto; returns its display link. */
+  async setTagCover(tag: string, ref: string): Promise<string> {
+    return (await request(`/api/v1/tag-covers/${encodeURIComponent(tag)}`, { method: 'PUT', body: JSON.stringify({ ref }) })).data.url;
+  },
+  async clearTagCover(tag: string): Promise<void> {
+    await request(`/api/v1/tag-covers/${encodeURIComponent(tag)}`, { method: 'DELETE' });
+  },
 
   async getPurities(): Promise<Purity[] | null> {
     try {

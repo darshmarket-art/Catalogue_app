@@ -4,7 +4,7 @@ import type { Doc, Store } from '../store';
 import type { Blobs } from '../blobs';
 import type { MerchantConfig } from '../merchant';
 import type { SectorPack } from '../sectors';
-import { assertPhotosExist, type Media } from '../media';
+import { assertPhotosExist, normalizePhoto, type Media } from '../media';
 import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema, paginationSchema } from '../schemas';
@@ -12,7 +12,7 @@ import type { Entitlements } from '../entitlements';
 import type { CatalogueStore } from '../catalogueIndex';
 import type { Slim } from '../sectors/jewellery';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
-import { MAX_TAGS, loadTags, resolveTag, sameTag, saveTags, tagNameSchema } from '../tags';
+import { MAX_TAGS, loadTagCovers, loadTags, resolveTag, sameTag, saveTagCovers, saveTags, tagNameSchema } from '../tags';
 
 const byPosition = (a: any, b: any) =>
   (a.position ?? Infinity) - (b.position ?? Infinity) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
@@ -275,6 +275,48 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     })
   );
 
+  // One cover photo per tag (buyers' "Shop by" cards and the tag page banner). Read like the tag list; set from a photo uploaded to this store.
+  router.get(
+    '/tag-covers',
+    readGuard,
+    handler(async (_req, res) => {
+      const [tags, covers] = await Promise.all([loadTags(store), loadTagCovers(store)]);
+      res.json({ status: 'success', data: Object.fromEntries(tags.filter((t) => covers[t]).map((t) => [t, media.url(covers[t])])) });
+    })
+  );
+
+  router.put(
+    '/tag-covers/:name',
+    requireAdmin,
+    handler(async (req, res) => {
+      const tag = req.params.name;
+      if (!(await loadTags(store)).includes(tag)) throw new HttpError(404, 'Tag not found.');
+      const ref = normalizePhoto(String((req.body ?? {}).ref ?? '').trim());
+      if (!ref?.startsWith('media:')) throw new HttpError(400, 'Upload the cover photo here first.');
+      await assertPhotosExist(blobs, [ref]); // blobs are this store's own, so another store's photo is "not found"
+      await ent.assertPhotos([ref]);
+      const covers = await loadTagCovers(store);
+      await saveTagCovers(store, { ...covers, [tag]: ref });
+      await audit(store, req, 'TAG_COVER_SET', `Cover photo set for tag "${tag}".`);
+      res.json({ status: 'success', data: { tag, url: media.url(ref) } });
+    })
+  );
+
+  router.delete(
+    '/tag-covers/:name',
+    requireAdmin,
+    handler(async (req, res) => {
+      const tag = req.params.name;
+      const covers = await loadTagCovers(store);
+      if (tag in covers) {
+        delete covers[tag]; // the photo itself stays in storage
+        await saveTagCovers(store, covers);
+        await audit(store, req, 'TAG_COVER_CLEARED', `Cover photo removed for tag "${tag}".`);
+      }
+      res.json({ status: 'success', data: { tag } });
+    })
+  );
+
   router.post(
     '/tags',
     requireAdmin,
@@ -301,6 +343,12 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       await saveTags(store, list.map((t) => (t === old ? name : t)));
       const cats = await store.list('categories');
       await Promise.all(cats.filter((c) => resolveTag(c as { name: string; tag?: string }, list) === old).map((c) => store.update('categories', c.id, { tag: name })));
+      const covers = await loadTagCovers(store);
+      if (old in covers && old !== name) {
+        covers[name] = covers[old];
+        delete covers[old];
+        await saveTagCovers(store, covers);
+      }
       await audit(store, req, 'TAG_RENAMED', `Tag "${old}" renamed to "${name}".`);
       res.json({ status: 'success', data: list.map((t) => (t === old ? name : t)) });
     })
@@ -322,6 +370,11 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       }
       const next = list.filter((t) => t !== old);
       await saveTags(store, next);
+      const covers = await loadTagCovers(store);
+      if (old in covers) {
+        delete covers[old]; // the photo itself stays in storage
+        await saveTagCovers(store, covers);
+      }
       await audit(store, req, 'TAG_DELETED', `Tag "${old}" deleted${cats.length ? `; ${cats.length} collection(s) moved to "${moveTo}"` : ''}.`);
       res.json({ status: 'success', data: next });
     })

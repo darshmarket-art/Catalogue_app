@@ -10,6 +10,13 @@ export async function loadTags(store: Store): Promise<string[]> {
 
 export const saveTags = (store: Store, list: string[]) => store.set('settings', 'tags', { id: 'tags', list, updatedAt: new Date().toISOString() });
 
+/** The owner's cover photo per tag: tag name -> stored photo ref ("media:..."). Kept in step with the tag list on rename/delete. */
+export async function loadTagCovers(store: Store): Promise<Record<string, string>> {
+  return (await store.get<{ map?: Record<string, string> }>('settings', 'tagCovers'))?.map ?? {};
+}
+
+export const saveTagCovers = (store: Store, map: Record<string, string>) => store.set('settings', 'tagCovers', { id: 'tagCovers', map, updatedAt: new Date().toISOString() });
+
 export const MAX_TAGS = 30;
 export const tagNameSchema = z.object({ name: z.string().trim().min(1, 'Enter a tag name.').max(30, 'Keep the tag to 30 characters.') });
 
