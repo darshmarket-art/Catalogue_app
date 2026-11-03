@@ -93,7 +93,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onNavigate, 
   }
 
   return (
-    <div className="scroll no-tabs" style={{ gap: 16, maxWidth: 480 }}>
+    <div className="scroll no-tabs mx-form" style={{ gap: 16, maxWidth: 480 }}>
       {mode === 'login' ? (
         <form onSubmit={handleLoginSubmit} className="col" style={{ gap: 16 }}>
           <div>

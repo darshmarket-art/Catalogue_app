@@ -1,5 +1,6 @@
 import type { LayoutKit } from '../props';
 import './maison.css';
+import './owner/content.css';
 import { Header } from './Header';
 import { Welcome } from './Welcome';
 import { Home } from './Home';
