@@ -7,6 +7,7 @@ import { Icon, Ph, fmtG, type KitProps } from '../emergent/ui';
 import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
 import { errorText } from '../../bugReport';
 import { SIZES_THUMB } from '../../photoSrcSet';
+import { Placed } from './Placed';
 
 const when = (iso: string) => new Date(iso).toLocaleString(getLang() === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 const STATUS_FILTERS: Array<{ key: 'all' | OrderStatus; label: string }> = [
@@ -133,6 +134,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   const [tab, setTab] = useState<'current' | 'past'>(initialTab);
   const [history, setHistory] = useState<PastOrder[] | null>(null);
   const [note, setNote] = useState('');
+  const [moment, setMoment] = useState<Array<string | undefined> | null>(null); // the order-placed page while it plays (the photos that fly to Orders)
 
   useEffect(() => {
     if (tab === 'past') api.getOrderHistory().then(setHistory);
@@ -153,8 +155,10 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   };
 
   const handleConfirm = async () => {
+    const photos = orders.map((o) => o.image);
     const result = await onConfirmOrder(note.trim() || undefined);
     if (!result) return;
+    setMoment(photos);
     setNote('');
     setIsBooked(true);
     setBookedGrams(result.totalNetGrams);
@@ -167,6 +171,7 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   if (confirmedPO && tab === 'current' && orders.length === 0) {
     return (
       <div className="mx-page mx-booked">
+        {moment && <Placed poId={confirmedPO} grams={bookedGrams} images={moment} onDone={() => setMoment(null)} />}
         <span className="mx-ey">{confirmedPO}</span>
         <h1 className="mx-display">{t(sector.copy.orders.bookedBanner)}</h1>
         <p className="mx-lede">

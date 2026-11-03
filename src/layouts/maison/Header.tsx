@@ -15,7 +15,8 @@ const SUB: ActiveScreen[] = ['retailer-auth', 'admin-login'];
 /**
  * Maison's masthead. A three-bar button at the left opens the index of tags (a mega-panel on desktop, a full-screen drawer on phones); a tag opens its
  * collection names (no counts) and a collection filters the catalogue. "All designs" lives at the foot of the index, not in the bar. The person icon
- * opens the profile panel. Sign-in pages get a back arrow instead.
+ * opens the profile panel, which also holds Shortlist and the order; the count badge (shortlist + order lines) sits on that icon, and each row in the
+ * panel shows its own count. Sign-in pages get a back arrow instead.
  */
 export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, currentMerchant, onLogout, onOpenOrders, categories = [], shortlistCount = 0, orderCount, onOpenCollection }) => {
   useLang();
@@ -36,21 +37,19 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   const tagOrder = useTagList();
   const groups = groupByTag(categories.filter((c) => c.designCount > 0).sort((a, b) => b.designCount - a.designCount), tagOrder);
 
+  const badge = shortlistCount + (orderCount ?? 0);
   const account = currentMerchant ? (
     <button type="button" className="mx-ib" data-testid="mx-profile" aria-label="Profile menu" title={t('Profile')} aria-haspopup="dialog" aria-expanded={profile} onClick={() => { setMenu(false); setProfile(true); }}>
-      <Icon n="user" size={20} />
+      <Icon n="user" size={20} />{badge > 0 && <b className="mx-ct" data-testid="mx-profile-badge" aria-label={String(badge)}>{badge}</b>}
     </button>
   ) : (
     <button type="button" className="mx-ib" aria-label={t('Sign in')} onClick={() => go('retailer-auth')}><Icon n="user" size={20} /></button>
   );
   const counts = (
     <>
-      <button type="button" className="mx-ib" data-tab="shortlist" aria-label={t('Shortlist')} onClick={() => go('shortlist')}>
-        <Icon n="heart" size={20} />{shortlistCount > 0 && <b className="mx-ct">{shortlistCount}</b>}
-      </button>
       {orderCount !== undefined && (
         <button type="button" className="mx-ib" data-tab="orders" aria-label={t('Orders')} onClick={() => go('orders')}>
-          <Icon n="bag" size={20} />{orderCount > 0 && <b className="mx-ct">{orderCount}</b>}
+          <Icon n="bag" size={20} />
         </button>
       )}
     </>
@@ -100,7 +99,7 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
       )}
       {!desk && menu && <MobileMenu groups={groups} current={currentScreen} onGo={go} onCol={openCol} onClose={() => setMenu(false)} />}
       {profile && currentMerchant && (
-        <ProfilePanel buyer={currentMerchant} onClose={() => setProfile(false)} onOpenOrders={(tab) => { setProfile(false); onOpenOrders(tab); }} onGo={go} onLogout={() => { setProfile(false); onLogout(); }} />
+        <ProfilePanel buyer={currentMerchant} shortlistCount={shortlistCount} orderCount={orderCount ?? 0} onClose={() => setProfile(false)} onOpenOrders={(tab) => { setProfile(false); onOpenOrders(tab); }} onGo={go} onLogout={() => { setProfile(false); onLogout(); }} />
       )}
     </header>
   );

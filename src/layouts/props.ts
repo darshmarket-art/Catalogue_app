@@ -87,7 +87,8 @@ export interface ShortlistProps {
   onRemove: (product: Product) => void;
   onClear: () => void;
   /** Adds one piece of each design to the current order. */
-  onAddAllToOrder: (items: Product[]) => Promise<void>;
+  /** `land`: also move to the Orders tab, together with emptying the shortlist, as one transition (Maison). */
+  onAddAllToOrder: (items: Product[], land?: boolean) => Promise<void>;
   onBrowse: () => void;
 }
 export interface OrdersProps {
