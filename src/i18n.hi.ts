@@ -161,6 +161,8 @@ export const HI: Record<string, string> = {
   Menu: 'मेन्यू',
   Search: 'खोजें',
   'Shop by': 'टाइप के हिसाब से देखें',
+  'Shop now': 'अभी देखें',
+  'New in': 'नए डिज़ाइन',
   'All {name}': 'सभी {name}',
   '{n} collection': '{n} कलेक्शन',
   '{n} collections': '{n} कलेक्शन',

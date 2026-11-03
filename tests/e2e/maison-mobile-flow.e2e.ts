@@ -3,7 +3,7 @@ import { STORE_ID, sessions } from './env';
 import { seedRole, settle } from './screens';
 
 /**
- * Maison on phones (docs/swarovski-flow/v0-mobile.html): the banner fills the first screen under a floating masthead, Shop by tag cards, a tag page,
+ * Maison on phones (swarovski.com mobile is the reference; docs/swarovski-flow/v0-mobile.html): the banner fills the first screen less a 105px peek under a floating masthead, Shop by tag cards, a tag page,
  * the collection page and the design page; the masthead's search and menu. At 1440 the desktop page is the one it was (no phone pieces).
  * Screenshots: docs/qa-maison/mobile-flow/. Serial: the store's layout is shared server state.
  */
@@ -37,10 +37,12 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(400);
 
-  // the banner fills the first screen and starts under the masthead; the masthead floats over it, the Maison fonts are in
+  // the banner fills the first screen less a 105px peek of the next band and starts under the 53px masthead; the masthead floats over it, the Maison fonts are in
   const hero = await page.locator('.mx-hero-media').first().boundingBox();
   expect(hero!.y).toBeLessThanOrEqual(1);
-  expect(Math.abs(hero!.height - 844)).toBeLessThan(2);
+  expect(Math.abs(hero!.height - (844 - 105))).toBeLessThan(2);
+  expect(Math.round((await page.locator('.mx-top').boundingBox())!.height)).toBe(53);
+  await expect(page.locator('.mx-hero-cap').first()).toBeVisible();
   expect(await floating(page)).toBe(true);
   // the wide banner is cropped to the screen, so it asks for a photo about twice the screen height wide (sharp, not a 480px one stretched)
   const heroSrc = await page.locator('.mx-hero img').first().evaluate((i: HTMLImageElement) => (i.srcset ? i.currentSrc : 'no-srcset'));
@@ -51,14 +53,18 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await page.evaluate(() => window.scrollTo(0, 700));
   await expect.poll(() => floating(page)).toBe(false);
 
-  // Shop by: one card per tag with collections, 3:4, two across
+  // Shop by: one card per tag with collections, square, two across 20px apart (swarovski.com's Shop by Category)
   const api = await page.request.get('/api/v1/categories', { headers: { Authorization: `Bearer ${sessions().buyer.token}`, 'X-Store': STORE_ID } });
   const cats = ((await api.json()).data ?? []) as Array<{ tag: string; designCount: number }>;
   const tags = new Set(cats.filter((c) => c.designCount > 0).map((c) => c.tag));
   await expect(page.getByTestId('mx-tag-card')).toHaveCount(tags.size);
   const card = await page.getByTestId('mx-tag-card').first().locator('.mx-card-im').boundingBox();
-  expect(Math.abs(card!.width / card!.height - 0.75)).toBeLessThan(0.02);
-  expect(card!.width).toBeGreaterThan(180);
+  expect(Math.abs(card!.width / card!.height - 1)).toBeLessThan(0.02);
+  expect(card!.width).toBeGreaterThan(160);
+  const second = await page.getByTestId('mx-tag-card').nth(1).locator('.mx-card-im').boundingBox();
+  if (second && Math.abs(second.y - card!.y) < 2) expect(Math.round(second.x - card!.x - card!.width)).toBe(20);
+  const newIn = page.getByTestId('mx-new-in');
+  if (await newIn.count()) { await newIn.scrollIntoViewIfNeeded(); await page.waitForTimeout(500); await page.screenshot({ path: `${OUT}/m390-newin.png` }); }
 
   // tag page
   const tagName = (await page.getByTestId('mx-tag-card').first().locator('.mx-card-nm').textContent())!.trim();
@@ -81,7 +87,9 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await settle(page);
   const tiles = await page.locator('.mx-ptile').evaluateAll((els) => els.slice(0, 2).map((el) => { const f = el.querySelector('.mx-pframe') as HTMLElement; const t = el as HTMLElement; return { x: t.offsetLeft, r: t.offsetLeft + t.offsetWidth, ratio: f.offsetWidth / f.offsetHeight }; }));
   expect(Math.abs(tiles[0].ratio - 1)).toBeLessThan(0.05);
-  if (tiles[1]) expect(Math.round(tiles[1].x - tiles[0].r)).toBe(6);
+  if (tiles[1]) expect(Math.round(tiles[1].x - tiles[0].r)).toBe(4);
+  // weight with two decimals on buyer cards
+  await expect(page.locator('.mx-ptile .mx-wt').first()).toHaveText(/^\d+\.\d{2} g$/);
   await page.screenshot({ path: `${OUT}/m390-collection.png` });
 
   // design page
@@ -90,8 +98,12 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await expect(page.locator('.mx-pd')).toBeVisible();
   await expect(page.getByTestId('mx-pd-eyebrow')).toContainText('/');
   await expect(page.locator('.mx-pd .mx-acc')).toContainText(sku!);
+  await expect(page.locator('.mx-pd-net b')).toHaveText(/^\d+\.\d{2} g$/);
   await settle(page);
   await page.screenshot({ path: `${OUT}/m390-design.png` });
+  await page.locator('.mx-pd-scroll').evaluate((el) => el.scrollTo(0, 420));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/m390-design-scrolled.png` });
 
   // Back walks out the way we came: design -> collection -> tag page -> Home
   await page.getByTestId('mx-back').click();
@@ -110,7 +122,7 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await expect(page.getByTestId('mx-shop-by')).toBeVisible();
   await expect(page.getByTestId('mx-tag-page')).toHaveCount(0);
 
-  // search slides down under the masthead and searches the designs
+  // search opens a full-screen layer and searches the designs
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByTestId('mx-search').click();
   await expect(page.getByTestId('mx-search-input')).toBeFocused();
@@ -125,6 +137,14 @@ test('phone 390: home -> tag -> collection -> design, Back, search, menu', async
   await expect(page.locator(`.mx-ptile[data-sku="${sku}"]`)).toBeVisible();
   await settle(page);
   await page.screenshot({ path: `${OUT}/m390-search-results.png` });
+  // clearing the search lists every design; scrolled, the results bar pins right under the 53px masthead
+  await page.locator('.mx-tagp-intro .mx-x').click();
+  await expect(page.getByTestId('collection-current')).toHaveText('All designs');
+  await page.locator('.mx-ptile').nth(3).waitFor();
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await page.waitForTimeout(500);
+  expect(Math.round((await page.getByTestId('mx-col-bar').boundingBox())!.y)).toBe(53);
+  await page.screenshot({ path: `${OUT}/m390-collection-scrolled.png` });
 
   // the menu opens the profile panel from the left
   await page.getByTestId('mx-profile').click();

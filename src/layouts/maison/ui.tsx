@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import type { Product } from '../../types';
 import { useBackLayer } from '../../backLayer';
 import { Icon, Ph, fmtG } from '../emergent/ui';
-import { hn, pur, t } from '../../i18n';
+import { getLang, hn, pur, t } from '../../i18n';
 import { SIZES_GRID } from '../../photoSrcSet';
 
 /** A panel that slides in from the right on desktop and up from the bottom on phones (filters, Add to cart). Back and Escape close it. */
@@ -38,7 +38,10 @@ export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: str
   );
 };
 
-/** A tag or collection card on phones: a 3:4 photo, the name in capitals under it, a count under that. The photo element is passed on for the view transition. */
+/** Buyer weight on Maison cards and the design page: two decimals (42.50 g). The specifications list keeps the stored value (fmtG). */
+export const fmtG2 = (n: number) => `${n.toFixed(2)} ${getLang() === 'hi' ? 'ग्राम' : 'g'}`;
+
+/** A tag or collection card on phones: a photo (square on phones), the name in capitals under it, a count under that. The photo element is passed on for the view transition. */
 export const Card: React.FC<{ name: string; sub: string; src?: string; tone: number; testId?: string; onOpen: (photo: Element | null) => void }> = ({ name, sub, src, tone, testId, onOpen }) => (
   <button type="button" className="mx-card" data-testid={testId} onClick={(e) => onOpen(e.currentTarget.querySelector('.em-ph'))}>
     <span className="mx-card-im"><Ph src={src} tone={tone} className="mx-fill" sizes={SIZES_GRID} alt="" /></span>
@@ -59,6 +62,8 @@ interface TileProps {
   testId?: string;
   hitTestId?: string;
   heartLabel?: string;
+  /** Owner screens show the stored weight; buyers see two decimals. */
+  exactWt?: boolean;
 }
 
 /** Tilts a tile toward the pointer in 3D (mouse only; CSS reads --rx/--ry). No re-render: it only writes two custom properties. */
@@ -73,7 +78,7 @@ const tilt = {
 };
 
 /** A product tile, one card: the photo (ratio --mx-tile-ratio) with the name, purity, weight and code directly under it on the same ground. */
-export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen, onHeart, onAdd, current, testId = 'product-card', hitTestId, heartLabel }) => {
+export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen, onHeart, onAdd, current, testId = 'product-card', hitTestId, heartLabel, exactWt }) => {
   const name = hn(prod.title, prod.titleHi);
   const open = (e: React.MouseEvent<HTMLElement>) => onOpen(e.currentTarget.closest('.mx-ptile')?.querySelector('.em-ph') ?? null);
   return (
@@ -91,7 +96,7 @@ export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen
       <div className="mx-pbody">
         <div className="mx-pcap" onClick={open}>
           <span className="mx-pt">{name}</span>
-          <span className="mx-pw"><span>{pur(prod.purity)}</span><b className="mx-wt">{fmtG(prod.netWt)}</b></span>
+          <span className="mx-pw"><span>{pur(prod.purity)}</span><b className="mx-wt">{(exactWt ? fmtG : fmtG2)(prod.netWt)}</b></span>
         </div>
         {onAdd && (
           <button type="button" className="mx-cta" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>

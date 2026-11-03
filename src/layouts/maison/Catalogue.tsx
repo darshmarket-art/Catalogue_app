@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
 import { SORT_KEYS, SORT_LABELS } from '../../../shared/jewellery';
-import { Icon, Toast, type KitProps } from '../emergent/ui';
+import { Icon, Ph, Toast, type KitProps } from '../emergent/ui';
+import { SIZES_FULL } from '../../photoSrcSet';
 import { CollectionsBrowser } from '../emergent/CollectionsBrowser';
 import { NO_FILTERS, toggle, useCatalogue } from '../emergent/useCatalogue';
 import { useDesktop } from '../emergent/useDesktop';
@@ -30,7 +31,8 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
   // Phones: a sticky bar (name, count, Filter, Sort) replaces the title block and the search and filter bar; Sort opens the drawer with only the sort.
   const desk = useDesktop();
   const [sortOnly, setSortOnly] = useState(false);
-  const current = categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : tagFilter ? ts(tagFilter) : t('All collections');
+  const col = categoryFilter ? categories.find((c) => c.name === categoryFilter) : undefined;
+  const current = categoryFilter ? hn(categoryFilter, col?.nameHi) : tagFilter ? ts(tagFilter) : t('All collections');
   const narrowed = Boolean(categoryFilter || tagFilter);
   const narrowing = active.length + (sort !== 'newest' ? 1 : 0);
   const cols = !desk ? 'large' : view === 'list' ? 'list' : view === 'grid3' ? 'compact' : 'large';
@@ -39,10 +41,21 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
   return (
     <div className="mx-cat">
       {addedNotice && <Toast>{t('Added {name} to your order', { name: addedNotice })}</Toast>}
+      {/* Phones, as swarovski.com's listing: the collection's photo under the floating masthead, a title block, then the sticky results bar. */}
+      {!desk && col?.image && !searchQuery && (
+        <div className="mx-tagp-ban mx-cat-ban" data-mx-float="">
+          <Ph src={col.image} className="mx-fill" sizes={SIZES_FULL} priority eager alt="" />
+        </div>
+      )}
+      {!desk && (
+        <div className="mx-tagp-intro">
+          <h1 className="mx-h2" data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : narrowed ? current : t('All designs')}</h1>
+          {searchQuery ? <button type="button" aria-label={t('Clear search')} className="mx-x" onClick={() => setSearchQuery('')}><Icon n="x" size={16} /></button>
+            : col && hn(col.subtitle, col.subtitleHi) ? <p className="mx-note">{hn(col.subtitle, col.subtitleHi)}</p> : null}
+        </div>
+      )}
       {!desk && (
         <div className="mx-sbar" data-testid="mx-col-bar">
-          <b data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : narrowed ? current : t('All designs')}</b>
-          {searchQuery && <button type="button" aria-label={t('Clear search')} className="mx-x" onClick={() => setSearchQuery('')}><Icon n="x" size={14} /></button>}
           <span className="mx-sbar-n" data-testid="result-count">{tn(total, '{n} design', '{n} designs')}</span>
           <button type="button" className={`mx-pill${active.length ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-haspopup="dialog" onClick={() => { setSortOnly(false); openSheet(); }}>{t('Filter')}{active.length > 0 && <i> · {active.length}</i>}</button>
           <button type="button" className={`mx-pill${sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-sort-button" aria-haspopup="dialog" onClick={() => { setSortOnly(true); openSheet(); }}>{t('Sort')}</button>
@@ -131,6 +144,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
                 onOpen={(photo) => openOrPick(prod, photo)}
                 onHeart={() => toggleHeart(prod)}
                 onAdd={flags.orders ? () => setCartFor(prod) : undefined}
+                exactWt={isAdmin}
               />
             </React.Fragment>
           ))}

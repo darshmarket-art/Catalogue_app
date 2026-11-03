@@ -147,12 +147,12 @@ const TagIndex: React.FC<{ groups: Groups; desk?: boolean; onCol: (n: string) =>
 };
 
 /**
- * The phone masthead: the menu (it opens the profile panel; the shortlist and order count sit on it) at the left, the store name in the middle,
- * then search and the bag; on inner pages the bag becomes Back (the app's own Back: a layer first, then out to Home). Over Home's banner and a tag
- * page's banner it floats (clear, a dark gradient behind it, light icons) until most of the banner has scrolled away: one passive scroll listener
- * sets one attribute and CSS fades the rest.
+ * The phone masthead (swarovski.com's mobile header): the menu (it opens the profile panel; the shortlist and order count sit on it) at the left,
+ * the store name in the middle, then search and the bag; on inner pages the bag becomes Back (the app's own Back: a layer first, then out to Home).
+ * Over a banner (Home, a tag page, a collection) it floats (clear, a dark gradient behind it, light icons) until most of the banner has scrolled
+ * away: one passive scroll listener sets one attribute and CSS fades the rest.
  */
-const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, currentMerchant, onLogout, onOpenOrders, shortlistCount = 0, orderCount }) => {
+const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, currentMerchant, onLogout, onOpenOrders, categories = [], shortlistCount = 0, orderCount }) => {
   useLang();
   const [profile, setProfile] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -167,30 +167,32 @@ const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, 
     const el = top.current;
     if (!el) return;
     const on = () => {
-      const ban = home ? document.querySelector<HTMLElement>('[data-mx-float]') : null;
+      const ban = document.querySelector<HTMLElement>('main [data-mx-float]');
       el.toggleAttribute('data-float', ban !== null && window.scrollY < ban.offsetHeight * 0.6 - el.offsetHeight);
     };
     on();
     const raf = requestAnimationFrame(on); // again once the new screen has set its scroll position
     window.addEventListener('scroll', on, { passive: true });
     return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', on); };
-  }, [home, openTag]);
+  }, [currentScreen, openTag]);
 
   const go = (s: ActiveScreen) => { setProfile(false); setSearching(false); onNavigate(s); };
   const closeSearch = useCallback(() => setSearching(false), []);
+  const tagOrder = useTagList();
+  const tags = groupByTag(categories.filter((c) => c.designCount > 0), tagOrder).map(([tag]) => tag);
   const badge = shortlistCount + (orderCount ?? 0);
   return (
     <header ref={top} className={`mx-top mx-ph${searching ? ' srch' : ''}`}>
       <div className="mx-bar">
         <div className="mx-side">
           {sub ? (
-            <button type="button" className="mx-ib" aria-label={t('Back')} onClick={() => onNavigate('welcome')}><Icon n="back" size={22} /></button>
+            <button type="button" className="mx-ib" aria-label={t('Back')} onClick={() => onNavigate('welcome')}><Icon n="back" size={20} /></button>
           ) : currentMerchant ? (
             <button type="button" className="mx-ib" data-testid="mx-profile" aria-label={t('Menu')} aria-haspopup="dialog" aria-expanded={profile} onClick={() => { setSearching(false); setProfile(true); }}>
-              <Icon n="menu" size={22} />{badge > 0 && <b className="mx-ct" data-testid="mx-profile-badge" aria-label={String(badge)}>{badge}</b>}
+              <Icon n="menu" size={19} />{badge > 0 && <b className="mx-ct" data-testid="mx-profile-badge" aria-label={String(badge)}>{badge}</b>}
             </button>
           ) : (
-            <button type="button" className="mx-ib" aria-label={t('Sign in')} onClick={() => go('retailer-auth')}><Icon n="user" size={20} /></button>
+            <button type="button" className="mx-ib" aria-label={t('Sign in')} onClick={() => go('retailer-auth')}><Icon n="user" size={19} /></button>
           )}
         </div>
         <button type="button" className="mx-word" aria-label={ts(merchant.brand.name)} onClick={() => { setOpenTag(null); go('categories'); }}>
@@ -200,17 +202,25 @@ const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, 
         <div className="mx-side r">
           {sub ? <LangToggle /> : (
             <>
-              <button type="button" className="mx-ib" data-testid="mx-search" aria-label={t('Search')} aria-expanded={searching} onClick={() => { setProfile(false); setSearching((v) => !v); }}><Icon n="search" size={20} /></button>
+              <button type="button" className="mx-ib" data-testid="mx-search" aria-label={t('Search')} aria-expanded={searching} onClick={() => { setProfile(false); setSearching((v) => !v); }}><Icon n="search" size={19} /></button>
               {inner ? (
-                <button type="button" className="mx-ib" data-testid="mx-back" aria-label={t('Back')} onClick={() => window.history.back()}><Icon n="back" size={22} /></button>
+                <button type="button" className="mx-ib" data-testid="mx-back" aria-label={t('Back')} onClick={() => window.history.back()}><Icon n="back" size={20} /></button>
               ) : orderCount !== undefined && (
-                <button type="button" className="mx-ib" data-tab="orders" aria-label={t('Orders')} onClick={() => go('orders')}><Icon n="bag" size={20} /></button>
+                <button type="button" className="mx-ib" data-tab="orders" aria-label={t('Orders')} onClick={() => go('orders')}><Icon n="bag" size={19} /></button>
               )}
             </>
           )}
         </div>
       </div>
-      {!sub && <SearchBar open={searching} onClose={closeSearch} onSearch={(q) => { setSearching(false); searchDesigns(q, onNavigate); }} />}
+      {!sub && (
+        <SearchLayer
+          open={searching}
+          tags={tags}
+          onClose={closeSearch}
+          onSearch={(q) => { setSearching(false); searchDesigns(q, onNavigate); }}
+          onTag={(tag) => { setSearching(false); setOpenTag(tag); window.scrollTo(0, 0); onNavigate('categories'); }}
+        />
+      )}
       {profile && currentMerchant && (
         <ProfilePanel buyer={currentMerchant} shortlistCount={shortlistCount} orderCount={orderCount ?? 0} onClose={() => setProfile(false)} onOpenOrders={(tab) => { setProfile(false); onOpenOrders(tab); }} onGo={go} onLogout={() => { setProfile(false); onLogout(); }} />
       )}
@@ -218,8 +228,11 @@ const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, 
   );
 };
 
-/** The search bar that slides down under the phone masthead. Enter searches the designs (Home's search); Escape, Back, the scrim or the icon again close it. */
-const SearchBar: React.FC<{ open: boolean; onClose: () => void; onSearch: (q: string) => void }> = ({ open, onClose, onSearch }) => {
+/**
+ * Search on phones (swarovski.com): a full-screen layer that fades in over the page, a close X at the top right, a serif input on an underline,
+ * then the store's tags as quick links. Enter searches the designs (Home's search); Escape, Back, X or the icon again close it.
+ */
+const SearchLayer: React.FC<{ open: boolean; tags: string[]; onClose: () => void; onSearch: (q: string) => void; onTag: (tag: string) => void }> = ({ open, tags, onClose, onSearch, onTag }) => {
   const [q, setQ] = useState('');
   const input = useRef<HTMLInputElement>(null);
   useBackLayer(open, onClose);
@@ -231,14 +244,20 @@ const SearchBar: React.FC<{ open: boolean; onClose: () => void; onSearch: (q: st
     return () => window.removeEventListener('keydown', k);
   }, [open, onClose]);
   return (
-    <>
-      {open && <button type="button" className="mx-srch-scrim" tabIndex={-1} aria-label={t('Close')} onClick={onClose} />}
-      <div className={`mx-srch${open ? ' on' : ''}`} inert={!open || undefined}>
-        <form className="mx-srch-in" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) onSearch(q.trim()); }}>
-          <Icon n="search" size={18} />
-          <input ref={input} type="search" enterKeyHint="search" data-testid="mx-search-input" aria-label={t('Search the catalogue')} placeholder={t('Search name, SKU or collection')} value={q} onChange={(e) => setQ(e.target.value)} />
-        </form>
+    <div className={`mx-srch${open ? ' on' : ''}`} role="dialog" aria-modal={open || undefined} aria-label={t('Search')} inert={!open || undefined}>
+      <div className="mx-srch-top">
+        <button type="button" className="mx-ib" data-testid="mx-search-close" aria-label={t('Close')} onClick={onClose}><Icon n="x" size={20} /></button>
       </div>
-    </>
+      <form className="mx-srch-in" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) onSearch(q.trim()); }}>
+        <Icon n="search" size={18} />
+        <input ref={input} type="search" enterKeyHint="search" data-testid="mx-search-input" aria-label={t('Search the catalogue')} placeholder={t('Search name, SKU or collection')} value={q} onChange={(e) => setQ(e.target.value)} />
+      </form>
+      {tags.length > 0 && (
+        <div className="mx-srch-sug">
+          <h2 className="mx-srch-h">{t('Shop by')}</h2>
+          <ul>{tags.map((tag) => <li key={tag}><button type="button" onClick={() => onTag(tag)}>{ts(tag)}</button></li>)}</ul>
+        </div>
+      )}
+    </div>
   );
 };

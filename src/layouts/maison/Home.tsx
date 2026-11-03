@@ -8,7 +8,7 @@ import { Reveal } from '../../components/Reveal';
 import { Icon, Ph, type KitProps } from '../emergent/ui';
 import { CollectionsBrowser } from '../emergent/CollectionsBrowser';
 import { recentSkus } from '../../recent';
-import { grams, hn, t, tn, ts, useLang } from '../../i18n';
+import { grams, hl, hn, t, tn, ts, useLang } from '../../i18n';
 import { SIZES_FULL, SIZES_GRID } from '../../photoSrcSet';
 import { Card, Tile } from './ui';
 import { useDesktop } from '../emergent/useDesktop';
@@ -29,7 +29,7 @@ interface Slide { id: string; image?: string; title: string; open: () => void }
  * autoplay glides with scrollTo. A copy of the first slide sits after the last, so the loop is a glide forward and then an unseen reset
  * (no rewind, no jump). Autoplay pauses on hover, focus, touch and in a hidden tab, and is off for reduced motion.
  */
-const Hero: React.FC<{ slides: Slide[]; loading: boolean }> = ({ slides, loading }) => {
+const Hero: React.FC<{ slides: Slide[]; loading: boolean; cap?: boolean }> = ({ slides, loading, cap }) => {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [idx, setIdx] = useState(0);
@@ -78,6 +78,12 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean }> = ({ slides, loading
                 {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={HERO_SIZES} priority={i === 0} eager alt="" />}
               </div>
               <button type="button" className="mx-hero-hit" aria-label={sl.title} tabIndex={i >= n ? -1 : undefined} onClick={sl.open} />
+              {cap && (
+                <div className="mx-hero-cap" aria-hidden="true">
+                  <h2>{sl.title}</h2>
+                  <span className="mx-btn lt">{t('Shop now')}</span>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -130,6 +136,9 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const many = categories.length > FEW;
   const shown = many ? heroes.slice(0, FEW) : heroes;
   const catName = (name: string) => { const c = categories.find((x) => x.name === name); return hn(name, c?.nameHi); };
+  // ponytail: App loads the recently viewed designs, then the newest 24 (sort: newest); New in is that second part. A design both recent and new is left out.
+  const fresh = desk ? [] : products.filter((p) => !recentSkus().includes(p.sku)).slice(0, 8);
+  const statement = desk ? '' : hl(about?.story, about?.storyHi) || hl(merchant.brand.description);
   const viewed = recentSkus().map((sku) => products.find((p) => p.sku === sku)).filter((p): p is NonNullable<typeof p> => Boolean(p)).slice(0, 8);
 
   // The hero is the store's own banners (Banners in the owner's catalogue). With none: one plain slide with the store name.
@@ -175,7 +184,14 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   return (
     <div className="mx-home">
       <h1 className="em-sr">{ts(merchant.brand.name)}</h1>
-      <Hero slides={slides} loading={loading} />
+      <Hero slides={slides} loading={loading} cap={!desk} />
+
+      {statement && (
+        <section className="mx-state" data-testid="mx-statement">
+          <h2>{ts(merchant.brand.name)}</h2>
+          <p>{statement}</p>
+        </section>
+      )}
 
       {!desk && (
         <section className="mx-shop" data-testid="mx-shop-by">
@@ -187,6 +203,15 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
             ))}
           </div>
           <button type="button" className="mx-shop-all" data-testid="mx-all-designs" onClick={allDesigns}>{t('View all designs')}</button>
+        </section>
+      )}
+
+      {fresh.length > 0 && (
+        <section className="mx-sec" data-testid="mx-new-in">
+          <div className="mx-head"><h2 className="mx-st">{t('New in')}</h2></div>
+          <div className="mx-strip">
+            {fresh.map((p, i) => <Tile key={p.id} prod={p} index={i} testId="new-card" onOpen={() => onOpenDesign?.(p.sku)} />)}
+          </div>
         </section>
       )}
 

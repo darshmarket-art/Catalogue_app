@@ -8,6 +8,7 @@ import { Icon, Ph, StockPill, fmtG } from '../emergent/ui';
 import { specRows } from '../emergent/ProductDetail';
 import { useProductDetail, type ProductDetailProps as Behaviour } from '../emergent/useProductDetail';
 import { CartSheet } from './CartSheet';
+import { fmtG2 } from './ui';
 import { useDesktop } from '../emergent/useDesktop';
 import { getLang, hn, pur, t, tl, ts } from '../../i18n';
 import { SIZES_FULL, SIZES_THUMB } from '../../photoSrcSet';
@@ -116,7 +117,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
               <StockPill status={product.stockStatus} />
               {product.huid && <span className="mx-tag">HUID {product.huid}</span>}
             </div>
-            <p className="mx-pd-net"><b>{fmtG(product.netWt)}</b> <span className="mx-ey">{t('Net weight')}</span></p>
+            <p className="mx-pd-net"><b>{(isAdmin ? fmtG : fmtG2)(product.netWt)}</b> <span className="mx-ey">{t('Net weight')}</span></p>
             {description && <p className="mx-pd-desc" data-testid="product-description">{description}</p>}
             <details className="mx-acc" open>
               <summary>{t('Specifications')}</summary>

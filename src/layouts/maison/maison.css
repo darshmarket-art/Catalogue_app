@@ -598,71 +598,124 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   &:lang(hi) * { letter-spacing: 0 !important; text-transform: none !important; }
 }
 
-/* ---------- phones and tablets (below 1024px): banner first, Shop by tag cards, tag pages, the floating masthead ----------
+/* ---------- phones and tablets (below 1024px): swarovski.com's mobile layout in Maison's tokens and fonts ----------
+ * Banner first under a floating masthead, Shop by tag cards, tag and collection pages with a banner, a title block and a sticky results bar.
  * Every rule here sits behind this query, so desktop (1024px and up) is exactly as it was. Colours are tokens only. */
 @media (max-width: 1023.98px) {
+  /* a 53px masthead, as swarovski.com's; the design page, the search layer and the sticky bars all follow --header-h (buyer screens only) */
+  [data-layout="maison"][data-role="buyer"] { --mx-bar-h: 53px; --header-h: 53px; }
   [data-layout="maison"][data-role] {
     /* masthead: menu | name | search, bag or Back. Over a banner it floats (clear, a dark gradient behind it, light icons); data-float is set by
      * one passive scroll listener in Header.tsx and only background and colour change. */
-    & .mx-ph { color: var(--mx-ink); transition: background-color 0.35s var(--mx-ease), border-color 0.35s var(--mx-ease), color 0.35s var(--mx-ease); }
-    & .mx-ph .mx-bar { grid-template-columns: 88px minmax(0, 1fr) 88px; padding: 0 4px; }
+    & .mx-ph { color: var(--mx-ink); border-bottom: 0; transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out; }
+    & .mx-ph .mx-bar { grid-template-columns: 88px minmax(0, 1fr) 88px; padding: 0 10px; }
     & .mx-ph .mx-word { justify-self: center; max-width: 100%; }
-    & .mx-ph :is(.mx-ib, .mx-word) { color: inherit; transition: color 0.35s var(--mx-ease); }
-    & .mx-ph::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to bottom, var(--mx-glass), var(--mx-glass) 40%, transparent); opacity: 0; transition: opacity 0.35s var(--mx-ease); }
-    & .mx-ph[data-float]:not(.srch) { background-color: transparent; border-bottom-color: transparent; color: var(--mx-photo-fg); }
+    & .mx-ph :is(.mx-ib, .mx-word) { color: inherit; transition: color 0.3s ease-in-out; }
+    & .mx-ph::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to bottom, var(--mx-glass), var(--mx-glass) 40%, transparent); opacity: 0; transition: opacity 0.3s ease-in-out; }
+    & .mx-ph[data-float]:not(.srch) { background-color: transparent; color: var(--mx-photo-fg); }
     & .mx-ph[data-float]:not(.srch)::before { opacity: 1; }
     & .mx-ph[data-float]:not(.srch) .mx-logo:not(img) { color: inherit; border-color: currentColor; }
     & .mx-ph[data-float]:not(.srch) img.mx-logo { filter: brightness(0) invert(1); }
-    /* the search bar slides down from under the masthead */
-    & .mx-srch { position: absolute; left: 0; right: 0; top: 100%; overflow: hidden; pointer-events: none; }
-    & .mx-srch.on { pointer-events: auto; }
-    & .mx-srch-in { display: flex; align-items: center; gap: 12px; padding: 8px 16px 12px; background: var(--mx-ground); color: var(--mx-ink); border-bottom: 1px solid var(--mx-hair); transform: translateY(-101%); visibility: hidden; transition: transform 0.3s var(--mx-ease), visibility 0s 0.3s; }
-    & .mx-srch.on .mx-srch-in { transform: none; visibility: visible; transition: transform 0.3s var(--mx-ease); }
-    & .mx-srch-in input { flex: 1; min-width: 0; height: 44px; border: 0; border-bottom: 1px solid var(--mx-ink); background: none; outline: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 1rem; letter-spacing: 0.04em; }
-    & .mx-srch-scrim { position: fixed; left: 0; right: 0; bottom: 0; top: calc(var(--header-h) + var(--sat)); z-index: -1; padding: 0; border: 0; background: var(--mx-scrim); animation: mx-fade 0.3s ease-out both; }
-    /* the menu's profile panel slides in from the left */
-    & .mx-ph .mx-drawer-wrap { justify-content: flex-start; align-items: stretch; }
-    & .mx-ph .mx-drawer { width: min(86%, 420px); height: 100dvh; max-height: none; animation: mx-drawer-left 0.35s var(--mx-ease) both; }
+    /* the design page opens over a collection's banner: the masthead is solid there */
+    &:has(.mx-pd) .mx-ph[data-float]:not(.srch) { background-color: var(--mx-ground); color: var(--mx-ink); }
+    &:has(.mx-pd) .mx-ph[data-float]:not(.srch)::before { opacity: 0; }
+    &:has(.mx-pd) .mx-ph[data-float]:not(.srch) .mx-logo:not(img) { color: var(--mx-ink); border-color: var(--mx-ink); }
+    &:has(.mx-pd) .mx-ph[data-float]:not(.srch) img.mx-logo { filter: none; }
 
-    /* Home: the banner fills the first screen, under the masthead */
+    /* search: a full-screen layer that fades and settles in (opacity and transform only), a close X, a serif input on an underline, then the tags */
+    & .mx-srch { position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain; padding-top: var(--sat); background: var(--mx-ground); color: var(--mx-ink); opacity: 0; visibility: hidden; transform: translateY(-12px); transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s 0.3s; }
+    & .mx-srch.on { opacity: 1; visibility: visible; transform: none; transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
+    & .mx-srch-top { display: flex; align-items: center; justify-content: flex-end; height: var(--mx-bar-h); padding: 0 10px; }
+    & .mx-srch-in { display: flex; align-items: center; gap: 12px; margin: 0 21px; border-bottom: 1px solid var(--mx-ink); }
+    & .mx-srch-in input { flex: 1; min-width: 0; height: 48px; border: 0; background: none; outline: none; color: var(--mx-ink); font-family: var(--mx-serif); font-size: 1.3125rem; font-weight: 500; }
+    & .mx-srch-sug { padding: 32px 21px 40px; }
+    & .mx-srch-h { margin: 0 0 8px; font-family: var(--mx-sans); font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
+    & .mx-srch-sug ul { list-style: none; margin: 0; padding: 0; }
+    & .mx-srch-sug button { display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.875rem; letter-spacing: 0.03em; text-align: left; cursor: pointer; }
+
+    /* the menu (profile panel): full screen from the left, plain 64px rows without dividers, the person's details and language at the foot */
+    & .mx-ph .mx-drawer-wrap { justify-content: flex-start; align-items: stretch; }
+    & .mx-ph .mx-drawer { width: 100%; height: 100dvh; max-height: none; animation: mx-drawer-left 0.5s cubic-bezier(0, 0, 0.58, 1) both; }
+    & .mx-ph .mx-drawer-h { padding: 0 10px 0 21px; }
+    & .mx-ph .mx-drawer-b { padding-inline: 21px; padding-top: 0; }
+    & .mx-ph .mx-prows { order: -1; border-top: 0; }
+    & .mx-ph .mx-prow { min-height: 64px; padding: 0; border-bottom: 0; font-family: var(--mx-sans); font-size: 1rem; font-weight: 400; letter-spacing: 0.025em; }
+
+    /* Home: the banner fills the first screen less a 105px peek of the next band (the scroll cue), under the masthead */
     & .mx-home { margin-top: calc(-1 * (var(--header-h) + var(--sat))); }
-    & .mx-hero-media { aspect-ratio: auto; height: 100svh; max-height: none; }
-    & .mx-hero-dots { aspect-ratio: auto; height: 100svh; max-height: none; justify-content: center; padding-bottom: 14px; }
-    /* Shop by: one card per tag, two across; tag pages use the same cards for collections */
-    & .mx-shop { padding: 44px 6px 0; background: var(--mx-ground); text-align: center; }
-    & .mx-shop-h { margin: 0 0 22px; font-family: var(--mx-serif); font-size: 1.75rem; font-weight: 500; line-height: 1.1; }
-    & .mx-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-    & .mx-card { display: block; width: 100%; min-width: 0; padding: 0 0 18px; border: 0; background: none; color: var(--mx-ink); text-align: center; cursor: pointer; }
-    & .mx-card-im { position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--mx-tile); }
+    & .mx-hero-media { aspect-ratio: auto; height: calc(100svh - 105px); max-height: none; }
+    & .mx-hero-media::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 55%; background: linear-gradient(to top, var(--mx-glass), transparent); pointer-events: none; }
+    & .mx-hero-cap { position: absolute; z-index: 1; left: 15px; right: 15px; bottom: 64px; display: flex; flex-direction: column; align-items: center; text-align: center; color: var(--mx-photo-fg); pointer-events: none; }
+    & .mx-hero-cap h2 { margin: 0 0 28px; color: inherit; font-family: var(--mx-serif); font-size: 2.25rem; font-weight: 500; line-height: 1.2; text-wrap: balance; text-shadow: 0 1px 14px var(--mx-glass); }
+    & .mx-hero-cap .mx-btn { width: 230px; min-height: 40px; padding: 0; background: var(--mx-photo-fg); border-color: var(--mx-photo-fg); color: var(--mx-deep); font-size: 0.9375rem; font-weight: 400; letter-spacing: 0.03em; text-transform: none; }
+    & .mx-hero-dots { aspect-ratio: auto; height: calc(100svh - 105px); max-height: none; justify-content: center; padding-bottom: 8px; }
+    & .mx-hero-dots button { width: 24px; }
+    & .mx-hero-dots button::after { box-sizing: border-box; width: 10px; height: 10px; border: 1px solid var(--mx-photo-fg); border-radius: 50% !important; background: transparent; transition: background-color 0.3s ease-in-out; }
+    & .mx-hero-dots button.on::after { width: 10px; background: var(--mx-photo-fg); }
+    /* the statement band: the store's words, centred, on the alternate ground */
+    & .mx-state { padding: 64px 13px 72px; background: var(--mx-surface); text-align: center; }
+    & .mx-state h2 { margin: 0 0 32px; font-size: 1.6875rem; font-weight: 500; line-height: 1.2; }
+    & .mx-state p { margin: 0 auto; max-width: 34em; font-size: 1rem; line-height: 1.4; text-wrap: pretty; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+    /* Shop by: one square card per tag, two across, 20px apart, the name in sentence case under it; tag pages use the same cards for collections */
+    & .mx-shop { padding: 76px 15px 0; background: var(--mx-ground); text-align: center; }
+    & .mx-shop-h { margin: 0 0 38px; font-family: var(--mx-serif); font-size: 1.6875rem; font-weight: 500; line-height: 1.2; }
+    & .mx-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 0; }
+    & .mx-card { display: block; width: 100%; min-width: 0; padding: 0 0 14px; border: 0; background: none; color: var(--mx-ink); text-align: center; cursor: pointer; }
+    & .mx-card-im { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; background: var(--mx-tile); }
     & .mx-card-im .em-ph img { transition: transform 0.9s var(--mx-ease); }
     & .mx-card:active .mx-card-im .em-ph img { transform: scale(1.03); }
-    & .mx-card-nm { display: block; margin: 12px 4px 2px; font-family: var(--mx-sans); font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; overflow-wrap: anywhere; }
-    & .mx-card-sub { display: block; color: var(--mx-muted); font-size: 0.78rem; }
-    & .mx-shop-all { display: inline-block; margin: 10px auto 48px; padding: 6px 0 4px; border: 0; border-bottom: 1px solid var(--mx-ink); background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
-    /* tag page: banner, title block, sticky bar, collection cards */
-    & .mx-tagp-ban { position: relative; height: clamp(300px, 46svh, 520px); overflow: hidden; background: var(--mx-tile); }
-    & .mx-tagp-intro { padding: 22px 18px 24px; background: var(--mx-surface); }
-    & .mx-tagp-intro .mx-h2 { font-size: 2rem; font-weight: 500; }
-    & .mx-tagp-intro .mx-note { margin: 6px 0 0; }
-    & .mx-tagp .mx-cards { padding: 18px 6px 32px; }
-    /* the sticky bar under the masthead (tag page and collection page) */
-    & .mx-sbar { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 30; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 14px; background: var(--mx-ground); border-bottom: 1px solid var(--mx-hair); font-family: var(--mx-sans); font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; }
-    & .mx-sbar > b { min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    & .mx-sbar .mx-x { flex: none; width: 32px; margin-left: -8px; }
-    & .mx-sbar-n { color: var(--mx-muted); white-space: nowrap; }
-    & .mx-pill { flex: none; min-height: 36px; padding: 0 14px; border: 1px solid var(--mx-hair); border-radius: 999px !important; background: none; color: var(--mx-ink); font: inherit; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+    & .mx-card-nm { display: block; margin: 11px 4px 0; font-family: var(--mx-sans); font-size: 0.8125rem; font-weight: 400; letter-spacing: 0.03em; overflow-wrap: anywhere; }
+    & .mx-card-sub { display: block; margin-top: 2px; color: var(--mx-muted); font-size: 0.75rem; }
+    & .mx-shop .mx-card-sub { display: none; }
+    & .mx-shop-all { display: inline-block; margin: 24px auto 56px; padding: 6px 0 4px; border: 0; border-bottom: 1px solid var(--mx-ink); background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
+    /* New in and Recently viewed: a centred serif title over a strip of 170px cards, 16px apart, inset 18px */
+    & .mx-sec { padding: 56px 0; }
+    & .mx-sec .mx-head { justify-content: center; padding: 0 18px 24px; }
+    & .mx-sec .mx-st { font-family: var(--mx-serif); font-size: 1.6875rem; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    & .mx-strip { gap: 16px; padding: 0 18px; scroll-padding-inline: 18px; }
+    & .mx-strip .mx-ptile { flex: 0 0 170px; }
+    /* tag page and collection page: a 2:1 banner under the floating masthead, a title block, the sticky results bar, then the cards or designs */
+    & .mx-tagp-ban { position: relative; aspect-ratio: 2 / 1; overflow: hidden; background: var(--mx-tile); }
+    & .mx-cat-ban { margin-top: calc(-1 * (var(--header-h) + var(--sat))); }
+    & .mx-tagp-intro { position: relative; padding: 13px 13px 14px; background: var(--mx-surface); }
+    & .mx-tagp-intro .mx-h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; }
+    & .mx-tagp-intro .mx-note { margin: 5px 0 0; }
+    & .mx-tagp-intro .mx-x { position: absolute; top: 4px; right: 4px; }
+    & .mx-tagp-intro:has(.mx-x) .mx-h2 { padding-right: 40px; }
+    & .mx-tagp .mx-cards { padding: 18px 15px 32px; }
+    /* the sticky results bar under the masthead: the count at the left, round pills at the right */
+    & .mx-sbar { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 30; display: flex; align-items: center; gap: 4px; min-height: 58px; padding: 5px 16px; background: var(--mx-ground); border-bottom: 1px solid var(--mx-hair); font-family: var(--mx-sans); font-size: 0.8125rem; letter-spacing: 0.03em; }
+    & .mx-sbar > b { min-width: 0; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    & .mx-sbar-n { white-space: nowrap; }
+    & .mx-pill { flex: none; min-height: 48px; padding: 0 20px; border: 1px solid var(--mx-hair); border-radius: 999px !important; background: none; color: var(--mx-ink); font: inherit; font-weight: 400; cursor: pointer; }
     & .mx-sbar > :is(b, .mx-sbar-n) + .mx-pill { margin-left: auto; }
     & .mx-pill.on { background: var(--mx-btn-bg); color: var(--mx-btn-fg); border-color: var(--mx-ink); }
     & .mx-pill i { font-style: normal; }
-    /* collection page: tiles 6px apart */
-    & .mx-cat-body { padding: 6px 6px 0; }
-    /* design page: the masthead carries Back */
+    /* collection page: edge to edge, tiles 4px apart on the alternate ground, a bare heart */
+    & .mx-cat-body { padding: 4px 0 0; }
+    & .mx-pgrid { gap: 4px; }
+    & .mx-pbody { padding: 12px 13px 16px; }
+    & .mx-heart { top: 4px; right: 4px; background: none; filter: drop-shadow(0 0 1.5px var(--mx-ground)); }
+    /* design page: the masthead carries Back; round dots on the ground under the photo; the title first, Previous / Next at the foot */
     & .mx-pd .mx-crumbs { display: none; }
+    & .mx-stage { background: var(--mx-ground); }
+    & .mx-dots { position: static; padding: 21px 0 4px; }
+    & .mx-dots button { width: 20px; height: 24px; }
+    & .mx-dots button::after { box-sizing: border-box; width: 10px; height: 10px; border: 1px solid var(--mx-ink); border-radius: 50% !important; background: transparent; transition: background-color 0.3s ease-in-out; }
+    & .mx-dots button.on::after { width: 10px; height: 10px; background: var(--mx-ink); }
+    & .mx-pd-info { padding: 32px 13px; gap: 12px; }
+    & .mx-pd-nav { order: 1; }
+    & .mx-pd-title { font-size: 1.625rem; }
+    & .mx-pd-net { margin-top: 8px; }
+    & .mx-pd-bar { grid-template-columns: 1fr 48px 48px; padding: 10px 13px calc(10px + var(--sab)); border-top: 0; }
+    & .mx-pd-bar .mx-btn { min-height: 48px; }
   }
 }
 @keyframes mx-drawer-left { from { transform: translateX(-100%); } to { transform: none; } }
 @media (max-width: 1023.98px) and (prefers-reduced-motion: reduce) {
-  [data-layout="maison"] :is(.mx-ph, .mx-ph .mx-ib, .mx-ph .mx-word, .mx-srch-in, .mx-card-im img) { transition: none !important; }
+  [data-layout="maison"] :is(.mx-ph, .mx-ph .mx-ib, .mx-ph .mx-word, .mx-srch, .mx-srch.on, .mx-card-im img) { transition: none !important; }
+  [data-layout="maison"] .mx-hero-dots button::after, [data-layout="maison"] .mx-dots button::after { transition: none !important; }
+  [data-layout="maison"] .mx-srch { transform: none; }
   [data-layout="maison"] .mx-ph::before { transition: none !important; }
 }
 
