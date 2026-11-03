@@ -8,7 +8,7 @@ import { Reveal } from '../../components/Reveal';
 import { Icon, Ph, type KitProps } from '../emergent/ui';
 import { CollectionsBrowser } from '../emergent/CollectionsBrowser';
 import { recentSkus } from '../../recent';
-import { grams, hn, t, tl, tn, ts, useLang } from '../../i18n';
+import { grams, hn, t, tn, ts, useLang } from '../../i18n';
 import { SIZES_FULL, SIZES_GRID } from '../../photoSrcSet';
 import { Tile } from './ui';
 
@@ -148,9 +148,7 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       <Hero slides={slides} loading={loading} />
 
       <section className="mx-intro">
-        <Reveal><p className="mx-ey">{ts(merchant.brand.tagline)}</p></Reveal>
-        <Reveal delay={80}><p className="mx-lede">{tl(merchant.brand.description)}</p></Reveal>
-        <Reveal delay={160}>
+        <Reveal>
           <label className="mx-search">
             <Icon n="search" size={18} />
             <input aria-label={t('Search the catalogue')} data-testid="home-search" type="search" placeholder={t('Search name, SKU or collection')} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && q.trim() && onSearchDesigns?.(q.trim())} />
