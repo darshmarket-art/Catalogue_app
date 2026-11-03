@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { Store } from './store';
+import { CatalogueStore } from './catalogueIndex';
 
 interface SeedFile {
   categories?: Array<Record<string, any> & { id: string }>;
@@ -41,5 +42,6 @@ export async function seedDemoCatalogue(store: Store, merchantId: string, root: 
       const cat = await store.list('categories', { where: [{ field: 'name', op: '==', value: name }], limit: 1 });
       if (cat.length > 0) await store.update('categories', cat[0].id, { designCount: count });
     }
+    await new CatalogueStore(store).recount(); // the seed wrote products directly, so set the store's counters from them
   }
 }

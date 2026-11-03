@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Facebook, Instagram, MapPin, MessageCircle, Phone } from 'lucide-react';
 import type { Category } from '../../types';
+import { api } from '../../api';
 import { downloadCataloguePdf } from '../../cataloguePdf';
 import { merchant } from '../../merchant';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
@@ -73,7 +74,9 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const handlePdf = async (cat: Category) => {
     setToastMessage('Preparing the PDF…');
     try {
-      await downloadCataloguePdf(cat, products, (done, total) => setToastMessage(`Preparing the PDF… ${done} of ${total} photos`));
+      // The app only holds a few designs, so the collection's own designs come from the server.
+      const items = (await api.queryProducts({ category: cat.name, limit: 200 })).items;
+      await downloadCataloguePdf(cat, items, (done, total) => setToastMessage(`Preparing the PDF… ${done} of ${total} photos`));
       showToast('PDF downloaded');
     } catch (err) {
       showToast(errorText(err, 'collection PDF', 'Could not create the PDF.'));

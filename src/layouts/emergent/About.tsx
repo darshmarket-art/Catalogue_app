@@ -1,5 +1,6 @@
 import React from 'react';
 import { merchant } from '../../merchant';
+import { MIcon } from '../../components/MIcon';
 import { LegalLinks } from '../../components/LegalLinks';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
@@ -58,7 +59,7 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
             {merchant.welcome.features.map((f) => (
               <div key={f.title} className="em-card em-ab-promise">
                 <span className="em-ico">
-                  <span className="material-symbols-outlined">{f.icon}</span>
+                  <MIcon name={f.icon} />
                 </span>
                 <b>{ts(f.title)}</b>
                 <span className="em-hint">{tl(f.description)}</span>

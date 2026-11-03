@@ -3,6 +3,7 @@ import { merchant } from '../../merchant';
 import { BrandMark } from '../../components/BrandMark';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { Icon, type KitProps } from './ui';
+import { MIcon } from '../../components/MIcon';
 import { LangToggle } from '../../components/LangToggle';
 import { LegalLinks } from '../../components/LegalLinks';
 import { t, tl, ts, useLang } from '../../i18n';
@@ -30,7 +31,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
               {merchant.welcome.features.map((f) => (
                 <li key={f.title}>
                   <span className="em-ico">
-                    <span className="material-symbols-outlined">{f.icon}</span>
+                    <MIcon name={f.icon} />
                   </span>
                   <span>
                     <b>{ts(f.title)}</b>
@@ -64,7 +65,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
             {merchant.welcome.features.map((f) => (
               <div key={f.title} className="em-feature">
                 <span className="em-ico">
-                  <span className="material-symbols-outlined">{f.icon}</span>
+                  <MIcon name={f.icon} />
                 </span>
                 <div className="em-grow">
                   <b style={{ fontWeight: 600 }}>{ts(f.title)}</b>

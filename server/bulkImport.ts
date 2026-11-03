@@ -3,7 +3,7 @@ import type { Request } from 'express';
 
 /** The only calls scripts/bulk-import-products.mjs makes. Admin sign-in still applies to every one of them. */
 const ALLOWED: Array<[method: string, path: RegExp]> = [
-  ['POST', /^\/api\/(admin\/photos|products|categories)\/?(\?|$)/],
+  ['POST', /^\/api\/(admin\/photos|products(\/bulk)?|categories)\/?(\?|$)/],
   ['GET', /^\/api\/(products|categories|tags|entitlements)\/?(\?|$)/]
 ];
 

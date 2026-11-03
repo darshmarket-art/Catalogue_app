@@ -339,22 +339,7 @@ html {
   box-shadow: 0 18px 40px -18px rgb(43 14 31 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.8);
 }
 
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-  vertical-align: middle;
-}
+.msi { width: 1em; height: 1em; font-size: 24px; display: inline-block; vertical-align: middle; flex: none; }
 
 /* Dark appearance: the surfaces and text colours every screen reads (the store's primary stays its own; see emergent.css). */
 @media (prefers-color-scheme: dark) {

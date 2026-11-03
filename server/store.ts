@@ -31,6 +31,8 @@ export interface Store {
   create(collection: string, id: string, data: Doc): Promise<boolean>;
   delete(collection: string, id: string): Promise<boolean>;
   list<T = Doc>(collection: string, options?: ListOptions): Promise<T[]>;
+  /** The documents with these ids, in the same order; null where one does not exist. One batched read, not a scan. */
+  getMany<T = Doc>(collection: string, ids: string[]): Promise<Array<T | null>>;
   /** Merges the given fields into an existing document (creating it if missing). */
   update(collection: string, id: string, data: Doc): Promise<void>;
   /** Atomically adds to numeric fields, creating the document (with `extra` fields) if needed. */
@@ -45,6 +47,7 @@ export interface Store {
 export interface Tx {
   get<T = Doc>(collection: string, id: string): Promise<T | null>;
   set(collection: string, id: string, data: Doc): void;
+  delete(collection: string, id: string): void;
 }
 
 function matches(doc: Doc, filters: Filter[] = []): boolean {
@@ -84,6 +87,10 @@ export class MemoryStore implements Store {
   async get<T = Doc>(collection: string, id: string) {
     const doc = this.col(collection).get(id);
     return doc ? (structuredClone(doc) as T) : null;
+  }
+
+  async getMany<T = Doc>(collection: string, ids: string[]) {
+    return Promise.all(ids.map((id) => this.get<T>(collection, id)));
   }
 
   async set(collection: string, id: string, data: Doc) {
@@ -147,12 +154,13 @@ export class MemoryStore implements Store {
   private lock: Promise<unknown> = Promise.resolve();
   transact<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     const run = async () => {
-      const writes: Array<[string, string, Doc]> = [];
+      const writes: Array<[string, string, Doc | null]> = [];
       const out = await fn({
         get: async (col, id) => this.get(col, id) as any,
-        set: (col, id, data) => void writes.push([col, id, structuredClone(data)])
+        set: (col, id, data) => void writes.push([col, id, structuredClone(data)]),
+        delete: (col, id) => void writes.push([col, id, null])
       });
-      for (const [col, id, data] of writes) this.col(col).set(id, data);
+      for (const [col, id, data] of writes) (data ? this.col(col).set(id, data) : this.col(col).delete(id));
       if (writes.length) this.persist();
       return out;
     };
@@ -172,6 +180,12 @@ export class FirestoreStore implements Store {
   async get<T = Doc>(collection: string, id: string) {
     const snap = await this.db.collection(collection).doc(id).get();
     return snap.exists ? (snap.data() as T) : null;
+  }
+
+  async getMany<T = Doc>(collection: string, ids: string[]) {
+    if (!ids.length) return [];
+    const snaps = await this.db.getAll(...ids.map((id) => this.db.collection(collection).doc(id)));
+    return snaps.map((s) => (s.exists ? (s.data() as T) : null));
   }
 
   async set(collection: string, id: string, data: Doc) {
@@ -221,15 +235,16 @@ export class FirestoreStore implements Store {
 
   transact<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     return this.db.runTransaction(async (t) => {
-      const writes: Array<[string, string, Doc]> = [];
+      const writes: Array<[string, string, Doc | null]> = [];
       const out = await fn({
         get: async (col, id) => {
           const snap = await t.get(this.db.collection(col).doc(id));
           return snap.exists ? (snap.data() as any) : null;
         },
-        set: (col, id, data) => void writes.push([col, id, data])
+        set: (col, id, data) => void writes.push([col, id, data]),
+        delete: (col, id) => void writes.push([col, id, null])
       });
-      for (const [col, id, data] of writes) t.set(this.db.collection(col).doc(id), data);
+      for (const [col, id, data] of writes) (data ? t.set(this.db.collection(col).doc(id), data) : t.delete(this.db.collection(col).doc(id)));
       return out;
     });
   }

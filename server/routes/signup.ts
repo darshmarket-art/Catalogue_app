@@ -14,6 +14,7 @@ import { OTP_PHONE_PER_HOUR, devCode, phone } from './otp';
 import { hostOf, newStoreRecord, scopeStore, secretFor, type StoreRecord } from '../tenancy';
 import { isAvailableStoreName, isReservedStoreName, isValidStoreName } from '../../shared/storeName';
 import { trimmed } from '../schemas';
+import { initStats } from '../catalogueIndex';
 
 export const TRIAL_DAYS = 14;
 const OTP_TTL_MS = 5 * 60 * 1000;
@@ -205,6 +206,7 @@ export function signupRoutes(config: Config, root: Store, delivery: OtpDelivery,
         createdAt: rec.createdAt
       };
       await store.create('admins', admin.email, admin);
+      await initStats(store); // the store's design counters start at zero, trusted
       const logId = newId('log');
       await store.set('auditLogs', logId, { id: logId, event: 'STORE_CREATED', details: `Self-serve signup by ${b.email}`, timestamp: rec.createdAt, ip: req.ip });
 

@@ -23,18 +23,22 @@ export const makeEntitlements = (doc: PlanDoc, now = Date.now()) => {
 
 
 /** Distinct photos in use across designs, categories and banners. Uploaded-but-unused (orphan) files are not counted. */
-export async function photosInUse(store: Store): Promise<Set<string>> {
-  const [products, categories, banners] = await Promise.all([store.list('products'), store.list('categories'), store.list('banners')]);
-  const used = new Set<string>();
-  for (const p of products) for (const i of p.images ?? [p.image]) if (i) used.add(i);
+export async function photosInUse(store: Store, products?: { photos(): Promise<Set<string> | null> }): Promise<Set<string>> {
+  // With a catalogue handle the design photos come from its in-memory index; without one (or when the store is too big to index) the products are scanned.
+  const fromIndex = await products?.photos();
+  const [productDocs, categories, banners] = await Promise.all([fromIndex ? [] : store.list('products'), store.list('categories'), store.list('banners')]);
+  const used = new Set<string>(fromIndex ?? []);
+  for (const p of productDocs) for (const i of p.images ?? [p.image]) if (i) used.add(i);
   for (const d of [...categories, ...banners]) if (d.image) used.add(d.image);
   return used;
 }
 
+const photosInUseOf = photosInUse;
 export type FlagName = keyof ReturnType<typeof flagsFor>;
 
 /** `plan` reads the store record (plan, trialEndsAt, ownApp); `store` is that store's scoped data. */
-export function entitlements(store: Store, plan: () => Promise<PlanDoc>) {
+export function entitlements(store: Store, plan: () => Promise<PlanDoc>, catalogue?: { photos(): Promise<Set<string> | null> }) {
+  const photosInUse = (s: Store) => photosInUseOf(s, catalogue);
   const load = async () => makeEntitlements(await plan());
   const deny = (what: string, limit: number) => new HttpError(402, `Your plan allows ${limit} ${what}. ${UPGRADE_TO_PRO}`);
   return {

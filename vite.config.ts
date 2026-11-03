@@ -19,7 +19,13 @@ export default defineConfig(() => {
     },
     // A bare `vitest run` from the main checkout must not pick up the tests of agent worktrees under .claude/.
     test: { exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'] },
-    build: { rollupOptions: { input: { main: path.resolve(__dirname, 'index.html'), console: path.resolve(__dirname, 'console.html') } } },
+    // The Maison layout chunk is named maison-<hash>, so the server can preload it for Maison stores (renderIndexHtml).
+    build: {
+      rollupOptions: {
+        input: { main: path.resolve(__dirname, 'index.html'), console: path.resolve(__dirname, 'console.html') },
+        output: { chunkFileNames: (c: { facadeModuleId: string | null }) => (c.facadeModuleId?.split('\\').join('/').includes('/layouts/maison/index') ? 'assets/maison-[hash].js' : 'assets/[name]-[hash].js') }
+      }
+    },
     server: {
       // Dev behind a tunnel or preview proxy: VITE_ALLOW_ANY_HOST=true lets Vite answer for any Host header (default: localhost only).
       allowedHosts: process.env.VITE_ALLOW_ANY_HOST === 'true' ? (true as const) : undefined,

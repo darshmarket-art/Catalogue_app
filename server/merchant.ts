@@ -235,6 +235,21 @@ export function themeCss(merchant: MerchantConfig): string {
   return rules.length ? `:root{${rules.join(';')}}` : '';
 }
 
+// ponytail: read once per process; a deploy replaces the container, so the hashed names cannot go stale.
+let maisonAssets: string | undefined;
+const maisonPreload = (): string => {
+  if (maisonAssets === undefined) {
+    try {
+      const dir = path.resolve(process.cwd(), 'dist', 'assets');
+      const files = fs.readdirSync(dir).filter((f) => /^maison-(?!owner-).+\.(js|css)$/.test(f));
+      maisonAssets = files.map((f) => (f.endsWith('.js') ? `<link rel="modulepreload" crossorigin href="/assets/${f}">` : `<link rel="preload" as="style" href="/assets/${f}">`)).join('');
+    } catch {
+      maisonAssets = '';
+    }
+  }
+  return maisonAssets;
+};
+
 /** Fills the placeholders in index.html so link previews, the tab title and colours are right on first paint. */
 export function renderIndexHtml(html: string, merchant: MerchantConfig): string {
   const themeColor = merchant.theme.colors.surface ?? '#f7f1e8';
@@ -252,6 +267,7 @@ export function renderIndexHtml(html: string, merchant: MerchantConfig): string 
     '{{MERCHANT_CONFIG}}': `<script id="merchant-config" type="application/json">${json}</script>`
   };
   let out = html;
+  if (merchant.layout === 'maison') out = out.replace('</head>', `${maisonPreload()}</head>`);
   for (const [key, value] of Object.entries(replacements)) out = out.split(key).join(value);
   // A site with no preview image (the Antarixs entry page) says so, rather than sending an empty address to Facebook, WhatsApp and X.
   // An uploaded logo has a relative address, which link previews cannot use.
