@@ -13,6 +13,7 @@ import { getLang, hn, pur, t, tErr, ts, useLang } from './i18n';
 import { merchant } from './merchant';
 import { emergent } from './layouts/emergent';
 import { DEFAULT_LAYOUT, type LayoutId } from '../shared/layouts';
+import { layoutFor } from './layouts/select';
 import type { LayoutKit } from './layouts/props';
 
 import { sector } from './sector';
@@ -50,6 +51,9 @@ import { OrdersUnavailable } from './components/OrdersUnavailable';
 const TABS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders', 'admin-hub', 'admin-buyers', 'admin-store'];
 /** Sub-pages opened from Store go back to Store. */
 const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+
+// The owner's tabs left to right, so the page turn follows what the bar shows.
+const OWNER_ORDER: ActiveScreen[] = ['admin-hub', 'orders', 'catalogue', 'admin-buyers', 'admin-store'];
 
 // Home to Catalogue is a step deeper (slides forward) and back again slides back, instead of the tab fade.
 const DRILL: ActiveScreen[] = ['categories', 'catalogue'];
@@ -130,11 +134,11 @@ export default function App() {
   
   // Which way the last screen change went, so the page animation slides the right way.
   const [navDir, setNavDir] = useState<'forward' | 'back'>('forward');
-  // Buyers get the layout the owner picked; the owner's own screens always use the standard one (the Maison kit has no owner chrome).
+  // The store's layout applies to buyers and to the owner alike (Maison has its own owner shell), so "View as a buyer" shows what buyers get.
   // Maison is its own chunk (code and CSS): Classic stores never download it.
   const [maisonKit, setMaisonKit] = useState<LayoutKit | null>(null);
   const [maisonFailed, setMaisonFailed] = useState(false); // the chunk could not load (offline): fall back to Classic
-  const wantsMaison = !isAdminLoggedIn && merchant.layout === 'maison' && !maisonFailed;
+  const wantsMaison = layoutFor(merchant.layout, maisonFailed) === 'maison';
   useEffect(() => {
     if (wantsMaison && !maisonKit) void import('./layouts/maison').then((m) => setMaisonKit(m.maison), () => setMaisonFailed(true));
   }, [wantsMaison, maisonKit]);
@@ -168,7 +172,8 @@ export default function App() {
     else if (target === 'admin-purities') { screen = 'catalogue'; setCatalogueSeg('purities'); }
     const from = screenRef.current;
     // Between two tabs the direction follows the tab order (Maison turns the page that way); otherwise out to a tab is back.
-    setNavDir(TABS.includes(screen) && TABS.includes(from) ? (TABS.indexOf(screen) < TABS.indexOf(from) ? 'back' : 'forward') : TABS.includes(screen) ? 'back' : 'forward');
+    const rank = (x: ActiveScreen) => (isAdminLoggedIn && OWNER_ORDER.includes(x) ? OWNER_ORDER : TABS).indexOf(x);
+    setNavDir(TABS.includes(screen) && TABS.includes(from) ? (rank(screen) < rank(from) ? 'back' : 'forward') : TABS.includes(screen) ? 'back' : 'forward');
     setCurrentScreen(screen);
     // One history entry for the whole store (above a guard entry), so Back never walks a trail; see goBack below.
     // A tab swaps the entry; going deeper (a form, About, a sub-screen) adds one, so Back walks back out the way you came.
