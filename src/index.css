@@ -409,7 +409,7 @@ html {
 .stl-main b { font-size: 0.9375rem; }
 .stl-main span, .stl-main em { grid-column: 2; font-size: 0.75rem; opacity: 0.8; font-style: normal; }
 .stl-main em { opacity: 1; font-weight: 600; }
-.stl-place { display: flex; align-items: center; gap: 8px; padding: 0 10px 10px 78px; font-size: 0.75rem; }
+.stl-place { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 10px 10px 78px; font-size: 0.75rem; }
 .stl-place select { min-height: 36px; font: inherit; }
 .stl-sw { display: block; border-radius: 10px; background: #ccc; }
 .stl-sw[data-s="cad"] { background: linear-gradient(180deg, #f1f1f3 0 62%, #d9d9dd 62%); box-shadow: inset 0 0 0 1px #0002; }
@@ -419,6 +419,8 @@ html {
 .stl-sw[data-s="giftbox"] { background: linear-gradient(180deg, #7a1f2b 0 38%, #f4ead8 38% 46%, #3a0f16 46%); }
 .stl-sw[data-s="festive"] { background: radial-gradient(circle at 50% 60%, #ffd66b 0, #f2a03a 28%, #7a3b0c 70%, #2a1204 100%); }
 .stl-sw[data-s="on-model"] { background: radial-gradient(ellipse at 50% 100%, #2b2320 0 45%, transparent 46%), linear-gradient(180deg, #0d0b0b, #1c1716); }
+.stl-sw[data-s="black-necklace"] { background: radial-gradient(ellipse at 50% 0, #1c1c1f 0 42%, transparent 43%), radial-gradient(circle at 50% 55%, #f5e3a8 0 5%, transparent 6%), #000; }
+.stl-sw[data-s="ring-hand-women"], .stl-sw[data-s="ring-hand-men"] { background: radial-gradient(circle at 50% 60%, #f5e3a8 0 6%, transparent 7%), radial-gradient(ellipse at 50% 100%, #1c1c1f 0 55%, transparent 56%), #000; }
 .stl-sw[data-s="macro"] { background: conic-gradient(from 20deg at 50% 50%, #e8e8ea, #9b9ba3, #f6f6f8, #7d7d86, #e8e8ea); }
 @media (min-width: 720px) { .stl-wrap, .rnd-wrap { align-items: center; padding: 24px; } .sheet.stl-sheet, .sheet.rnd-cmp { border-radius: 24px; max-height: 85dvh; } .sheet.stl-sheet { max-width: 760px !important; } .stl-grid { grid-template-columns: 1fr 1fr; } }
 

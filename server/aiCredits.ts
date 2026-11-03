@@ -33,7 +33,7 @@ export interface AiConfig {
 }
 
 export const DEFAULT_CONFIG: AiConfig = {
-  prices: Object.fromEntries(STYLE_IDS.map((s) => [s, s === 'on-model' ? 12 : 8])) as Record<StyleId, number>,
+  prices: Object.fromEntries(STYLE_IDS.map((s) => [s, ['on-model', 'black-necklace', 'ring-hand-women', 'ring-hand-men', 'model-base'].includes(s) ? 12 : 8])) as Record<StyleId, number>,
   modelCostUsd: { 'gemini-nano-banana-2.1': 0.034, 'gemini-3.1-flash-image': 0.067, 'gemini-3-pro-image': 0.134 },
   usdInr: 95,
   lowBalance: 24,

@@ -5,8 +5,8 @@ import type { Blob, Blobs } from '../blobs';
 import { newPhotoFile, normalizePhoto, objectName, type Media } from '../media';
 import type { Entitlements } from '../entitlements';
 import type { Store } from '../store';
-import { allowedStyles, renderEnabled, renderMonthlyCap, renderStudio, STYLES } from '../aiRender';
-import { PLACEMENTS, STYLE_IDS, type Placement, type StyleId } from '../../shared/aiStyles';
+import { allowedStyles, BASE_PROMPTS, renderEnabled, renderMonthlyCap, renderStudio, STYLES } from '../aiRender';
+import { MODEL_SHOTS, PLACEMENTS, SHOT_OF, STYLE_IDS, type ModelShot, type Placement, type StyleId } from '../../shared/aiStyles';
 import { HttpError, handler } from '../http';
 import { RENDER_ID, activeModel, finish, getConfig, getWallet, newRenderId, priceFor, reserve } from '../aiCredits';
 import { logger } from '../logger';
@@ -55,6 +55,12 @@ export interface AiWallet { root: Store; storeId: string; founder: () => Promise
 export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: RequestHandler, ent: Entitlements, bulkImportKey: string | null, store: Store, ai: AiWallet) {
   const router = Router();
 
+  /** The store's approved base shot (a never-deleted photo in this store's own blobs), or null. */
+  const approvedShot = async (shot: ModelShot) => {
+    const ref = (await store.get<{ ref?: string }>('modelShots', shot))?.ref;
+    return ref ? { ref, blob: await blobs.get(objectName(ref.slice(6))) } : null;
+  };
+
   router.post(
     '/',
     requireAdmin,
@@ -89,6 +95,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       res.json({
         status: 'success',
         data: {
+          modelShots: Object.fromEntries(await Promise.all(MODEL_SHOTS.map(async (k) => { const a = await approvedShot(k); return [k, a?.blob ? { ref: a.ref, url: media.linkFor(a.ref.slice(6)) } : null]; }))),
           enabled: renderEnabled() && !cfg.killSwitch && wallet.aiEnabled, styles: allowedStyles(), cap: myCap, used, left: Math.max(0, myCap - used),
           // Why it is off, when it is: the app words the message. Balance and prices are the server's; the app only shows them.
           offReason: !renderEnabled() ? 'server' : cfg.killSwitch ? 'paused' : !wallet.aiEnabled ? 'store' : null,
@@ -108,15 +115,23 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
     requireAdmin,
     handler(async (req, res) => {
       if (!renderEnabled()) throw new HttpError(503, 'AI render is switched off on this server. Your original photo is used.');
-      const ref = normalizePhoto(String((req.body as { ref?: unknown } | undefined)?.ref ?? ''));
-      if (!ref?.startsWith('media:')) throw new HttpError(400, 'Only a photo uploaded here can be rendered.');
-      const body = req.body as { style?: unknown; placement?: unknown; renderId?: unknown };
-      const style = (body.style ?? 'cad') as StyleId;
-      if (!STYLE_IDS.includes(style) || !allowedStyles().includes(style)) throw new HttpError(400, 'Choose one of the available AI render styles.');
+      const body = (req.body ?? {}) as { ref?: unknown; style?: unknown; placement?: unknown; renderId?: unknown; baseShot?: unknown };
+      // baseShot set: make the one-time base shot (text only, no photo). Otherwise render a product photo in a style.
+      const baseShot = body.baseShot as ModelShot | undefined;
+      const style = (baseShot !== undefined ? 'model-base' : body.style ?? 'cad') as StyleId;
+      if (baseShot !== undefined) {
+        if (!MODEL_SHOTS.includes(baseShot) || !allowedStyles().some((s) => SHOT_OF[s] === baseShot)) throw new HttpError(400, 'Choose one of the available model shots.');
+      } else if (!STYLE_IDS.includes(style) || style === 'model-base' || !allowedStyles().includes(style)) throw new HttpError(400, 'Choose one of the available AI render styles.');
+      const ref = baseShot !== undefined ? '' : normalizePhoto(String(body.ref ?? ''));
+      if (baseShot === undefined && !ref?.startsWith('media:')) throw new HttpError(400, 'Only a photo uploaded here can be rendered.');
       const placement = body.placement as Placement | undefined;
       if (style === 'on-model' && !PLACEMENTS.includes(placement as Placement)) throw new HttpError(400, 'Choose where the piece is worn.');
-      const original = await blobs.get(objectName(ref.slice(6)));
-      if (!original) throw new HttpError(404, 'Photo not found. Upload it again.');
+      const original = baseShot !== undefined ? null : await blobs.get(objectName(ref!.slice(6)));
+      if (baseShot === undefined && !original) throw new HttpError(404, 'Photo not found. Upload it again.');
+      // A recipe style needs the owner's approved base shot (image 1); without one the owner is sent to make it first. Nothing is charged.
+      const needShot = SHOT_OF[style];
+      const base = needShot ? await approvedShot(needShot) : null;
+      if (needShot && !base?.blob) throw new HttpError(409, 'Create and approve the model shot for this style first.', 'no-model-shot', { reason: 'no-model-shot', shot: needShot });
 
       const renderId = typeof body.renderId === 'string' ? body.renderId : newRenderId();
       if (!RENDER_ID.test(renderId)) throw new HttpError(400, 'Invalid render id.');
@@ -139,15 +154,17 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
         const file = r.usage.resultRef?.slice(6);
         const meta = file ? await blobs.get(`renders/${file}`) : null;
         if (r.usage.outcome !== 'ok' || !file || !meta) throw new HttpError(409, 'That render is already in progress or finished. Start a new one.', 'duplicate', { reason: 'duplicate' });
-        const was = JSON.parse(meta.data.toString()) as { original: string };
-        res.json({ status: 'success', data: { ref: r.usage.resultRef, url: media.linkFor(file), style, original: { ref: was.original, url: media.url(was.original) }, renderId, credits: { balance: r.wallet.balance, charged: r.usage.price }, replay: true } });
+        const was = JSON.parse(meta.data.toString()) as { original?: string };
+        res.json({ status: 'success', data: { ref: r.usage.resultRef, url: media.linkFor(file), style, ...(baseShot !== undefined ? { baseShot } : { original: { ref: was.original, url: media.url(was.original!) } }), renderId, credits: { balance: r.wallet.balance, charged: r.usage.price }, replay: true } });
         return;
       }
       await store.increment('aiRenderMonthly', month, { count: 1 }, { month });
 
       let rendered: Awaited<ReturnType<typeof optimisePhoto>>;
       try {
-        const out = await renderStudio(original.data, original.contentType, STYLES[style](placement));
+        const out = baseShot !== undefined ? await renderStudio(null, '', BASE_PROMPTS[baseShot])
+          : base?.blob ? await renderStudio(base.blob.data, base.blob.contentType, STYLES[style](placement), [{ data: original!.data, mimeType: original!.contentType }]) // image 1 = base shot, image 2 = product
+          : await renderStudio(original!.data, original!.contentType, STYLES[style](placement));
         const type = sniff(out.data);
         if (!type) throw new Error('the AI returned an unreadable image');
         rendered = await optimisePhoto(out.data, type);
@@ -160,13 +177,30 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const file = newPhotoFile(TYPES[rendered.type]);
       try {
         await blobs.put(objectName(file), rendered.buffer, rendered.type);
-        await blobs.put(`renders/${file}`, Buffer.from(JSON.stringify({ original: ref, style, ...(style === 'on-model' ? { placement } : {}) })), 'application/json');
+        await blobs.put(`renders/${file}`, Buffer.from(JSON.stringify(baseShot !== undefined ? { baseShot, style } : { original: ref, style, ...(style === 'on-model' ? { placement } : {}), ...(base ? { base: base.ref } : {}) })), 'application/json');
       } catch (err) {
         await finish(ai.root, ai.storeId, renderId, { outcome: 'provider_failed' }); // our storage failed, not the owner's fault: give the credits back
         throw err;
       }
       const closed = await finish(ai.root, ai.storeId, renderId, { outcome: 'ok', resultRef: `media:${file}` });
-      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), style, original: { ref, url: media.url(ref) }, renderId, credits: { balance: closed?.balanceAfter ?? r.wallet.balance, charged: r.usage.price } } });
+      res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), style, ...(baseShot !== undefined ? { baseShot } : { original: { ref, url: media.url(ref!) } }), renderId, credits: { balance: closed?.balanceAfter ?? r.wallet.balance, charged: r.usage.price } } });
+    })
+  );
+
+  /** The owner approves a generated base shot: only a render made as that exact base shot in THIS store can be approved. The old one is kept in storage. */
+  router.post(
+    '/model-shots',
+    requireAdmin,
+    handler(async (req, res) => {
+      const { shot, ref: raw } = (req.body ?? {}) as { shot?: unknown; ref?: unknown };
+      if (!MODEL_SHOTS.includes(shot as ModelShot)) throw new HttpError(400, 'Choose one of the available model shots.');
+      const ref = normalizePhoto(String(raw ?? ''));
+      if (!ref?.startsWith('media:')) throw new HttpError(400, 'Only a model shot made here can be approved.');
+      const meta = await blobs.get(`renders/${ref.slice(6)}`);
+      const was = meta ? (JSON.parse(meta.data.toString()) as { baseShot?: string }) : null;
+      if (was?.baseShot !== shot) throw new HttpError(400, 'That image is not a model shot made for this store.');
+      await store.set('modelShots', shot as string, { ref, at: Date.now() });
+      res.json({ status: 'success', data: { shot, ref, url: media.linkFor(ref.slice(6)) } });
     })
   );
 

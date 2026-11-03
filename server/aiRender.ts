@@ -4,7 +4,7 @@
  * Off unless AI_RENDER_ENABLED=true. The original photo is always kept by the caller; this file only talks to Google.
  */
 import { googleToken, projectId } from './cloudStats';
-import { STYLE_IDS, type Placement, type StyleId } from '../shared/aiStyles';
+import { STYLE_IDS, type ModelShot, type Placement, type StyleId } from '../shared/aiStyles';
 
 /** Shared by every style: the piece must stay exactly the same, only the presentation changes. */
 export const KEEP_IDENTICAL =
@@ -42,7 +42,33 @@ export const STYLES: Record<StyleId, (placement?: Placement) => string> = {
   'on-model': (p = 'neck') =>
     look(`Presentation: the piece ${PLACE_TEXT[p]}. Hermes-style low-key editorial light: the model and skin in deep shadow, dark and low contrast, no face visible, ` +
       'while the jewellery is lit in FULL contrast, perfectly sharp and detailed. The body must not hide or change any part of the piece.'),
-  macro: () => look('Presentation: a tight macro close-up showing the texture of the stones and the metal, shallow depth of field, crisp detail, soft light.')
+  macro: () => look('Presentation: a tight macro close-up showing the texture of the stones and the metal, shallow depth of field, crisp detail, soft light.'),
+  'black-necklace': () => BASE_STYLES['black-necklace']!,
+  'ring-hand-women': () => BASE_STYLES['ring-hand-women']!,
+  'ring-hand-men': () => BASE_STYLES['ring-hand-men']!,
+  'model-base': () => BASE_PROMPTS['neck-women'] // never used as is: the route picks BASE_PROMPTS[shot]
+};
+
+/** Keeps the background of the approved base shot, and the person, exactly as they are. */
+const KEEP_BASE =
+  'IMAGE 1 is the approved base shot: keep its person, hand or neck, pose, skin tone, lighting, framing and PURE BLACK background pixel-identical; change nothing in it except adding the jewellery. ' +
+  'IMAGE 2 is the product photo: the jewellery piece to place, and it must be identical in design. Take ONLY the piece from image 2, never its background, hands or props. ' +
+  'The jewellery is lit in FULL contrast, perfectly sharp and exact; the person stays in deep shadow, low-key and dark, and the background stays pure black (no grey, gradient, glow or vignette). ' + KEEP_IDENTICAL;
+
+const onBase = (what: string) => 'Two images follow. ' + what + ' ' + KEEP_BASE;
+
+/** Recipes that take two images (base shot first, product second). */
+const BASE_STYLES: Partial<Record<StyleId, string>> = {
+  'black-necklace': onBase('Place the necklace, chain, pendant or neck piece from image 2 on the neck and collarbone of the model in image 1, resting naturally; the body must not hide or change any part of it. Dark low-key editorial, like a Swarovski website photograph.'),
+  'ring-hand-women': onBase('Place the ring from image 2 on the correct finger of the hand of the woman in image 1, sitting naturally and fully visible.'),
+  'ring-hand-men': onBase('Place the ring from image 2 on the correct finger of the hand of the man in image 1, sitting naturally and fully visible.')
+};
+
+/** The one-time prompt that makes a base shot: a person with NO jewellery on a black background. */
+export const BASE_PROMPTS: Record<ModelShot, string> = {
+  'ring-women': 'A premium low-key editorial photograph of the hand of a refined woman, fingers relaxed and slightly apart, palm down, seen from the front, with NO jewellery, rings, watermark or text. Skin in deep shadow, dark and low contrast, with a soft rim light. The background is pure black.',
+  'ring-men': 'A premium low-key editorial photograph of the hand of a man, strong and clean, fingers relaxed and slightly apart, back of the hand toward the camera, with NO jewellery, rings, watermark or text. Skin in deep shadow, dark and low contrast, with a soft rim light. The background is pure black.',
+  'neck-women': 'A premium low-key editorial photograph of the neck, collarbone and shoulders, the face not shown (cropped below the lips), with NO jewellery, watermark or text. Skin in deep shadow, dark and low contrast, with a soft rim light on the collarbone. The background is pure black.'
 };
 
 /** Styles this server offers: AI_RENDER_STYLES (comma list) or all. */
@@ -58,17 +84,24 @@ export const renderMonthlyCap = () => {
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 100;
 };
 
-/** Sends the photo to Vertex AI and returns the rendered image. Throws an Error with a short, safe message on any failure. */
-export async function renderStudio(image: Buffer, mimeType: string, prompt = RENDER_PROMPT): Promise<{ data: Buffer; mimeType: string }> {
+/** An extra reference image sent after the first one. */
+export interface RefImage { data: Buffer; mimeType: string }
+
+/**
+ * Sends the photo to Vertex AI and returns the rendered image. Throws an Error with a short, safe message on any failure.
+ * `extra` images follow the first in order (image 2, 3...); `image` may be null for a text-only request (a base shot).
+ */
+export async function renderStudio(image: Buffer | null, mimeType: string, prompt = RENDER_PROMPT, extra: RefImage[] = []): Promise<{ data: Buffer; mimeType: string }> {
   const model = process.env.AI_RENDER_MODEL || 'gemini-nano-banana-2.1';
   const loc = process.env.AI_RENDER_LOCATION || 'global';
   const host = loc === 'global' ? 'aiplatform.googleapis.com' : `${loc}-aiplatform.googleapis.com`;
   const project = await projectId();
+  const images = [...(image ? [{ data: image, mimeType }] : []), ...extra].map((i) => ({ inlineData: { mimeType: i.mimeType, data: i.data.toString('base64') } }));
   const call = async (imageSize?: string) => fetch(`https://${host}/v1/projects/${project}/locations/${loc}/publishers/google/models/${model}:generateContent`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image.toString('base64') } }, { text: prompt }] }],
+      contents: [{ role: 'user', parts: [...images, { text: prompt }] }],
       generationConfig: { responseModalities: ['TEXT', 'IMAGE'], ...(imageSize ? { imageConfig: { imageSize } } : {}) }
     }),
     // Measured 38-104 s per image on the global endpoint (docs/DESIGN_BENCHMARK.md D0); Cloud Run's default request timeout is 300 s.

@@ -6,8 +6,8 @@ import { PhotoCropper } from './PhotoCropper';
 import { errorText } from '../bugReport';
 import { RenderStylePicker } from './RenderStylePicker';
 import { ON_MODEL_NOTE } from './RenderStylePicker';
-import { STYLE_IDS, STYLE_INFO, type Placement, type StyleId } from '../../shared/aiStyles';
-import { acceptRender, cannotAfford, enhanceBlocked, rs, swapRender, type PhotoItem, type RenderCredits, type RenderResult } from '../aiRender';
+import { SHOT_LABEL, STYLE_IDS, STYLE_INFO, type ModelShot, type Placement, type StyleId } from '../../shared/aiStyles';
+import { acceptRender, cannotAfford, enhanceBlocked, rs, swapRender, type ModelShotResult, type ModelShots, type PhotoItem, type RenderCredits, type RenderResult } from '../aiRender';
 import { AddCredits } from './AiCredits';
 import { inRoot, useSheet } from './sheetKit';
 export type { PhotoItem };
@@ -82,6 +82,35 @@ const CompareSheet: React.FC<{ before: string; after: string; style?: string; on
   );
 };
 
+/** One-time model shot: progress while AI draws it, then the owner approves it, draws another, or leaves. Nothing is saved until "Use this model". */
+const ModelShotSheet: React.FC<{ shot: ModelShot; since: number | null; out: ModelShotResult | null; onUse: () => void; onAgain: () => void; onCancel: () => void }> = ({ shot, since, out, onUse, onAgain, onCancel }) => {
+  const vars = useSheet(onCancel);
+  return inRoot(
+    <div className="sheet-wrap rnd-wrap" style={vars} role="dialog" aria-modal="true" aria-label="Model shot" data-testid="model-shot-sheet">
+      <button type="button" aria-label="Cancel" className="scrim" onClick={onCancel} />
+      <div className="sheet rnd-cmp">
+        <h3 style={{ margin: 0 }}>Model shot: {SHOT_LABEL[shot]}</h3>
+        {since !== null || !out ? (
+          <>
+            <RenderProgress since={since ?? Date.now()} onCancel={onCancel} />
+            <p className="hint" style={{ margin: 0 }}>AI is drawing a plain model with no jewellery on black. This is made once and then reused for every piece.</p>
+          </>
+        ) : (
+          <>
+            <img src={out.url} alt="Generated model shot" style={{ width: '100%', maxHeight: '55dvh', objectFit: 'contain', background: '#000', borderRadius: 12 }} data-testid="model-shot-image" />
+            <p className="hint" style={{ margin: 0 }}>Every render keeps this exact person and background; only the jewellery changes. Drawing another is charged again.</p>
+            <div className="col rnd-foot" style={{ gap: 8 }}>
+              <button type="button" className="btn" data-testid="model-shot-use" onClick={onUse}>Use this model</button>
+              <button type="button" className="btn alt" data-testid="model-shot-again" onClick={onAgain}>Draw another</button>
+              <button type="button" className="lnk" style={{ alignSelf: 'center' }} onClick={onCancel}>Cancel</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 25 * 1024 * 1024;
 
@@ -107,6 +136,9 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   const [picking, setPicking] = useState<Array<{ ref: string; mode: 'auto' | 'enhance' }>>([]);
   const [allowed, setAllowed] = useState<StyleId[] | null>(null);
   const [credits, setCredits] = useState<RenderCredits | null>(null);
+  const [shots, setShots] = useState<ModelShots | null>(null);
+  // The one-time model shot being made (since = still drawing) or waiting for approval.
+  const [shotJob, setShotJob] = useState<{ shot: ModelShot; since: number | null; out: ModelShotResult | null } | null>(null);
   const busy = Object.keys(rendering).length;
 
   useEffect(() => {
@@ -122,6 +154,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
   const refreshStatus = (first = false) =>
     api.renderStatus().then((s) => {
       setCredits(s.credits ?? null);
+      if (s.modelShots) setShots(s.modelShots);
       if (enhance) { const b = enhanceBlocked(s); if (b) setBlocked(b); } // never clears a reason the last attempt just showed
       if (first && s.styles) setAllowed(s.styles as StyleId[]);
       if (s.credits && cannotAfford(s.credits, s.styles)) setAiOn(false);
@@ -165,6 +198,41 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
       void refreshStatus(); // a failed render was refunded; show the true balance
     } finally {
       if (jobs.current[ref] === ctl) stop(ref);
+    }
+  };
+
+  const makeShot = async (shot: ModelShot) => {
+    const key = `shot:${shot}`;
+    if (jobs.current[key]) return;
+    const ctl = new AbortController();
+    jobs.current[key] = ctl;
+    setShotJob({ shot, since: Date.now(), out: null });
+    setAiNote(null);
+    try {
+      const out = await api.renderModelShot(shot, ctl.signal, crypto.randomUUID());
+      if (ctl.signal.aborted) return;
+      if (out.credits) setCredits((c) => (c ? { ...c, balance: out.credits!.balance } : c));
+      setShotJob({ shot, since: null, out });
+    } catch (err) {
+      if (ctl.signal.aborted) return;
+      if (!(err instanceof ApiError && err.handled)) setAiNote(err instanceof ApiError ? err.message : 'The model shot did not work. Please try again.');
+      setShotJob(null);
+      void refreshStatus();
+    } finally {
+      if (jobs.current[key] === ctl) delete jobs.current[key];
+    }
+  };
+  const cancelShot = () => { if (shotJob) { jobs.current[`shot:${shotJob.shot}`]?.abort(); delete jobs.current[`shot:${shotJob.shot}`]; } setShotJob(null); void refreshStatus(); };
+  const useShot = async () => {
+    if (!shotJob?.out) return;
+    const { shot, out } = shotJob;
+    try {
+      await api.approveModelShot(shot, out.ref);
+      setShots((m) => ({ ...(m ?? {}), [shot]: { ref: out.ref, url: out.url } }));
+      setShotJob(null);
+    } catch (err) {
+      setShotJob(null);
+      setAiNote(err instanceof ApiError ? err.message : 'The model shot could not be saved.');
     }
   };
 
@@ -368,9 +436,13 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({ photos, onChange, max,
           e.target.value = '';
         }}
       />
-      {picking[0] && photos.some((p) => p.ref === picking[0].ref) && (
+      {shotJob && <ModelShotSheet shot={shotJob.shot} since={shotJob.since} out={shotJob.out} onUse={() => void useShot()} onAgain={() => void makeShot(shotJob.shot)} onCancel={cancelShot} />}
+      {!shotJob && picking[0] && photos.some((p) => p.ref === picking[0].ref) && (
         <RenderStylePicker
           tag={tag}
+          modelShots={shots}
+          recipes={picking[0].mode === 'auto'}
+          onMakeShot={(s) => void makeShot(s)}
           allowed={allowed}
           credits={credits}
           onCancel={() => setPicking((q) => q.slice(1))}

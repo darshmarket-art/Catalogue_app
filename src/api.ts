@@ -21,7 +21,7 @@ import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { noteApiCall } from './bugReport';
-import type { AiCreditsInfo, RenderResult, RenderStatus } from './aiRender';
+import type { AiCreditsInfo, ModelShotResult, RenderResult, RenderStatus } from './aiRender';
 
 // Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
 const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
@@ -458,6 +458,16 @@ export const api = {
   /** CAD-style AI render of a just-uploaded photo. The original stays stored; the server says why when it cannot render. */
   async renderPhoto(ref: string, signal?: AbortSignal, style?: string, placement?: string, renderId?: string): Promise<RenderResult> {
     return (await post('/api/v1/admin/photos/render', { ref, style, placement, renderId }, signal)).data;
+  },
+
+  /** One-time: AI draws the reusable base shot (a hand or neck, no jewellery, black background). Charged like a render; not saved until approved. */
+  async renderModelShot(shot: string, signal?: AbortSignal, renderId?: string): Promise<ModelShotResult> {
+    return (await post('/api/v1/admin/photos/render', { baseShot: shot, renderId }, signal)).data;
+  },
+
+  /** The owner approves a generated base shot; later recipe renders send it as image 1. */
+  async approveModelShot(shot: string, ref: string): Promise<{ ref: string; url: string }> {
+    return (await post('/api/v1/admin/photos/model-shots', { shot, ref })).data;
   },
 
   /** Is AI render on for this server, and how many renders are left this month. */

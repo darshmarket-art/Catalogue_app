@@ -1,5 +1,5 @@
 /** AI render styles, shared by the owner's picker and the server (which owns the prompts). */
-export const STYLE_IDS = ['cad', 'silk', 'studio-dark', 'editorial', 'giftbox', 'festive', 'on-model', 'macro'] as const;
+export const STYLE_IDS = ['cad', 'silk', 'studio-dark', 'editorial', 'giftbox', 'festive', 'on-model', 'macro', 'black-necklace', 'ring-hand-women', 'ring-hand-men', 'model-base'] as const;
 export type StyleId = (typeof STYLE_IDS)[number];
 
 export const STYLE_INFO: Record<StyleId, { name: string; blurb: string }> = {
@@ -10,7 +10,11 @@ export const STYLE_INFO: Record<StyleId, { name: string; blurb: string }> = {
   giftbox: { name: 'Gift box', blurb: 'Resting in an open presentation box.' },
   festive: { name: 'Festive', blurb: 'Brass, flowers and diya glow for festive banners.' },
   'on-model': { name: 'Worn on model', blurb: 'Worn, model in shadow, jewellery in full light.' },
-  macro: { name: 'Macro close-up', blurb: 'Tight view of stone and metal texture.' }
+  macro: { name: 'Macro close-up', blurb: 'Tight view of stone and metal texture.' },
+  'black-necklace': { name: 'Black necklace', blurb: 'Worn on a model, all-black background, jewellery in full light.' },
+  'ring-hand-women': { name: "Ring on woman's hand", blurb: "Your saved woman's hand, black background; only the ring changes." },
+  'ring-hand-men': { name: "Ring on man's hand", blurb: "Your saved man's hand, black background; only the ring changes." },
+  'model-base': { name: 'Model shot', blurb: 'The reusable person for the recipes above (one-time).' }
 };
 
 export const PLACEMENTS = ['finger', 'neck', 'ear', 'wrist', 'ankle', 'forehead', 'nose'] as const;
@@ -27,3 +31,12 @@ export const placementForTag = (tag?: string | null): Placement | null => {
   ];
   return rules.find(([re]) => re.test(t))?.[1] ?? null;
 };
+
+/** Reusable base shots (a hand or a neck, no jewellery, black background). Made once per store, approved by the owner, then sent with every product photo so the person never changes. */
+export const MODEL_SHOTS = ['ring-women', 'ring-men', 'neck-women'] as const;
+export type ModelShot = (typeof MODEL_SHOTS)[number];
+export const SHOT_LABEL: Record<ModelShot, string> = { 'ring-women': "Woman's hand", 'ring-men': "Man's hand", 'neck-women': "Woman's neck" };
+/** Recipe styles that need an approved base shot, and which one. */
+export const SHOT_OF: Partial<Record<StyleId, ModelShot>> = { 'black-necklace': 'neck-women', 'ring-hand-women': 'ring-women', 'ring-hand-men': 'ring-men' };
+/** The recipe that suits a collection tag (neck pieces and rings only; the owner can switch ring gender). */
+export const recipeForTag = (tag?: string | null): StyleId | null => { const p = placementForTag(tag); return p === 'neck' ? 'black-necklace' : p === 'finger' ? 'ring-hand-women' : null; };

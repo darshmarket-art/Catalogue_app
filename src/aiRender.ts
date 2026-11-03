@@ -19,9 +19,14 @@ export interface RenderResult {
   credits?: { balance: number; charged: number };
 }
 
+/** What a base-shot render returns: a picture to approve, no original. */
+export type ModelShotResult = Omit<RenderResult, 'original'>;
+/** The store's approved base shots by id (null = not made yet). */
+export type ModelShots = Record<string, { ref: string; url: string } | null>;
+
 /** What GET /photos/render says about the store's AI credits. Prices are the server's; the app only shows them. */
 export interface RenderCredits { balance: number; free: boolean; low: boolean; prices: Record<string, number> }
-export interface RenderStatus { enabled: boolean; cap: number; used?: number; left: number; styles?: string[]; offReason?: 'server' | 'paused' | 'store' | null; credits?: RenderCredits }
+export interface RenderStatus { modelShots?: ModelShots; enabled: boolean; cap: number; used?: number; left: number; styles?: string[]; offReason?: 'server' | 'paused' | 'store' | null; credits?: RenderCredits }
 
 /** GET /ai-credits. */
 export interface AiCreditsInfo {

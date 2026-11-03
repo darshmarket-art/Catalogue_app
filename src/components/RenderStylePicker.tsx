@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { AddCredits } from './AiCredits';
 import { inRoot, useSheet } from './sheetKit';
-import { rs, type RenderCredits } from '../aiRender';
-import { PLACEMENTS, PLACEMENT_LABEL, STYLE_IDS, STYLE_INFO, placementForTag, type Placement, type StyleId } from '../../shared/aiStyles';
+import { rs, type ModelShots, type RenderCredits } from '../aiRender';
+import { PLACEMENTS, PLACEMENT_LABEL, SHOT_OF, STYLE_IDS, STYLE_INFO, placementForTag, recipeForTag, type ModelShot, type Placement, type StyleId } from '../../shared/aiStyles';
 
 const KEY = 'ai_render_style';
 export const ON_MODEL_NOTE = 'AI draws the model around your piece; check every detail';
@@ -25,21 +25,33 @@ export const RenderStylePicker: React.FC<{
   allowed: StyleId[] | null;
   /** Balance and per-style prices from the server (null while unknown). A style the store cannot afford is disabled, with the way to add credits shown. */
   credits?: RenderCredits | null;
+  /** The store's approved base shots (null while unknown). Recipe styles (necklace, rings) need one. */
+  modelShots?: ModelShots | null;
+  /** Owner wants to make (or change) the base shot for a recipe; the parent runs it and comes back here. */
+  onMakeShot?: (shot: ModelShot) => void;
+  /** Offer the model-shot recipes: only for new products at upload, never for existing photos. */
+  recipes?: boolean;
   onPick: (style: StyleId, placement?: Placement) => void;
   onCancel: () => void;
-}> = ({ tag, allowed, credits, onPick, onCancel }) => {
+}> = ({ tag, allowed, credits, modelShots, onMakeShot, recipes = false, onPick, onCancel }) => {
   const vars = useSheet(onCancel);
   const derived = placementForTag(tag);
   const [placement, setPlacement] = useState<Placement | ''>(derived ?? '');
-  const ids = STYLE_IDS.filter((s) => !allowed || allowed.includes(s));
+  const suggested = recipeForTag(tag);
+  // Recipes only for the piece they suit (a custom tag shows all); the suggested one comes first. 'model-base' is the one-time shot, never a choice.
+  const fits = (s: StyleId) => !SHOT_OF[s] || (recipes && (!derived || (s === 'black-necklace' ? derived === 'neck' : derived === 'finger')));
+  const ids = STYLE_IDS.filter((s) => s !== 'model-base' && fits(s) && (!allowed || allowed.includes(s))).sort((a, b) => Number(b === suggested) - Number(a === suggested));
+  const shotOf = (s: StyleId) => SHOT_OF[s];
+  const noShot = (s: StyleId) => { const k = shotOf(s); return !!k && !!modelShots && !modelShots[k]; };
   const price = (s: StyleId) => (credits ? credits.prices[s] ?? 0 : null);
+  const shotPrice = price('model-base');
   const poor = (s: StyleId) => !!credits && !credits.free && credits.balance < (price(s) ?? 0);
   const allPoor = ids.length > 0 && ids.every(poor);
   const last = lastStyle();
-  const [sel, setSel] = useState<StyleId | null>(() => (ids.includes(last) && !poor(last) ? last : ids.find((s) => !poor(s) && s !== 'on-model') ?? null));
+  const [sel, setSel] = useState<StyleId | null>(() => (suggested && ids.includes(suggested) && !poor(suggested) ? suggested : ids.includes(last) && !poor(last) ? last : ids.find((s) => !poor(s) && s !== 'on-model') ?? null));
   const needsBody = sel === 'on-model' && !placement;
   const go = () => {
-    if (!sel || needsBody || poor(sel)) return;
+    if (!sel || needsBody || poor(sel) || noShot(sel)) return;
     try { localStorage.setItem(KEY, sel); } catch { /* storage blocked */ }
     onPick(sel, sel === 'on-model' ? (placement || undefined) : undefined);
   };
@@ -69,8 +81,21 @@ export const RenderStylePicker: React.FC<{
                     <b>{STYLE_INFO[s].name}{cost !== null && <span className="stl-price" data-testid={`price-${s}`}> · {credits?.free ? 'Free' : rs(cost)}</span>}</b>
                     <span>{STYLE_INFO[s].blurb}</span>
                     {poor(s) && <em>Not enough credits for this style.</em>}
+                    {noShot(s) && <em>Needs your model shot first.</em>}
                     {s === 'on-model' && <em>{noBody ? 'Not available: this collection type has no body part to place it on.' : ON_MODEL_NOTE}</em>}
                   </button>
+                  {shotOf(s) && (() => {
+                    const k = shotOf(s)!, have = modelShots?.[k];
+                    return (
+                      <div className="stl-place" data-testid={`shot-${k}`}>
+                        {have && <img src={have.url} alt="Your saved model shot" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover', background: '#000' }} />}
+                        <span>{s === suggested && 'Suggested for this collection. '}{have ? 'Your saved model stays identical in every render.' : 'Create the model shot first (one time).'}</span>
+                        <button type="button" className="lnk" data-testid={`shot-make-${k}`} disabled={!onMakeShot || (!have && shotPrice !== null && !!credits && !credits.free && credits.balance < shotPrice)} onClick={() => onMakeShot?.(k)}>
+                          {have ? 'Change model shot' : `Create model shot${credits && !credits.free && shotPrice !== null ? ` · ${rs(shotPrice)}` : ''}`}
+                        </button>
+                      </div>
+                    );
+                  })()}
                   {s === 'on-model' && (
                     <label className="stl-place">
                       Worn on
@@ -87,7 +112,7 @@ export const RenderStylePicker: React.FC<{
         </div>
         <div className="stl-foot">
           <button type="button" className="btn alt" data-testid="style-cancel" onClick={onCancel}>Cancel</button>
-          <button type="button" className="btn" data-testid="style-continue" disabled={!sel || needsBody || poor(sel)} onClick={go}>
+          <button type="button" className="btn" data-testid="style-continue" disabled={!sel || needsBody || poor(sel) || noShot(sel)} onClick={go}>
             {sel ? `Continue with ${STYLE_INFO[sel].name}${credits && !credits.free ? ` · ${rs(price(sel) ?? 0)}` : ''}` : 'Choose a style'}
           </button>
         </div>

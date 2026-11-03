@@ -157,7 +157,7 @@ describe('AI render styles', () => {
   const ok = async () => renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
 
   it('every style prompt keeps the piece identical; on-model carries the placement', () => {
-    for (const id of STYLE_IDS) expect(STYLES[id]('finger')).toContain(KEEP_IDENTICAL);
+    for (const id of STYLE_IDS.filter((x) => x !== 'model-base')) expect(STYLES[id]('finger')).toContain(KEEP_IDENTICAL);
     expect(STYLES.cad()).toBe(RENDER_PROMPT);
     expect(STYLES['on-model']('ear')).toMatch(/ear in profile/);
     expect(STYLES['on-model']('wrist')).toMatch(/wrist and forearm/);
