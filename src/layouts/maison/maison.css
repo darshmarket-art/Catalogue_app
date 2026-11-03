@@ -669,6 +669,8 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-rail button.on { border-color: var(--mx-ink); }
     & .mx-gal { height: calc(100dvh - var(--header-h) - var(--sat) - 49px); }
     & .mx-gal > button { aspect-ratio: auto; }
+    /* the whole piece is shown, never cropped by the tall viewport-height frame */
+    & .mx-gal > button .em-ph img { object-fit: contain; }
     & .mx-dots { display: none; }
     & .mx-pd-info { position: sticky; top: 0; max-height: calc(100dvh - var(--header-h) - var(--sat) - 49px); overflow-y: auto; scrollbar-width: none; padding: 48px 48px 180px; border-left: 1px solid var(--mx-hair); }
     & .mx-pd-title { font-size: 2.5rem; }
