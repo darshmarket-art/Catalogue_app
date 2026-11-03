@@ -12,6 +12,7 @@ import { LIMITS, effectivePlan, photosInUse } from '../entitlements';
 import { hostOf, planOf, scopeStore, type StoreRecord } from '../tenancy';
 import { activity, buyers, orders, owners, summary } from '../consoleStats';
 import { consoleAiRoutes } from './consoleAi';
+import { CatalogueStore } from '../catalogueIndex';
 import { deliverySummary, type MessageDoc, type MessageLog } from '../messages';
 
 const IAP_KEYS_URL = 'https://www.gstatic.com/iap/verify/public_key';
@@ -172,6 +173,17 @@ export function consoleApi(config: Config, root: Store, keys: IapKeys = fetchIap
   write('suspend', z.object({}), () => ({ patch: { status: 'suspended' }, what: 'suspended' }));
   write('unsuspend', z.object({}), () => ({ patch: { status: 'active' }, what: 'unsuspended' }));
   write('own-app', z.object({ ownApp: z.boolean() }), (_rec, b) => ({ patch: { ownApp: b.ownApp }, what: `ownApp ${b.ownApp}` }));
+
+  // Owner-invisible reconcile: recounts the store's designs from its products and rewrites the counters. Never touches a product.
+  r.post('/stores/:id/recount', handler(async (req, res) => {
+    if (!req.is('application/json')) throw new HttpError(415, 'Send JSON.');
+    const rec = await getRec(req.params.id);
+    const { before, after, drift } = await new CatalogueStore(scopeStore(root, rec.id)).recount();
+    const what = `recounted: ${before?.total ?? 'none'} -> ${after.total} designs${drift ? ' (counters had drifted)' : ' (no drift)'}`;
+    const id = `aud-${crypto.randomUUID()}`;
+    await root.set('consoleAudit', id, { id, at: new Date().toISOString(), who: res.locals.actor, storeId: rec.id, action: 'recount', what });
+    res.json({ status: 'success', data: { before: before ? { total: before.total, rev: before.rev } : null, after: { total: after.total, rev: after.rev, collections: Object.keys(after.byCat).length }, drift } });
+  }));
 
   r.use('/ai', consoleAiRoutes(root));
 

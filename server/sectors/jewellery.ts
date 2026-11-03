@@ -46,6 +46,22 @@ const querySchema = z.object({
 });
 export type CatalogueQuery = z.infer<typeof querySchema>;
 
+/** What the in-memory index keeps per product. */
+export interface Slim {
+  id: string; sku: string; createdAt: unknown; title: string; netWt: number;
+  /** Lower-cased category / purity / stock status, for filters. */
+  cat: string; purity: string; stock: string;
+  /** The category as written (for the per-collection counts). */
+  category: string;
+  /** Lower-cased search text including Hindi, built once. */
+  text: string;
+  images: string[];
+}
+
+// Same ordering as String.prototype.localeCompare (used by applyQuery), without building a collator per comparison.
+const collator = new Intl.Collator();
+const collate = (a: string, b: string) => collator.compare(a, b);
+
 const list = (v?: string) => (v ? v.split(',').map((s) => s.trim().toLowerCase()).filter((s) => s && s !== 'all') : []);
 
 const randomSku = () =>
@@ -114,6 +130,48 @@ export const jewelleryPack = {
             : byCreated
     );
     return out;
+  },
+
+  /**
+   * The slim, query-ready form of a product kept in the per-store in-memory index (server/catalogueIndex.ts): everything
+   * applyQuery reads, with the search text (incl. Hindi) built once here instead of once per product per request.
+   */
+  slim(p: Doc): Slim {
+    return {
+      id: String(p.id), sku: String(p.sku), createdAt: p.createdAt, title: String(p.title), netWt: Number(p.netWt),
+      cat: String(p.category).toLowerCase(), purity: String(p.purity).toLowerCase(), stock: String(p.stockStatus).toLowerCase(),
+      category: String(p.category), text: this.searchText(p),
+      images: (p.images ?? [p.image]).filter(Boolean) as string[]
+    };
+  },
+
+  /** applyQuery's filter, on slim entries (the differential test in tests/catalogueIndex.test.ts keeps the two identical). */
+  matcher(q: CatalogueQuery): (e: Slim) => boolean {
+    const words = (q.search ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+    const categories = list(q.category);
+    const purities = list(q.purity);
+    const stock = list(q.availability);
+    return (e) => {
+      if (words.length && !words.every((w) => e.text.includes(w))) return false;
+      if (categories.length && !categories.includes(e.cat)) return false;
+      if (purities.length && !purities.includes(e.purity)) return false;
+      if (stock.length && !stock.includes(e.stock)) return false;
+      if (q.minWt !== undefined && e.netWt < q.minWt) return false;
+      if (q.maxWt !== undefined && e.netWt > q.maxWt) return false;
+      return true;
+    };
+  },
+
+  /** applyQuery's sort orders, on slim entries. */
+  comparator(sort: CatalogueQuery['sort']): (a: Slim, b: Slim) => number {
+    const byCreated = (a: Slim, b: Slim) => collate(String(b.createdAt ?? ''), String(a.createdAt ?? ''));
+    return sort === 'weight-asc'
+      ? (a, b) => a.netWt - b.netWt || byCreated(a, b)
+      : sort === 'weight-desc'
+        ? (a, b) => b.netWt - a.netWt || byCreated(a, b)
+        : sort === 'name'
+          ? (a, b) => collate(a.title, b.title) || byCreated(a, b)
+          : byCreated;
   },
 
   /** One order line, priced entirely from the catalogue entry. */

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { MIcon } from './MIcon';
 import { useBackLayer } from '../backLayer';
 import { project, rubberband, spring, VelocityTracker, type Stop } from '../spring';
 
@@ -329,7 +330,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({ images, start = 0, tit
           {images.length > 1 ? ` · ${index + 1} of ${images.length}` : ''}
         </span>
         <button type="button" onClick={onClose} aria-label="Close photo" className={round}>
-          <span className="material-symbols-outlined text-[26px]">close</span>
+          <MIcon name="close" className="text-[26px]" />
         </button>
       </div>
 
@@ -360,21 +361,21 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({ images, start = 0, tit
       <div ref={bottomBar} className="flex items-center justify-center gap-3 px-3 pb-6 pt-3">
         {images.length > 1 && (
           <button type="button" onClick={() => swap(-1)} aria-label="Previous photo" className={round}>
-            <span className="material-symbols-outlined text-[26px]">chevron_left</span>
+            <MIcon name="chevron_left" className="text-[26px]" />
           </button>
         )}
         <button type="button" onClick={() => zoomTo(cur().s / 1.5)} disabled={scale <= MIN} aria-label="Zoom out" className={round}>
-          <span className="material-symbols-outlined text-[26px]">remove</span>
+          <MIcon name="remove" className="text-[26px]" />
         </button>
         <span className="min-w-14 text-center font-sans text-sm font-extrabold text-white" aria-live="polite">
           {Math.round(scale * 100)}%
         </span>
         <button type="button" onClick={() => zoomTo(cur().s * 1.5)} disabled={scale >= MAX} aria-label="Zoom in" className={round}>
-          <span className="material-symbols-outlined text-[26px]">add</span>
+          <MIcon name="add" className="text-[26px]" />
         </button>
         {images.length > 1 && (
           <button type="button" onClick={() => swap(1)} aria-label="Next photo" className={round}>
-            <span className="material-symbols-outlined text-[26px]">chevron_right</span>
+            <MIcon name="chevron_right" className="text-[26px]" />
           </button>
         )}
       </div>

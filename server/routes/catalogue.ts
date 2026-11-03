@@ -9,6 +9,8 @@ import { parseExtras } from '../productFields';
 import { HttpError, audit, handler, newId, parse } from '../http';
 import { bannerLinkSchema, bannerOrderSchema, bannerSchema, categorySchema, heroCollectionsSchema, paginationSchema } from '../schemas';
 import type { Entitlements } from '../entitlements';
+import type { CatalogueStore } from '../catalogueIndex';
+import type { Slim } from '../sectors/jewellery';
 import { enabledKeys, loadPurities, puritiesSchema } from '../purities';
 import { MAX_TAGS, loadTags, resolveTag, sameTag, saveTags, tagNameSchema } from '../tags';
 
@@ -27,9 +29,10 @@ interface Deps {
   requireAdmin: RequestHandler;
   readGuard: RequestHandler;
   ent: Entitlements;
+  catalogue: CatalogueStore;
 }
 
-export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAdmin, readGuard, ent }: Deps) {
+export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAdmin, readGuard, ent, catalogue }: Deps) {
   const router = Router();
 
   const categoryDoc = (body: ReturnType<typeof categorySchema.parse>, base: { id: string; createdAt: string }) => {
@@ -56,10 +59,8 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     '/categories',
     readGuard,
     handler(async (_req, res) => {
-      const [categories, products, tags] = await Promise.all([store.list('categories'), store.list('products'), loadTags(store)]);
-      const counts = new Map<string, number>();
-      for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), tag: resolveTag(c as { name: string; tag?: string }, tags), designCount: counts.get(c.name) ?? 0 }));
+      const [categories, stats, tags] = await Promise.all([store.list('categories'), catalogue.stats(), loadTags(store)]);
+      const data = categories.sort(byCreatedAt(1)).map((c) => ({ ...media.present(c), tag: resolveTag(c as { name: string; tag?: string }, tags), designCount: stats.byCat[c.name] ?? 0 }));
       res.json({ status: 'success', count: data.length, data });
     })
   );
@@ -122,13 +123,10 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const category = { ...categoryDoc(body, { id: existing.id, createdAt: existing.createdAt }), ...(typeof existing.heroOrder === 'number' ? { heroOrder: existing.heroOrder } : {}) };
       await store.set('categories', existing.id, category);
 
-      // Products point at their category by name, so a rename carries them along.
-      const products = await store.list('products', { where: [{ field: 'category', op: '==', value: existing.name }] });
-      if (body.name !== existing.name) {
-        await Promise.all(products.map((p) => store.update('products', p.id, { category: body.name })));
-      }
+      // Products point at their category by name, so a rename carries them along (and their count moves with them).
+      if (body.name !== existing.name) await catalogue.renameCategory(existing.name, body.name);
       await audit(store, req, 'CATEGORY_UPDATED', `Category "${existing.name}" updated${body.name !== existing.name ? ` (renamed to "${body.name}")` : ''}.`);
-      res.json({ status: 'success', message: 'Category updated', data: { ...media.present(category), designCount: products.length } });
+      res.json({ status: 'success', message: 'Category updated', data: { ...media.present(category), designCount: (await catalogue.stats()).byCat[body.name] ?? 0 } });
     })
   );
 
@@ -139,10 +137,9 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const existing = await store.get('categories', req.params.id);
       if (!existing) throw new HttpError(404, 'Category not found.');
       // Deleting a collection takes its designs with it (photos stay in storage: past orders still show them).
-      const products = await store.list('products', { where: [{ field: 'category', op: '==', value: existing.name }] });
-      await Promise.all(products.map((p) => store.delete('products', p.id)));
+      const gone = await catalogue.removeCategory(existing.name);
       await store.delete('categories', existing.id);
-      await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted with ${products.length} design${products.length === 1 ? '' : 's'}.`);
+      await audit(store, req, 'CATEGORY_DELETED', `Category "${existing.name}" deleted with ${gone} design${gone === 1 ? '' : 's'}.`);
       res.json({ status: 'success', message: 'Category deleted' });
     })
   );
@@ -226,7 +223,8 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     readGuard,
     handler(async (req, res) => {
       const skus = new Set(String(req.query.skus ?? '').split(',').map((v) => v.trim()).filter(Boolean).slice(0, 500));
-      const found = (await store.list('products')).filter((p) => skus.has(String(p.sku)));
+      const idx = await catalogue.index();
+      const found = idx ? await catalogue.fetch(idx.idsForSkus(skus)) : (await store.list('products')).filter((p) => skus.has(String(p.sku)));
       res.json({ status: 'success', data: found.map((p) => media.present(p)) });
     })
   );
@@ -242,22 +240,25 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       // Strip cursor params before the standard query schema validation.
       const { cursor: _c, cursorAfter: _ca, ...rest } = req.query;
       const q = parse(pack.querySchema, rest);
-      const list = pack.applyQuery(await store.list('products'), q);
+      // From the in-memory index: filter/sort/count there, then fetch only this page's documents by id. A store too big to index falls back to the scan.
+      const index = await catalogue.index();
+      const list: Array<Doc | Slim> = index ? index.query(pack, q) : pack.applyQuery(await store.list('products'), q);
 
       let start = offset;
       if (cursor && cursorAfter) {
-        const idx = list.findIndex((p) => p.createdAt === cursor && p.id === cursorAfter);
-        start = idx >= 0 ? idx + 1 : 0;
+        const at = list.findIndex((p) => p.createdAt === cursor && p.id === cursorAfter);
+        start = at >= 0 ? at + 1 : 0;
       }
-      const page = list.slice(start, start + limit);
-      const lastItem = page[page.length - 1];
+      const slice = list.slice(start, start + limit);
+      const page = index ? await catalogue.fetch(slice.map((e) => e.id)) : (slice as Doc[]);
+      const lastItem = slice[slice.length - 1];
       res.json({
         status: 'success',
         count: list.length,
         total: list.length,
         offset,
         limit,
-        hasMore: start + page.length < list.length,
+        hasMore: start + slice.length < list.length,
         cursor: lastItem?.createdAt,
         cursorAfter: lastItem?.id,
         data: page.map((p) => media.present(p))
@@ -372,8 +373,29 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const id = newId('item');
       const product = await buildProduct(req.body, { id, now: new Date().toISOString() });
-      await store.set('products', id, product);
+      await catalogue.create(product);
       res.status(201).json({ status: 'success', message: 'Product listed successfully to live catalogue', data: media.present(product) });
+    })
+  );
+
+  // Bulk import: up to 50 designs per call, ONE transaction and ONE counter change (a call per design would hit the counter document once per design).
+  router.post(
+    '/products/bulk',
+    requireAdmin,
+    handler(async (req, res) => {
+      const items = (req.body as { items?: unknown })?.items;
+      if (!Array.isArray(items) || items.length === 0 || items.length > 50) throw new HttpError(400, 'Send 1 to 50 products in "items".');
+      const now = new Date().toISOString();
+      const built: Doc[] = [];
+      const skus = new Set<string>();
+      for (const item of items) {
+        const product = await buildProduct(item, { id: newId('item'), now });
+        if (skus.has(product.sku)) throw new HttpError(409, `SKU ${product.sku} appears twice in this import.`);
+        skus.add(product.sku);
+        built.push(product);
+      }
+      await catalogue.createMany(built);
+      res.status(201).json({ status: 'success', message: `${built.length} products listed`, data: built.map((p) => media.present(p)) });
     })
   );
 
@@ -384,9 +406,10 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       const existing = await store.get('products', req.params.id);
       if (!existing) throw new HttpError(404, 'Product not found.');
       const product = await buildProduct(req.body, { id: existing.id, now: existing.createdAt, sku: existing.sku, purity: existing.purity });
-      await store.set('products', existing.id, { ...product, updatedAt: new Date().toISOString() });
+      const saved = { ...product, updatedAt: new Date().toISOString() };
+      if (!(await catalogue.replace(existing.id, (cur) => (cur ? saved : null)))) throw new HttpError(404, 'Product not found.');
       await audit(store, req, 'PRODUCT_UPDATED', `Product ${product.sku} (${product.title}) updated.`);
-      res.json({ status: 'success', message: 'Product updated', data: media.present({ ...product, updatedAt: new Date().toISOString() }) });
+      res.json({ status: 'success', message: 'Product updated', data: media.present(saved) });
     })
   );
 
@@ -397,7 +420,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
     handler(async (req, res) => {
       const existing = await store.get('products', req.params.id);
       if (!existing) throw new HttpError(404, 'Product not found.');
-      await store.delete('products', existing.id);
+      if (!(await catalogue.remove(existing.id))) throw new HttpError(404, 'Product not found.');
       await audit(store, req, 'PRODUCT_DELETED', `Product ${existing.sku} (${existing.title}) deleted.`);
       res.json({ status: 'success', message: 'Product deleted' });
     })

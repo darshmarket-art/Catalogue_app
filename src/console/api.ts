@@ -119,4 +119,5 @@ export const storeActions = (s: Row): Action[] => [
     ? { label: 'Suspend', path: '/suspend', body: {}, warn: 'The store and its app stop working for everyone.' }
     : { label: 'Unsuspend', path: '/unsuspend', body: {}, warn: 'The store comes back online.' },
   { label: s.ownApp ? 'Unmark own app' : 'Mark own app', path: '/own-app', body: { ownApp: !s.ownApp }, warn: 'Own-app stores get Pro features.' },
+  { label: 'Recount store', path: '/recount', body: {}, warn: 'Recounts the designs from the products and rewrites the store\'s counters. Reads every product once; changes no product.' }
 ];

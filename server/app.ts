@@ -6,6 +6,7 @@ import type { RequestHandler } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { bulkImportExempt } from './bulkImport';
+import { createCatalogueRegistry, type Registry } from './catalogueIndex';
 import type { Config } from './config';
 import type { Store } from './store';
 import { ADMIN_REMEMBER_TTL, claimsOf, createAuth, isNativeClient, NATIVE_TOKEN_TTL, RETAILER_TOKEN_TTL, signToken, user } from './auth';
@@ -153,6 +154,8 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   app.use('/api/bug-report', bugReportRoutes(config, root));
   app.use('/api/signup', signupRoutes(config, root, createOtpDelivery(config, sender, log, null)));
 
+  // Per-store product counters and in-memory index (see catalogueIndex.ts); one memory budget for all stores in this process.
+  const registry = createCatalogueRegistry();
   const resolver = createStoreResolver<express.Express>(config, root, (id, entry) => {
     if (entry.rec.merchant.id !== id) throw new Error(`Store ${id}: merchant id "${entry.rec.merchant.id}" does not match`);
     const storeConfig: Config = { ...config, merchant: entry.rec.merchant, jwtSecret: secretFor(config, id) };
@@ -164,7 +167,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
       await root.update('stores', id, { merchant: next });
       resolver.invalidate(id);
     };
-    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, root, patchMerchant);
+    return createStoreApp(storeConfig, scopeStore(root, id), scopeBlobs(rootBlobs, id), sender, async () => planOf(entry.rec), notifiers, log, root, registry, patchMerchant);
   });
   app.use('/api/internal/trial-sweep', sweepRoutes(config, root, sweep.sender ?? createTrialSender(config), sweep.now ?? Date.now, sweep.keys));
   app.use(consoleMount(config, root, undefined, log));
@@ -175,7 +178,7 @@ export function createApp(config: Config, root: Store, rootBlobs: Blobs = create
   return app;
 }
 
-function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, root: Store, patchMerchant: (fn: (m: MerchantConfig) => MerchantConfig) => Promise<void> = async () => {}) {
+function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpSender, plan: () => Promise<PlanDoc>, notifiers: Notifiers, log: MessageLog, root: Store, registry: Registry, patchMerchant: (fn: (m: MerchantConfig) => MerchantConfig) => Promise<void> = async () => {}) {
   const app = express();
   const auth = createAuth(config, store);
   const pack = getSectorPack(config.merchant.sector);
@@ -234,7 +237,8 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
     })
   );
 
-  const ent = entitlements(store, plan);
+  const catalogue = registry.for(config.merchant.id, store, pack);
+  const ent = entitlements(store, plan, catalogue);
   // Public: plan, limits and feature flags the app mirrors (the server enforces them). Usage is for the admin hub.
   app.get('/api/entitlements', handler(async (_req, res) => {
     res.json({ status: 'success', data: { ...(await ent.load()), usage: await ent.usage(), turnedAway: await turnedAwayStats(store) } });
@@ -257,7 +261,7 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   app.use('/api/admin/messages', adminMessageRoutes(config, store, log, auth.requireAdmin));
   app.use('/api/auth', otpRoutes(config, store, ent, { delivery: createOtpDelivery(config, sender, log, config.merchant.id), log, onStoreFull: createStoreFullNotify(config, store, notifiers, log) }));
   app.use('/api/auth', authRoutes(config, store, auth.requireRetailer, auth.requireAdmin));
-  app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent }));
+  app.use('/api', catalogueRoutes({ store, blobs, media, merchant: config.merchant, pack, requireAdmin: auth.requireAdmin, readGuard: catalogueGuard, ent, catalogue }));
   // About us feeds the store's contact details: the phone is the WhatsApp number, the address and map pin drive the Location buttons.
   app.use('/api/about', aboutRoutes(store, catalogueGuard, auth.requireAdmin, (about) =>
     patchMerchant((m) => {

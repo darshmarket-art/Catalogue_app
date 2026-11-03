@@ -358,7 +358,7 @@ html[data-scrolled] :is([data-layout="emergent"],[data-layout="maison"]) .em-sti
 :is([data-layout="emergent"],[data-layout="maison"]) .em-feature { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--em-line); }
 :is([data-layout="emergent"],[data-layout="maison"]) .em-feature:last-child { border-bottom: 0; }
 :is([data-layout="emergent"],[data-layout="maison"]) .em-ico { width: 40px; height: 40px; border-radius: 50%; background: var(--em-tint); color: var(--em-accent); display: flex; align-items: center; justify-content: center; flex: none; }
-:is([data-layout="emergent"],[data-layout="maison"]) .em-ico .material-symbols-outlined { font-size: 20px; }
+:is([data-layout="emergent"],[data-layout="maison"]) .em-ico .msi { font-size: 20px; }
 
 /* Opening Home > Catalogue > a design: cards rise in one after another, and the design opens as a sheet sliding up. */
 @keyframes em-card-rise { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: none; } }

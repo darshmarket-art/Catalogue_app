@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
 import { ActiveScreen, Product, Category, Banner, Purity, About, OrderItem, AnalyticsData, AdminSummary } from './types';
 import { api, ApiError, hasStoredSession, hasToken, setAuthToken, setUnauthorizedHandler } from './api';
-import { noteCollection } from './recent';
+import { noteCollection, recentSkus } from './recent';
 import { setTagList } from './tagList';
 import { isTidying } from './backLayer';
 import { BuyerTour, markTourSeen, tourSeen, type TourSample } from './components/BuyerTour';
@@ -338,14 +338,18 @@ export default function App() {
     let live = true;
     const fetchData = async () => {
       // About us comes with the rest, so Home has the owner's Instagram and Facebook links the moment it shows (getAbout never rejects).
-      const [catsData, prodsData, bannerData, aboutData] = await Promise.all([api.getCategories(), api.getProducts(), api.getBanners(), api.getAbout()]);
+      const [catsData, bannerData, aboutData] = await Promise.all([api.getCategories(), api.getBanners(), api.getAbout()]);
       if (!live) return;
       setBanners(bannerData);
       setAbout(aboutData);
       api.getPurities().then((list) => list && setPurities(list)).catch(() => {});
       api.getTags().then((list) => list && setTagList(list)).catch(() => {});
       if (catsData.length > 0) setCategories(catsData);
-      if (prodsData.length > 0) setProducts(prodsData);
+      // Designs for the Home strip and the tour come AFTER Home is up and never gate it: the recent SKUs, plus a small first page.
+      const recent = recentSkus().slice(0, 8);
+      Promise.all([recent.length ? api.getProductsBySku(recent) : [], api.queryProducts({ sort: 'newest', limit: 24 }).then((p) => p.items)])
+        .then(([a, b]) => live && setProducts((prev) => [...prev, ...[...a, ...b].filter((x, i, all) => all.findIndex((y) => y.sku === x.sku) === i && !prev.some((y) => y.sku === x.sku))]))
+        .catch(() => {});
     };
     fetchData()
       .catch(() => {})

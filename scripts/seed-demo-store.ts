@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { loadConfig } from '../server/config';
 import { createStore } from '../server/store';
 import { newStoreRecord, scopeStore } from '../server/tenancy';
+import { CatalogueStore } from '../server/catalogueIndex';
 import { parseMerchant } from '../server/merchant';
 import { TRIAL_DAYS } from '../shared/limits';
 
@@ -82,6 +83,7 @@ async function main() {
       });
     }
   }
+  await new CatalogueStore(store).recount(); // products were written directly: set the store's counters
   for (const [i, b] of [['Ramesh Shah', '919820011001', 'Zaveri Bazaar, Mumbai'], ['Priya Jewellers', '919820011002', 'Johari Bazaar, Jaipur'], ['Kapoor Ornaments', '919820011003', 'Chandni Chowk, Delhi']].entries()) {
     await store.create('buyers', b[1], { id: `merch-demo-${i + 1}`, firmName: b[0], ownerName: b[0], gstin: 'PENDING-VERIFY', phone: b[1], marketHub: b[2], verified: true, createdAt: rec.createdAt });
   }
