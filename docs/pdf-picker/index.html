@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Choose your PDF catalogue layout · Antarixs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* Chrome uses the Maison ivory tokens (maison.css); the PAGES take the chosen colour theme. */
+:root{
+  --ground:#f3f1ee; --paper:#fff; --ink:#1b1b1b; --muted:#6b6966; --hair:#dedbd6; --hair2:#b9b5ae;
+  --serif:"Cormorant Garamond","Didot","Bodoni 72",Georgia,serif;
+  --sans:"Jost","Futura","Century Gothic",-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+body{font:400 15px/1.5 var(--sans);color:var(--ink);background:var(--ground);min-height:100vh}
+button,input,textarea{font:inherit;color:inherit;border-radius:0}
+button{background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:1440px;margin:0 auto;padding:0 clamp(16px,3vw,44px)}
+.eyebrow{font:500 11px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+header.top{padding:34px 0 26px;border-bottom:1px solid var(--hair)}
+h1{font:300 clamp(34px,4.6vw,58px)/1.02 var(--serif);letter-spacing:-.01em;margin-top:12px}
+header.top p{max-width:62ch;color:var(--muted);margin-top:12px}
+section.blk{padding:34px 0 8px}
+h2{font:300 clamp(24px,2.6vw,32px)/1.1 var(--serif);display:flex;gap:14px;align-items:baseline;margin-bottom:18px}
+h2 small{font:500 11px/1 var(--sans);letter-spacing:.22em;color:var(--muted)}
+
+/* option grid */
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.opts label{display:block;cursor:pointer;position:relative}
+.opt{display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1px solid var(--hair);padding:12px;height:100%;transition:border-color .2s}
+.opts label:hover .opt{border-color:var(--hair2)}
+.opts input:checked+.opt{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.opts input:focus-visible+.opt{outline:2px solid var(--ink);outline-offset:3px}
+.opt .th{background:var(--ground);padding:10px;display:flex;justify-content:center;align-items:center;aspect-ratio:1.18}
+.opt .th .pg{width:auto;height:100%;max-width:100%;box-shadow:0 1px 0 var(--hair),0 6px 16px -8px rgba(0,0,0,.25)}
+.opt .th .pg.land{width:100%;height:auto}
+.opt b{font:500 11px/1.2 var(--sans);letter-spacing:.2em;text-transform:uppercase}
+.opt b em{font:300 22px/1 var(--serif);font-style:normal;letter-spacing:0;margin-right:8px}
+.opt span.d{color:var(--muted);font-size:13px;line-height:1.35}
+
+/* workbench */
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(20px,3vw,44px);align-items:start}
+.bench>*{min-width:0}
+.stagewrap{background:var(--ground);border:1px solid var(--hair);padding:clamp(14px,2.4vw,30px);display:flex;flex-direction:column;align-items:center;gap:18px}
+.flipper{display:flex;align-items:center;gap:14px;width:100%;justify-content:center}
+.btn{font:500 11px/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;padding:14px 20px;border:1px solid var(--ink);background:var(--ink);color:#fff;min-height:44px}
+.btn.alt{background:transparent;color:var(--ink)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn:not(:disabled):hover{opacity:.85}
+.pgnum{font:500 11px/1.4 var(--sans);letter-spacing:.18em;text-transform:uppercase;text-align:center;min-width:19ch}
+.pgnum b{display:block;font:300 24px/1.1 var(--serif);letter-spacing:0;text-transform:none}
+.stage{width:100%;display:flex;justify-content:center}
+.stage .pg{width:min(100%,540px);box-shadow:0 1px 0 var(--hair),0 24px 50px -22px rgba(0,0,0,.38)}
+.stage .pg.land{width:min(100%,800px)}
+.stage .pg.flip{animation:flip .28s cubic-bezier(.2,.7,.1,1)}
+@keyframes flip{from{opacity:.0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.strip{display:flex;gap:10px;overflow-x:auto;padding:4px 4px 10px;max-width:100%;align-items:flex-end}
+.strip button{flex:none;border:1px solid transparent;padding:3px;background:none;position:relative}
+.strip button[aria-current=true]{border-color:var(--ink)}
+.strip .pg{width:54px;box-shadow:0 0 0 1px var(--hair)}
+.strip .pg.land{width:78px}
+.strip i{display:block;font:500 9px/1 var(--sans);letter-spacing:.14em;color:var(--muted);text-align:center;padding-top:4px;font-style:normal}
+
+aside.ctl{background:var(--paper);border:1px solid var(--hair);padding:22px;display:flex;flex-direction:column;gap:22px;position:sticky;top:14px}
+fieldset{border:0;padding:0;min-width:0}
+legend,.lbl{font:500 10.5px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding:0;display:block}
+.seg{display:flex}
+.seg label{flex:1;position:relative}
+.seg span{display:block;text-align:center;padding:12px 6px;border:1px solid var(--hair2);margin-left:-1px;font:500 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;min-height:42px}
+.seg input:checked+span{background:var(--ink);color:#fff;border-color:var(--ink);position:relative}
+.seg input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
+.tg{display:flex;flex-direction:column}
+.tg label{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--hair);cursor:pointer;font-size:14px}
+.tg label:last-child{border-bottom:1px solid var(--hair)}
+.tg input{appearance:none;-webkit-appearance:none;width:38px;height:20px;border:1px solid var(--ink);background:transparent;position:relative;cursor:pointer;flex:none}
+.tg input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--ink);transition:transform .2s}
+.tg input:checked{background:var(--ink)}
+.tg input:checked::after{background:#fff;transform:translateX(18px)}
+.tg input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.sw{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sw label{position:relative;cursor:pointer}
+.sw span{display:flex;flex-direction:column;gap:6px;align-items:center;padding:9px 4px;border:1px solid var(--hair);font:500 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.sw span i{width:100%;height:26px;display:block;border:1px solid var(--hair2)}
+.sw input:checked+span{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.sw input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.fld input{border:1px solid var(--hair2);padding:11px 12px;background:#fff;min-height:44px;width:100%}
+.fld input:focus-visible{outline:2px solid var(--ink);outline-offset:0}
+.note{font-size:12.5px;color:var(--muted);line-height:1.45}
+
+/* choose */
+.choose{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.out{background:var(--paper);border:1px solid var(--ink);padding:clamp(16px,2.4vw,28px);margin:6px 0 60px}
+.out[hidden]{display:none}
+.out h3{font:300 28px/1.1 var(--serif);margin-bottom:6px}
+.out p{color:var(--muted);margin-bottom:14px}
+.out pre,.out textarea{display:block;width:100%;background:var(--ground);border:1px solid var(--hair);padding:14px;font:13px/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;resize:vertical}
+.out .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 22px;align-items:center}
+.ok{font:500 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+footer.f{padding:20px 0 40px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--muted)}
+
+@media (max-width:1100px){.bench{grid-template-columns:minmax(0,1fr)}.opts{grid-template-columns:repeat(2,1fr)}.bench{grid-template-columns:1fr}aside.ctl{position:static}}
+@media (max-width:520px){.opts{gap:10px}.opt{padding:8px}.opt span.d{display:none}.flipper .btn{padding:12px 12px}.pgnum{min-width:0;flex:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* =====================================================================
+   THE PAGES. Everything inside uses cqw (1% of the page width), so a page
+   looks the same at any preview size. A4: 210 x 297 mm, or 297 x 210.
+   ===================================================================== */
+.pg{--g:#fff;--s:#f3f1ee;--i:#1b1b1b;--m:#6b6966;--h:#dedbd6;--a:#1b1b1b;--dp:#1b1b1b;--dpf:#fff;--tile:#e7e4df;
+  position:relative;aspect-ratio:210/297;background:var(--g);color:var(--i);container-type:inline-size;overflow:hidden;
+  font-family:var(--sans);font-weight:400;line-height:1.3;text-align:left}
+.pg.land{aspect-ratio:297/210}
+.pg[data-th=midnight]{--g:#0f1420;--s:#151b2b;--i:#ece7dc;--m:#9aa0ae;--h:#2a3247;--a:#d6b66a;--dp:#080b13;--dpf:#ece7dc;--tile:#1c2336}
+.pg[data-th=garnet]{--g:#fbf6f3;--s:#f2e7e2;--i:#2a1118;--m:#7a5f64;--h:#e3d0cb;--a:#8c1d3a;--dp:#3a0f1c;--dpf:#fbf6f3;--tile:#ead9d3}
+.pg.dark{--g:var(--dp);--s:var(--dp);--i:var(--dpf);--m:color-mix(in srgb,var(--dpf) 62%,transparent);--h:color-mix(in srgb,#c9a961 55%,transparent);--a:#c9a961;--tile:#1d1d1d}
+.pg[data-th=ivory].dark{--dp:#0c0c0c}
+.pg .bd{position:absolute;left:6cqw;right:6cqw;top:9.5cqw;bottom:8.5cqw}
+.pg .hd,.pg .ft{position:absolute;left:6cqw;right:6cqw;display:flex;justify-content:space-between;font-size:1.05cqw;letter-spacing:.24em;text-transform:uppercase;color:var(--m);font-weight:500}
+.pg .hd{top:3.6cqw;padding-bottom:1.4cqw;border-bottom:1px solid var(--h)}
+.pg .ft{bottom:3cqw;padding-top:1.4cqw;border-top:1px solid var(--h)}
+.pg .hd b,.pg .ft b{font-weight:500;color:var(--i)}
+/* photo placeholder */
+.ph{position:relative;background:var(--tile);overflow:hidden;min-height:0}
+.ph svg{position:absolute;inset:7%;width:86%;height:86%}
+.ph.t0{background:radial-gradient(120% 90% at 30% 20%,#f4f1ec,#dcd6cc)}
+.ph.t1{background:radial-gradient(120% 90% at 70% 25%,#efe9e1,#d3cbbf)}
+.ph.t2{background:radial-gradient(110% 90% at 50% 10%,#f6f3ee,#e0dad0)}
+.ph.t3{background:radial-gradient(120% 90% at 25% 30%,#ebe4da,#cfc6b8)}
+.pg.dark .ph.t0{background:radial-gradient(120% 90% at 30% 20%,#3a3834,#141414)}
+.pg.dark .ph.t1{background:radial-gradient(120% 90% at 70% 25%,#33312d,#111)}
+.pg.dark .ph.t2{background:radial-gradient(110% 90% at 50% 10%,#3d3b37,#151515)}
+.pg.dark .ph.t3{background:radial-gradient(120% 90% at 25% 30%,#2f2d2a,#101010)}
+.wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-30deg);white-space:nowrap;font:700 3cqw/1 Helvetica,Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.55);-webkit-text-stroke:.12cqw rgba(0,0,0,.28);pointer-events:none;max-width:90%;overflow:hidden}
+.nowm .wm{display:none}
+/* captions */
+.cp{--fs:2.5;--fm:1.2}
+.cp .nm{font:400 calc(var(--fs)*1cqw)/1.1 var(--serif);letter-spacing:.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp .mt{display:flex;flex-wrap:wrap;gap:0 .7em;margin-top:.7cqw;font-size:calc(var(--fm)*1cqw);letter-spacing:.14em;text-transform:uppercase;color:var(--m);font-weight:500}
+.cp .mt i{font-style:normal;opacity:.6;margin-left:-.35em}
+.cp .mt span:nth-last-child(1):not(:only-child){color:var(--i)}
+.cp .pr{margin-top:.6cqw;font:400 calc(var(--fs)*.8cqw)/1.2 var(--serif)}
+.cp .ex{margin-top:.5cqw;font-size:calc(var(--fm)*.95cqw);color:var(--m);letter-spacing:.04em}
+.ctr .cp,.cp.ctr{text-align:center}.cp.ctr .mt{justify-content:center}
+/* 1 editorial grid */
+.g1{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2.2cqw;height:100%}
+.land .g1{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+.c1{border:1px solid var(--h);padding:1.5cqw;display:flex;flex-direction:column;gap:1.3cqw;min-height:0}
+.c1 .ph{flex:1}
+.c1 .cp{--fs:2.3;--fm:1}
+.land .c1 .cp{--fs:1.9;--fm:.85}
+/* 2 hero */
+.g2{display:flex;flex-direction:column;gap:2.2cqw;height:100%}
+.g2 .ph{flex:1}
+.land .g2{flex-direction:row;gap:3.5cqw}.land .g2 .ph{flex:1.5}
+.dt2{display:flex;flex-direction:column;gap:1.8cqw}
+.land .dt2{flex:1;justify-content:flex-end}
+.dt2 .nm{font:300 4.8cqw/1 var(--serif);letter-spacing:-.005em}
+.land .dt2 .nm{font-size:4.2cqw}
+.dt2 dl{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:1.2cqw 4.5cqw;border-top:1px solid var(--h);padding-top:1.8cqw}
+.land .dt2 dl{grid-template-columns:1fr 1fr}
+.dt2 dt{font-size:.95cqw;letter-spacing:.24em;text-transform:uppercase;color:var(--m);font-weight:500}
+.dt2 dd{font:400 2cqw/1.2 var(--serif);margin-top:.4cqw}
+.dt2 .ex{font-size:1.1cqw;color:var(--m);letter-spacing:.05em}
+/* 3 portrait tiles */
+.g3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2cqw;height:100%;align-content:center}
+.land .g3{grid-template-rows:minmax(0,1fr);align-content:stretch}
+.t3{display:flex;flex-direction:column;gap:1.2cqw;min-height:0}
+.t3 .ph{aspect-ratio:1/2}
+.land .t3 .ph{aspect-ratio:auto;flex:1}
+.t3 .cp{--fs:1.9;--fm:.8}
+.t3 .no{font:300 1.6cqw var(--serif);color:var(--m)}
+.t3 .cp .mt{flex-direction:column;gap:.2cqw}.t3 .cp .mt i{display:none}
+/* 4 lookbook */
+.g4{position:absolute;inset:0;display:grid;grid-template-rows:1fr 1fr;gap:.6cqw;background:var(--g)}
+.land .g4{grid-template-rows:none;grid-template-columns:1fr 1fr}
+.c4{position:relative;min-height:0}
+.c4 .ph{position:absolute;inset:0}
+.c4 .cp{position:absolute;left:0;right:0;bottom:0;padding:6cqw 4.5cqw 3.6cqw;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;--m:rgba(255,255,255,.8);--i:#fff;--fs:3.2;--fm:1.05}
+.land .c4 .cp{padding-top:4cqw;--fs:2.6}
+.pn4{position:absolute;right:3cqw;bottom:1.2cqw;color:#fff;font-size:.95cqw;letter-spacing:.2em;z-index:2;text-shadow:0 0 4px rgba(0,0,0,.5)}
+/* 5 ledger */
+.lg{display:flex;flex-direction:column;height:100%}
+.lr{display:grid;gap:2cqw;align-items:center;border-bottom:1px solid var(--h);padding:.8cqw 0}
+.lr.hr{font-size:.95cqw;letter-spacing:.22em;text-transform:uppercase;color:var(--m);font-weight:500;padding:0 0 1.2cqw;border-bottom:1px solid var(--i)}
+.lr:not(.hr){height:var(--rh)}
+.lr .ph{height:100%;aspect-ratio:1}
+.lr .n{font:300 1.7cqw var(--serif);color:var(--m)}
+.lr .nm{font:400 2.1cqw/1.1 var(--serif)}
+.lr .ex{font-size:.95cqw;color:var(--m);letter-spacing:.05em;margin-top:.3cqw}
+.lr .v{font-size:1.2cqw;letter-spacing:.1em;font-weight:500}
+.lr .pr{font:400 1.8cqw var(--serif);text-align:right}
+.lr .w{text-align:right}
+/* 6 mosaic */
+.g6{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:2cqw;height:100%}
+.land .g6{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+.c6{display:flex;flex-direction:column;gap:1cqw;min-height:0}
+.c6 .ph{flex:1}
+.c6 .cp{--fs:1.9;--fm:.85}
+.g6>:nth-child(1){grid-column:1/3;grid-row:1/3}.g6>:nth-child(1) .cp{--fs:3.4;--fm:1.1}
+.g6>:nth-child(2){grid-column:3;grid-row:1}.g6>:nth-child(3){grid-column:3;grid-row:2}
+.g6.rev>:nth-child(1){grid-column:2/4}.g6.rev>:nth-child(2){grid-column:1;grid-row:1}.g6.rev>:nth-child(3){grid-column:1;grid-row:2}
+.land .g6>:nth-child(1){grid-column:1/3;grid-row:1/3}.land .g6>:nth-child(1) .cp{--fs:3}
+.land .g6>:nth-child(2){grid-column:3;grid-row:1}.land .g6>:nth-child(3){grid-column:4;grid-row:1}
+.land .g6.rev>:nth-child(1){grid-column:3/5}.land .g6.rev>:nth-child(2){grid-column:1;grid-row:1}.land .g6.rev>:nth-child(3){grid-column:2;grid-row:1}
+.g6 .c6:not(:first-child) .cp .ex{display:none}
+/* 7 gala */
+.g7{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:3cqw;height:100%}
+.land .g7{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr)}
+.c7{border:1px solid var(--h);padding:.9cqw;min-height:0}
+.c7>div{border:1px solid var(--h);height:100%;padding:1.6cqw;display:flex;flex-direction:column;gap:1.4cqw;min-height:0}
+.c7 .ph{flex:1}
+.c7 .cp{--fs:2.5;--fm:.95}
+.land .c7 .cp{--fs:1.8;--fm:.75}
+.dark .nm,.dark .dt2 .nm{font-weight:300}
+.dark .cp .mt span:nth-last-child(1):not(:only-child){color:var(--a)}
+/* 8 index */
+.g8{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));gap:2cqw;height:100%}
+.land .g8{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:1.6cqw}
+.c8{display:flex;flex-direction:column;gap:.8cqw;min-height:0}
+.c8 .ph{flex:1}
+.c8 .sk{display:flex;justify-content:space-between;font-size:1.05cqw;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+.c8 .sk em{font:300 1.5cqw var(--serif);font-style:normal;color:var(--m);letter-spacing:0}
+.c8 .sk2{font-size:.95cqw;color:var(--m);letter-spacing:.1em;text-transform:uppercase}
+/* covers, dividers, back */
+.cvt{position:absolute;inset:0;display:flex;flex-direction:column}
+.cv-type .cvt,.dv-type .cvt{align-items:center;justify-content:center;text-align:center;padding:10cqw}
+.frame{position:absolute;inset:3cqw;border:1px solid var(--h);pointer-events:none}
+.mk{width:7.5cqw;height:7.5cqw;border:1px solid var(--i);border-radius:50%;display:grid;place-items:center;font:300 3.2cqw/1 var(--serif);margin-bottom:4cqw}
+.ey{font-size:1.15cqw;letter-spacing:.34em;text-transform:uppercase;color:var(--m);font-weight:500}
+.tt{font:300 9cqw/.98 var(--serif);letter-spacing:-.012em;margin:2.2cqw 0;overflow-wrap:anywhere;max-width:100%}
+.land .tt{font-size:7.4cqw}
+.rl{width:6cqw;height:1px;background:var(--i);margin:2.2cqw auto}
+.sb{font-size:1.3cqw;letter-spacing:.3em;text-transform:uppercase;color:var(--m);font-weight:500;overflow-wrap:anywhere}
+.cvf{position:absolute;left:0;right:0;bottom:6cqw;text-align:center;font-size:1cqw;letter-spacing:.28em;text-transform:uppercase;color:var(--m);line-height:1.9;font-weight:500}
+.cvf b{display:block;color:var(--i);font-weight:500}
+.cv-band .cvt{display:grid;grid-template-rows:1fr 46%}
+.land.cv-band .cvt{grid-template-rows:none;grid-template-columns:1fr 46%}
+.cv-band .tx{display:flex;flex-direction:column;justify-content:center;padding:0 8cqw;position:relative}
+.cv-band .tx .tt{font-size:7.6cqw}.land.cv-band .tx .tt{font-size:5cqw}
+.cv-band .tx .ey{margin-bottom:1cqw}
+.cv-band .tx .rl{margin:2cqw 0}
+.cv-band .ph{height:100%}
+.cv-band .bl{position:absolute;left:8cqw;top:6cqw;font-size:1cqw;letter-spacing:.3em;text-transform:uppercase;font-weight:500}
+.cv-full .ph{position:absolute;inset:0}
+.cv-full .ph svg{inset:14%;width:72%;height:72%}
+.cv-full .cvt,.dv-full .cvt{justify-content:flex-end;padding:8cqw;background:linear-gradient(transparent 40%,rgba(0,0,0,.62));color:#fff;--m:rgba(255,255,255,.82);--i:#fff}
+.cv-full .tt{font-size:9.6cqw;margin:2cqw 0 1.6cqw;color:#fff}.land.cv-full .tt{font-size:7.6cqw}
+.cv-full .rl{margin:0 0 1.8cqw;background:#fff}
+.cv-full .bl,.dv-full .bl{position:absolute;top:6cqw;left:8cqw;color:#fff;font-size:1cqw;letter-spacing:.3em;text-transform:uppercase;font-weight:500;text-shadow:0 0 6px rgba(0,0,0,.4)}
+.cv-dark .cvt,.dv-dark .cvt{align-items:center;justify-content:center;text-align:center;padding:10cqw}
+.cv-dark .mk{border-color:var(--a);color:var(--a)}
+.cv-dark .rl,.dv-dark .rl{background:var(--a)}
+.dv-type{background:var(--s)}
+.dv-type .cvt{align-items:flex-start;text-align:left;justify-content:flex-end;padding:0 9cqw 14cqw}
+.dv-type .no{font:300 22cqw/.8 var(--serif);color:var(--h);position:absolute;top:10cqw;left:8cqw;mix-blend-mode:multiply;color:color-mix(in srgb,var(--i) 14%,transparent)}
+.dv-type .tt{font-size:9.5cqw;margin:2cqw 0}.dv-type .rl{margin:0 0 2.4cqw}
+.dv-type .tt,.dv-type .rl{align-self:flex-start}
+.dv-full .ph{position:absolute;inset:0}.dv-full .ph svg{inset:14%;width:72%;height:72%}
+.dv-full .cvt{padding:8cqw}.dv-full .tt{color:#fff;font-size:9cqw}.dv-full .rl{margin:0 0 1.8cqw;background:#fff}
+.dv-full .no2{font:300 3cqw var(--serif);color:#fff}
+.dv-dark .no2{font:300 3cqw var(--serif);color:var(--a)}
+.dv-dark .tt{font-size:8.6cqw}
+.land.dv-type .no{font-size:30cqw}.land.dv-type .cvt{padding-bottom:6cqw}.land.dv-type .tt{font-size:8cqw}
+.land .cv-type .mk,.land.cv-type .mk{margin-bottom:2.4cqw}
+.land.cv-type .cvt,.land.cv-dark .cvt{padding:6cqw}
+.land.cv-type .tt,.land.cv-dark .tt{font-size:6.6cqw}
+.land.cv-full .cvt{padding:5cqw 8cqw}.land.cv-full .tt{font-size:6.4cqw}.land.dv-full .tt{font-size:6.4cqw}
+.land .cvf{bottom:4cqw}
+.land.dv-dark .tt{font-size:6.4cqw}
+.bk .cvt{align-items:center;justify-content:center;text-align:center;padding:6cqw}
+.bk .mk{border-color:var(--a);color:var(--a);margin-bottom:3cqw}
+.bk .ey{color:var(--a)}
+.bk .tt{font-size:6cqw;margin:1.6cqw 0 0}
+.bk .rl{background:var(--a);margin:2.2cqw auto}
+.bk p{font-size:1.2cqw;letter-spacing:.06em;color:var(--m);max-width:34cqw;line-height:1.6}
+.qr{background:#fff;padding:2.2cqw;margin:2.6cqw 0 2cqw;display:block;width:19cqw;height:19cqw}
+.qr svg{width:100%;height:100%;display:block}
+.bk .ph2{font:300 2.6cqw var(--serif);color:var(--a);letter-spacing:.05em}
+.bk .ad{font-size:1cqw;letter-spacing:.24em;text-transform:uppercase;color:var(--m);margin-top:.8cqw}
+.bk .pw{position:absolute;bottom:4cqw;left:0;right:0;text-align:center;font-size:.95cqw;letter-spacing:.24em;text-transform:uppercase;color:var(--m)}
+.bk .pw b{font:400 1.7cqw var(--serif);letter-spacing:.04em;text-transform:none;color:var(--i);margin-left:.6em}
+.land.bk .qr{width:15cqw;height:15cqw;margin:1.6cqw 0}.land.bk .mk{margin-bottom:1.6cqw}.land.bk .tt{font-size:4.6cqw}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Antarixs · PDF catalogue</div>
+    <h1>Choose how your catalogue PDF looks</h1>
+    <p>Eight layouts in the new Maison style: near-black on white, hairlines, square corners, thin serif with tracked capitals. Flip through each one, switch what it shows, then press Choose. Previews use sample jewellery; your own photos, names, SKUs and weights go in when it is built.</p>
+  </header>
+
+  <section class="blk" aria-labelledby="h-layout">
+    <h2 id="h-layout"><small>01</small>Pick a layout</h2>
+    <div class="opts" role="radiogroup" aria-labelledby="h-layout" id="opts"></div>
+  </section>
+
+  <section class="blk" aria-labelledby="h-prev">
+    <h2 id="h-prev"><small>02</small>Preview and settings</h2>
+    <div class="bench">
+      <div class="stagewrap">
+        <div class="flipper">
+          <button class="btn alt" id="prev" type="button" aria-label="Previous page">Prev</button>
+          <div class="pgnum" id="pgnum" aria-live="polite"></div>
+          <button class="btn alt" id="next" type="button" aria-label="Next page">Next</button>
+        </div>
+        <div class="stage" id="stage"></div>
+        <div class="strip" id="strip" role="group" aria-label="All pages"></div>
+      </div>
+
+      <aside class="ctl" aria-label="Settings">
+        <fieldset>
+          <legend>Page size</legend>
+          <div class="seg" id="orient">
+            <label><input class="sr" type="radio" name="orient" value="p" checked><span>A4 portrait</span></label>
+            <label><input class="sr" type="radio" name="orient" value="l"><span>A4 landscape</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Show on each design</legend>
+          <div class="tg">
+            <label>Price<input type="checkbox" role="switch" id="t-price"></label>
+            <label>Weights<input type="checkbox" role="switch" id="t-wt" checked></label>
+            <label>SKU<input type="checkbox" role="switch" id="t-sku" checked></label>
+            <label>Watermark on photos<input type="checkbox" role="switch" id="t-wm" checked></label>
+          </div>
+          <p class="note" style="margin-top:10px">Name, photo and purity always show. Today's PDF has no prices; Price is off by default. The watermark is baked into the photo pixels, as now.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Colour theme</legend>
+          <div class="sw" id="theme">
+            <label><input class="sr" type="radio" name="theme" value="ivory" checked><span><i style="background:linear-gradient(90deg,#fff 50%,#1b1b1b 50%)"></i>Ivory / ink</span></label>
+            <label><input class="sr" type="radio" name="theme" value="midnight"><span><i style="background:linear-gradient(90deg,#0f1420 50%,#d6b66a 50%)"></i>Midnight</span></label>
+            <label><input class="sr" type="radio" name="theme" value="garnet"><span><i style="background:linear-gradient(90deg,#fbf6f3 50%,#8c1d3a 50%)"></i>Garnet</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Cover text</legend>
+          <div class="fld"><label class="lbl" for="f-title" style="margin:0">Title</label><input id="f-title" type="text" maxlength="60" value="The Gold Edit"></div>
+          <div class="fld" style="margin:0"><label class="lbl" for="f-sub" style="margin:0">Subtitle</label><input id="f-sub" type="text" maxlength="70" value="Autumn / Winter 2026"></div>
+        </fieldset>
+      </aside>
+    </div>
+  </section>
+
+  <section class="blk" aria-labelledby="h-choose">
+    <h2 id="h-choose"><small>03</small>Choose</h2>
+    <div class="choose">
+      <button class="btn" id="choose" type="button">Choose this layout</button>
+      <span class="note" id="chosenName">Layout 1 · Editorial grid</span>
+    </div>
+    <div class="out" id="out" hidden aria-live="polite">
+      <h3 id="outH">Chosen</h3>
+      <p>Copy the settings below, or just send Claude the sentence.</p>
+      <label class="lbl" for="o-tell">Tell Claude</label>
+      <textarea id="o-tell" rows="2" readonly></textarea>
+      <div class="row"><button class="btn alt" type="button" data-copy="o-tell">Copy sentence</button><span class="ok" id="ok1" role="status"></span></div>
+      <label class="lbl" for="o-json">Settings (JSON)</label>
+      <textarea id="o-json" rows="13" readonly></textarea>
+      <div class="row" style="margin-bottom:0"><button class="btn alt" type="button" data-copy="o-json">Copy JSON</button><span class="ok" id="ok2" role="status"></span></div>
+    </div>
+  </section>
+  <footer class="f">Sample data only. Layouts keep everything today's PDF carries: cover with store mark, collection pages, photo, name, SKU, purity, net weight, the store's own product fields, page numbers, watermark, and a closing contact page with QR and phone.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+var BRAND={name:'Bhakti Jewels',tag:'Fine gold jewellery',phone:'+91 98765 43210',place:'Zaveri Bazaar, Mumbai'};
+var KINDS=['ring','pendant','earrings','bangle','necklace','ring','bangle','pendant','earrings','necklace','ring','bangle'];
+var NAMES=['Rani Haar','Meher Pendant','Noor Jhumka','Kaveri Kada','Devika Necklace','Aarya Solitaire','Mrinal Bangle','Tara Drop','Ishani Studs','Zoya Choker','Anaya Band','Leela Cuff'];
+var PUR=['22K 916','18K 750','22K 916','22K 916','22K 916','18K 750','22K 916','18K 750','22K 916','22K 916','18K 750','22K 916'];
+var WT=[48.250,6.420,9.880,32.600,64.115,4.250,21.340,3.980,2.760,38.900,5.120,27.480];
+var PRICE=['3,42,000','48,500','71,200','2,31,000','4,56,000','62,400','1,52,700','29,800','21,400','2,76,500','41,300','1,95,800'];
+var EX=['Length 18 in · Stones 0.42 ct','','Drop 38 mm','Size 2.6','Length 16 in · Stones 1.2 ct','Size 14 · 0.30 ct','','','','Length 14 in','Size 12',''];
+var P=NAMES.map(function(t,i){return{i:i,t:t,k:KINDS[i],sku:'BJ-'+KINDS[i].slice(0,1).toUpperCase()+'-'+(1040+i*7),pur:PUR[i],wt:WT[i],price:'₹ '+PRICE[i],ex:EX[i]}});
+var COLS=[{name:'Bridal',items:P.slice(0,7)},{name:'Everyday',items:P.slice(7)}];
+
+var LAY=[
+ {id:'editorial-grid',name:'Editorial grid',d:'Two by three hairline cards. The classic catalogue page.',cover:'band',div:'type'},
+ {id:'hero',name:'One-per-page hero',d:'A large photo with the details set beneath it.',cover:'band',div:'type'},
+ {id:'portrait-tiles',name:'Portrait tiles',d:'Tall 1:2 tiles, four to a page, a lot of white.',cover:'type',div:'type'},
+ {id:'lookbook',name:'Cover-led lookbook',d:'Full-bleed cover and dividers, two big photos a page.',cover:'full',div:'full'},
+ {id:'ledger',name:'Ledger',d:'Compact rows for wholesale: thumbnail, SKU, weights, purity.',cover:'type',div:'type'},
+ {id:'mosaic',name:'Mosaic',d:'A mix of one large and several small photos per page.',cover:'band',div:'type'},
+ {id:'dark-gala',name:'Dark gala',d:'Black pages with gold hairlines, for high jewellery.',cover:'dark',div:'dark'},
+ {id:'minimal-index',name:'Minimal index',d:'Twelve thumbnails with SKU only. A quick contact sheet.',cover:'type',div:'type'}
+];
+
+var S={layout:1,land:false,price:false,wt:true,sku:true,wm:true,theme:'ivory',title:'The Gold Edit',sub:'Autumn / Winter 2026',page:0,chosen:false};
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var $=function(id){return document.getElementById(id)};
+
+/* ---- placeholder jewellery ---- */
+var GOLD='#c9a961',GOLD2='#e8d49b',GEM='#f4f6f8';
+function jewel(k){
+ var s='';
+ if(k==='ring')s='<ellipse cx="50" cy="64" rx="22" ry="24" fill="none" stroke="'+GOLD+'" stroke-width="6"/><ellipse cx="46" cy="60" rx="20" ry="22" fill="none" stroke="'+GOLD2+'" stroke-width="1.2" opacity=".8"/><path d="M50 18l11 12-11 16-11-16z" fill="'+GEM+'" stroke="'+GOLD+'" stroke-width="2"/><path d="M39 30h22M50 18v28" stroke="'+GOLD+'" stroke-width=".7" fill="none"/>';
+ else if(k==='pendant')s='<path d="M18 10Q50 60 82 10" fill="none" stroke="'+GOLD+'" stroke-width="1.6"/><path d="M50 46C66 62 66 78 50 86 34 78 34 62 50 46z" fill="'+GOLD+'"/><path d="M50 52C60 63 60 72 52 78" fill="none" stroke="'+GOLD2+'" stroke-width="2"/><circle cx="50" cy="66" r="4.2" fill="'+GEM+'"/>';
+ else if(k==='earrings')s=[34,66].map(function(x){return'<circle cx="'+x+'" cy="16" r="3" fill="none" stroke="'+GOLD+'" stroke-width="1.6"/><path d="M'+x+' 22v10" stroke="'+GOLD+'" stroke-width="1.6"/><path d="M'+x+' 32c11 11 11 25 0 34-11-9-11-23 0-34z" fill="'+GOLD+'"/><path d="M'+(x-3)+' 40c-3 8-1 14 3 18" fill="none" stroke="'+GOLD2+'" stroke-width="1.6"/><circle cx="'+x+'" cy="50" r="3.4" fill="'+GEM+'"/>'}).join('');
+ else if(k==='bangle')s='<ellipse cx="50" cy="52" rx="36" ry="30" fill="none" stroke="'+GOLD+'" stroke-width="8"/><ellipse cx="50" cy="52" rx="28" ry="22" fill="none" stroke="'+GOLD2+'" stroke-width="1.2" opacity=".85"/><path d="M22 40Q30 24 50 22" fill="none" stroke="#fff" stroke-width="1.4" opacity=".6"/>';
+ else{s='<path d="M12 18Q50 100 88 18" fill="none" stroke="'+GOLD+'" stroke-width="1.6"/>';
+  for(var t=.14;t<.9;t+=.1){var u=1-t;s+='<circle cx="'+(u*u*12+2*u*t*50+t*t*88).toFixed(1)+'" cy="'+(u*u*18+2*u*t*100+t*t*18).toFixed(1)+'" r="2.3" fill="'+GOLD+'"/>'}
+  s+='<path d="M50 60c9 9 9 20 0 27-9-7-9-18 0-27z" fill="'+GOLD+'"/><circle cx="50" cy="73" r="3.2" fill="'+GEM+'"/>'}
+ return'<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">'+s+'</svg>';
+}
+function ph(p,extra){return'<div class="ph t'+(p.i%4)+(extra?' '+extra:'')+'">'+jewel(p.k)+'<span class="wm">'+esc(BRAND.name)+'</span></div>'}
+
+/* ---- pseudo QR (decorative) ---- */
+function qr(){var n=21,seed=7,r=function(){seed=(seed*1103515245+12345)&0x7fffffff;return seed>>8&1},d='';
+ function fin(x,y){return'M'+x+' '+y+'h7v7h-7zM'+(x+1)+' '+(y+1)+'v5h5v-5z'+'M'+(x+2)+' '+(y+2)+'h3v3h-3z'}
+ for(var y=0;y<n;y++)for(var x=0;x<n;x++){if((x<8&&y<8)||(x>12&&y<8)||(x<8&&y>12))continue;if(r())d+='M'+x+' '+y+'h1v1h-1z'}
+ return'<svg viewBox="0 0 21 21" shape-rendering="crispEdges" aria-hidden="true"><path fill="#111" fill-rule="evenodd" d="'+d+fin(0,0)+fin(14,0)+fin(0,14)+'"/></svg>'}
+
+/* ---- captions ---- */
+function cap(p,o,cls){
+ var m=[];if(o.sku)m.push(esc(p.sku));m.push(p.pur);if(o.wt)m.push(p.wt.toFixed(3)+' g');
+ return'<div class="cp'+(cls?' '+cls:'')+'"><div class="nm">'+p.t+'</div><div class="mt">'+m.map(function(x){return'<span>'+x+'</span>'}).join('<i>·</i>')+'</div>'+(o.price?'<div class="pr">'+p.price+'</div>':'')+(o.wt&&p.ex?'<div class="ex">'+p.ex+'</div>':'')+'</div>';
+}
+
+/* ---- per-layout bodies: items -> html inside .bd (or whole page when bleed) ---- */
+var BODY={
+ 1:function(it,o){return'<div class="g1">'+it.map(function(p){return'<div class="c1">'+ph(p)+cap(p,o)+'</div>'}).join('')+'</div>'},
+ 2:function(it,o){var p=it[0];return'<div class="g2">'+ph(p)+'<div class="dt2"><div class="nm">'+p.t+'</div><dl>'+(o.sku?'<div><dt>SKU</dt><dd>'+esc(p.sku)+'</dd></div>':'')+'<div><dt>Purity</dt><dd>'+p.pur+'</dd></div>'+(o.wt?'<div><dt>Net weight</dt><dd>'+p.wt.toFixed(3)+' g</dd></div>':'')+(o.price?'<div><dt>Price</dt><dd>'+p.price+'</dd></div>':'')+'</dl>'+(o.wt&&p.ex?'<div class="ex">'+p.ex+'</div>':'')+'</div></div>'},
+ 3:function(it,o){return'<div class="g3">'+it.map(function(p,j){return'<div class="t3">'+ph(p)+cap(p,o)+'</div>'}).join('')+'</div>'},
+ 4:function(it,o,ctx){return'<div class="g4">'+it.map(function(p){return'<div class="c4">'+ph(p)+cap(p,o)+'</div>'}).join('')+'</div><span class="pn4">'+ctx.n+' / '+ctx.N+'</span>'},
+ 5:function(it,o,ctx){
+  var cols='4cqw 10cqw minmax(0,1fr)'+(o.sku?' 17cqw':'')+' 12cqw'+(o.wt?' 14cqw':'')+(o.price?' 15cqw':'');
+  var rh=o.land?'11.4cqw':'12.2cqw';
+  var h='<div class="lr hr" style="grid-template-columns:'+cols+'"><span>No.</span><span></span><span>Design</span>'+(o.sku?'<span>SKU</span>':'')+'<span>Purity</span>'+(o.wt?'<span class="w">Net wt</span>':'')+(o.price?'<span class="pr" style="font:inherit;letter-spacing:inherit">Price</span>':'')+'</div>';
+  return'<div class="lg" style="--rh:'+rh+'">'+h+it.map(function(p,j){return'<div class="lr" style="grid-template-columns:'+cols+'"><span class="n">'+String(ctx.base+j+1).padStart(2,'0')+'</span>'+ph(p)+'<div><div class="nm">'+p.t+'</div>'+(o.wt&&p.ex?'<div class="ex">'+p.ex+'</div>':'')+'</div>'+(o.sku?'<span class="v">'+esc(p.sku)+'</span>':'')+'<span class="v">'+p.pur+'</span>'+(o.wt?'<span class="v w">'+p.wt.toFixed(3)+' g</span>':'')+(o.price?'<span class="pr">'+p.price+'</span>':'')+'</div>'}).join('')+'</div>'},
+ 6:function(it,o,ctx){return'<div class="g6'+(ctx.idx%2?' rev':'')+'">'+it.map(function(p){return'<div class="c6">'+ph(p)+cap(p,o)+'</div>'}).join('')+'</div>'},
+ 7:function(it,o){return'<div class="g7">'+it.map(function(p){return'<div class="c7"><div>'+ph(p)+cap(p,o,'ctr')+'</div></div>'}).join('')+'</div>'},
+ 8:function(it,o,ctx){return'<div class="g8">'+it.map(function(p,j){return'<div class="c8">'+ph(p)+'<div class="sk"><span>'+(o.sku?esc(p.sku):p.t)+'</span><em>'+String(ctx.base+j+1).padStart(2,'0')+'</em></div>'+(o.price?'<div class="sk2">'+p.price+'</div>':'')+'</div>'}).join('')+'</div>'}
+};
+function per(l,o){return({1:6,2:1,3:4,4:2,5:o.land?4:9,6:o.land?5:6,7:4,8:12})[l]}
+
+/* ---- page shells ---- */
+function shell(o,cls,inner){return'<div class="pg '+(o.land?'land ':'')+cls+(o.wm?'':' nowm')+'" data-th="'+o.theme+'" role="img" aria-label="">'+inner+'</div>'}
+function productPage(o,col,chunk,idx,n,N){
+ var l=o.layout,ctx={n:n,N:N,idx:idx,base:col.base+idx*per(l,o)};
+ var body=BODY[l](chunk,o,ctx),dk=l===7?'dark ':'';
+ if(l===4)return shell(o,'pr4',body);
+ return shell(o,dk,'<div class="hd"><b>'+esc(BRAND.name)+'</b><span>'+col.name+'</span></div><div class="bd">'+body+'</div><div class="ft"><span>'+(o.wt?'Net weight per piece':'')+'</span><span>Page '+n+' of '+N+'</span></div>');
+}
+function cover(o,kind){
+ var t=esc(o.title)||'&nbsp;',s=esc(o.sub);
+ var foot='<div class="cvf"><b>'+esc(BRAND.name)+'</b>'+esc(BRAND.phone)+' · '+esc(BRAND.place)+'</div>';
+ if(kind==='band')return shell(o,'cv-band','<div class="cvt"><div class="tx"><span class="bl">'+esc(BRAND.name)+'</span><div class="ey">Catalogue</div><div class="tt">'+t+'</div><div class="rl" style="margin-left:0"></div><div class="sb">'+s+'</div></div>'+ph(P[4])+'</div>');
+ if(kind==='full')return shell(o,'cv-full','<div class="ph t3" style="position:absolute;inset:0">'+jewel('necklace')+'<span class="wm">'+esc(BRAND.name)+'</span></div><span class="bl">'+esc(BRAND.name)+'</span><div class="cvt"><div class="ey" style="color:#fff">Catalogue</div><div class="tt">'+t+'</div><div class="rl" style="margin-left:0"></div><div class="sb">'+s+'</div></div>');
+ if(kind==='dark')return shell(o,'cv-dark dark','<div class="frame"></div><div class="cvt"><div class="mk">'+esc(BRAND.name.charAt(0))+'</div><div class="ey">'+esc(BRAND.name)+'</div><div class="tt">'+t+'</div><div class="rl"></div><div class="sb">'+s+'</div></div>'+foot);
+ return shell(o,'cv-type','<div class="frame"></div><div class="cvt"><div class="mk">'+esc(BRAND.name.charAt(0))+'</div><div class="ey">'+esc(BRAND.name)+' · Catalogue</div><div class="tt">'+t+'</div><div class="rl"></div><div class="sb">'+s+'</div></div>'+foot);
+}
+function divider(o,kind,col,ci){
+ var no=String(ci+1).padStart(2,'0'),cnt=col.items.length+(col.items.length===1?' design':' designs');
+ if(kind==='full')return shell(o,'dv-full','<div class="ph t'+(ci+1)+'" style="position:absolute;inset:0">'+jewel(col.items[0].k)+'<span class="wm">'+esc(BRAND.name)+'</span></div><span class="bl">'+esc(BRAND.name)+'</span><div class="cvt" style="justify-content:flex-end;background:linear-gradient(transparent 40%,rgba(0,0,0,.62))"><div class="no2">'+no+'</div><div class="tt">'+col.name+'</div><div class="rl" style="margin-left:0"></div><div class="sb" style="color:#fff">'+cnt+'</div></div>');
+ if(kind==='dark')return shell(o,'dv-dark dark','<div class="frame"></div><div class="cvt"><div class="no2">'+no+'</div><div class="tt">'+col.name+'</div><div class="rl"></div><div class="sb">'+cnt+'</div></div>');
+ return shell(o,'dv-type','<div class="no" aria-hidden="true">'+no+'</div><div class="cvt"><div class="ey">Collection '+no+'</div><div class="tt">'+col.name+'</div><div class="rl"></div><div class="sb">'+cnt+'</div></div>');
+}
+function back(o){
+ return shell(o,'bk dark','<div class="cvt"><div class="mk">'+esc(BRAND.name.charAt(0))+'</div><div class="ey">Thank you</div><div class="tt">'+esc(BRAND.name)+'</div><div class="rl"></div><p>Scan to open our store, shortlist designs and send your order on WhatsApp.</p><span class="qr">'+qr()+'</span><div class="ph2">'+esc(BRAND.phone)+'</div><div class="ad">'+esc(BRAND.place)+'</div></div><div class="pw">Powered by <b>Antarixs</b></div>');
+}
+
+function build(o){
+ var L=LAY[o.layout-1],pgs=[],base=0;
+ pgs.push({k:'Cover',f:function(){return cover(o,L.cover)}});
+ COLS.forEach(function(c,ci){
+  var col={name:c.name,base:base};base+=c.items.length;
+  pgs.push({k:'Collection',f:function(){return divider(o,L.div,c,ci)}});
+  var n=per(o.layout,o);
+  for(var i=0;i<c.items.length;i+=n)(function(i){pgs.push({k:'Designs',f:function(pn,N){return productPage(o,col,c.items.slice(i,i+n),i/n,pn,N)}})})(i);
+ });
+ pgs.push({k:'Contact',f:function(){return back(o)}});
+ return pgs;
+}
+function html(o,pgs,i){return pgs[i].f(i+1,pgs.length)}
+function cur(){return{layout:S.layout,land:S.land,price:S.price,wt:S.wt,sku:S.sku,wm:S.wm,theme:S.theme,title:S.title,sub:S.sub}}
+
+/* ---- render ---- */
+var optsEl=$('opts');
+LAY.forEach(function(L,i){
+ var lab=document.createElement('label');
+ lab.innerHTML='<input class="sr" type="radio" name="layout" value="'+(i+1)+'"'+(i===0?' checked':'')+'><div class="opt"><div class="th" aria-hidden="true"></div><b><em>'+(i+1)+'</em>'+L.name+'</b><span class="d">'+L.d+'</span></div>';
+ optsEl.appendChild(lab);
+});
+function renderOpts(){
+ var labs=optsEl.children;
+ for(var i=0;i<labs.length;i++){
+  var o=cur();o.layout=i+1;
+  var pgs=build(o),idx=pgs.findIndex(function(p){return p.k==='Designs'});
+  labs[i].querySelector('.th').innerHTML=html(o,pgs,idx);
+  labs[i].querySelector('.pg').removeAttribute('role');
+ }
+}
+var lastKey='';
+function render(flip){
+ var o=cur(),pgs=build(o);
+ if(S.page>=pgs.length)S.page=pgs.length-1;
+ var stage=$('stage');stage.innerHTML=html(o,pgs,S.page);
+ var pg=stage.firstChild;pg.setAttribute('aria-label',LAY[o.layout-1].name+', page '+(S.page+1)+' of '+pgs.length+': '+pgs[S.page].k);
+ if(flip)pg.classList.add('flip');
+ $('pgnum').innerHTML='<b>Page '+(S.page+1)+' of '+pgs.length+'</b>'+pgs[S.page].k;
+ $('prev').disabled=S.page===0;$('next').disabled=S.page===pgs.length-1;
+ var st=$('strip');st.innerHTML='';
+ pgs.forEach(function(p,i){
+  var b=document.createElement('button');b.type='button';b.setAttribute('aria-label','Go to page '+(i+1)+', '+p.k);
+  if(i===S.page)b.setAttribute('aria-current','true');
+  b.innerHTML=html(o,pgs,i).replace(' role="img" aria-label=""',' aria-hidden="true"')+'<i>'+(i+1)+'</i>';
+  b.onclick=function(){S.page=i;render(true)};st.appendChild(b);
+ });
+ var sel=st.querySelector('[aria-current]');if(sel&&st.scrollWidth>st.clientWidth)st.scrollLeft=sel.offsetLeft-st.clientWidth/2+sel.clientWidth/2;
+ renderOpts();
+ $('chosenName').textContent='Layout '+o.layout+' · '+LAY[o.layout-1].name;
+ if(S.chosen)fillOut();
+}
+function fillOut(){
+ var L=LAY[S.layout-1],j={pdfLayout:S.layout,layoutId:L.id,layoutName:L.name,pageSize:'A4',orientation:S.land?'landscape':'portrait',showPrice:S.price,showWeights:S.wt,showSku:S.sku,watermark:S.wm,theme:S.theme,coverTitle:S.title,coverSubtitle:S.sub};
+ var json=JSON.stringify(j,null,2);
+ $('outH').textContent='Layout '+S.layout+' · '+L.name;
+ $('o-json').value=json;
+ $('o-tell').value='Build PDF layout '+S.layout+' ('+L.name+') in the Maison style with these settings: '+JSON.stringify(j);
+}
+
+/* ---- events ---- */
+document.querySelectorAll('input[name=layout]').forEach(function(r){r.onchange=function(){S.layout=+r.value;S.page=0;render(true)}});
+document.querySelectorAll('input[name=orient]').forEach(function(r){r.onchange=function(){S.land=r.value==='l';render(true)}});
+document.querySelectorAll('input[name=theme]').forEach(function(r){r.onchange=function(){S.theme=r.value;render()}});
+[['t-price','price'],['t-wt','wt'],['t-sku','sku'],['t-wm','wm']].forEach(function(a){$(a[0]).onchange=function(){S[a[1]]=this.checked;render()}});
+$('f-title').oninput=function(){S.title=this.value;render()};
+$('f-sub').oninput=function(){S.sub=this.value;render()};
+$('prev').onclick=function(){if(S.page>0){S.page--;render(true)}};
+$('next').onclick=function(){if(!$('next').disabled){S.page++;render(true)}};
+document.addEventListener('keydown',function(e){
+ var t=e.target.tagName;if(t==='INPUT'||t==='TEXTAREA'||e.altKey||e.ctrlKey||e.metaKey)return;
+ if(e.key==='ArrowRight')$('next').click();else if(e.key==='ArrowLeft')$('prev').click();
+});
+$('choose').onclick=function(){S.chosen=true;fillOut();var o=$('out');o.hidden=false;o.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'nearest'})};
+document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(){
+ var ta=$(b.dataset.copy),ok=$(b.dataset.copy==='o-json'?'ok2':'ok1');
+ function done(m){ok.textContent=m;setTimeout(function(){ok.textContent=''},2200)}
+ ta.focus();ta.select();
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ta.value).then(function(){done('Copied')},function(){try{document.execCommand('copy');done('Copied')}catch(e){done('Select and copy')}});
+ else{try{document.execCommand('copy');done('Copied')}catch(e){done('Select and copy')}}
+}});
+render();
+window.__picker={S:S,render:render};
+})();
+</script>
+</body>
+</html>
