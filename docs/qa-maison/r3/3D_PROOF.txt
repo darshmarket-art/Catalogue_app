@@ -1,0 +1,7 @@
+Computed transforms read from the live app (Chrome, localhost:3412, animations seeked with the Web Animations API because the automation tab does not tick frames).
+Page turn, tab to tab (main): Home->Catalogue mx-push 800ms  t=0: translateZ -360, rotateY -14deg, opacity 0 -> t=0.4: translateZ -110, opacity .69 -> t=1: none
+Catalogue->Home mx-pull 800ms t=0: translateZ -300, rotateY +14deg. Catalogue->Shortlist, Shortlist->Orders: mx-turn-fwd 850ms t=0: translateZ -380, rotateY -26deg.
+Sub-tabs: Orders To order/Past orders and Catalogue view/filter/collection changes: .mx-flip 800ms t=0: translateZ -220, rotateY -22deg, opacity 0.
+First load (Home): hero media mx-hero-in 1100ms t=0: translateZ -320, rotateX 18deg; hero text mx-layer-in (delay 300ms) translateZ -180, rotateY -16deg; first 4 collection tiles and first 10 design tiles mx-tile-in, staggered 70-110ms, translateZ -240, rotateX -20deg, rotateY 10deg.
+Card hover (mouse): .mx-ptile:hover computed matrix3d with rotateX 3.9deg, rotateY 0.26deg (follows pointer), translateZ 18px; press: translateZ -14px scale .975.
+Hero loop: scrollLeft glides 8,171,805,2355,3415,...,5052 (eased) to the copy of slide 1, then resets to 0 unseen; dot 1 is on.
