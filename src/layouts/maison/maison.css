@@ -23,7 +23,7 @@
  *
  * TRANSITION: --mx-xition-name / --mx-xition-dur / --mx-xition-ease (screen and tab changes; default is a 200ms fade).
  * MASTHEAD: --mx-bar-h, --mx-logo (store logo size) and --mx-wordmark / --mx-wordmark-track (brand name size and tracking).
- * LAYOUT VARIABLES: --mx-hero-ratio (home banner: 12 / 5 wide cinematic on desktop, 4 / 5 tall on phones), --mx-tile-ratio (design tile
+ * LAYOUT VARIABLES: --mx-hero-ratio (home banner: 2 / 1 wide (width twice the height) on every screen), --mx-tile-ratio (design tile
  * inside a collection, width / height: 2 / 1 wide; set it to 1 / 2 for portrait, one place).
  * ---------------------------------------------------------------------------------------------------------------------------------
  */
@@ -53,7 +53,7 @@
   --mx-stone: var(--mx-surface);
   --mx-mut: var(--mx-muted);
   --mx-line: var(--mx-hair);
-  --mx-hero-ratio: 4 / 5;
+  --mx-hero-ratio: 2 / 1;
   /* screen and tab transition (see the end of this file): one plain fade */
   --mx-xition-name: fade-in;
   --mx-xition-dur: 0.2s;
@@ -66,7 +66,7 @@
   --mx-tile-ratio: 1 / 1;
 }
 @media (min-width: 600px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-logo: 36px; --mx-wordmark: 1.375rem; --mx-wordmark-track: 0.2em; } }
-@media (min-width: 1024px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-hero-ratio: 12 / 5; --mx-bar-h: 5.25rem; --mx-logo: 52px; --mx-wordmark: clamp(1.5rem, 2.3vw, 2.25rem); --mx-wordmark-track: 0.3em; } }
+@media (min-width: 1024px) { [data-layout="maison"], html:has([data-layout="maison"]) { --mx-hero-ratio: 2 / 1; --mx-bar-h: 5.25rem; --mx-logo: 52px; --mx-wordmark: clamp(1.5rem, 2.3vw, 2.25rem); --mx-wordmark-track: 0.3em; } }
 /* presets: the attribute may sit on <html> or on the layout element */
 :is(html[data-mx-theme="midnight"] [data-layout="maison"], [data-layout="maison"][data-mx-theme="midnight"], html[data-mx-theme="midnight"]:has([data-layout="maison"])) {
   --mx-ground: #0f1420; --mx-surface: #151b2b; --mx-ink: #ece7dc; --mx-muted: #9aa0ae; --mx-hair: #2a3247; --mx-accent-0: #d6b66a;
