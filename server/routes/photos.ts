@@ -71,9 +71,21 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
     })
   );
 
+  /** Whether AI render can be used now, so the form can hide or disable "Enhance to CAD render" with a reason. */
+  router.get(
+    '/render',
+    requireAdmin,
+    handler(async (_req, res) => {
+      const cap = renderMonthlyCap();
+      const used = Number((await store.get('aiRenderMonthly', new Date().toISOString().slice(0, 7)))?.count ?? 0);
+      res.json({ status: 'success', data: { enabled: renderEnabled(), cap, used, left: Math.max(0, cap - used) } });
+    })
+  );
+
   /**
-   * AI render of a photo just uploaded: a NEW file is stored next to the original, which is never changed or deleted.
+   * AI render of a photo (just uploaded, or an existing one the owner chose to enhance): a NEW file is stored next to the original, which is never changed or deleted.
    * `renders/<new file>` records which original it came from. Any refusal leaves the caller with the original photo.
+   * Nothing is attached to a design or collection here: the owner decides in the form and saves.
    */
   router.post(
     '/render',

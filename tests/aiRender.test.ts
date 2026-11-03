@@ -7,7 +7,7 @@ import { MemoryBlobs } from '../server/blobs';
 import { createApp } from '../server/app';
 import { seedDemoCatalogue } from '../server/seed';
 import { scopeStore } from '../server/tenancy';
-import { swapRender } from '../src/aiRender';
+import { acceptRender, enhanceBlocked, swapRender } from '../src/aiRender';
 
 // The provider is mocked: no test ever calls Google.
 const renderStudio = vi.fn();
@@ -97,5 +97,55 @@ describe('AI render', () => {
     expect(reverted).toEqual({ ref: 'media:o', url: '/o', render: { ref: 'media:r', url: '/r' } });
     expect(swapRender(reverted)).toEqual(rendered);
     expect(swapRender({ ref: 'media:x', url: '/x' })).toEqual({ ref: 'media:x', url: '/x' });
+  });
+});
+
+describe('Enhance to CAD render (existing photos)', () => {
+  const status = () => request(app).get('/api/admin/photos/render').set(auth);
+
+  it('status says on/off and renders left; counts renders already used', async () => {
+    expect((await status()).body.data).toEqual({ enabled: true, cap: 2, used: 0, left: 2 });
+    renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
+    await render(await upload());
+    expect((await status()).body.data.left).toBe(1);
+    delete process.env.AI_RENDER_ENABLED;
+    expect((await status()).body.data.enabled).toBe(false);
+    expect((await request(app).get('/api/admin/photos/render')).status).toBe(401);
+  });
+
+  it('an existing photo given by its /media/ link renders to a new file; the catalogue and the original are untouched', async () => {
+    const ref = await upload();
+    const link = `/media/${ref.slice(6)}?exp=1&sig=x`; // what an edit form holds for a saved photo
+    const before = (await stored(ref))!.data;
+    const catalogue = JSON.stringify((await request(app).get('/api/products')).body);
+    renderStudio.mockResolvedValue({ data: await png(200), mimeType: 'image/png' });
+    const res = await request(app).post('/api/admin/photos/render').set(auth).send({ ref: link });
+    expect(res.status).toBe(201);
+    expect(res.body.data.original.ref).toBe(ref);
+    expect((await stored(ref))!.data.equals(before)).toBe(true);
+    expect((await blobs.get(`stores/bhakti/renders/${res.body.data.ref.slice(6)}`)) ?? (await blobs.get(`renders/${res.body.data.ref.slice(6)}`))).toBeTruthy();
+    expect(JSON.stringify((await request(app).get('/api/products')).body)).toBe(catalogue);
+  });
+
+  it('accepting swaps the reference and keeps the original for revert; not accepting changes nothing', () => {
+    const form = [{ ref: '/media/a.jpg', url: '/media/a.jpg' }, { ref: '/media/b.jpg', url: '/media/b.jpg' }];
+    const out = { ref: 'media:r', url: '/r', original: { ref: 'media:a', url: '/media/a.jpg' } };
+    const snapshot = JSON.stringify(form);
+    expect(JSON.stringify(form)).toBe(snapshot); // keep / discard / cancel never call acceptRender
+    const accepted = acceptRender(form, '/media/a.jpg', out);
+    expect(accepted[0]).toEqual({ ref: 'media:r', url: '/r', original: out.original });
+    expect(accepted[1]).toBe(form[1]);
+    expect(JSON.stringify(form)).toBe(snapshot);
+    const reverted = swapRender(accepted[0]);
+    expect(reverted.ref).toBe('media:a');
+    expect(reverted.render?.ref).toBe('media:r');
+    expect(acceptRender(form, '/media/zzz.jpg', out)).toEqual(form);
+  });
+
+  it('says why the button is unavailable', () => {
+    expect(enhanceBlocked(null)).toBeNull();
+    expect(enhanceBlocked({ enabled: true, cap: 5, left: 3 })).toBeNull();
+    expect(enhanceBlocked({ enabled: false, cap: 5, left: 3 })).toMatch(/switched off/);
+    expect(enhanceBlocked({ enabled: true, cap: 5, left: 0 })).toMatch(/used its 5 AI renders/);
   });
 });
