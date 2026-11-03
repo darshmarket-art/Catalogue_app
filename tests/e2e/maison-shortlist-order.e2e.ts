@@ -16,8 +16,7 @@ test('profile holds the shortlist; Order all leaves in one step; the placed mome
   await seedRole(page, 'buyer', 'maison');
   await page.request.put('/api/v1/shortlist', { headers: { Authorization: `Bearer ${sessions().buyer.token}`, 'X-Store': STORE_ID }, data: { skus: [] } });
   await page.goto(`/?store=${STORE_ID}`);
-  await page.getByTestId('mx-menu').click();
-  await page.getByTestId('mx-all-designs').click();
+  await page.getByTestId('mx-all-designs').click(); // phones: the link under the Shop by cards on Home
   await page.locator('.mx-heart').first().waitFor();
 
   await expect(page.locator('.mx-top [data-tab="shortlist"]')).toHaveCount(0);

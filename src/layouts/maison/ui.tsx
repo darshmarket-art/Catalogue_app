@@ -38,6 +38,15 @@ export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: str
   );
 };
 
+/** A tag or collection card on phones: a 3:4 photo, the name in capitals under it, a count under that. The photo element is passed on for the view transition. */
+export const Card: React.FC<{ name: string; sub: string; src?: string; tone: number; testId?: string; onOpen: (photo: Element | null) => void }> = ({ name, sub, src, tone, testId, onOpen }) => (
+  <button type="button" className="mx-card" data-testid={testId} onClick={(e) => onOpen(e.currentTarget.querySelector('.em-ph'))}>
+    <span className="mx-card-im"><Ph src={src} tone={tone} className="mx-fill" sizes={SIZES_GRID} alt="" /></span>
+    <span className="mx-card-nm">{name}</span>
+    <span className="mx-card-sub">{sub}</span>
+  </button>
+);
+
 interface TileProps {
   prod: Product;
   index: number;

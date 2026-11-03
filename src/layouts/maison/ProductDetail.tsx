@@ -8,6 +8,7 @@ import { Icon, Ph, StockPill, fmtG } from '../emergent/ui';
 import { specRows } from '../emergent/ProductDetail';
 import { useProductDetail, type ProductDetailProps as Behaviour } from '../emergent/useProductDetail';
 import { CartSheet } from './CartSheet';
+import { useDesktop } from '../emergent/useDesktop';
 import { getLang, hn, pur, t, tl, ts } from '../../i18n';
 import { SIZES_FULL, SIZES_THUMB } from '../../photoSrcSet';
 
@@ -26,11 +27,13 @@ interface Props extends Behaviour {
  * anchored in a bar at the bottom. Behaviour (swipe between designs, zoom, Back, view tracking) comes from useProductDetail.
  */
 export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, position, onStep }) => {
+  const desk = useDesktop();
   const { canOrder, slide, setSlide, cartOpen, setCartOpen, zoomFrom, setZoomFrom, scroller, closeRef, pageRef, canStep, step } = useProductDetail({ product, isAdmin, onClose, position, onStep });
   if (!product) return null;
   const slides = product.images.length ? product.images : [product.image ?? ''];
   const name = hn(product.title, product.titleHi);
-  const catHi = categories.find((c) => c.name === product.category)?.nameHi;
+  const col = categories.find((c) => c.name === product.category);
+  const catHi = col?.nameHi;
   const category = hn(product.category, catHi);
   const description = hn(product.description, product.descriptionHi);
   const askText =
@@ -107,7 +110,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
                 </button>
               </div>
             )}
-            <span className="mx-ey">{category} · {product.sku}</span>
+            {desk ? <span className="mx-ey">{category} · {product.sku}</span> : <span className="mx-ey" data-testid="mx-pd-eyebrow">{col?.tag ? `${ts(col.tag)} / ${category}` : category}</span>}
             <h1 className="mx-pd-title">{name}</h1>
             <div className="mx-tags">
               <StockPill status={product.stockStatus} />
@@ -118,6 +121,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
             <details className="mx-acc" open>
               <summary>{t('Specifications')}</summary>
               <dl>
+                {!desk && <><div><dt>{t('SKU')}</dt><dd>{product.sku}</dd></div><div><dt>{t('Purity')}</dt><dd>{pur(product.purity)}</dd></div></>}
                 {specRows(product).map((r) => (
                   <div key={r.key}><dt>{r.label}</dt><dd>{r.value}</dd></div>
                 ))}

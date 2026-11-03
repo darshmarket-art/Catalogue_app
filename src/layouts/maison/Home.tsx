@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import type { Banner, Category } from '../../types';
 import { merchant } from '../../merchant';
@@ -10,10 +10,17 @@ import { CollectionsBrowser } from '../emergent/CollectionsBrowser';
 import { recentSkus } from '../../recent';
 import { grams, hn, t, tn, ts, useLang } from '../../i18n';
 import { SIZES_FULL, SIZES_GRID } from '../../photoSrcSet';
-import { Tile } from './ui';
+import { Card, Tile } from './ui';
+import { useDesktop } from '../emergent/useDesktop';
+import { groupByTag, useTagList } from '../../tagList';
+import { useTagCovers } from '../../tagCovers';
+import { withTransition } from '../../viewTransition';
+import { TagPage, registerHomeSearch, setOpenTag, tagCover, useOpenTag } from './TagPage';
 
 const FEW = 6;
 const AUTOPLAY_MS = 6500;
+/** Phones show the wide banner cropped to a full screen, so it is drawn about twice the screen height wide; desktop is full width as before. */
+const HERO_SIZES = `(max-width: 1023.98px) 200svh, ${SIZES_FULL}`;
 
 interface Slide { id: string; image?: string; title: string; open: () => void }
 
@@ -62,13 +69,13 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean }> = ({ slides, loading
 
   const hold = (v: boolean) => () => { paused.current = v; };
   return (
-    <section className="mx-hero" aria-roledescription="carousel" aria-label={slides[0]?.title} data-testid="mx-hero" onMouseEnter={hold(true)} onMouseLeave={hold(false)} onFocus={hold(true)} onBlur={hold(false)} onTouchStart={hold(true)} onTouchEnd={hold(false)}>
+    <section className="mx-hero" data-mx-float="" aria-roledescription="carousel" aria-label={slides[0]?.title} data-testid="mx-hero" onMouseEnter={hold(true)} onMouseLeave={hold(false)} onFocus={hold(true)} onBlur={hold(false)} onTouchStart={hold(true)} onTouchEnd={hold(false)}>
       <div className="mx-hero-strip" ref={ref} onScroll={onScroll}>
         {loop.map((sl, i) => (
           <div key={sl.id} className="mx-slide" role="group" aria-roledescription="slide" aria-label={`${(i % n) + 1} / ${n}`} aria-hidden={i >= n || undefined}>
             <div className="mx-hero-media">
               <div className="mx-hero-img">
-                {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={SIZES_FULL} priority={i === 0} eager alt="" />}
+                {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={HERO_SIZES} priority={i === 0} eager alt="" />}
               </div>
               <button type="button" className="mx-hero-hit" aria-label={sl.title} tabIndex={i >= n ? -1 : undefined} onClick={sl.open} />
             </div>
@@ -92,6 +99,28 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   useLang();
   const [q, setQ] = useState('');
   const [browsing, setBrowsing] = useState(false);
+  // Phones (below 1024px) get the Shop by tag cards and tag pages; desktop keeps its page exactly as it was.
+  const desk = useDesktop();
+  const tagOrder = useTagList();
+  const covers = useTagCovers();
+  const groups = groupByTag(categories.filter((c) => c.designCount > 0).sort((a, b) => b.designCount - a.designCount), tagOrder);
+  const openTag = useOpenTag();
+  const tagGroup = !desk && openTag ? groups.find(([g]) => g === openTag) : undefined;
+  const allDesigns = () => (onSearchDesigns ? onSearchDesigns('') : onNavigate('catalogue'));
+  // The masthead's search runs through this screen's search.
+  useLayoutEffect(() => { registerHomeSearch((s) => onSearchDesigns?.(s)); return () => registerHomeSearch(null); }, [onSearchDesigns]);
+  // Back from a tag page returns to where Home was scrolled.
+  const homeY = useRef(0);
+  const wasTag = useRef(Boolean(tagGroup));
+  useLayoutEffect(() => {
+    if (wasTag.current && !tagGroup) window.scrollTo(0, homeY.current);
+    wasTag.current = Boolean(tagGroup);
+  }, [tagGroup]);
+  const openTagPage = (tag: string, photo: Element | null) => {
+    homeY.current = window.scrollY;
+    withTransition(() => { setOpenTag(tag); window.scrollTo(0, 0); }, photo);
+  };
+  const openCollection = (name: string) => withTransition(() => onFilterCategoryInCatalogue(name));
 
   const heroes = useMemo(() => {
     const chosen = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
@@ -136,21 +165,41 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     </Reveal>
   );
 
+  if (tagGroup)
+    return (
+      <div className="mx-home">
+        <TagPage tag={tagGroup[0]} cols={tagGroup[1]} cover={tagCover(covers[tagGroup[0]], tagGroup[1], products)} onCollection={openCollection} onAll={allDesigns} />
+      </div>
+    );
+
   return (
     <div className="mx-home">
       <h1 className="em-sr">{ts(merchant.brand.name)}</h1>
       <Hero slides={slides} loading={loading} />
 
-      <section className="mx-intro">
+      {!desk && (
+        <section className="mx-shop" data-testid="mx-shop-by">
+          <h2 className="mx-shop-h">{t('Shop by')}</h2>
+          {!loading && groups.length === 0 && <p className="mx-note">{t('No collections have been added yet.')}</p>}
+          <div className="mx-cards">
+            {groups.map(([tag, cs], i) => (
+              <Card key={tag} testId="mx-tag-card" name={ts(tag)} sub={tn(cs.length, '{n} collection', '{n} collections')} src={tagCover(covers[tag], cs, products)} tone={i} onOpen={(ph) => openTagPage(tag, ph)} />
+            ))}
+          </div>
+          <button type="button" className="mx-shop-all" data-testid="mx-all-designs" onClick={allDesigns}>{t('View all designs')}</button>
+        </section>
+      )}
+
+      {desk && <section className="mx-intro">
         <Reveal>
           <label className="mx-search">
             <Icon n="search" size={18} />
             <input aria-label={t('Search the catalogue')} data-testid="home-search" type="search" placeholder={t('Search name, SKU or collection')} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && q.trim() && onSearchDesigns?.(q.trim())} />
           </label>
         </Reveal>
-      </section>
+      </section>}
 
-      <section className="mx-sec">
+      {desk && <section className="mx-sec">
         <div className="mx-head">
           <h2 className="mx-st">{t('Collections')}</h2>
           <button type="button" className="mx-cta" onClick={() => (many ? setBrowsing(true) : onNavigate('catalogue'))} data-testid={many ? 'browse-collections' : undefined}>
@@ -162,9 +211,9 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           {loading && categories.length === 0 && Array.from({ length: 3 }, (_, i) => <div key={i} className="mx-tile"><span className="mx-frame em-skel" /></div>)}
           {shown.map(tile)}
         </div>
-      </section>
+      </section>}
 
-      {features.map((b, i) => (
+      {desk && features.map((b, i) => (
         <section key={b.id} className={`mx-split${i % 2 ? ' rev' : ''}`}>
           <Reveal className="mx-split-img"><Ph src={b.image} tone={i + 1} className="mx-fill" sizes={SIZES_FULL} alt="" /></Reveal>
           <Reveal className="mx-split-txt" delay={120}>

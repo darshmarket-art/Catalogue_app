@@ -15,7 +15,7 @@ for (const [w, h, tag] of [[390, 844, 'm390'], [1440, 900, 'd1440']] as const) {
     await page.request.put('/api/v1/shortlist', { headers: { Authorization: `Bearer ${sessions().buyer.token}`, 'X-Store': STORE_ID }, data: { skus: [] } });
     await page.goto(`/?store=${STORE_ID}`);
     await page.screenshot({ path: `${OUT}/${tag}-home-first.png` });
-    await page.getByTestId('mx-menu').click();
+    if (w >= 1024) await page.getByTestId('mx-menu').click(); // phones: View all designs sits under the Shop by cards
     await page.getByTestId('mx-all-designs').click();
     await page.locator('.mx-heart').first().waitFor();
 
@@ -37,9 +37,11 @@ for (const [w, h, tag] of [[390, 844, 'm390'], [1440, 900, 'd1440']] as const) {
     };
     const large = await check('', 'large');
     for (const r of large) { expect(Math.abs(r.ratio - 1)).toBeLessThan(0.05); expect(r.sku).toBe(false); expect(r.wt).toBe('700'); expect(r.cta?.below).toBe(true); expect(r.cta?.inside).toBe(true); }
-    await check('grid3', 'compact');
-    await check('list', 'list');
-    await page.getByTestId('view-grid2').click();
+    if (w >= 1024) { // phones have no layout switch: the tiles are always the large ones
+      await check('grid3', 'compact');
+      await check('list', 'list');
+      await page.getByTestId('view-grid2').click();
+    }
 
     const hearts = page.locator('.mx-heart');
     for (let i = 0; i < 3; i++) await hearts.nth(i).click();

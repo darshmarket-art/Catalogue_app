@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
 import { SORT_KEYS, SORT_LABELS } from '../../../shared/jewellery';
 import { Icon, Toast, type KitProps } from '../emergent/ui';
 import { CollectionsBrowser } from '../emergent/CollectionsBrowser';
 import { NO_FILTERS, toggle, useCatalogue } from '../emergent/useCatalogue';
+import { useDesktop } from '../emergent/useDesktop';
 import { withTransition } from '../../viewTransition';
 import { noteCollection } from '../../recent';
 import { hn, pur, t, tn, ts } from '../../i18n';
@@ -26,15 +27,27 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
     flags, addedNotice, openProductId, setOpenProductId, cartFor, setCartFor, gridRef, sentinelRef, hearted, items, total, hasMore, loading, loadingMore, error, setRetry,
     openProduct, openIndex, loadMore, handleAdd, openOrPick, toggleHeart, inOrder, showCartBar, purityTitle, active, anyNarrowing, clearAll, openSheet, applyDraft, draftCount, collectionChips
   } = useCatalogue(props);
+  // Phones: a sticky bar (name, count, Filter, Sort) replaces the title block and the search and filter bar; Sort opens the drawer with only the sort.
+  const desk = useDesktop();
+  const [sortOnly, setSortOnly] = useState(false);
   const current = categoryFilter ? hn(categoryFilter, categories.find((c) => c.name === categoryFilter)?.nameHi) : t('All collections');
   const narrowing = active.length + (sort !== 'newest' ? 1 : 0);
-  const cols = view === 'list' ? 'list' : view === 'grid3' ? 'compact' : 'large';
+  const cols = !desk ? 'large' : view === 'list' ? 'list' : view === 'grid3' ? 'compact' : 'large';
   void purityTitle;
 
   return (
     <div className="mx-cat">
       {addedNotice && <Toast>{t('Added {name} to your order', { name: addedNotice })}</Toast>}
-      <header className="mx-cat-head">
+      {!desk && (
+        <div className="mx-sbar" data-testid="mx-col-bar">
+          <b data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : categoryFilter ? current : t('All designs')}</b>
+          {searchQuery && <button type="button" aria-label={t('Clear search')} className="mx-x" onClick={() => setSearchQuery('')}><Icon n="x" size={14} /></button>}
+          <span className="mx-sbar-n" data-testid="result-count">{tn(total, '{n} design', '{n} designs')}</span>
+          <button type="button" className={`mx-pill${active.length ? ' on' : ''}`} data-testid="catalogue-filter-button" aria-haspopup="dialog" onClick={() => { setSortOnly(false); openSheet(); }}>{t('Filter')}{active.length > 0 && <i> · {active.length}</i>}</button>
+          <button type="button" className={`mx-pill${sort !== 'newest' ? ' on' : ''}`} data-testid="catalogue-sort-button" aria-haspopup="dialog" onClick={() => { setSortOnly(true); openSheet(); }}>{t('Sort')}</button>
+        </div>
+      )}
+      {desk && <header className="mx-cat-head">
         {onNavigate && (
           <nav className="mx-crumbs flat" aria-label="Breadcrumb">
             <button type="button" className="mx-back" onClick={() => onNavigate('categories')}>{t('Home')}</button>
@@ -46,9 +59,9 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
         <span className="mx-ey" data-testid="catalogue-count">
           {loading && items.length === 0 ? `${ts(merchant.brand.name)} · ${t('searching…')}` : `${ts(merchant.brand.name)} · ${tn(total, '{n} design', '{n} designs')}`}
         </span>
-      </header>
+      </header>}
 
-      <div className="mx-fbar">
+      {desk && <div className="mx-fbar">
         <label className="mx-fsearch">
           <Icon n="search" size={16} />
           <input aria-label={t('Search designs')} data-testid="catalogue-search" placeholder={t(sector.filters.searchPlaceholder)} type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
@@ -66,7 +79,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
           <span>{t('Filter and sort')}{narrowing > 0 && <i> · {narrowing}</i>}</span>
           <Icon n="sliders" size={14} />
         </button>
-      </div>
+      </div>}
 
       {active.length > 0 && (
         <div className="mx-active" role="group" aria-label={t('Active filters')} data-testid="active-filters">
@@ -87,7 +100,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
             <button type="button" className="mx-cta" onClick={() => setRetry((n) => n + 1)}>{t('Try again')}</button>
           </div>
         )}
-        <div className="mx-count-row">
+        {desk && <div className="mx-count-row">
           <span className="mx-ey" data-testid="result-count">{tn(total, '{n} design', '{n} designs')}</span>
           <span className="mx-views" role="group" aria-label={t('Layout')} data-testid="layout-switch">
             {([['grid2', 'Large photos', 'grid'], ['grid3', 'Compact grid', 'dense'], ['list', 'List', 'list']] as const).map(([v, label, icon]) => (
@@ -96,7 +109,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
               </button>
             ))}
           </span>
-        </div>
+        </div>}
 
         <div key={`${cols}|${categoryFilter ?? ""}|${active.length}|${sort}`} ref={gridRef} className={`mx-pgrid mx-flip ${cols}`} aria-busy={loading} style={{ opacity: loading && items.length > 0 ? 0.55 : 1 }}>
           {loading && items.length === 0 && !error && Array.from({ length: 8 }, (_, i) => <div key={`skel-${i}`} className="mx-ptile" aria-hidden="true"><div className="mx-pframe em-skel" /></div>)}
@@ -139,7 +152,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
       </div>
 
       {sheet && (
-        <Drawer label={t('Filter and sort')} onClose={() => setSheet(false)} testId="filter-panel">
+        <Drawer label={t(sortOnly ? 'Sort by' : 'Filter and sort')} onClose={() => setSheet(false)} testId="filter-panel">
           <div className="mx-fgroup">
             <span className="mx-ey">{t('Sort by')}</span>
             <div className="mx-chips" data-testid="catalogue-sort">
@@ -148,7 +161,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
               ))}
             </div>
           </div>
-          <div className="mx-fgroup">
+          {!sortOnly && <><div className="mx-fgroup">
             <span className="mx-ey">{t(sector.filters.purity)}</span>
             <div className="mx-checks">
               {purities.filter((p) => p.enabled).map((p) => (
@@ -177,7 +190,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
                 </label>
               ))}
             </div>
-          </div>
+          </div></>}
           <div className="mx-drawer-f">
             <button type="button" className="mx-cta" onClick={() => { setDraft(NO_FILTERS); setDraftSort('newest'); }} disabled={draftCount === 0}>{t('Reset')}</button>
             <button type="button" className="mx-btn" data-testid="apply-filters" onClick={applyDraft}>

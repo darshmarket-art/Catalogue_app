@@ -598,6 +598,74 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
   &:lang(hi) * { letter-spacing: 0 !important; text-transform: none !important; }
 }
 
+/* ---------- phones and tablets (below 1024px): banner first, Shop by tag cards, tag pages, the floating masthead ----------
+ * Every rule here sits behind this query, so desktop (1024px and up) is exactly as it was. Colours are tokens only. */
+@media (max-width: 1023.98px) {
+  [data-layout="maison"][data-role] {
+    /* masthead: menu | name | search, bag or Back. Over a banner it floats (clear, a dark gradient behind it, light icons); data-float is set by
+     * one passive scroll listener in Header.tsx and only background and colour change. */
+    & .mx-ph { color: var(--mx-ink); transition: background-color 0.35s var(--mx-ease), border-color 0.35s var(--mx-ease), color 0.35s var(--mx-ease); }
+    & .mx-ph .mx-bar { grid-template-columns: 88px minmax(0, 1fr) 88px; padding: 0 4px; }
+    & .mx-ph .mx-word { justify-self: center; max-width: 100%; }
+    & .mx-ph :is(.mx-ib, .mx-word) { color: inherit; transition: color 0.35s var(--mx-ease); }
+    & .mx-ph::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to bottom, var(--mx-glass), var(--mx-glass) 40%, transparent); opacity: 0; transition: opacity 0.35s var(--mx-ease); }
+    & .mx-ph[data-float]:not(.srch) { background-color: transparent; border-bottom-color: transparent; color: var(--mx-photo-fg); }
+    & .mx-ph[data-float]:not(.srch)::before { opacity: 1; }
+    & .mx-ph[data-float]:not(.srch) .mx-logo:not(img) { color: inherit; border-color: currentColor; }
+    & .mx-ph[data-float]:not(.srch) img.mx-logo { filter: brightness(0) invert(1); }
+    /* the search bar slides down from under the masthead */
+    & .mx-srch { position: absolute; left: 0; right: 0; top: 100%; overflow: hidden; pointer-events: none; }
+    & .mx-srch.on { pointer-events: auto; }
+    & .mx-srch-in { display: flex; align-items: center; gap: 12px; padding: 8px 16px 12px; background: var(--mx-ground); color: var(--mx-ink); border-bottom: 1px solid var(--mx-hair); transform: translateY(-101%); visibility: hidden; transition: transform 0.3s var(--mx-ease), visibility 0s 0.3s; }
+    & .mx-srch.on .mx-srch-in { transform: none; visibility: visible; transition: transform 0.3s var(--mx-ease); }
+    & .mx-srch-in input { flex: 1; min-width: 0; height: 44px; border: 0; border-bottom: 1px solid var(--mx-ink); background: none; outline: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 1rem; letter-spacing: 0.04em; }
+    & .mx-srch-scrim { position: fixed; left: 0; right: 0; bottom: 0; top: calc(var(--header-h) + var(--sat)); z-index: -1; padding: 0; border: 0; background: var(--mx-scrim); animation: mx-fade 0.3s ease-out both; }
+    /* the menu's profile panel slides in from the left */
+    & .mx-ph .mx-drawer-wrap { justify-content: flex-start; align-items: stretch; }
+    & .mx-ph .mx-drawer { width: min(86%, 420px); height: 100dvh; max-height: none; animation: mx-drawer-left 0.35s var(--mx-ease) both; }
+
+    /* Home: the banner fills the first screen, under the masthead */
+    & .mx-home { margin-top: calc(-1 * (var(--header-h) + var(--sat))); }
+    & .mx-hero-media { aspect-ratio: auto; height: 100svh; max-height: none; }
+    & .mx-hero-dots { aspect-ratio: auto; height: 100svh; max-height: none; justify-content: center; padding-bottom: 14px; }
+    /* Shop by: one card per tag, two across; tag pages use the same cards for collections */
+    & .mx-shop { padding: 44px 6px 0; background: var(--mx-ground); text-align: center; }
+    & .mx-shop-h { margin: 0 0 22px; font-family: var(--mx-serif); font-size: 1.75rem; font-weight: 500; line-height: 1.1; }
+    & .mx-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    & .mx-card { display: block; width: 100%; min-width: 0; padding: 0 0 18px; border: 0; background: none; color: var(--mx-ink); text-align: center; cursor: pointer; }
+    & .mx-card-im { position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--mx-tile); }
+    & .mx-card-im .em-ph img { transition: transform 0.9s var(--mx-ease); }
+    & .mx-card:active .mx-card-im .em-ph img { transform: scale(1.03); }
+    & .mx-card-nm { display: block; margin: 12px 4px 2px; font-family: var(--mx-sans); font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; overflow-wrap: anywhere; }
+    & .mx-card-sub { display: block; color: var(--mx-muted); font-size: 0.78rem; }
+    & .mx-shop-all { display: inline-block; margin: 10px auto 48px; padding: 6px 0 4px; border: 0; border-bottom: 1px solid var(--mx-ink); background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
+    /* tag page: banner, title block, sticky bar, collection cards */
+    & .mx-tagp-ban { position: relative; height: clamp(300px, 46svh, 520px); overflow: hidden; background: var(--mx-tile); }
+    & .mx-tagp-intro { padding: 22px 18px 24px; background: var(--mx-surface); }
+    & .mx-tagp-intro .mx-h2 { font-size: 2rem; font-weight: 500; }
+    & .mx-tagp-intro .mx-note { margin: 6px 0 0; }
+    & .mx-tagp .mx-cards { padding: 18px 6px 32px; }
+    /* the sticky bar under the masthead (tag page and collection page) */
+    & .mx-sbar { position: sticky; top: calc(var(--header-h) + var(--sat)); z-index: 30; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 14px; background: var(--mx-ground); border-bottom: 1px solid var(--mx-hair); font-family: var(--mx-sans); font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; }
+    & .mx-sbar > b { min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    & .mx-sbar .mx-x { flex: none; width: 32px; margin-left: -8px; }
+    & .mx-sbar-n { color: var(--mx-muted); white-space: nowrap; }
+    & .mx-pill { flex: none; min-height: 36px; padding: 0 14px; border: 1px solid var(--mx-hair); border-radius: 999px !important; background: none; color: var(--mx-ink); font: inherit; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+    & .mx-sbar > :is(b, .mx-sbar-n) + .mx-pill { margin-left: auto; }
+    & .mx-pill.on { background: var(--mx-btn-bg); color: var(--mx-btn-fg); border-color: var(--mx-ink); }
+    & .mx-pill i { font-style: normal; }
+    /* collection page: tiles 6px apart */
+    & .mx-cat-body { padding: 6px 6px 0; }
+    /* design page: the masthead carries Back */
+    & .mx-pd .mx-crumbs { display: none; }
+  }
+}
+@keyframes mx-drawer-left { from { transform: translateX(-100%); } to { transform: none; } }
+@media (max-width: 1023.98px) and (prefers-reduced-motion: reduce) {
+  [data-layout="maison"] :is(.mx-ph, .mx-ph .mx-ib, .mx-ph .mx-word, .mx-srch-in, .mx-card-im img) { transition: none !important; }
+  [data-layout="maison"] .mx-ph::before { transition: none !important; }
+}
+
 /* ---------- desktop: masthead + nav, editorial grids, side-by-side design page ---------- */
 @media (min-width: 1024px) {
   [data-layout="maison"][data-role] {
