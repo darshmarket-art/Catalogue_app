@@ -67,7 +67,7 @@ export const About: React.FC<KitProps<'About'>> = ({ about }) => {
 };
 
 /** Something looked wrong but nothing failed (so nothing reported itself): a note goes to Bug reports with the steps that led here. */
-const ReportProblem: React.FC = () => {
+export const ReportProblem: React.FC = () => {
   const [open, setOpen] = React.useState(false);
   const [note, setNote] = React.useState('');
   const [sent, setSent] = React.useState(false);

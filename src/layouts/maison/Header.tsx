@@ -2,43 +2,44 @@ import React, { useEffect, useState } from 'react';
 import type { ActiveScreen } from '../../types';
 import { merchant } from '../../merchant';
 import { BrandMark } from '../../components/BrandMark';
-import { ProfileMenu } from '../../components/ProfileMenu';
 import { LangToggle } from '../../components/LangToggle';
 import { Icon, type KitProps } from '../emergent/ui';
 import { useDesktop } from '../emergent/useDesktop';
 import { useBackLayer } from '../../backLayer';
-import { hn, t, tn, ts, useLang } from '../../i18n';
+import { hn, t, ts, useLang } from '../../i18n';
 import { groupByTag, useTagList } from '../../tagList';
+import { ProfilePanel } from './Profile';
 
-// Desktop nav row. Shortlist and Orders are the icons in the bar; About us is also in the Collections drawer and the Home footer.
-const NAV: Array<{ screen: ActiveScreen; label: string }> = [
-  { screen: 'categories', label: 'Home' },
-  { screen: 'catalogue', label: 'Catalogue' },
-  { screen: 'about', label: 'About us' }
-];
 const SUB: ActiveScreen[] = ['retailer-auth', 'admin-login'];
 
 /**
- * Maison's masthead. Desktop: a centred wordmark, a few sections underneath, and a mega-menu under "Collections" that indexes the collections by
- * tag with design counts. Phones: a "Collections" button opens the same index as a drawer. Sign-in pages get a back arrow instead.
+ * Maison's masthead. A three-bar button at the left opens the index of tags (a mega-panel on desktop, a full-screen drawer on phones); a tag opens its
+ * collection names (no counts) and a collection filters the catalogue. "All designs" lives at the foot of the index, not in the bar. The person icon
+ * opens the profile panel. Sign-in pages get a back arrow instead.
  */
 export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, currentMerchant, onLogout, onOpenOrders, categories = [], shortlistCount = 0, orderCount, onOpenCollection }) => {
   useLang();
   const desk = useDesktop();
   const [menu, setMenu] = useState(false);
-  const [mega, setMega] = useState(false);
+  const [profile, setProfile] = useState(false);
   const sub = SUB.includes(currentScreen);
-  useEffect(() => { setMenu(false); setMega(false); }, [currentScreen]);
-  useEffect(() => { if (desk) setMenu(false); }, [desk]);
+  useEffect(() => { setMenu(false); setProfile(false); }, [currentScreen]);
+  useEffect(() => {
+    if (!menu || !desk) return;
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(false);
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [menu, desk]);
 
-  const go = (s: ActiveScreen) => { setMenu(false); setMega(false); onNavigate(s); };
-  const openCol = (name: string) => { setMenu(false); setMega(false); onOpenCollection?.(name); };
-  const nav = NAV;
+  const go = (s: ActiveScreen) => { setMenu(false); setProfile(false); onNavigate(s); };
+  const openCol = (name: string) => { setMenu(false); onOpenCollection?.(name); };
   const tagOrder = useTagList();
   const groups = groupByTag(categories.filter((c) => c.designCount > 0).sort((a, b) => b.designCount - a.designCount), tagOrder);
 
   const account = currentMerchant ? (
-    <ProfileMenu buyer={currentMerchant} isAdmin={false} onOpenOrders={onOpenOrders} onOpenAdminConsole={() => {}} onOpenAbout={() => go('about')} onLogout={onLogout} onNavigate={onNavigate} />
+    <button type="button" className="mx-ib" data-testid="mx-profile" aria-label="Profile menu" title={t('Profile')} aria-haspopup="dialog" aria-expanded={profile} onClick={() => { setMenu(false); setProfile(true); }}>
+      <Icon n="user" size={20} />
+    </button>
   ) : (
     <button type="button" className="mx-ib" aria-label={t('Sign in')} onClick={() => go('retailer-auth')}><Icon n="user" size={20} /></button>
   );
@@ -62,22 +63,22 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
   );
 
   return (
-    <header className={`mx-top${mega ? ' open' : ''}`} onMouseLeave={() => setMega(false)}>
+    <header className={`mx-top${menu ? ' open' : ''}`}>
       <div className="mx-bar">
         <div className="mx-side">
           {sub ? (
             <button type="button" className="mx-ib" aria-label={t('Back')} onClick={() => onNavigate('welcome')}><Icon n="back" size={22} /></button>
-          ) : desk ? (
-            <button type="button" className="mx-ib" aria-label={t('Search the catalogue')} onClick={() => go('catalogue')}><Icon n="search" size={20} /></button>
           ) : (
-            <button type="button" className="mx-nl mx-coll" data-tab="catalogue" aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu(true)}>{t('Collections')}</button>
+            <button type="button" className="mx-ib mx-burger" data-testid="mx-menu" aria-label={t('Browse by type')} aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+              <Icon n={menu && desk ? 'x' : 'menu'} size={22} />
+            </button>
           )}
-          {desk && <LangToggle />}
+          {desk && !sub && <LangToggle />}
         </div>
         {word}
         <div className="mx-side r">
-          {!sub && desk && account}
           {!sub && counts}
+          {!sub && account}
           {sub && !desk && <LangToggle />}
         </div>
       </div>
@@ -85,20 +86,22 @@ export const Header: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate
       {desk && !sub && (
         <nav className="mx-nav" aria-label="Main">
           <NavBtn tab="categories" on={currentScreen === 'categories'} onClick={() => go('categories')}>{t('Home')}</NavBtn>
-          {groups.length > 0 && (
-            <button type="button" className={`mx-nl${mega ? ' on' : ''}`} aria-expanded={mega} onMouseEnter={() => setMega(true)} onClick={() => setMega((m) => !m)}>{t('Collections')}</button>
-          )}
-          {nav.slice(1).map((n) => <NavBtn key={n.screen} tab={n.screen} on={currentScreen === n.screen} onClick={() => go(n.screen)}>{t(n.label)}</NavBtn>)}
+          <NavBtn tab="about" on={currentScreen === 'about'} onClick={() => go('about')}>{t('About us')}</NavBtn>
         </nav>
       )}
 
-      {desk && mega && (
-        <div className="mx-mega" data-testid="mx-mega">
-          <div className="mx-mega-in"><TagIndex groups={groups} onCol={openCol} onAll={() => go('catalogue')} /></div>
-        </div>
+      {desk && menu && (
+        <>
+          <button type="button" className="mx-mega-scrim" tabIndex={-1} aria-label={t('Close')} onClick={() => setMenu(false)} />
+          <div className="mx-mega" data-testid="mx-mega" role="dialog" aria-label={t('Browse by type')}>
+            <div className="mx-mega-in"><TagIndex groups={groups} desk onCol={openCol} onAll={() => go('catalogue')} /></div>
+          </div>
+        </>
       )}
-
-      {menu && <MobileMenu nav={nav} orders={orderCount !== undefined} groups={groups} current={currentScreen} account={account} onGo={go} onCol={openCol} onClose={() => setMenu(false)} />}
+      {!desk && menu && <MobileMenu groups={groups} current={currentScreen} onGo={go} onCol={openCol} onClose={() => setMenu(false)} />}
+      {profile && currentMerchant && (
+        <ProfilePanel buyer={currentMerchant} onClose={() => setProfile(false)} onOpenOrders={(tab) => { setProfile(false); onOpenOrders(tab); }} onGo={go} onLogout={() => { setProfile(false); onLogout(); }} />
+      )}
     </header>
   );
 };
@@ -109,24 +112,40 @@ const NavBtn: React.FC<{ tab: string; on: boolean; onClick: () => void; children
 
 type Groups = ReturnType<typeof groupByTag<NonNullable<KitProps<'Header'>['categories']>[number]>>;
 
-/** Collections filed under their tag: "RINGS 42" then each collection with its design count. Used by the mega-menu and the drawer. */
-const TagIndex: React.FC<{ groups: Groups; onCol: (n: string) => void; onAll: () => void }> = ({ groups, onCol, onAll }) => (
-  <div className="mx-tags-ix">
-    {groups.map(([tag, cs], i) => (
-      <section key={tag} className="mx-tagg" style={{ ['--i' as string]: i }}>
-        <h3 className="mx-tagh"><span>{tag}</span><i>{cs.reduce((n, c) => n + c.designCount, 0)}</i></h3>
-        <ul>
-          {cs.map((c) => (
-            <li key={c.id}><button type="button" onClick={() => onCol(c.name)}><span>{hn(c.name, c.nameHi)}</span><i aria-label={tn(c.designCount, '{n} design', '{n} designs')}>{c.designCount}</i></button></li>
-          ))}
-        </ul>
-      </section>
-    ))}
-    <button type="button" className="mx-cta mx-all" onClick={onAll}>{t('All designs')}</button>
-  </div>
-);
+/**
+ * The index of all tags (Rings, Necklaces ...). Choosing a tag shows that tag's collection names, no counts. Desktop: tags in a column on the left,
+ * the open tag's collections on the right. Phones: an accordion, one tag open at a time.
+ */
+const TagIndex: React.FC<{ groups: Groups; desk?: boolean; onCol: (n: string) => void; onAll: () => void }> = ({ groups, desk, onCol, onAll }) => {
+  const [open, setOpen] = useState<string | null>(desk ? groups[0]?.[0] ?? null : null);
+  const cols = (cs: Groups[number][1]) => (
+    <ul className="mx-tix-cols">
+      {cs.map((c) => <li key={c.id}><button type="button" onClick={() => onCol(c.name)}>{hn(c.name, c.nameHi)}</button></li>)}
+    </ul>
+  );
+  const active = groups.find(([tag]) => tag === open);
+  return (
+    <div className={`mx-tix${desk ? ' desk' : ''}`}>
+      <ul className="mx-tix-tags">
+        {groups.map(([tag, cs], i) => {
+          const on = tag === open;
+          return (
+            <li key={tag} className={on ? 'on' : ''} style={{ ['--i' as string]: i }}>
+              <button type="button" className="mx-tix-tag" aria-expanded={on} onMouseEnter={desk ? () => setOpen(tag) : undefined} onClick={() => setOpen(desk ? tag : on ? null : tag)}>
+                <span>{tag}</span><Icon n={desk ? 'next' : on ? 'up' : 'chev'} size={16} />
+              </button>
+              {!desk && on && cols(cs)}
+            </li>
+          );
+        })}
+      </ul>
+      {desk && active && <div className="mx-tix-panel" key={active[0]}><h3 className="mx-tix-h">{active[0]}</h3>{cols(active[1])}</div>}
+      <button type="button" className="mx-cta mx-all" data-testid="mx-all-designs" onClick={onAll}>{t('View all designs')}</button>
+    </div>
+  );
+};
 
-const MobileMenu: React.FC<{ nav: typeof NAV; orders: boolean; groups: Groups; current: ActiveScreen; account: React.ReactNode; onGo: (s: ActiveScreen) => void; onCol: (n: string) => void; onClose: () => void }> = ({ nav, orders, groups, current, account, onGo, onCol, onClose }) => {
+const MobileMenu: React.FC<{ groups: Groups; current: ActiveScreen; onGo: (s: ActiveScreen) => void; onCol: (n: string) => void; onClose: () => void }> = ({ groups, current, onGo, onCol, onClose }) => {
   useBackLayer(true, onClose);
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -135,7 +154,7 @@ const MobileMenu: React.FC<{ nav: typeof NAV; orders: boolean; groups: Groups; c
     return () => { window.removeEventListener('keydown', k); document.documentElement.style.overflow = ''; };
   }, [onClose]);
   return (
-    <div className="mx-menu" role="dialog" aria-modal="true" aria-label={t('Collections')}>
+    <div className="mx-menu" role="dialog" aria-modal="true" aria-label={t('Browse by type')}>
       <div className="mx-bar">
         <div className="mx-side"><button type="button" className="mx-ib" aria-label={t('Close')} onClick={onClose} autoFocus><Icon n="x" size={22} /></button></div>
         <span className="mx-word"><span>{ts(merchant.brand.name)}</span></span>
@@ -146,13 +165,9 @@ const MobileMenu: React.FC<{ nav: typeof NAV; orders: boolean; groups: Groups; c
       </div>
       <div className="mx-menu-f">
         <nav className="mx-menu-l">
-          {nav.filter((n) => n.screen !== 'catalogue').map((n) => (
-            <button key={n.screen} type="button" aria-current={current === n.screen ? 'page' : undefined} onClick={() => onGo(n.screen)}>{t(n.label)}</button>
-          ))}
-          <button type="button" aria-current={current === 'shortlist' ? 'page' : undefined} onClick={() => onGo('shortlist')}>{t('Shortlist')}</button>
-          {orders && <button type="button" aria-current={current === 'orders' ? 'page' : undefined} onClick={() => onGo('orders')}>{t('Orders')}</button>}
+          <button type="button" aria-current={current === 'categories' ? 'page' : undefined} onClick={() => onGo('categories')}>{t('Home')}</button>
+          <button type="button" aria-current={current === 'about' ? 'page' : undefined} onClick={() => onGo('about')}>{t('About us')}</button>
         </nav>
-        {account}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { hn, pur, t } from '../../i18n';
 import { SIZES_GRID } from '../../photoSrcSet';
 
 /** A panel that slides in from the right on desktop and up from the bottom on phones (filters, Add to cart). Back and Escape close it. */
-export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: string; children: React.ReactNode }> = ({ label, onClose, testId, children }) => {
+export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: string; tall?: boolean; children: React.ReactNode }> = ({ label, onClose, testId, tall, children }) => {
   useBackLayer(true, onClose);
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -23,7 +23,7 @@ export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: str
     };
   }, []);
   return (
-    <div className="mx-drawer-wrap" role="dialog" aria-modal="true" aria-label={label} data-testid={testId}>
+    <div className={`mx-drawer-wrap${tall ? " tall" : ""}`} role="dialog" aria-modal="true" aria-label={label} data-testid={testId}>
       <button type="button" className="mx-scrim" tabIndex={-1} aria-label={t('Close')} onClick={onClose} />
       <div className="mx-drawer">
         <div className="mx-drawer-h">
@@ -63,7 +63,7 @@ const tilt = {
   onPointerLeave: (e: React.PointerEvent<HTMLElement>) => { e.currentTarget.style.removeProperty('--rx'); e.currentTarget.style.removeProperty('--ry'); }
 };
 
-/** A product tile, Bulgari style: the photo fills the square and the name, purity, weight and code sit inside it along the foot. */
+/** A product tile, one card: the photo (ratio --mx-tile-ratio) with the name, purity, weight and code directly under it on the same ground. */
 export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen, onHeart, onAdd, current, testId = 'product-card', hitTestId, heartLabel }) => {
   const name = hn(prod.title, prod.titleHi);
   const open = (e: React.MouseEvent<HTMLElement>) => onOpen(e.currentTarget.closest('.mx-ptile')?.querySelector('.em-ph') ?? null);
@@ -78,9 +78,11 @@ export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen
             <Icon n="heart" size={18} fill={hearted} />
           </button>
         )}
+      </div>
+      <div className="mx-pbody">
         <div className="mx-pcap" onClick={open}>
           <span className="mx-pt">{name}</span>
-          <span className="mx-pw">{pur(prod.purity)} · {fmtG(prod.netWt)}<span className="mx-sku"> · {prod.sku}</span></span>
+          <span className="mx-pw"><span>{pur(prod.purity)} · {fmtG(prod.netWt)}</span><span className="mx-sku">{prod.sku}</span></span>
         </div>
         {onAdd && (
           <button type="button" className="mx-cta" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>

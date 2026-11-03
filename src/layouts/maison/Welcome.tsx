@@ -15,7 +15,7 @@ export const Welcome: React.FC<KitProps<'Welcome'>> = ({ onNavigate }) => {
     <div className="mx-welcome">
       <div className="mx-w-lang"><LangToggle onDark /></div>
       <section className="mx-w-hero">
-        <span className="mx-w-mark mx-rise" style={{ ['--d' as string]: '0ms' }}><BrandMark className="w-10 h-10" textClassName="text-[28px]" /></span>
+        <span className="mx-w-mark mx-rise" style={{ ['--d' as string]: '0ms' }}><BrandMark className="w-12 h-12" textClassName="text-[32px]" /></span>
         <span className="mx-ey mx-rise" style={{ ['--d' as string]: '120ms' }}>{ts(merchant.brand.tagline)}</span>
         <h1 className="mx-display mx-rise" style={{ ['--d' as string]: '220ms' }}>{ts(merchant.brand.name)}</h1>
         <p className="mx-lede mx-rise" style={{ ['--d' as string]: '360ms' }}>{tl(merchant.brand.description)}</p>
