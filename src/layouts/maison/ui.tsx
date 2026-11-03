@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import type { Product } from '../../types';
 import { useBackLayer } from '../../backLayer';
 import { Icon, Ph, fmtG } from '../emergent/ui';
-import { hn, t } from '../../i18n';
+import { hn, pur, t } from '../../i18n';
 import { SIZES_GRID } from '../../photoSrcSet';
 
 /** A panel that slides in from the right on desktop and up from the bottom on phones (filters, Add to cart). Back and Escape close it. */
@@ -52,12 +52,23 @@ interface TileProps {
   heartLabel?: string;
 }
 
-/** A product tile: a square photo on a soft ground, the heart at its top left, then the name, the net weight and "Add to cart" as a text link. */
+/** Tilts a tile toward the pointer in 3D (mouse only; CSS reads --rx/--ry). No re-render: it only writes two custom properties. */
+const tilt = {
+  onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+    if (e.pointerType !== 'mouse') return;
+    const el = e.currentTarget, r = el.getBoundingClientRect();
+    el.style.setProperty('--ry', `${(((e.clientX - r.left) / r.width) - 0.5) * 10}deg`);
+    el.style.setProperty('--rx', `${-(((e.clientY - r.top) / r.height) - 0.5) * 10}deg`);
+  },
+  onPointerLeave: (e: React.PointerEvent<HTMLElement>) => { e.currentTarget.style.removeProperty('--rx'); e.currentTarget.style.removeProperty('--ry'); }
+};
+
+/** A product tile, Bulgari style: the photo fills the square and the name, purity, weight and code sit inside it along the foot. */
 export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen, onHeart, onAdd, current, testId = 'product-card', hitTestId, heartLabel }) => {
   const name = hn(prod.title, prod.titleHi);
   const open = (e: React.MouseEvent<HTMLElement>) => onOpen(e.currentTarget.closest('.mx-ptile')?.querySelector('.em-ph') ?? null);
   return (
-    <article className={`mx-ptile${current ? ' current' : ''}`} data-sku={prod.sku} data-testid={testId}>
+    <article className={`mx-ptile${current ? ' current' : ''}`} style={{ ['--i' as string]: index }} data-sku={prod.sku} data-testid={testId} {...tilt}>
       <div className="mx-pframe">
         <button type="button" className="mx-hit" data-testid={hitTestId} aria-label={t('View {name}', { name })} onClick={open}>
           <Ph src={prod.image} tone={index} className="mx-fill" sizes={SIZES_GRID} alt={name} />
@@ -67,16 +78,16 @@ export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen
             <Icon n="heart" size={18} fill={hearted} />
           </button>
         )}
+        <div className="mx-pcap" onClick={open}>
+          <span className="mx-pt">{name}</span>
+          <span className="mx-pw">{pur(prod.purity)} · {fmtG(prod.netWt)}<span className="mx-sku"> · {prod.sku}</span></span>
+        </div>
+        {onAdd && (
+          <button type="button" className="mx-cta" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>
+            {t('Add to cart')}
+          </button>
+        )}
       </div>
-      <div className="mx-pcap" onClick={open}>
-        <span className="mx-pt">{name}</span>
-        <span className="mx-pw">{fmtG(prod.netWt)}</span>
-      </div>
-      {onAdd && (
-        <button type="button" className="mx-cta" data-testid="card-add-to-cart" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>
-          {t('Add to cart')}
-        </button>
-      )}
     </article>
   );
 };

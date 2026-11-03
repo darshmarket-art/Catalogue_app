@@ -147,7 +147,7 @@ export default function App() {
   // Maison's two typefaces load only for stores that use it.
   useEffect(() => {
     if (layout !== 'maison' || document.getElementById('maison-fonts')) return;
-    const l = Object.assign(document.createElement('link'), { id: 'maison-fonts', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Jost:wght@300;400;500&display=swap' });
+    const l = Object.assign(document.createElement('link'), { id: 'maison-fonts', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Jost:wght@400;500;600&display=swap' });
     document.head.appendChild(l);
   }, [layout]);
   // Switching between the four tabs fades; going deeper or back slides.
