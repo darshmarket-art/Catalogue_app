@@ -68,7 +68,7 @@ export const OwnerHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNav
           )}
         </div>
         <div className="r">
-          {aside}
+          {!isTab && aside}
           {isTab && (
             <button type="button" className="mxo-link" data-testid="admin-menu" aria-label={t('Store settings')} onClick={() => onNavigate('admin-store')}>
               <span className="mxo-menu-l">{t('Store')}</span>
@@ -92,7 +92,7 @@ export const OwnerNav: React.FC<KitProps<'BottomNav'>> = ({ currentScreen, onNav
     { screen: 'admin-buyers', label: 'Buyers', active: currentScreen === 'admin-buyers', badge: adminBadges?.buyers }
   ];
   return (
-    <div className="em-tabs mxo-tabs">
+    <div className={`em-tabs mxo-tabs${TAB_SCREENS.includes(currentScreen) ? '' : ' sub'}`}>
       <button type="button" className="mxo-brand" aria-label={`${merchant.brand.name} home`} onClick={() => onNavigate('admin-hub')}>
         <BrandMark className="mx-logo" textClassName="text-[18px]" />
         <span>{ts(merchant.brand.name)}</span>
