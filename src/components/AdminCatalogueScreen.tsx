@@ -332,7 +332,8 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
       // A rename or delete moves or drops the tag's cover on the server.
       api.getTagCovers().then((map) => map && setTagCovers(map)).catch(() => {});
     }, 'Could not save the tag.');
-  const openCover = (t: string | null) => { setCoverFor(t); setCoverPhotos([]); setEditing(null); setDeleting(null); setProblem(null); };
+  // the current cover starts in the picker (signed link as ref, like an edited collection), so AI Enhance can redo it
+  const openCover = (t: string | null) => { setCoverFor(t); setCoverPhotos(t && covers[t] ? [{ ref: covers[t], url: covers[t] }] : []); setEditing(null); setDeleting(null); setProblem(null); };
   const saveCover = (t: string) =>
     act(async () => {
       const url = await api.setTagCover(t, coverPhotos[0].ref);
@@ -383,7 +384,7 @@ const TagManager: React.FC<{ categories: Category[]; onChanged: () => void }> = 
               )}
               {coverFor === t && (
                 <div style={{ marginTop: 8 }} data-testid="tag-cover-picker">
-                  <PhotoPicker photos={coverPhotos} onChange={setCoverPhotos} max={1} onBusyChange={setUploading} kind="collection" />
+                  <PhotoPicker photos={coverPhotos} onChange={setCoverPhotos} max={1} onBusyChange={setUploading} kind="collection" aiRender enhance tag={t} />
                   <div className="em-row" style={{ gap: 8, marginTop: 8 }}>
                     <button type="button" className="em-btn sm" data-testid="tag-cover-save" disabled={busy || uploading || !coverPhotos[0]?.ref} onClick={() => void saveCover(t)}>{uploading ? 'Photo is uploading…' : 'Save photo'}</button>
                     <button type="button" className="em-link" onClick={() => openCover(null)}>Cancel</button>
