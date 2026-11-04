@@ -796,12 +796,14 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-rail { display: flex; flex-direction: column; gap: 8px; padding: 20px 16px; position: sticky; top: 0; align-self: start; }
     & .mx-rail button { position: relative; flex: none; width: 72px; min-width: 72px; height: 72px; min-height: 72px; padding: 0; border: 1px solid transparent; background: var(--mx-surface); cursor: pointer; overflow: hidden; }
     & .mx-rail button.on { border-color: var(--mx-ink); }
-    & .mx-gal { height: calc(100dvh - var(--header-h) - var(--sat) - 49px); }
+    /* photos stacked down the left, one screen tall each; the page scroll moves them while the details stay beside them (no inner scroller) */
+    & .mx-gal { flex-direction: column; gap: 4px; overflow: visible; scroll-snap-type: none; }
+    & .mx-gal > button { flex: none; height: calc(100dvh - var(--header-h) - var(--sat) - 49px); }
     & .mx-gal > button { aspect-ratio: auto; }
     /* the whole piece is shown, never cropped by the tall viewport-height frame */
     & .mx-gal > button .em-ph img { object-fit: contain; }
     & .mx-dots { display: none; }
-    & .mx-pd-info { position: sticky; top: 0; max-height: calc(100dvh - var(--header-h) - var(--sat) - 49px); overflow-y: auto; scrollbar-width: none; padding: 48px 48px 180px; border-left: 1px solid var(--mx-hair); }
+    & .mx-pd-info { position: sticky; top: 0; padding: 48px 48px 180px; border-left: 1px solid var(--mx-hair); }
     & .mx-pd-title { font-size: 2.5rem; }
     & .mx-pd-bar { position: fixed; right: 0; bottom: 0; width: 460px; display: flex; flex-direction: column; padding: 18px 48px 28px; border-left: 1px solid var(--mx-hair); }
     & .mx-pd-bar .mx-btn > span { display: inline; }

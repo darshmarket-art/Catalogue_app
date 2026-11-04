@@ -33,7 +33,7 @@ export default defineConfig({
     deviceScaleFactor: 1,
     // A screen that cannot be reached must fail fast so it is recorded as unreachable, not eat the whole test timeout.
     actionTimeout: 10_000,
-    navigationTimeout: 30_000
+    navigationTimeout: 60_000 // the first page of a run waits for Vite to compile the app cold
   },
   webServer: {
     command: 'npx tsx tests/e2e/server.ts',

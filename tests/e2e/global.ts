@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { request } from '@playwright/test';
+import { chromium, request } from '@playwright/test';
 import { BASE, MASTER_KEY, OWNER, STATIC_CODE, STORE_ID, outDir, type Sessions } from './env';
 
 const BUYER_PHONE = '919876501234';
@@ -18,4 +18,14 @@ export default async function globalSetup() {
   await api.dispose();
   process.env.PW_SESSIONS = JSON.stringify({ buyer: { token: buyer.token, phone: BUYER_PHONE }, owner: { token: owner.sessionToken } } satisfies Sessions);
   fs.rmSync(path.join(outDir(), '.parts'), { recursive: true, force: true });
+  // Warm up: one page load makes Vite compile the app now, so the first test of the run does not spend its navigation timeout on a cold compile.
+  try {
+    const b = await chromium.launch({ channel: process.env.PW_CHANNEL || undefined });
+    const p = await b.newPage();
+    await p.goto(`${BASE()}/?store=${STORE_ID}`, { timeout: 240_000 });
+    await p.waitForLoadState('networkidle', { timeout: 120_000 }).catch(() => {});
+    await b.close();
+  } catch (err) {
+    console.warn('e2e warm-up skipped:', err instanceof Error ? err.message : err);
+  }
 }

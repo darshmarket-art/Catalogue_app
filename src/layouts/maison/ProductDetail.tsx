@@ -45,13 +45,28 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
   const noteEnquiry = () => {
     if (!isAdmin) void api.recordEnquiry({ kind: 'design', sku: product.sku, title: product.title, purity: product.purity });
   };
-  const goTo = (i: number) => scroller.current?.scrollTo({ left: i * scroller.current.clientWidth, behavior: 'smooth' });
+  // Desktop stacks the photos down the left and the page scrolls them (details stay put beside them); phones swipe them sideways.
+  const goTo = (i: number) => {
+    const g = scroller.current, page = pageRef.current;
+    if (!g) return;
+    if (!desk || !page) return void g.scrollTo({ left: i * g.clientWidth, behavior: 'smooth' });
+    const el = g.children[i] as HTMLElement | undefined;
+    if (el) page.scrollTo({ top: page.scrollTop + el.getBoundingClientRect().top - page.getBoundingClientRect().top, behavior: 'smooth' });
+  };
+  const trackStack = (e: React.UIEvent<HTMLDivElement>) => {
+    const g = scroller.current;
+    if (!desk || !g || g.children.length < 2) return;
+    const top = e.currentTarget.getBoundingClientRect().top;
+    let best = 0;
+    Array.from(g.children).forEach((c, i) => { if (c.getBoundingClientRect().top - top <= c.clientHeight / 2) best = i; });
+    setSlide(best);
+  };
   const guarantee = tl(merchant.orders.guaranteeLine) || t(sector.copy.orders.guaranteeFallback);
 
   return (
     <div className="mx-pd" role="dialog" aria-modal="true" aria-label={name}>
       {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={name} onClose={() => setZoomFrom(null)} />}
-      <div ref={pageRef} className="mx-pd-scroll em-pd-swipe">
+      <div ref={pageRef} className="mx-pd-scroll em-pd-swipe" onScroll={trackStack}>
         <nav className="mx-crumbs" aria-label="Breadcrumb">
           <button ref={closeRef} type="button" className="mx-back" aria-label={t('Close')} onClick={onClose}>
             <Icon n="back" size={16} />
@@ -75,7 +90,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
               </div>
             )}
             <div className="mx-stage">
-              <div ref={scroller} data-testid="product-gallery" className="mx-gal" onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
+              <div ref={scroller} data-testid="product-gallery" className="mx-gal" onScroll={(e) => !desk && setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
                 {slides.map((src, i) => (
                   <button key={`${i}-${src}`} type="button" onClick={() => src && setZoomFrom(i)} aria-label={t('Zoom photo {n} of {name}', { n: i + 1, name })}>
                     <Ph src={src} tone={i} sizes={SIZES_FULL} priority={i === 0} alt={slides.length > 1 ? `${name}, ${t('Photo {n}', { n: i + 1 })}` : name} style={i === 0 ? ({ viewTransitionName: 'product-photo' } as React.CSSProperties) : undefined} />
