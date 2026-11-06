@@ -124,3 +124,6 @@ export async function renderStudio(image: Buffer | null, mimeType: string, promp
   if (!part) throw new Error(j?.promptFeedback?.blockReason || j?.candidates?.[0]?.finishReason ? 'the AI declined this photo' : 'the AI returned no image');
   return { data: Buffer.from(part.inlineData.data, 'base64'), mimeType: part.inlineData.mimeType || 'image/png' };
 }
+
+/** Longest side kept when a render is stored: 4096 for 4K renders, else the normal photo limit (null = the default). Without this a 4K render would be shrunk back to 2400. */
+export const renderMaxSide = (): number | null => ((process.env.AI_RENDER_IMAGE_SIZE ?? '2K').toUpperCase() === '4K' ? 4096 : null);
