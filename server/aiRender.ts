@@ -12,12 +12,15 @@ export const KEEP_IDENTICAL =
   'the same engraving, filigree, openwork and cut-outs, the same metal colour. Do not add, remove, simplify, straighten or restyle any part of the piece. ' +
   'Do not add other jewellery, text or watermark, and ignore any watermark or text on the reference. Change only the presentation.';
 
-/** The default CAD-style prompt. */
+/** The default CAD-style prompt: a warm champagne studio shot, like a high-end jeweller's product photograph. */
 export const RENDER_PROMPT =
-  'The attached photo is the exact reference of one jewellery design. Re-create it as a detailed, precise CAD-style studio render of THIS piece: ' +
+  'The attached photo is the exact reference of one jewellery design. Re-create it as a precise, high-end CAD-style studio render of THIS piece: ' +
   'the same viewpoint, framing, size and position in the frame. ' + KEEP_IDENTICAL + ' Do not add props or hands. ' +
-  'Presentation: a clean seamless light-grey studio backdrop, soft diffused luxury studio lighting, crisp polished metal with ' +
-  'sharp clean edges, clear sparkling stones, fine surface detail in sharp focus, and a subtle soft shadow beneath.';
+  'Presentation: the piece resting on a smooth, softly glossy warm champagne-cream surface that fades into a seamless backdrop of the same colour, ' +
+  'lit by one large soft key light from the upper left with warm, luminous, diffused studio light and a gentle gradient across the backdrop. ' +
+  'The polished gold has deep, rich, glossy reflections and a warm glow; the engraved and beaded detail is razor sharp with a few small natural specular highlights ' +
+  'on the raised edges, and the inside of the metal catches warm light. A soft, long, natural shadow and a faint reflection fall on the surface beside and beneath the piece. ' +
+  'Shallow depth of field, ultra-realistic, luxury jewellery catalogue photograph.';
 
 const PLACE_TEXT: Record<Placement, string> = {
   finger: 'worn on a finger of a hand resting naturally, the hand and skin in deep shadow',

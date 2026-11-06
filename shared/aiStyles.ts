@@ -3,7 +3,7 @@ export const STYLE_IDS = ['cad', 'silk', 'studio-dark', 'editorial', 'giftbox', 
 export type StyleId = (typeof STYLE_IDS)[number];
 
 export const STYLE_INFO: Record<StyleId, { name: string; blurb: string }> = {
-  cad: { name: 'CAD studio', blurb: 'Clean light-grey studio render, crisp metal and stones.' },
+  cad: { name: 'CAD studio', blurb: 'Warm champagne studio render, glossy gold, crisp detail.' },
   silk: { name: 'Silk cloth', blurb: 'Laid on folded silk with soft side light.' },
   'studio-dark': { name: 'Dark studio', blurb: 'Black surface, spotlight, glossy reflection.' },
   editorial: { name: 'Editorial', blurb: 'Stone, marble or velvet still life with one prop.' },
