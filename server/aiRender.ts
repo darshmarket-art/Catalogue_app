@@ -20,7 +20,10 @@ export const RENDER_PROMPT =
   'lit by one large soft key light from the upper left with warm, luminous, diffused studio light and a gentle gradient across the backdrop. ' +
   'The polished gold has deep, rich, glossy reflections and a warm glow; the engraved and beaded detail is razor sharp with a few small natural specular highlights ' +
   'on the raised edges, and the inside of the metal catches warm light. A soft, long, natural shadow and a faint reflection fall on the surface beside and beneath the piece. ' +
-  'Shallow depth of field, ultra-realistic, luxury jewellery catalogue photograph.';
+  'Maximum sharpness and fine detail, as if shot on a macro lens at f/11 with focus-stacking: the whole piece is in sharp focus from edge to edge, with no blur, haze, softness, ' +
+  'smoothing or painterly look. Every stone is crisp and individually defined, with clean sharp facets, edges and table, clear sparkle, and a visible setting with its prongs, bezel or beads; ' +
+  'every bead, groove, line of engraving, filigree and cut-out is clearly resolved and holds up when zoomed in, with natural micro-texture on the metal and no plastic or waxy surface. ' +
+  'Only the surface and backdrop beyond the piece fall softly out of focus. Ultra-realistic, luxury jewellery catalogue photograph, high resolution.';
 
 const PLACE_TEXT: Record<Placement, string> = {
   finger: 'worn on a finger of a hand resting naturally, the hand and skin in deep shadow',
