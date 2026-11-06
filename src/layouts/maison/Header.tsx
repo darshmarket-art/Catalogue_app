@@ -260,7 +260,7 @@ const SearchLayer: React.FC<{ open: boolean; tags: string[]; onClose: () => void
       </form>
       {tags.length > 0 && (
         <div className="mx-srch-sug">
-          <h2 className="mx-srch-h">{t('Shop by')}</h2>
+          <h2 className="mx-srch-h">{t('Shop by Category')}</h2>
           <ul>{tags.map((tag) => <li key={tag}><button type="button" onClick={() => onTag(tag)}>{ts(tag)}</button></li>)}</ul>
         </div>
       )}

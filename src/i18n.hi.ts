@@ -162,7 +162,7 @@ export const HI: Record<string, string> = {
   Sort: 'क्रम',
   Menu: 'मेन्यू',
   Search: 'खोजें',
-  'Shop by': 'टाइप के हिसाब से देखें',
+  'Shop by Category': 'श्रेणी के हिसाब से देखें',
   'Shop now': 'अभी देखें',
   'New in': 'नए डिज़ाइन',
   'All {name}': 'सभी {name}',

@@ -188,30 +188,30 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
       {statement && (
         <section className="mx-state" data-testid="mx-statement">
-          <h2>{ts(merchant.brand.name)}</h2>
-          <p>{statement}</p>
+          <Reveal><h2>{ts(merchant.brand.name)}</h2></Reveal>
+          <Reveal delay={120}><p>{statement}</p></Reveal>
         </section>
       )}
 
       {!desk && (
         <section className="mx-shop" data-testid="mx-shop-by">
-          <h2 className="mx-shop-h">{t('Shop by')}</h2>
+          <Reveal><h2 className="mx-shop-h">{t('Shop by Category')}</h2></Reveal>
           {!loading && groups.length === 0 && <p className="mx-note">{t('No collections have been added yet.')}</p>}
           <div className="mx-cards">
             {groups.map(([tag, cs], i) => (
               <Card key={tag} testId="mx-tag-card" name={ts(tag)} sub={tn(cs.length, '{n} collection', '{n} collections')} src={tagCover(covers[tag], cs, products)} tone={i} onOpen={(ph) => openTagPage(tag, ph)} />
             ))}
           </div>
-          <button type="button" className="mx-shop-all" data-testid="mx-all-designs" onClick={allDesigns}>{t('View all designs')}</button>
+          <Reveal><button type="button" className="mx-shop-all" data-testid="mx-all-designs" onClick={allDesigns}>{t('View all designs')}</button></Reveal>
         </section>
       )}
 
       {fresh.length > 0 && (
         <section className="mx-sec" data-testid="mx-new-in">
-          <div className="mx-head"><h2 className="mx-st">{t('New in')}</h2></div>
-          <div className="mx-strip">
+          <Reveal className="mx-head"><h2 className="mx-st">{t('New in')}</h2></Reveal>
+          <Reveal delay={120}><div className="mx-strip">
             {fresh.map((p, i) => <Tile key={p.id} prod={p} index={i} testId="new-card" onOpen={() => onOpenDesign?.(p.sku)} />)}
-          </div>
+          </div></Reveal>
         </section>
       )}
 
@@ -251,10 +251,10 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
       {viewed.length > 0 && (
         <section className="mx-sec" data-testid="recently-viewed">
-          <div className="mx-head"><h2 className="mx-st">{t('Recently viewed')}</h2></div>
-          <div className="mx-strip">
+          <Reveal className="mx-head"><h2 className="mx-st">{t('Recently viewed')}</h2></Reveal>
+          <Reveal delay={120}><div className="mx-strip">
             {viewed.map((p, i) => <Tile key={p.id} prod={p} index={i} testId="recent-card" onOpen={() => onOpenDesign?.(p.sku)} />)}
-          </div>
+          </div></Reveal>
         </section>
       )}
 
