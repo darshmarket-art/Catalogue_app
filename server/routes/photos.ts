@@ -34,11 +34,13 @@ const MAX_SIDE = 2400;
  * its hidden camera and location details removed. If that fails or does not make the file smaller, the original is kept as it was sent.
  * Returns the buffer and the actual output format (sharp may not preserve the input format).
  */
-export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/png' | 'image/webp'): Promise<{ buffer: Buffer; type: 'image/jpeg' | 'image/png' | 'image/webp' }> {
+export async function optimisePhoto(data: Buffer, type: 'image/jpeg' | 'image/png' | 'image/webp', opts: { sharpen?: boolean } = {}): Promise<{ buffer: Buffer; type: 'image/jpeg' | 'image/png' | 'image/webp' }> {
   try {
-    const img = sharp(data, { failOn: 'none' }).rotate().resize({ width: MAX_SIDE, height: MAX_SIDE, fit: 'inside', withoutEnlargement: true });
+    let img = sharp(data, { failOn: 'none' }).rotate().resize({ width: MAX_SIDE, height: MAX_SIDE, fit: 'inside', withoutEnlargement: true });
+    // AI renders get a light sharpen after resizing, which firms up the edges of small stones (flat areas are left alone).
+    if (opts.sharpen) img = img.sharpen({ sigma: 0.9, m1: 0.6, m2: 2.2 });
     const out = await (type === 'image/jpeg' ? img.jpeg({ quality: 85, mozjpeg: true }) : type === 'image/webp' ? img.webp({ quality: 85 }) : img.png({ compressionLevel: 9 })).toBuffer();
-    if (out.length >= data.length) return { buffer: data, type };
+    if (!opts.sharpen && out.length >= data.length) return { buffer: data, type };
     // Detect the actual output format in case sharp changed it
     const detected = sniff(out) ?? type;
     return { buffer: out, type: detected };
@@ -167,7 +169,7 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
           : await renderStudio(original!.data, original!.contentType, STYLES[style](placement));
         const type = sniff(out.data);
         if (!type) throw new Error('the AI returned an unreadable image');
-        rendered = await optimisePhoto(out.data, type);
+        rendered = await optimisePhoto(out.data, type, { sharpen: true });
       } catch (err) {
         const why = err instanceof Error && err.name !== 'TimeoutError' ? err.message : 'the AI did not answer in time';
         logger.warn('AI render failed; keeping the original', { error: err instanceof Error ? err.message : String(err) });

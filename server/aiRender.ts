@@ -21,7 +21,7 @@ export const RENDER_PROMPT =
   'The polished gold has deep, rich, glossy reflections and a warm glow; the engraved and beaded detail is razor sharp with a few small natural specular highlights ' +
   'on the raised edges, and the inside of the metal catches warm light. A soft, long, natural shadow and a faint reflection fall on the surface beside and beneath the piece. ' +
   'Maximum sharpness and fine detail, as if shot on a macro lens at f/11 with focus-stacking: the whole piece is in sharp focus from edge to edge, with no blur, haze, softness, ' +
-  'smoothing or painterly look. Every stone is crisp and individually defined, with clean sharp facets, edges and table, clear sparkle, and a visible setting with its prongs, bezel or beads; ' +
+  'smoothing or painterly look. Every stone is crisp and individually defined: even the smallest pave and channel-set diamonds are separate round brilliants, each with a bright, clearly visible facet pattern, a thin dark gap and a fine metal bead or rim around it, and a small sharp white sparkle, never a soft white blur or a smooth strip; larger stones show clean sharp facets, edges and table, and a visible setting with its prongs, bezel or beads; ' +
   'every bead, groove, line of engraving, filigree and cut-out is clearly resolved and holds up when zoomed in, with natural micro-texture on the metal and no plastic or waxy surface. ' +
   'Only the surface and backdrop beyond the piece fall softly out of focus. Ultra-realistic, luxury jewellery catalogue photograph, high resolution.';
 
