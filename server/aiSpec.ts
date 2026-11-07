@@ -36,22 +36,41 @@ const SCHEMA = {
   required: ['pieceType', 'metal', 'features', 'groups']
 };
 
+/**
+ * Which model and place to ask. AI_SPEC_MODEL / AI_SPEC_LOCATION first; a 404 (that model is not offered to this project or in that place) moves on to the
+ * next candidate, and the one that answers is remembered until the server restarts.
+ */
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-001', 'gemini-2.5-pro'];
+let working: { model: string; loc: string } | null = null;
+export const specCandidates = (env: NodeJS.ProcessEnv = process.env): Array<{ model: string; loc: string }> => {
+  const locs = [...new Set([env.AI_SPEC_LOCATION || env.AI_RENDER_LOCATION || 'global', 'global', 'us-central1'])];
+  const models = [...new Set([env.AI_SPEC_MODEL, ...MODELS].filter(Boolean) as string[])];
+  const all = models.flatMap((model) => locs.map((loc) => ({ model, loc })));
+  return working ? [working, ...all.filter((c) => c.model !== working!.model || c.loc !== working!.loc)] : all;
+};
+export const forgetWorkingModel = () => { working = null; };
+
 /** Sends the photo and returns the cleaned stone spec. Throws an Error with a short, safe message on any failure. */
 export async function analyseStones(image: Buffer, mimeType: string, hint: Parameters<typeof specPrompt>[0] = {}): Promise<StoneSpec> {
-  const model = process.env.AI_SPEC_MODEL || 'gemini-2.5-flash';
-  const loc = process.env.AI_SPEC_LOCATION || process.env.AI_RENDER_LOCATION || 'global';
-  const host = loc === 'global' ? 'aiplatform.googleapis.com' : `${loc}-aiplatform.googleapis.com`;
-  const res = await fetch(`https://${host}/v1/projects/${await projectId()}/locations/${loc}/publishers/google/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image.toString('base64') } }, { text: specPrompt(hint) }] }],
-      generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: SCHEMA }
-    }),
-    signal: AbortSignal.timeout(60_000)
+  const project = await projectId();
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image.toString('base64') } }, { text: specPrompt(hint) }] }],
+    generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: SCHEMA }
   });
+  let res: Response | null = null;
+  let tried = '';
+  for (const c of specCandidates()) {
+    const host = c.loc === 'global' ? 'aiplatform.googleapis.com' : `${c.loc}-aiplatform.googleapis.com`;
+    res = await fetch(`https://${host}/v1/projects/${project}/locations/${c.loc}/publishers/google/models/${c.model}:generateContent`, {
+      method: 'POST', headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(60_000)
+    });
+    tried = `${c.model}, ${c.loc}`;
+    if (res.status !== 404) { if (res.ok) working = c; break; }
+  }
+  if (!res) throw new Error('no model to ask');
   if (res.status === 401 || res.status === 403) throw new Error('the server is not allowed to use Vertex AI (grant roles/aiplatform.user)');
-  if (!res.ok) throw new Error(`Google returned ${res.status}`);
+  if (res.status === 404) throw new Error('no Gemini model is available to this project (set AI_SPEC_MODEL to one that is)');
+  if (!res.ok) throw new Error(`Google returned ${res.status} for ${tried}`);
   const j: any = await res.json().catch(() => ({}));
   const raw = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? '').join('') ?? '';
   try {
