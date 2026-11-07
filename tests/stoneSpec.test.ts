@@ -80,3 +80,13 @@ describe('POST /api/admin/photos/spec', () => {
     expect((await request(app).post('/api/admin/photos/spec').set(auth).send({ ref: 'media:' + 'a'.repeat(32) + '.png' })).status).toBe(503);
   });
 });
+
+import { diamondGrams } from '../shared/stoneSpec';
+describe('diamond weight in grams', () => {
+  it('is the middle of the carat range at 0.2 g a carat', () => {
+    const g = { name: 'P', setting: '', shape: 'Round', countMin: 50, countMax: 60, mmMin: 1.2, mmMax: 1.4 };
+    const t = totalsOf([g]);
+    expect(diamondGrams([g])).toBeCloseTo(((t.ctMin + t.ctMax) / 2) * 0.2, 8);
+    expect(diamondGrams([])).toBe(0);
+  });
+});

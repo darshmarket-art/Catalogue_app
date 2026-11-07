@@ -1,4 +1,4 @@
-import { countText, ctText, groupCt, mmText, totalsOf, type StoneSpec } from '../shared/stoneSpec';
+import { countText, ctText, diamondGrams, groupCt, mmText, totalsOf, type StoneSpec } from '../shared/stoneSpec';
 
 /**
  * The design detail sheet: the store's enhanced photo beside the design's details, with the stones table under it. Drawn with the canvas so every
@@ -20,7 +20,7 @@ export interface SheetInput {
 }
 
 export const SHEET_SIZE = 2000;
-const DISCLAIMER = 'Stone counts, sizes and carat weights are approximate and estimated from the photograph. The certificate or invoice of the piece governs.';
+const DISCLAIMER = 'Stone counts, sizes, carat weights and any net weight marked ≈ are approximate and estimated from the photograph. The certificate or invoice of the piece governs.';
 
 interface Theme { ground: string; surface: string; ink: string; muted: string; hair: string; accent: string; serif: string; sans: string }
 
@@ -100,12 +100,20 @@ export async function drawSheet(input: SheetInput): Promise<HTMLCanvasElement> {
   title.forEach((l, i) => ctx.fillText(l, rx, 330 + i * 88));
 
   const g = (n: number) => `${n.toFixed(3)} g`;
+  // Net weight is gross less the stones. The owner's own stone weight, when entered, is exact. Otherwise it comes from the diamonds read off the photo
+  // (carats x 0.2 g), and is shown as approximate with the carats beside it.
+  const owner = input.stoneWt > 0;
+  const est = !owner && input.spec.groups.length > 0 ? Math.min(diamondGrams(input.spec.groups), input.grossWt) : 0;
+  const tc = totalsOf(input.spec.groups);
+  const weights: Array<[string, string]> = owner
+    ? [['Gross weight', g(input.grossWt)], ['Stone weight', g(input.stoneWt)], ['Net weight', g(input.netWt)]]
+    : est > 0
+      ? [['Gross weight', g(input.grossWt)], ['Diamond weight', `≈ ${ctText(tc.ctMin, tc.ctMax)} ct · ${g(est)}`], ['Net weight', `≈ ${g(Math.max(0, input.grossWt - est))}`]]
+      : [['Gross weight', g(input.grossWt)], ['Net weight', g(input.netWt)]];
   const rows: Array<[string, string]> = [
     ...(input.sku ? [['SKU', input.sku] as [string, string]] : []),
     ['Purity', input.purity],
-    ['Gross weight', g(input.grossWt)],
-    ...(input.stoneWt > 0 ? [['Stone weight', g(input.stoneWt)] as [string, string]] : []),
-    ['Net weight', g(input.netWt)],
+    ...weights,
     ...(input.huid ? [['HUID', input.huid] as [string, string]] : [])
   ];
   const step = 68, top = py + ph - rows.length * step;

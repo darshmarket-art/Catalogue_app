@@ -30,6 +30,14 @@ export interface StoneTotals { countMin: number; countMax: number; ctMin: number
 
 export const groupCt = (g: Pick<StoneGroup, 'countMin' | 'countMax' | 'mmMin' | 'mmMax'>) => ({ min: g.countMin * caratOf(g.mmMin), max: g.countMax * caratOf(g.mmMax) });
 
+/** One carat is 0.2 g. */
+export const GRAMS_PER_CARAT = 0.2;
+/** The estimate's weight in grams: the middle of the carat range. */
+export const diamondGrams = (groups: StoneGroup[]) => {
+  const t = totalsOf(groups);
+  return ((t.ctMin + t.ctMax) / 2) * GRAMS_PER_CARAT;
+};
+
 export function totalsOf(groups: StoneGroup[]): StoneTotals {
   return groups.reduce<StoneTotals>((t, g) => {
     const c = groupCt(g);

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { errorText } from '../bugReport';
 import { drawSheet, sheetFile, type SheetInput } from '../detailSheet';
-import { cleanSpec, groupCt, totalsOf, ctText, countText, type StoneGroup, type StoneSpec } from '../../shared/stoneSpec';
+import { cleanSpec, diamondGrams, groupCt, totalsOf, ctText, countText, type StoneGroup, type StoneSpec } from '../../shared/stoneSpec';
 import { inRoot, useSheet } from './sheetKit';
 
 type Facts = Omit<SheetInput, 'photo' | 'spec'>;
@@ -14,6 +14,8 @@ interface Props {
   facts: Facts;
   /** Called with the finished sheet as a PNG; the form uploads it as a photo of the design. */
   onUse: (file: File) => Promise<void> | void;
+  /** Sets the design's stone weight (grams) in the form, which sets its net weight in the catalogue and in orders. Off unless the owner ticks the box. */
+  onApplyStoneWt?: (grams: number) => void;
   onClose: () => void;
 }
 
@@ -23,7 +25,8 @@ const blank = (): StoneGroup => ({ name: 'Stones', setting: 'Pavé', shape: 'Rou
  * "Detail sheet": the AI reads the stones in the photo, the owner corrects the counts and sizes, and the sheet (photo, details, stone table) is made
  * to add as a photo of the design. Everything the AI says is an estimate and is labelled so on the sheet.
  */
-export const DetailSheet: React.FC<Props> = ({ photoRef, photoUrl, facts, onUse, onClose }) => {
+export const DetailSheet: React.FC<Props> = ({ photoRef, photoUrl, facts, onUse, onApplyStoneWt, onClose }) => {
+  const [apply, setApply] = useState(false);
   const vars = useSheet(onClose);
   const [spec, setSpec] = useState<StoneSpec | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +72,7 @@ export const DetailSheet: React.FC<Props> = ({ photoRef, photoUrl, facts, onUse,
       const clean = cleanSpec(spec); // bounded, min <= max
       const c = await drawSheet({ ...facts, photo: photo.current!, spec: clean });
       await onUse(await sheetFile(c, 'detail-sheet'));
+      if (apply && onApplyStoneWt && clean.groups.length) onApplyStoneWt(Math.round(Math.min(diamondGrams(clean.groups), facts.grossWt - 0.001) * 1000) / 1000);
     } catch (e) {
       setError(errorText(e, 'DetailSheet use', 'The sheet could not be added.'));
       setBusy(false);
@@ -118,6 +122,19 @@ export const DetailSheet: React.FC<Props> = ({ photoRef, photoUrl, facts, onUse,
               <button type="button" className="lnk" disabled={spec.groups.length >= 6} onClick={() => setSpec({ ...spec, groups: [...spec.groups, blank()] })}>+ Add stones</button>
               {tot && tot.countMax > 0 && <b data-testid="sheet-total">{countText(tot.countMin, tot.countMax)} stones · ≈ {ctText(tot.ctMin, tot.ctMax)} ct</b>}
             </div>
+            {tot && tot.countMax > 0 && facts.stoneWt <= 0 && (
+              <>
+                <p className="hint" style={{ margin: 0 }} data-testid="sheet-net">
+                  Diamond weight ≈ {diamondGrams(spec.groups).toFixed(3)} g, so net weight on the sheet ≈ {Math.max(0, facts.grossWt - diamondGrams(spec.groups)).toFixed(3)} g (gross {facts.grossWt.toFixed(3)} g).
+                </p>
+                {onApplyStoneWt && (
+                  <label className="hint" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <input type="checkbox" checked={apply} onChange={(e) => setApply(e.target.checked)} data-testid="sheet-apply-wt" />
+                    <span>Also save this diamond weight as the design's stone weight. This changes its net weight in the catalogue and in orders. Leave it off to change only the sheet.</span>
+                  </label>
+                )}
+              </>
+            )}
             <div ref={preview} aria-label="Sheet preview" style={{ border: '1px solid var(--em-line, #dedbd6)' }} />
           </>
         )}

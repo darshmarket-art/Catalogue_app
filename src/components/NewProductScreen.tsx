@@ -244,6 +244,7 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           photoUrl={photos[0].url}
           facts={{ brand: merchant.brand.name, title: title.trim(), collection: category, sku: sku.trim() || editing?.sku, purity, grossWt: gross, stoneWt: stone, netWt: net ?? gross, huid: huid.trim() || undefined }}
           onClose={() => setSheetOpen(false)}
+          onApplyStoneWt={(g) => setStoneWt(String(g))}
           onUse={async (file) => {
             const base = sheetRef ? photos.filter((p) => p.ref !== sheetRef) : photos;
             if (base.length >= maxPhotos) { setSheetOpen(false); setSheetMsg(`A design holds up to ${maxPhotos} photos. Remove one first, then make the sheet.`); return; }
