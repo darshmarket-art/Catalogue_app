@@ -9,36 +9,6 @@ import { t } from '../../../i18n';
 const delta = (cur: number, prev: number) => (prev === 0 ? (cur > 0 ? 'new' : '') : `${cur >= prev ? '+' : ''}${Math.round(((cur - prev) / prev) * 100)}%`);
 const duration = (s: number) => (s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`);
 
-const useInsights = () => {
-  const [d, setD] = useState<Insights | null>(null);
-  useEffect(() => { api.getInsights().then(setD).catch(() => {}); }, []);
-  return d;
-};
-
-const Charts: React.FC<{ d: Insights; inquiries?: number }> = ({ d, inquiries }) => {
-  const labels = d.weeks.map((w) => w.label);
-  const k = d.kpis;
-  return (
-    <>
-      <div className="mxo-two">
-        <Spark label={t('Views')} value={k.views7.toLocaleString('en-IN')} data={d.weeks.map((w) => w.views)} labels={labels} testId="chart-views" />
-        <Spark label={t('Orders')} value={k.orders7} data={d.weeks.map((w) => w.orders)} labels={labels} accent testId="chart-orders" />
-      </div>
-      <SectionTitle>{t('Buyers')}</SectionTitle>
-      <Funnel steps={[{ label: t('Active'), value: k.activeBuyers7 }, { label: t('Shortlisted'), value: k.shortlisters }, ...(inquiries !== undefined ? [{ label: t('Enquiries'), value: inquiries }] : []), { label: t('Orders'), value: k.orders7 }]} />
-      <SectionTitle>{t('Top designs')}</SectionTitle>
-      <HBars rows={d.topDesigns.slice(0, 5).map((p) => ({ label: p.name, value: p.views }))} />
-    </>
-  );
-};
-
-/** Today: two sparklines, the buyer funnel and the top designs. Renders nothing if Insights is not available on the plan. */
-export const TodayCharts: React.FC<{ analytics: AnalyticsData }> = ({ analytics }) => {
-  const d = useInsights();
-  if (!d) return null;
-  return <section data-testid="today-charts" className="mxo-charts"><SectionTitle>{t('Last 8 weeks')}</SectionTitle><Charts d={d} inquiries={analytics.inquiries} /></section>;
-};
-
 /** The whole Insights screen: big numbers, trends, funnel, rankings. */
 export const InsightsPanel: React.FC<{ d: Insights }> = ({ d }) => {
   const k = d.kpis;

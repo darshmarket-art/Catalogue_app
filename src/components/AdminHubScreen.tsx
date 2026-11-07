@@ -1,5 +1,4 @@
-import { LazyPanel } from './LazyPanel';
-import React, { lazy } from 'react';
+import React from 'react';
 import { ActiveScreen, AdminSummary, AnalyticsData, About } from '../types';
 import { trialDaysLeft } from '../../shared/trial';
 import { Icon, Title } from '../layouts/emergent/ui';
@@ -21,8 +20,6 @@ interface AdminHubScreenProps {
 }
 
 // Maison stores get charts on Today; the chunk loads only for them.
-const TodayCharts = lazy(() => import('../layouts/maison/owner/panels').then((m) => ({ default: m.TodayCharts })));
-const maison = merchant.layout === 'maison';
 const of = (used: number, limit: number | null) => (limit === null ? `${used} · unlimited` : `${used} of ${limit}`);
 const pct = (used: number, limit: number | null) => (limit ? Math.min(100, Math.round((used / limit) * 100)) : 0);
 const greeting = () => {
@@ -222,8 +219,6 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
             ))}
           </div>
         </div>
-
-        {maison && flags.insights && <LazyPanel><TodayCharts analytics={analytics} /></LazyPanel>}
 
         {doneCount < checklist.length && (
           <div className="em-card" data-testid="setup-checklist">
