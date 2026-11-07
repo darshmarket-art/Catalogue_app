@@ -64,6 +64,7 @@ export async function analyseStones(image: Buffer, mimeType: string, hint: Param
   const isImageModel = (m: string) => /image|nano-banana/i.test(m);
   let res: Response | null = null;
   let tried = '';
+  const missed: string[] = [];
   for (const c of specCandidates()) {
     const host = c.loc === 'global' ? 'aiplatform.googleapis.com' : `${c.loc}-aiplatform.googleapis.com`;
     res = await fetch(`https://${host}/v1/projects/${project}/locations/${c.loc}/publishers/google/models/${c.model}:generateContent`, {
@@ -71,10 +72,11 @@ export async function analyseStones(image: Buffer, mimeType: string, hint: Param
     });
     tried = `${c.model}, ${c.loc}`;
     if (res.status !== 404) { if (res.ok) working = c; break; }
+    missed.push(`${c.model}@${c.loc}`);
   }
   if (!res) throw new Error('no model to ask');
   if (res.status === 401 || res.status === 403) throw new Error('the server is not allowed to use Vertex AI (grant roles/aiplatform.user)');
-  if (res.status === 404) throw new Error('no Gemini model is available to this project (set AI_SPEC_MODEL to one that is)');
+  if (res.status === 404) throw new Error(`no Gemini model is available to this project (set AI_SPEC_MODEL to one that is). Tried ${missed.length}: ${missed.slice(0, 4).join(', ')}, ... last: ${missed[missed.length - 1]}`);
   if (!res.ok) throw new Error(`Google returned ${res.status} for ${tried}`);
   const j: any = await res.json().catch(() => ({}));
   const raw = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? '').join('') ?? '';
