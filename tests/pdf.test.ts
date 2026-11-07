@@ -99,8 +99,24 @@ describe('PDF captions and options', () => {
 
   it('repairs saved options: unknown theme, wrong types, over-long text', () => {
     expect(normaliseOptions(null)).toEqual(DEFAULT_PDF_OPTIONS);
-    expect(normaliseOptions({ theme: 'neon', land: 'yes', price: true, title: 'x'.repeat(200) })).toMatchObject({ theme: 'ivory', land: false, price: true, watermark: true });
+    expect(normaliseOptions({ theme: 'neon', land: 'yes', price: true, title: 'x'.repeat(200) })).toMatchObject({ theme: 'store', land: false, price: true, watermark: true });
     expect(normaliseOptions({ title: 'x'.repeat(200) }).title.length).toBe(60);
     expect(normaliseOptions({ theme: 'garnet', land: true, sku: false })).toMatchObject({ theme: 'garnet', land: true, sku: false, weights: true });
+  });
+});
+
+import { PALETTES, contrast, paletteFor } from '../src/pdfLayout';
+describe('store theme palette', () => {
+  it('is the default, can be chosen, and falls back to Ivory with no page to read', () => {
+    expect(normaliseOptions({}).theme).toBe('store');
+    expect(normaliseOptions({ theme: 'garnet' }).theme).toBe('garnet');
+    expect(normaliseOptions({ theme: 'nope' }).theme).toBe('store');
+    expect(paletteFor('store')).toEqual(PALETTES.ivory); // node has no document
+    expect(paletteFor('midnight')).toBe(PALETTES.midnight);
+  });
+  it('measures contrast', () => {
+    expect(contrast('#000000', '#ffffff')).toBeCloseTo(21, 0);
+    expect(contrast('#777777', '#ffffff')).toBeLessThan(4.6);
+    expect(contrast('#1b1b1b', '#ffffff')).toBeGreaterThan(15);
   });
 });

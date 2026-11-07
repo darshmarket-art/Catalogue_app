@@ -6,7 +6,7 @@ import { saveFile } from './saveFile';
 import { UserError } from './bugReport';
 import { PHOTO_VARIANT_WIDTHS } from '../shared/photoSpecs';
 import {
-  GOLD, MAX_PDF_DESIGNS, PALETTES, caption, ellipsize, geometry, groupByCollection, loadPdfOptions, mixHex, normaliseOptions, photoBox, planPages, rgb,
+  GOLD, MAX_PDF_DESIGNS, caption, paletteFor, ellipsize, geometry, groupByCollection, loadPdfOptions, mixHex, normaliseOptions, photoBox, planPages, rgb,
   type PdfOptions, type PdfPage
 } from './pdfLayout';
 
@@ -127,7 +127,8 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   const { jsPDF } = await import('jspdf');
   const g = geometry(o.land);
   const { W, H, u } = g;
-  const P = PALETTES[o.theme];
+  const P = paletteFor(o.theme);
+  const gold = P.gold ?? GOLD;
   const dark = { g: P.dp, i: P.dpf };
   const darkM = mixHex(P.dpf, P.dp, 0.62);
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: o.land ? 'landscape' : 'portrait', compress: true });
@@ -350,16 +351,16 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
     const body = { size: 1.2, track: 0.06 };
     place(0, H - 7 * u, (y) => {
       y += 0;
-      if (!dry) circleMark(cx, y + 3.75 * u, 3.75 * u, GOLD, brand.charAt(0).toUpperCase());
+      if (!dry) circleMark(cx, y + 3.75 * u, 3.75 * u, gold, brand.charAt(0).toUpperCase());
       y += 7.5 * u + (o.land ? 1.6 : 4) * u;
-      txt('Thank you', cx, y + 1.15 * u * 0.8, { size: 1.15, track: 0.34, upper: true, color: GOLD, align: 'c' });
+      txt('Thank you', cx, y + 1.15 * u * 0.8, { size: 1.15, track: 0.34, upper: true, color: gold, align: 'c' });
       y += 1.15 * u + 1.6 * u;
       for (const l of wrap(brand, W - 24 * u, 2, nameT)) {
         txt(l, cx, y + nameSize * u * 0.72, { ...nameT, color: dark.i, align: 'c' });
         y += nameSize * u * 1.0;
       }
       y += 2.2 * u;
-      if (!dry) (hair(GOLD, 0.25), doc.line(cx - 3 * u, y, cx + 3 * u, y));
+      if (!dry) (hair(gold, 0.25), doc.line(cx - 3 * u, y, cx + 3 * u, y));
       y += 2.2 * u;
       for (const l of wrap(pw, 34 * u, 4, body)) {
         txt(l, cx, y + 1.2 * u * 0.8, { ...body, color: darkM, align: 'c' });
@@ -372,7 +373,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
       }
       const qy = y;
       y += (qrSize + 4.4) * u + 2 * u;
-      txt(phone, cx, y + 2.6 * u * 0.8, { size: 2.6, font: 'times', color: GOLD, align: 'c' });
+      txt(phone, cx, y + 2.6 * u * 0.8, { size: 2.6, font: 'times', color: gold, align: 'c' });
       const phoneW = measure(phone, { size: 2.6, font: 'times' });
       if (!dry) doc.link(cx - phoneW / 2, y, phoneW, 2.6 * u, { url: `https://wa.me/${merchant.contact.whatsapp.replace(/[^0-9]/g, '')}` });
       y += 2.6 * u * 1.2;

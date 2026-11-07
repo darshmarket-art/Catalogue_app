@@ -4,7 +4,7 @@ import { merchant } from '../merchant';
 import { downloadDesignsPdf } from '../cataloguePdf';
 import { api } from '../api';
 import { Chip, Field, Notice, Segmented, Switch } from './ui';
-import { DEFAULT_PDF_OPTIONS, MAX_PDF_DESIGNS, PALETTES, caption, loadPdfOptions, priceOf, savePdfOptions, type PdfOptions, type PdfTheme } from '../pdfLayout';
+import { DEFAULT_PDF_OPTIONS, MAX_PDF_DESIGNS, caption, paletteFor, loadPdfOptions, priceOf, savePdfOptions, type PdfOptions, type PdfTheme } from '../pdfLayout';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
 import { errorText } from '../bugReport';
 import { SIZES_GRID } from '../photoSrcSet';
@@ -15,11 +15,11 @@ import { SIZES_GRID } from '../photoSrcSet';
  */
 const PAGE = 120;
 
-const THEME_LABELS: Record<PdfTheme, string> = { ivory: 'Ivory / ink', midnight: 'Midnight', garnet: 'Garnet' };
+const THEME_LABELS: Record<PdfTheme, string> = { store: 'Store theme', ivory: 'Ivory / ink', midnight: 'Midnight', garnet: 'Garnet' };
 
 /** The first design page as it will print: the same grid (2 x 3, or 3 x 2 on landscape), theme and caption lines, at thumbnail size. */
 const PagePreview: React.FC<{ items: Product[]; o: PdfOptions }> = ({ items, o }) => {
-  const P = PALETTES[o.theme];
+  const P = paletteFor(o.theme);
   const cols = o.land ? 3 : 2;
   const rows = o.land ? 2 : 3;
   return (
