@@ -4,7 +4,7 @@ import { merchant } from '../merchant';
 import { downloadDesignsPdf } from '../cataloguePdf';
 import { api } from '../api';
 import { Chip, Field, Notice, Segmented, Switch } from './ui';
-import { DEFAULT_PDF_OPTIONS, MAX_PDF_DESIGNS, caption, paletteFor, loadPdfOptions, priceOf, savePdfOptions, type PdfOptions, type PdfTheme } from '../pdfLayout';
+import { DEFAULT_PDF_OPTIONS, MAX_PDF_DESIGNS, caption, paletteFor, loadPdfOptions, priceOf, savePdfOptions, type PdfFit, type PdfOptions, type PdfTheme } from '../pdfLayout';
 import { Icon, Ph, Toast } from '../layouts/emergent/ui';
 import { errorText } from '../bugReport';
 import { SIZES_GRID } from '../photoSrcSet';
@@ -15,6 +15,7 @@ import { SIZES_GRID } from '../photoSrcSet';
  */
 const PAGE = 120;
 
+const FIT_LABELS: Record<PdfFit, string> = { trim: 'Trim and fit', whole: 'Fit whole', fill: 'Fill' };
 const THEME_LABELS: Record<PdfTheme, string> = { store: 'Store theme', ivory: 'Ivory / ink', midnight: 'Midnight', garnet: 'Garnet' };
 
 /** The first design page as it will print: the same grid (2 x 3, or 3 x 2 on landscape), theme and caption lines, at thumbnail size. */
@@ -30,7 +31,7 @@ const PagePreview: React.FC<{ items: Product[]; o: PdfOptions }> = ({ items, o }
         return (
           <div key={i} style={{ border: `1px solid ${P.h}`, padding: 2, display: 'flex', flexDirection: 'column', gap: 1, minHeight: 0 }}>
             <div style={{ flex: 1, minHeight: 0, background: P.tile, overflow: 'hidden' }}>
-              {p?.image && <img src={p.image} alt="" onError={(e) => (e.currentTarget.style.display = 'none')} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />}
+              {p?.image && <img src={p.image} alt="" onError={(e) => (e.currentTarget.style.display = 'none')} style={{ width: '100%', height: '100%', objectFit: o.fit === 'fill' ? 'cover' : 'contain', display: 'block' }} />}
             </div>
             {c && (
               <div style={{ minWidth: 0 }}>
@@ -186,6 +187,10 @@ export const PdfCatalogueScreen: React.FC<{ products: Product[]; categories: Cat
           <div className="col grow" style={{ gap: 14, minWidth: 220 }}>
             <Field label="Page" htmlFor="pdf-orient">
               <Segmented options={[{ key: 'p', label: 'A4 portrait' }, { key: 'l', label: 'A4 landscape' }]} value={opts.land ? 'l' : 'p'} onChange={(k) => setOpt('land', k === 'l')} />
+            </Field>
+            <Field label="Photo fit" htmlFor="pdf-fit">
+              <Segmented options={(Object.keys(FIT_LABELS) as PdfFit[]).map((k) => ({ key: k, label: FIT_LABELS[k] }))} value={opts.fit} onChange={(k) => setOpt('fit', k as PdfFit)} />
+              <span className="hint" data-testid="pdf-fit-hint">{opts.fit === 'trim' ? 'White or black bars baked into a photo are cut off, then the whole photo is shown.' : opts.fit === 'whole' ? 'Every pixel of each photo is shown as uploaded.' : 'Each photo is cropped to fill its box. A piece can lose its edges.'} A photo that looks squeezed or stretched is fixed on the design with AI enhance.</span>
             </Field>
             <Field label="Colour theme" htmlFor="pdf-theme">
               <Segmented options={(Object.keys(THEME_LABELS) as PdfTheme[]).map((k) => ({ key: k, label: THEME_LABELS[k] }))} value={opts.theme} onChange={(k) => setOpt('theme', k as PdfTheme)} />

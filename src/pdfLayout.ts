@@ -2,6 +2,9 @@
 // Every size is in "u" = 1% of the page width (the picker's cqw), so a page looks the same in portrait and landscape.
 import type { Product } from './types';
 
+export type PdfFit = 'trim' | 'whole' | 'fill';
+export const PDF_FITS: PdfFit[] = ['trim', 'whole', 'fill'];
+
 /** 'store' follows the colours of the theme the owner set for the store; the others are fixed looks. */
 export type PdfTheme = 'store' | 'ivory' | 'midnight' | 'garnet';
 export const PDF_THEMES: PdfTheme[] = ['store', 'ivory', 'midnight', 'garnet'];
@@ -13,13 +16,15 @@ export interface PdfOptions {
   weights: boolean;
   sku: boolean;
   watermark: boolean;
+  /** How a photo meets its box: 'trim' cuts white or black bars baked into the photo, then shows it whole; 'whole' shows every pixel; 'fill' crops it to the box. */
+  fit: PdfFit;
   theme: PdfTheme;
   /** Empty = the collection's name (or "Selection"). */
   title: string;
   subtitle: string;
 }
 
-export const DEFAULT_PDF_OPTIONS: PdfOptions = { land: false, price: false, weights: true, sku: true, watermark: true, theme: 'store', title: '', subtitle: '' };
+export const DEFAULT_PDF_OPTIONS: PdfOptions = { land: false, price: false, weights: true, sku: true, watermark: true, fit: 'trim', theme: 'store', title: '', subtitle: '' };
 
 /** The last options used, repaired: anything missing or of the wrong type falls back to the default. */
 export function normaliseOptions(raw: unknown): PdfOptions {
@@ -28,6 +33,7 @@ export function normaliseOptions(raw: unknown): PdfOptions {
   const bool = (k: 'land' | 'price' | 'weights' | 'sku' | 'watermark') => (typeof r[k] === 'boolean' ? (r[k] as boolean) : D[k]);
   return {
     land: bool('land'), price: bool('price'), weights: bool('weights'), sku: bool('sku'), watermark: bool('watermark'),
+    fit: PDF_FITS.includes(r.fit as PdfFit) ? (r.fit as PdfFit) : D.fit,
     theme: PDF_THEMES.includes(r.theme as PdfTheme) ? (r.theme as PdfTheme) : D.theme,
     title: typeof r.title === 'string' ? r.title.slice(0, 60) : '',
     subtitle: typeof r.subtitle === 'string' ? r.subtitle.slice(0, 70) : ''
@@ -248,4 +254,37 @@ export function ellipsize(text: string, max: number, measure: (s: string) => num
     else hi = mid - 1;
   }
   return lo === 0 ? '...' : text.slice(0, lo).trimEnd() + '...';
+}
+
+export interface CropBox { x: number; y: number; w: number; h: number }
+
+/**
+ * Where the photo itself is, inside any white or black bars baked into the file (the usual result of squaring a photo with padding).
+ * `px` is RGBA pixels of a small copy of the photo. A row or column is padding only if it is one flat, near-white or near-black colour,
+ * so a plain studio backdrop is left alone. No side loses more than a fifth, and at least 40% of the photo always stays.
+ */
+export function trimBox(px: ArrayLike<number>, w: number, h: number, tolerance = 10): CropBox {
+  const whole = { x: 0, y: 0, w, h };
+  if (w < 8 || h < 8 || px.length < w * h * 4) return whole;
+  const at = (x: number, y: number) => (y * w + x) * 4;
+  const flatLine = (n: number, along: 'row' | 'col') => {
+    const len = along === 'row' ? w : h;
+    const i0 = along === 'row' ? at(0, n) : at(n, 0);
+    const r = px[i0], g = px[i0 + 1], b = px[i0 + 2];
+    if (!((r > 240 && g > 240 && b > 240) || (r < 16 && g < 16 && b < 16))) return false;
+    for (let k = 1; k < len; k++) {
+      const i = along === 'row' ? at(k, n) : at(n, k);
+      if (Math.abs(px[i] - r) > tolerance || Math.abs(px[i + 1] - g) > tolerance || Math.abs(px[i + 2] - b) > tolerance) return false;
+    }
+    return true;
+  };
+  const eat = (size: number, along: 'row' | 'col', fromEnd: boolean) => {
+    const max = Math.floor(size * 0.2);
+    let n = 0;
+    while (n < max && flatLine(fromEnd ? size - 1 - n : n, along)) n++;
+    return n;
+  };
+  const top = eat(h, 'row', false), bottom = eat(h, 'row', true), left = eat(w, 'col', false), right = eat(w, 'col', true);
+  const out = { x: left, y: top, w: w - left - right, h: h - top - bottom };
+  return out.w < w * 0.4 || out.h < h * 0.4 ? whole : out;
 }

@@ -120,3 +120,36 @@ describe('store theme palette', () => {
     expect(contrast('#1b1b1b', '#ffffff')).toBeGreaterThan(15);
   });
 });
+
+import { trimBox, PDF_FITS } from '../src/pdfLayout';
+describe('trimming baked-in padding', () => {
+  const make = (w: number, h: number, f: (x: number, y: number) => [number, number, number]) => {
+    const px = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const [r, g, b] = f(x, y); const i = (y * w + x) * 4; px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = 255; }
+    return px;
+  };
+  const piece = (x: number, y: number): [number, number, number] => ((x + y) % 7 < 3 ? [200, 150, 60] : [120, 90, 40]); // busy, never flat
+  it('cuts white bars above and below, keeps the rest', () => {
+    const px = make(100, 100, (x, y) => (y < 15 || y >= 88 ? [255, 255, 255] : piece(x, y)));
+    expect(trimBox(px, 100, 100)).toEqual({ x: 0, y: 15, w: 100, h: 73 - 0 });
+  });
+  it('cuts black bars at the sides', () => {
+    const px = make(100, 100, (x, y) => (x < 10 || x >= 95 ? [0, 0, 0] : piece(x, y)));
+    expect(trimBox(px, 100, 100)).toEqual({ x: 10, y: 0, w: 85, h: 100 });
+  });
+  it('leaves a plain studio backdrop alone, even a flat grey or cream one', () => {
+    expect(trimBox(make(100, 100, () => [231, 228, 223]), 100, 100)).toEqual({ x: 0, y: 0, w: 100, h: 100 });
+    expect(trimBox(make(100, 100, (x, y) => (y < 20 ? [244, 236, 223] : piece(x, y))), 100, 100)).toEqual({ x: 0, y: 0, w: 100, h: 100 });
+  });
+  it('never takes more than a fifth from a side', () => {
+    expect(trimBox(make(100, 100, (x, y) => (y < 60 ? [255, 255, 255] : piece(x, y))), 100, 100)).toEqual({ x: 0, y: 20, w: 100, h: 80 });
+    const blank = trimBox(make(100, 100, () => [255, 255, 255]), 100, 100); // nothing to place: still at least 60% of it
+    expect(blank.w).toBeGreaterThanOrEqual(60);
+    expect(blank.h).toBeGreaterThanOrEqual(60);
+  });
+  it('knows its three fit options', () => {
+    expect(PDF_FITS).toEqual(['trim', 'whole', 'fill']);
+    expect(normaliseOptions({ fit: 'fill' }).fit).toBe('fill');
+    expect(normaliseOptions({ fit: 'stretch' }).fit).toBe('trim');
+  });
+});

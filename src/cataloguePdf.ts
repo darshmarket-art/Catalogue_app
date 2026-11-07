@@ -6,8 +6,8 @@ import { saveFile } from './saveFile';
 import { UserError } from './bugReport';
 import { PHOTO_VARIANT_WIDTHS } from '../shared/photoSpecs';
 import {
-  GOLD, MAX_PDF_DESIGNS, caption, paletteFor, ellipsize, geometry, groupByCollection, loadPdfOptions, mixHex, normaliseOptions, photoBox, planPages, rgb,
-  type PdfOptions, type PdfPage
+  GOLD, MAX_PDF_DESIGNS, caption, paletteFor, ellipsize, geometry, groupByCollection, loadPdfOptions, mixHex, normaliseOptions, photoBox, planPages, rgb, trimBox,
+  type CropBox, type PdfOptions, type PdfPage
 } from './pdfLayout';
 
 type RGB = [number, number, number];
@@ -53,8 +53,29 @@ function stamp(ctx: CanvasRenderingContext2D, text: string, w: number, h: number
   ctx.restore();
 }
 
+/** The part of the photo inside any baked-in white or black bars, in the photo's own pixels. Found on a small copy; the whole photo if that cannot be read. */
+function cropOf(img: HTMLImageElement): CropBox {
+  const whole = { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+  const s = Math.min(1, 240 / Math.max(img.naturalWidth, img.naturalHeight));
+  const sw = Math.max(1, Math.round(img.naturalWidth * s)), sh = Math.max(1, Math.round(img.naturalHeight * s));
+  const c = document.createElement('canvas');
+  try {
+    c.width = sw;
+    c.height = sh;
+    const x = c.getContext('2d', { willReadFrequently: true })!;
+    x.drawImage(img, 0, 0, sw, sh);
+    const b = trimBox(x.getImageData(0, 0, sw, sh).data, sw, sh);
+    if (b.x === 0 && b.y === 0 && b.w === sw && b.h === sh) return whole;
+    return { x: Math.round(b.x / s), y: Math.round(b.y / s), w: Math.min(whole.w, Math.round(b.w / s)), h: Math.min(whole.h, Math.round(b.h / s)) };
+  } catch {
+    return whole;
+  } finally {
+    c.width = c.height = 0;
+  }
+}
+
 /** The photo as a JPEG exactly the size of its box: whole (never cropped) on the tile colour, or cropped to fill (cover page). Null if the browser will not let us read it. */
-function photoJpeg(img: HTMLImageElement, boxMm: { w: number; h: number }, fill: boolean, tile: string, watermark: string | null): string | null {
+function photoJpeg(img: HTMLImageElement, boxMm: { w: number; h: number }, fill: boolean, tile: string, watermark: string | null, trim = false): string | null {
   const w = Math.round(boxMm.w * PX_PER_MM);
   const h = Math.round(boxMm.h * PX_PER_MM);
   const canvas = document.createElement('canvas');
@@ -64,10 +85,12 @@ function photoJpeg(img: HTMLImageElement, boxMm: { w: number; h: number }, fill:
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = tile;
     ctx.fillRect(0, 0, w, h);
-    const k = (fill ? Math.max : Math.min)(w / img.naturalWidth, h / img.naturalHeight);
-    const dw = img.naturalWidth * k;
-    const dh = img.naturalHeight * k;
-    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    // Bars baked into the photo are cut off first (the part of the photo that is the piece is what gets placed). Scale is always even: never stretched or squeezed.
+    const c = trim ? cropOf(img) : { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+    const k = (fill ? Math.max : Math.min)(w / c.w, h / c.h);
+    const dw = c.w * k;
+    const dh = c.h * k;
+    ctx.drawImage(img, c.x, c.y, c.w, c.h, (w - dw) / 2, (h - dh) / 2, dw, dh);
     if (watermark) stamp(ctx, watermark, w, h);
     return canvas.toDataURL('image/jpeg', 0.8);
   } catch {
@@ -200,7 +223,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
   const loadPhoto = async (p: Product | undefined, boxMm: { w: number; h: number }, fillBox: boolean) => {
     if (!p?.image) return null;
     const img = await loadImage(sized(p.image, boxMm.w));
-    return img ? photoJpeg(img, boxMm, fillBox, P.tile, o.watermark ? brand : null) : null;
+    return img ? photoJpeg(img, boxMm, fillBox, P.tile, o.watermark ? brand : null, o.fit !== 'whole') : null;
   };
   const circleMark = (cx: number, cy: number, r: number, c: RGB | string, letter: string) => {
     if (logo) {
@@ -287,7 +310,7 @@ export async function downloadDesignsPdf(title: string, items: Product[], onProg
     const photos: Array<string | null> = [];
     for (const p of list) {
       stop();
-      photos.push(await loadPhoto(p, box, false));
+      photos.push(await loadPhoto(p, box, o.fit === 'fill'));
       onProgress?.(++done, items.length);
     }
     page(P.g);
