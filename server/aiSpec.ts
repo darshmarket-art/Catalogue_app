@@ -59,7 +59,7 @@ export async function analyseStones(image: Buffer, mimeType: string, hint: Param
   // Image models cannot return a schema: ask for the JSON in words and read it out of the text.
   const plain = JSON.stringify({
     contents: [{ role: 'user', parts: parts(' Answer with ONLY a JSON object: {"pieceType":string,"metal":string,"features":string[],"groups":[{"name":string,"setting":string,"shape":string,"countMin":number,"countMax":number,"mmMin":number,"mmMax":number}]}. No other text.') }],
-    generationConfig: { temperature: 0, responseModalities: ['TEXT'] }
+    generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } // the same setting renders use; an image model refuses text-only
   });
   const isImageModel = (m: string) => /image|nano-banana/i.test(m);
   let res: Response | null = null;
@@ -77,7 +77,10 @@ export async function analyseStones(image: Buffer, mimeType: string, hint: Param
   if (!res) throw new Error('no model to ask');
   if (res.status === 401 || res.status === 403) throw new Error('the server is not allowed to use Vertex AI (grant roles/aiplatform.user)');
   if (res.status === 404) throw new Error(`no Gemini model is available to this project (set AI_SPEC_MODEL to one that is). Tried ${missed.length}: ${missed.slice(0, 4).join(', ')}, ... last: ${missed[missed.length - 1]}`);
-  if (!res.ok) throw new Error(`Google returned ${res.status} for ${tried}`);
+  if (!res.ok) {
+    const why = String(((await res.json().catch(() => ({}))) as any)?.error?.message ?? '').replace(/\s+/g, ' ').slice(0, 160);
+    throw new Error(`Google returned ${res.status} for ${tried}${why ? `: ${why}` : ''}`);
+  }
   const j: any = await res.json().catch(() => ({}));
   const raw = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? '').join('') ?? '';
   try {

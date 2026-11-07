@@ -37,7 +37,7 @@ describe('image model fallback', () => {
     const spec = await analyseStones(Buffer.from('x'), 'image/png');
     expect(spec.groups[0].countMax).toBe(5);
     const last = bodies[bodies.length - 1];
-    expect(last.body.generationConfig).toEqual({ temperature: 0, responseModalities: ['TEXT'] });
+    expect(last.body.generationConfig).toEqual({ responseModalities: ['TEXT', 'IMAGE'] });
     expect(last.body.generationConfig.responseSchema).toBeUndefined();
   });
 });
