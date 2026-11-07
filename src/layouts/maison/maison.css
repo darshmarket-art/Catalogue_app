@@ -636,7 +636,7 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-srch-sug { padding: 20px 21px 24px; }
     & .mx-srch-h { margin: 0 0 8px; font-family: var(--mx-sans); font-size: 1.1875rem; font-weight: 600; letter-spacing: 0.02em; }
     & .mx-srch-sug ul { list-style: none; margin: 0; padding: 0; }
-    & .mx-srch-sug button { display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 1.125rem; letter-spacing: 0.02em; text-align: left; cursor: pointer; }
+    & .mx-srch-sug button { display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: var(--mx-ink); font-family: var(--mx-serif); font-size: 1.4375rem; font-weight: var(--mx-fw-head); letter-spacing: 0; text-align: left; cursor: pointer; }
 
     /* the menu (profile panel): full screen from the left, plain 64px rows without dividers, the person's details and language at the foot */
     & .mx-ph .mx-drawer-wrap { justify-content: flex-start; align-items: stretch; }
@@ -669,8 +669,8 @@ html[data-mx-theme="midnight"]:has([data-layout="maison"]) { color-scheme: dark;
     & .mx-card-im { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; background: var(--mx-tile); }
     & .mx-card-im .em-ph img { transition: transform 0.9s var(--mx-ease); }
     & .mx-card:active .mx-card-im .em-ph img { transform: scale(1.03); }
-    & .mx-card-nm { display: block; margin: 12px 4px 0; font-family: var(--mx-sans); font-size: 1.125rem; font-weight: 500; line-height: 1.25; letter-spacing: 0.01em; overflow-wrap: anywhere; }
-    & .mx-card-sub { display: block; margin-top: 3px; color: var(--mx-muted); font-size: 0.875rem; }
+    & .mx-card-nm { display: block; margin: 12px 4px 0; font-family: var(--mx-serif); font-size: 1.4375rem; font-weight: var(--mx-fw-head); line-height: 1.15; letter-spacing: 0; overflow-wrap: anywhere; }
+    & .mx-card-sub { display: block; margin-top: 4px; color: var(--mx-muted); font-family: var(--mx-sans); font-size: 0.8125rem; letter-spacing: 0.04em; }
     & .mx-shop .mx-card-sub { display: none; }
     & .mx-shop-all { display: inline-block; margin: 24px auto 56px; padding: 6px 0 4px; border: 0; border-bottom: 1px solid var(--mx-ink); background: none; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; }
     /* New in and Recently viewed: a centred serif title over a strip of 170px cards, 16px apart, inset 18px */
