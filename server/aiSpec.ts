@@ -40,11 +40,12 @@ const SCHEMA = {
  * Which model and place to ask. AI_SPEC_MODEL / AI_SPEC_LOCATION first; a 404 (that model is not offered to this project or in that place) moves on to the
  * next candidate, and the one that answers is remembered until the server restarts.
  */
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-001', 'gemini-2.5-pro'];
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-001', 'gemini-2.5-pro', 'gemini-3-flash', 'gemini-3.1-flash', 'gemini-3-pro'];
 let working: { model: string; loc: string } | null = null;
 export const specCandidates = (env: NodeJS.ProcessEnv = process.env): Array<{ model: string; loc: string }> => {
   const locs = [...new Set([env.AI_SPEC_LOCATION || env.AI_RENDER_LOCATION || 'global', 'global', 'us-central1'])];
-  const models = [...new Set([env.AI_SPEC_MODEL, ...MODELS].filter(Boolean) as string[])];
+  // Last resort: the image model the store already renders with. It is known to work in this project; it answers in plain text, so ask for JSON in words.
+  const models = [...new Set([env.AI_SPEC_MODEL, ...MODELS, env.AI_RENDER_MODEL || 'gemini-nano-banana-2.1'].filter(Boolean) as string[])];
   const all = models.flatMap((model) => locs.map((loc) => ({ model, loc })));
   return working ? [working, ...all.filter((c) => c.model !== working!.model || c.loc !== working!.loc)] : all;
 };
@@ -53,16 +54,20 @@ export const forgetWorkingModel = () => { working = null; };
 /** Sends the photo and returns the cleaned stone spec. Throws an Error with a short, safe message on any failure. */
 export async function analyseStones(image: Buffer, mimeType: string, hint: Parameters<typeof specPrompt>[0] = {}): Promise<StoneSpec> {
   const project = await projectId();
-  const body = JSON.stringify({
-    contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image.toString('base64') } }, { text: specPrompt(hint) }] }],
-    generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: SCHEMA }
+  const parts = (extra = '') => [{ inlineData: { mimeType, data: image.toString('base64') } }, { text: specPrompt(hint) + extra }];
+  const structured = JSON.stringify({ contents: [{ role: 'user', parts: parts() }], generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: SCHEMA } });
+  // Image models cannot return a schema: ask for the JSON in words and read it out of the text.
+  const plain = JSON.stringify({
+    contents: [{ role: 'user', parts: parts(' Answer with ONLY a JSON object: {"pieceType":string,"metal":string,"features":string[],"groups":[{"name":string,"setting":string,"shape":string,"countMin":number,"countMax":number,"mmMin":number,"mmMax":number}]}. No other text.') }],
+    generationConfig: { temperature: 0, responseModalities: ['TEXT'] }
   });
+  const isImageModel = (m: string) => /image|nano-banana/i.test(m);
   let res: Response | null = null;
   let tried = '';
   for (const c of specCandidates()) {
     const host = c.loc === 'global' ? 'aiplatform.googleapis.com' : `${c.loc}-aiplatform.googleapis.com`;
     res = await fetch(`https://${host}/v1/projects/${project}/locations/${c.loc}/publishers/google/models/${c.model}:generateContent`, {
-      method: 'POST', headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(60_000)
+      method: 'POST', headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' }, body: isImageModel(c.model) ? plain : structured, signal: AbortSignal.timeout(60_000)
     });
     tried = `${c.model}, ${c.loc}`;
     if (res.status !== 404) { if (res.ok) working = c; break; }
@@ -74,7 +79,8 @@ export async function analyseStones(image: Buffer, mimeType: string, hint: Param
   const j: any = await res.json().catch(() => ({}));
   const raw = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? '').join('') ?? '';
   try {
-    return cleanSpec(JSON.parse(raw));
+    const json = /\{[\s\S]*\}/.exec(raw)?.[0] ?? raw; // the model may wrap the JSON in a code fence
+    return cleanSpec(JSON.parse(json));
   } catch {
     throw new Error('the AI did not return a readable answer');
   }
