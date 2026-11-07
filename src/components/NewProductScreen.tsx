@@ -6,6 +6,9 @@ import { usePlan, upgradeNotice } from '../plan';
 import { PhotoPicker, type PhotoItem } from './PhotoPicker';
 import { Field, Notice } from './ui';
 import { confirmDelete } from '../notify';
+import { api } from '../api';
+import { errorText } from '../bugReport';
+import { DetailSheet } from './DetailSheet';
 
 interface NewProductScreenProps {
   categories: Category[];
@@ -36,6 +39,10 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  /** The detail sheet already added to this design, so making it again replaces it instead of using another photo slot. */
+  const [sheetRef, setSheetRef] = useState<string | null>(null);
+  const [sheetMsg, setSheetMsg] = useState<string | null>(null);
 
   const gross = parseFloat(grossWt);
   const stone = parseFloat(stoneWt) || 0;
@@ -106,6 +113,16 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
           Photos {limits.photosPerDesign > 1 && <span className="pro" style={{ marginLeft: 4 }}>Up to {limits.photosPerDesign}</span>}
         </span>
         <PhotoPicker photos={photos} onChange={setPhotos} max={maxPhotos} kind="design" onBusyChange={setUploading} locked={Math.max(0, 3 - maxPhotos)} onLocked={() => upgradeNotice('Extra photos per design')} aiRender enhance tag={categories.find((c) => c.name === category)?.tag} />
+        {photos.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <button type="button" className="em-btn sec" data-testid="detail-sheet-open" style={{ minHeight: 42, padding: '8px 16px', fontSize: '0.875rem' }} disabled={!title.trim() || !(gross > 0) || !purity}
+              onClick={() => { setSheetMsg(null); setSheetOpen(true); }}>
+              Make detail sheet
+            </button>
+            <p className="hint" style={{ margin: '4px 0 0' }}>{!title.trim() || !(gross > 0) || !purity ? 'Enter the design name, purity and gross weight first.' : 'A second photo with the design details and an approximate stone table, in your store\'s look.'}</p>
+            {sheetMsg && <p role="alert" className="hint" style={{ color: 'var(--em-bad, #b5472b)' }}>{sheetMsg}</p>}
+          </div>
+        )}
         {limits.photosPerDesign < 3 && <p className="hint">Basic allows {limits.photosPerDesign} photo per design. Pro allows 3.</p>}
       </div>
 
@@ -221,6 +238,27 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         </button>
       )}
       </div>
+      {sheetOpen && photos[0] && (
+        <DetailSheet
+          photoRef={photos[0].ref}
+          photoUrl={photos[0].url}
+          facts={{ brand: merchant.brand.name, title: title.trim(), collection: category, sku: sku.trim() || editing?.sku, purity, grossWt: gross, stoneWt: stone, netWt: net ?? gross, huid: huid.trim() || undefined }}
+          onClose={() => setSheetOpen(false)}
+          onUse={async (file) => {
+            const base = sheetRef ? photos.filter((p) => p.ref !== sheetRef) : photos;
+            if (base.length >= maxPhotos) { setSheetOpen(false); setSheetMsg(`A design holds up to ${maxPhotos} photos. Remove one first, then make the sheet.`); return; }
+            try {
+              const up = await api.uploadPhoto(file);
+              setPhotos([base[0], { ref: up.ref, url: up.url }, ...base.slice(1)].filter(Boolean) as PhotoItem[]);
+              setSheetRef(up.ref);
+              setSheetOpen(false);
+            } catch (e) {
+              setSheetOpen(false);
+              setSheetMsg(errorText(e, 'NewProductScreen sheet', 'The sheet could not be uploaded.'));
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

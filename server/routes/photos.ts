@@ -5,6 +5,7 @@ import type { Blob, Blobs } from '../blobs';
 import { newPhotoFile, normalizePhoto, objectName, type Media } from '../media';
 import type { Entitlements } from '../entitlements';
 import type { Store } from '../store';
+import { analyseStones } from '../aiSpec';
 import { allowedStyles, BASE_PROMPTS, renderEnabled, renderMaxSide, renderMonthlyCap, renderStudio, STYLES } from '../aiRender';
 import { MODEL_SHOTS, PLACEMENTS, SHOT_OF, STYLE_IDS, type ModelShot, type Placement, type StyleId } from '../../shared/aiStyles';
 import { HttpError, handler } from '../http';
@@ -81,6 +82,38 @@ export function photoUploadRoutes(blobs: Blobs, media: Media, requireAdmin: Requ
       const file = newPhotoFile(TYPES[result.type]);
       await blobs.put(objectName(file), result.buffer, result.type);
       res.status(201).json({ status: 'success', data: { ref: `media:${file}`, url: media.linkFor(file), bytes: result.buffer.length } });
+    })
+  );
+
+  /**
+   * Reads a photo's stones for the detail sheet (groups, counts, rough sizes). Free of credits (one small text call), but capped per store per day.
+   * Nothing is saved: the owner reviews and corrects the numbers in the form, then makes the sheet.
+   */
+  router.post(
+    '/spec',
+    requireAdmin,
+    handler(async (req, res) => {
+      if (!renderEnabled()) throw new HttpError(503, 'AI is switched off on this server.');
+      const body = (req.body ?? {}) as { ref?: unknown; title?: unknown; category?: unknown; grossWt?: unknown };
+      const ref = normalizePhoto(String(body.ref ?? ''));
+      if (!ref?.startsWith('media:')) throw new HttpError(400, 'Only a photo uploaded here can be read.');
+      const photo = await blobs.get(objectName(ref.slice(6)));
+      if (!photo) throw new HttpError(404, 'Photo not found. Upload it again.');
+      const day = new Date().toISOString().slice(0, 10);
+      const cap = Number(process.env.AI_SPEC_DAILY_CAP ?? 200);
+      if (Number((await store.get('aiSpecDaily', day))?.count ?? 0) >= cap) throw new HttpError(429, 'The detail sheet limit for today is reached. Try again tomorrow.');
+      await store.increment('aiSpecDaily', day, { count: 1 }, { day });
+      try {
+        const spec = await analyseStones(photo.data, photo.contentType, {
+          title: typeof body.title === 'string' ? body.title.slice(0, 120) : undefined,
+          category: typeof body.category === 'string' ? body.category.slice(0, 80) : undefined,
+          grossWt: Number(body.grossWt) > 0 ? Number(body.grossWt) : undefined
+        });
+        res.json({ status: 'success', data: spec });
+      } catch (err) {
+        logger.warn('Stone reading failed', { error: err instanceof Error ? err.message : String(err) });
+        throw new HttpError(502, `The photo could not be read (${err instanceof Error && err.name !== 'TimeoutError' ? err.message : 'the AI did not answer in time'}). Try again.`);
+      }
     })
   );
 

@@ -21,6 +21,7 @@ import { merchant } from './merchant';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { noteApiCall } from './bugReport';
+import type { StoneSpec } from '../shared/stoneSpec';
 import type { AiCreditsInfo, ModelShotResult, RenderResult, RenderStatus } from './aiRender';
 
 // Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
@@ -475,6 +476,11 @@ export const api = {
   /** CAD-style AI render of a just-uploaded photo. The original stays stored; the server says why when it cannot render. */
   async renderPhoto(ref: string, signal?: AbortSignal, style?: string, placement?: string, renderId?: string): Promise<RenderResult> {
     return (await post('/api/v1/admin/photos/render', { ref, style, placement, renderId }, signal)).data;
+  },
+
+  /** Reads the stones in an uploaded photo (groups, counts, rough sizes) for the detail sheet. Estimates: the owner reviews them before the sheet is made. */
+  async analyseStones(ref: string, hint: { title?: string; category?: string; grossWt?: number }, signal?: AbortSignal): Promise<StoneSpec> {
+    return (await post('/api/v1/admin/photos/spec', { ref, ...hint }, signal)).data;
   },
 
   /** One-time: AI draws the reusable base shot (a hand or neck, no jewellery, black background). Charged like a render; not saved until approved. */
