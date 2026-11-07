@@ -3,14 +3,25 @@
  * Uses the Cloud Run service account (same token as cloudStats.ts); needs roles/aiplatform.user on that account.
  * Off unless AI_RENDER_ENABLED=true. The original photo is always kept by the caller; this file only talks to Google.
  */
+import sharp from 'sharp';
 import { googleToken, projectId } from './cloudStats';
 import { STYLE_IDS, type ModelShot, type Placement, type StyleId } from '../shared/aiStyles';
+
+/**
+ * Photos are sometimes squeezed or stretched before they reach us (padding or resizing to a square). The model is told to notice that, put the true
+ * proportions back, and ignore padding; the request also asks for the photo's own aspect ratio (see renderStudio), so it is never forced into a square.
+ */
+export const UNSQUEEZE =
+  'If the reference looks squeezed or stretched (for example round stones look oval, a ring or round pendant looks like an ellipse, or the piece looks too narrow, too wide, too tall or too flat), ' +
+  'first restore its natural, undistorted proportions: round stones are true circles, circular bands and rings are true circles seen in natural perspective, and the piece keeps the proportions a real jeweller would make, ' +
+  'then render the piece at those corrected proportions. Ignore any padding, white or black bars, blurred borders or a frame around the photo: they are not part of the scene, so fill the whole picture with the studio backdrop. ' +
+  'Never squash or stretch the piece to fit the frame, and never crop any part of it.';
 
 /** Shared by every style: the piece must stay exactly the same, only the presentation changes. */
 export const KEEP_IDENTICAL =
   'Keep the jewellery identical to the reference: the same outline and shape, the same proportions, the same number, size, cut, colour and placement of every stone, ' +
   'the same engraving, filigree, openwork and cut-outs, the same metal colour. Do not add, remove, simplify, straighten or restyle any part of the piece. ' +
-  'Do not add other jewellery, text or watermark, and ignore any watermark or text on the reference. Change only the presentation.';
+  'Do not add other jewellery, text or watermark, and ignore any watermark or text on the reference. Change only the presentation. ' + UNSQUEEZE;
 
 /** The default CAD-style prompt: a warm champagne studio shot, like a high-end jeweller's product photograph. */
 export const RENDER_PROMPT =
@@ -103,20 +114,22 @@ export async function renderStudio(image: Buffer | null, mimeType: string, promp
   const host = loc === 'global' ? 'aiplatform.googleapis.com' : `${loc}-aiplatform.googleapis.com`;
   const project = await projectId();
   const images = [...(image ? [{ data: image, mimeType }] : []), ...extra].map((i) => ({ inlineData: { mimeType: i.mimeType, data: i.data.toString('base64') } }));
-  const call = async (imageSize?: string) => fetch(`https://${host}/v1/projects/${project}/locations/${loc}/publishers/google/models/${model}:generateContent`, {
+  const ratio = await aspectOf(image);
+  const call = async (imageSize?: string, aspectRatio?: string) => fetch(`https://${host}/v1/projects/${project}/locations/${loc}/publishers/google/models/${model}:generateContent`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${await googleToken()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [...images, { text: prompt }] }],
-      generationConfig: { responseModalities: ['TEXT', 'IMAGE'], ...(imageSize ? { imageConfig: { imageSize } } : {}) }
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'], ...(imageSize || aspectRatio ? { imageConfig: { ...(imageSize ? { imageSize } : {}), ...(aspectRatio ? { aspectRatio } : {}) } } : {}) }
     }),
     // Measured 38-104 s per image on the global endpoint (docs/DESIGN_BENCHMARK.md D0); Cloud Run's default request timeout is 300 s.
     signal: AbortSignal.timeout(150_000)
   });
   // Default output is ~1K, which turns soft when zoomed. Ask for 2K (AI_RENDER_IMAGE_SIZE, '' = model default); if the model rejects the setting, retry once without it.
   const size = process.env.AI_RENDER_IMAGE_SIZE ?? '2K';
-  let res = await call(size || undefined);
-  if (res.status === 400 && size) res = await call();
+  let res = await call(size || undefined, ratio);
+  if (res.status === 400 && size) res = await call(undefined, ratio);
+  if (res.status === 400 && ratio) res = await call(); // the model does not take that aspect ratio: plain request, as before
   const j: any = await res.json().catch(() => ({}));
   if (res.status === 401 || res.status === 403) throw new Error('the server is not allowed to use Vertex AI (grant roles/aiplatform.user)');
   if (!res.ok) throw new Error(`Google returned ${res.status}`);
@@ -127,3 +140,20 @@ export async function renderStudio(image: Buffer | null, mimeType: string, promp
 
 /** Longest side kept when a render is stored: 4096 for 4K renders, else the normal photo limit (null = the default). Without this a 4K render would be shrunk back to 2400. */
 export const renderMaxSide = (): number | null => ((process.env.AI_RENDER_IMAGE_SIZE ?? '2K').toUpperCase() === '4K' ? 4096 : null);
+
+/** Aspect ratios the image models accept. */
+const RATIOS: Array<[string, number]> = [['1:1', 1], ['2:3', 2 / 3], ['3:2', 3 / 2], ['3:4', 3 / 4], ['4:3', 4 / 3], ['4:5', 4 / 5], ['5:4', 5 / 4], ['9:16', 9 / 16], ['16:9', 16 / 9], ['21:9', 21 / 9]];
+/** The supported aspect ratio closest to the photo's own, so the render is not forced into a square. Undefined when the photo cannot be read. */
+export async function aspectOf(image: Buffer | null): Promise<string | undefined> {
+  if (!image) return undefined;
+  try {
+    const m = await sharp(image, { failOn: 'none' }).rotate().metadata();
+    const turned = (m.orientation ?? 1) >= 5; // phone photos stored sideways
+    const w = turned ? m.height : m.width, h = turned ? m.width : m.height;
+    if (!w || !h) return undefined;
+    const r = w / h;
+    return RATIOS.reduce((best, c) => (Math.abs(Math.log(c[1] / r)) < Math.abs(Math.log(best[1] / r)) ? c : best))[0];
+  } catch {
+    return undefined;
+  }
+}
