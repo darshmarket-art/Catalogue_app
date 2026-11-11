@@ -72,6 +72,8 @@ export function createMedia(secret: string) {
     const refs = refsOf(doc);
     const { angles: _angles, ...rest } = doc as Doc;
     const images = refs.map(url);
+    // a certificate photo is private like any other: hand out a link, never the stored ref
+    if (typeof rest.certificate === 'string' && rest.certificate) rest.certificate = url(rest.certificate);
     return { ...rest, images, image: images[0] ?? PLACEHOLDER_IMAGE } as Omit<T, 'angles'> & { images: string[]; image: string };
   };
 

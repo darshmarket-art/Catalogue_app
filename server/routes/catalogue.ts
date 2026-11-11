@@ -46,6 +46,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       subtitle: body.subtitle || 'Curated wholesale collection',
       ...(body.nameHi ? { nameHi: body.nameHi } : {}),
       ...(body.subtitleHi ? { subtitleHi: body.subtitleHi } : {}),
+      ...(body.story ? { story: body.story } : {}),
       avgNetWt: `${min}g – ${max}g`,
       image: body.image,
       eligibleKarats: body.eligibleKarats ?? [],
@@ -413,7 +414,7 @@ export function catalogueRoutes({ store, blobs, media, merchant, pack, requireAd
       throw new HttpError(400, `"${input.purity}" is not one of your purity options.`);
     }
     const extra = parseExtras(merchant.productFields, (body as { extra?: unknown } | undefined)?.extra);
-    await assertPhotosExist(blobs, input.images);
+    await assertPhotosExist(blobs, [...input.images, ...(input.certificate ? [input.certificate] : [])]);
     await ent.assertPhotos(input.images, true);
     const categories = await store.list('categories', { where: [{ field: 'name', op: '==', value: input.category }], limit: 1 });
     if (categories.length === 0) throw new HttpError(400, `Category "${input.category}" does not exist. Create it first.`);

@@ -17,17 +17,19 @@ export function adminSummaryRoutes(config: Config, store: Store, log: MessageLog
     requireAdmin,
     handler(async (_req, res) => {
       const { flags } = await ent.load();
-      const [orders, enquiries, messages] = await Promise.all([
+      const [orders, enquiries, messages, requests] = await Promise.all([
         flags.orders ? store.list('purchaseOrders', { where: [{ field: 'status', op: '==', value: 'new' }] }) : [],
         flags.enquiries ? store.list('waEnquiries') : [],
-        log.listForStore(config.merchant.id)
+        log.listForStore(config.merchant.id),
+        store.list('clientRequests', { where: [{ field: 'status', op: '==', value: 'new' }] })
       ]);
       res.json({
         status: 'success',
         data: {
           newOrders: orders.length,
           enquiriesWaiting: enquiries.filter((e) => !e.repliedAt).length,
-          messagesFailed: messages.filter((m) => m.status === 'failed').length
+          messagesFailed: messages.filter((m) => m.status === 'failed').length,
+          requestsWaiting: requests.length
         }
       });
     })

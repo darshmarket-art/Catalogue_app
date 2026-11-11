@@ -24,6 +24,12 @@ const productSchema = z
     /** The name and description in Hindi, for buyers who use the app in Hindi (optional: the name is written in Hindi automatically otherwise). */
     titleHi: trimmed(200).optional(),
     descriptionHi: trimmed(600).optional(),
+    /** A few lines about the piece, shown on its page. */
+    story: trimmed(1200).optional(),
+    /** SKUs of pieces that belong with this one ("complete the set"). */
+    pairs: z.array(trimmed(60)).max(6).optional(),
+    /** A photo of the certificate (hallmark or stone report), uploaded in the app. */
+    certificate: photoRef.optional(),
     stockStatus: z.enum(STOCK_STATUSES).default('Ready in Vault'),
     /** One to three photos: uploaded ("media:...") or, for imports, an http(s) link. */
     images: z.array(photoRef).min(1, 'Add at least one photo.').max(3, 'A product can have at most 3 photos.')
@@ -86,6 +92,9 @@ export const jewelleryPack = {
       ...(input.description ? { description: input.description } : {}),
       ...(input.titleHi ? { titleHi: input.titleHi } : {}),
       ...(input.descriptionHi ? { descriptionHi: input.descriptionHi } : {}),
+      ...(input.story ? { story: input.story } : {}),
+      ...(input.pairs?.length ? { pairs: Array.from(new Set(input.pairs)).filter((s) => s !== (input.sku ?? meta.sku)) } : {}),
+      ...(input.certificate ? { certificate: input.certificate } : {}),
       images: input.images,
       image: input.images[0],
       stockStatus: input.stockStatus,

@@ -12,7 +12,7 @@ import type { Store } from './store';
 import { ADMIN_REMEMBER_TTL, claimsOf, createAuth, isNativeClient, NATIVE_TOKEN_TTL, RETAILER_TOKEN_TTL, signToken, user } from './auth';
 import { audit, errorHandler, handler, notFoundApi, parse, requestLogger } from './http';
 import { z } from 'zod';
-import { LAYOUT_IDS } from '../shared/layouts';
+import { LAYOUT_IDS, MAISON_LOOKS } from '../shared/layouts';
 import { authRoutes } from './routes/auth';
 import { catalogueRoutes } from './routes/catalogue';
 import { shortlistRoutes } from './routes/shortlist';
@@ -28,6 +28,8 @@ import { getSectorPack } from './sectors';
 import { adminOrderRoutes } from './routes/adminOrders';
 import { analyticsRoutes } from './routes/analytics';
 import { enquiryRoutes } from './routes/enquiries';
+import { requestRoutes } from './routes/requests';
+import { shareRoutes } from './routes/shares';
 import { adminSummaryRoutes } from './routes/adminSummary';
 import { adminBuyerRoutes } from './routes/adminBuyers';
 import { mediaRoute, photoUploadRoutes } from './routes/photos';
@@ -39,7 +41,7 @@ import { otpRoutes } from './routes/otp';
 import { signupRoutes } from './routes/signup';
 import { sweepRoutes, createTrialSender, type TrialSender, type OidcKeys } from './trialSweep';
 import { consoleMount } from './routes/console';
-import { createNotify, createNotifiers, createStoreFullNotify, type Notifiers } from './notify';
+import { createNotify, createNotifiers, createStoreFullNotify, pushAll, type Notifiers } from './notify';
 import { pushRoutes } from './routes/push';
 import { adminAlertRoutes } from './routes/adminAlerts';
 import { appBuildRoutes } from './appBuild';
@@ -287,6 +289,27 @@ function createStoreApp(config: Config, store: Store, blobs: Blobs, sender: OtpS
   const enquiries = enquiryRoutes(store, auth.requireRetailer, auth.requireAdmin, config.rateLimit.analytics);
   app.use('/api/enquiries', enquiries.buyer);
   app.use('/api/admin/enquiries', enquiries.admin);
+  // Client requests (private viewing, bespoke, 48-hour reserve) and shared selections: every plan.
+  const bySkus = async (skus: string[]) => {
+    const want = new Set(skus);
+    const idx = await catalogue.index();
+    return idx ? catalogue.fetch(idx.idsForSkus(want)) : (await store.list('products')).filter((p) => want.has(String(p.sku)));
+  };
+  const requests = requestRoutes({
+    store, bySkus, optionalUser: auth.optionalUser, requireRetailer: auth.requireRetailer, requireAdmin: auth.requireAdmin,
+    publicCatalogue: () => config.merchant.catalogueAccess === 'public',
+    alert: (title, body) => void pushAll(store, notifiers.push, { title: `${config.merchant.brand.name}: ${title}`, body, tag: 'client-request' }),
+    limit: config.rateLimit.auth * 3
+  });
+  app.use('/api/requests', requests.buyer);
+  app.use('/api/admin/requests', requests.admin);
+  app.use('/api/shares', shareRoutes({ store, media, brand: () => config.merchant.brand.name, bySkus, requireRetailer: auth.requireRetailer, limit: config.rateLimit.analytics }));
+  app.put('/api/admin/look', auth.requireAdmin, handler(async (req, res) => {
+    const { look } = parse(z.object({ look: z.enum(MAISON_LOOKS) }), req.body);
+    await patchMerchant((m) => ({ ...m, look }));
+    await audit(store, req, 'LOOK_CHANGED', `Storefront look set to ${look}.`);
+    res.json({ status: 'success', data: { look } });
+  }));
   app.use('/api/admin/summary', adminSummaryRoutes(config, store, log, ent, auth.requireAdmin));
   // AI credits are platform data (the console reads every store), so they sit in `root`; this store's id is fixed here, not taken from the request.
   const ai = { root, storeId: config.merchant.id, founder: async () => (await plan()).plan === 'founder' };

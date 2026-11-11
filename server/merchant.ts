@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { DEFAULT_LAYOUT, LAYOUT_IDS } from '../shared/layouts';
+import { DEFAULT_LAYOUT, LAYOUT_IDS, MAISON_LOOKS } from '../shared/layouts';
 
 /** Theme colour tokens a merchant may override. Must stay in sync with the @theme block in src/index.css. */
 export const THEME_TOKENS = [
@@ -110,6 +110,8 @@ export const merchantSchema = z.object({
   catalogueAccess: z.enum(['public', 'login']).default('login'),
   /** The storefront layout the owner picked. A missing or retired one (gilded) reads as the default. */
   layout: z.enum(LAYOUT_IDS).catch(DEFAULT_LAYOUT),
+  /** The colour look of the Maison layout (Store settings). Ignored by Classic. */
+  look: z.enum(MAISON_LOOKS).catch('ivory'),
   orderFlow: z.enum(['direct']).default('direct'),
 
   brand: z.object({

@@ -46,6 +46,8 @@ export const categorySchema = z.object({
   /** Name and line in Hindi (optional; written in Hindi automatically otherwise). */
   nameHi: trimmed(100).optional(),
   subtitleHi: trimmed(200).optional(),
+  /** A few lines about the collection, shown at the top of its page. */
+  story: trimmed(1200).optional(),
   minTargetWt: z.coerce.number().min(0).max(100000).optional(),
   maxTargetWt: z.coerce.number().min(0).max(100000).optional(),
   eligibleKarats: z.array(trimmed(30)).max(10).optional(),
