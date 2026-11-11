@@ -9,7 +9,7 @@ import { AiCreditsCard } from './AiCredits';
 import { errorText } from '../bugReport';
 import { merchant } from '../merchant';
 import { notify } from '../notify';
-import { DEFAULT_LAYOUT, LAYOUTS, type LayoutId } from '../../shared/layouts';
+import { DEFAULT_LAYOUT, LAYOUTS, LOOK_NAMES, MAISON_LOOKS, type LayoutId, type MaisonLook } from '../../shared/layouts';
 
 interface Props {
   summary: AdminSummary;
@@ -27,6 +27,24 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
   const [error, setError] = useState<string | null>(null);
   const [layout, setLayout] = useState<LayoutId>(merchant.layout ?? DEFAULT_LAYOUT);
   const [savingLayout, setSavingLayout] = useState<LayoutId | null>(null);
+  const [look, setLook] = useState<MaisonLook>(merchant.look ?? 'ivory');
+  const [savingLook, setSavingLook] = useState(false);
+  const SWATCH: Record<MaisonLook, [string, string, string]> = { ivory: ['#ffffff', '#1b1b1b', '#f3f1ee'], noir: ['#0d0c0a', '#f3eee4', '#c9a961'], midnight: ['#0f1420', '#ece7dc', '#d6b66a'], garnet: ['#fbf6f3', '#2a1118', '#8c1d3a'] };
+  const pickLook = (id: MaisonLook) => {
+    if (id === look || savingLook) return;
+    setSavingLook(true);
+    setError(null);
+    api
+      .setLook(id)
+      .then(() => {
+        merchant.look = id;
+        window.dispatchEvent(new Event('store-look-changed'));
+        setLook(id);
+        notify(`Buyers now see the ${LOOK_NAMES[id]} look.`);
+      })
+      .catch((e) => setError(errorText(e, 'AdminStoreScreen', 'Could not change the look.')))
+      .finally(() => setSavingLook(false));
+  };
 
   const pickLayout = (id: LayoutId) => {
     if (id === layout || savingLayout) return;
@@ -92,6 +110,20 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
             </button>
           ))}
         </div>
+        {layout === 'maison' && (
+          <>
+            <div className="em-ey" style={{ marginTop: 8 }}>Look</div>
+            <div role="radiogroup" aria-label="Look" data-testid="store-look" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
+              {MAISON_LOOKS.map((id) => (
+                <button key={id} type="button" role="radio" aria-checked={look === id} data-testid={`look-${id}`} disabled={savingLook} onClick={() => pickLook(id)} className="em-card" style={{ padding: 8, textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer', outline: look === id ? '2px solid var(--em-primary)' : undefined, outlineOffset: -2 }}>
+                  <span style={{ display: 'flex', height: 34, border: '1px solid var(--em-line)' }}><i style={{ flex: 2, background: SWATCH[id][0] }} /><i style={{ flex: 1, background: SWATCH[id][1] }} /><i style={{ flex: 1, background: SWATCH[id][2] }} /></span>
+                  <b style={{ display: 'block', fontWeight: 600, marginTop: 6, fontSize: '0.875rem' }}>{LOOK_NAMES[id]}</b>
+                </button>
+              ))}
+            </div>
+            <p className="em-mut" style={{ fontSize: '0.75rem', margin: 0 }}>Noir is black, ivory and champagne gold. Buyers see the look; this console stays light. Use View as a buyer to see it. The PDF catalogue follows it too.</p>
+          </>
+        )}
         <Group title="Alerts">
           <OrderNotificationsToggle row />
         </Group>

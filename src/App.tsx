@@ -34,6 +34,9 @@ import { AdminAboutScreen } from './components/AdminAboutScreen';
 import type { ProfileUser } from './components/ProfileMenu';
 import { AdminPlanScreen } from './components/AdminPlanScreen';
 import { PdfCatalogueScreen } from './components/PdfCatalogueScreen';
+import { AdminRequestsScreen } from './components/AdminRequestsScreen';
+import { ServiceSheets } from './components/ServiceSheets';
+import { SharedSelectionScreen } from './components/SharedSelectionScreen';
 import { AdminAlertsScreen } from './components/AdminAlertsScreen';
 import { AdminMessagesScreen } from './components/AdminMessagesScreen';
 import { AdminInsightsScreen } from './components/AdminInsightsScreen';
@@ -52,7 +55,7 @@ import { OrdersUnavailable } from './components/OrdersUnavailable';
 // The bottom-bar screens (buyer tabs and the admin ones): switching between them fades; going deeper slides forward, coming back slides back.
 const TABS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders', 'admin-hub', 'admin-buyers', 'admin-store'];
 /** Sub-pages opened from Store go back to Store. */
-const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-requests', 'admin-password'];
 
 // The owner's tabs left to right, so the page turn follows what the bar shows.
 const OWNER_ORDER: ActiveScreen[] = ['admin-hub', 'orders', 'catalogue', 'admin-buyers', 'admin-store'];
@@ -138,6 +141,9 @@ export default function App() {
   }, []);
   // A search or a design Home hands to the Catalogue (used once).
   const [handoff, setHandoff] = useState<{ search: string; sku: string | null }>({ search: '', sku: null });
+  const [catalogueRun, setCatalogueRun] = useState(0);
+  // A shared selection opened from its private link (?share=<token>): shown on its own, before any sign-in.
+  const [shareToken, setShareToken] = useState<string | null>(() => { const v = new URLSearchParams(window.location.search).get('share'); return v && /^[a-f0-9]{32}$/.test(v) ? v : null; });
   const [ordersTab, setOrdersTab] = useState<'current' | 'past'>('current');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   // Signed in with a temporary password: the admin must set their own before any other admin screen opens.
@@ -167,6 +173,23 @@ export default function App() {
     const l = Object.assign(document.createElement('link'), { id: 'maison-fonts', rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Jost:wght@400;500;600&display=swap' });
     document.head.appendChild(l);
   }, [layout]);
+  // The store's look (Noir, Midnight, Garnet). The owner's console was drawn for a light ground, so the two dark looks show on buyer pages only:
+  // buyers always, the owner while viewing the store as a buyer. `storeLook` always names the store's look (the PDF's Store theme reads it).
+  const [lookRun, setLookRun] = useState(0);
+  useEffect(() => {
+    const bump = () => setLookRun((n) => n + 1);
+    window.addEventListener('store-look-changed', bump);
+    return () => window.removeEventListener('store-look-changed', bump);
+  }, []);
+  const consoleScreen = isAdminLoggedIn && !['categories', 'about', 'shortlist'].includes(currentScreen);
+  useEffect(() => {
+    const root = document.documentElement;
+    const look = merchant.look ?? 'ivory';
+    root.dataset.storeLook = look;
+    const dark = look === 'noir' || look === 'midnight';
+    if (layout !== 'maison' || look === 'ivory' || (dark && consoleScreen)) delete root.dataset.mxTheme;
+    else root.dataset.mxTheme = look;
+  }, [layout, consoleScreen, lookRun]);
   // Switching between the four tabs fades; going deeper or back slides.
   const lastScreen = useRef<ActiveScreen>(currentScreen);
   const firstKey = useRef<ActiveScreen | null | undefined>(undefined);
@@ -740,8 +763,20 @@ export default function App() {
   const handleOpenDesign = (sku: string) => {
     setCategoryFilter(null);
     setHandoff({ search: '', sku });
+    setCatalogueRun((n) => n + 1); // the Catalogue reads the design to open once, when it mounts
     handleNavigate('catalogue');
   };
+  // "Pairs well with" on a piece asks for another piece by SKU from wherever it is shown.
+  const openDesignRef = useRef(handleOpenDesign);
+  openDesignRef.current = handleOpenDesign;
+  useEffect(() => {
+    const h = (e: Event) => openDesignRef.current(String((e as CustomEvent<string>).detail));
+    window.addEventListener('ax-open-design', h);
+    // "Order again" added lines on the server: read the order back.
+    const reload = () => void api.getOrders().then((result) => setOrders(result.items)).catch(() => {});
+    window.addEventListener('ax-orders-changed', reload);
+    return () => { window.removeEventListener('ax-open-design', h); window.removeEventListener('ax-orders-changed', reload); };
+  }, []);
 
   const rememberReturn = () => setFormReturn(['admin-hub', 'catalogue'].includes(screenRef.current) ? screenRef.current : 'admin-hub');
   const openProductForm = (product: Product | null) => {
@@ -794,7 +829,7 @@ export default function App() {
 
   // Members-only portal: signed-out visitors are sent to login / sign-up, and admin tools need an admin session.
   const memberScreens: ActiveScreen[] = merchant.catalogueAccess === 'login' ? ['catalogue', 'categories', 'orders', 'about'] : ['orders'];
-  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-enquiries', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-store', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+  const adminScreens: ActiveScreen[] = ['admin-hub', 'new-product', 'add-category', 'admin-orders', 'admin-visitors', 'admin-enquiries', 'admin-buyers', 'admin-banners', 'admin-purities', 'admin-store', 'admin-about', 'admin-plan', 'admin-pdf', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-requests', 'admin-password'];
   const buyerOnlyScreens: ActiveScreen[] = ['shortlist'];
   let screen: ActiveScreen = currentScreen;
   // Plan limits: Basic has no ordering or PDF catalogue, so those screens fall back to Home.
@@ -874,6 +909,20 @@ export default function App() {
       </div>
     );
   if (booting || (wantsMaison && !maisonKit)) return <BootSplash />;
+  if (shareToken)
+    return (
+      <div data-layout={layout} data-role="buyer">
+        <SharedSelectionScreen
+          token={shareToken}
+          onOpenStore={() => {
+            const u = new URL(window.location.href);
+            u.searchParams.delete('share');
+            window.history.replaceState(window.history.state, '', u.pathname + u.search);
+            setShareToken(null);
+          }}
+        />
+      </div>
+    );
   // The first screen after loading fades in over the loading screen instead of sliding; later screens slide as usual.
   if (firstKey.current === undefined) firstKey.current = activeScreen;
 
@@ -973,6 +1022,7 @@ export default function App() {
 
         {activeScreen === 'catalogue' && !isAdminLoggedIn && (
           <K.Catalogue
+            key={catalogueRun}
             products={products}
             isAdmin={isAdminLoggedIn}
             categoryFilter={categoryFilter}
@@ -1079,6 +1129,8 @@ export default function App() {
 
         {activeScreen === 'admin-insights' && <AdminInsightsScreen />}
 
+        {activeScreen === 'admin-requests' && <AdminRequestsScreen onChanged={refreshSummary} />}
+
         {activeScreen === 'admin-password' && (
           <AdminChangePasswordScreen
             forced={mustChangePassword}
@@ -1163,6 +1215,7 @@ export default function App() {
         )}
       </main>
 
+      {!isAdminLoggedIn && <ServiceSheets signedIn={Boolean(currentMerchant)} />}
       {sharing && <StoreShareSheet name={merchant.brand.name} url={currentStoreUrl()} onClose={() => setSharing(false)} />}
 
       {/* Bottom Navigation */}

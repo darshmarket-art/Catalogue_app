@@ -10,12 +10,15 @@ import { Catalogue } from './Catalogue';
 import { Shortlist } from './Shortlist';
 import { Orders } from './Orders';
 import { merchant } from '../../merchant';
+import type { MaisonLook } from '../../../shared/layouts';
 import '../../install';
 
 /** Theme toolkit (see the top of maison.css): the store's brand colour becomes the accent token; a preset is one attribute on <html>. */
 const brand = merchant.theme?.colors?.primary;
 if (brand) document.documentElement.style.setProperty('--mx-brand', brand);
-export const setMaisonTheme = (name?: 'ivory' | 'midnight' | 'garnet') => { if (name) document.documentElement.dataset.mxTheme = name; else delete document.documentElement.dataset.mxTheme; };
+export const setMaisonTheme = (name?: MaisonLook) => { if (name && name !== 'ivory') document.documentElement.dataset.mxTheme = name; else delete document.documentElement.dataset.mxTheme; };
+// The owner's chosen look (Store settings).
+setMaisonTheme(merchant.look);
 
 // Maison: black and white, thin display serif, square and full-bleed. Every screen has its own markup; the Catalogue and the design page share
 // their state and server calls with Emergent through useCatalogue and useProductDetail. The buyer's masthead carries the navigation, so buyers have

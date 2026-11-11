@@ -40,6 +40,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
   const waiting: Array<{ key: string; n: number; title: string; note: string; hot: boolean; go: () => void; testId: string }> = [
     ...(flags.orders && summary.newOrders > 0 ? [{ key: 'orders', n: summary.newOrders, title: summary.newOrders === 1 ? 'New order to confirm' : 'New orders to confirm', note: 'Confirm, or call the buyer first', hot: true, go: () => onOpen({ screen: 'orders', filter: 'new' }), testId: 'need-orders' }] : []),
     ...(flags.enquiries && summary.enquiriesWaiting > 0 ? [{ key: 'enq', n: summary.enquiriesWaiting, title: summary.enquiriesWaiting === 1 ? 'WhatsApp enquiry to answer' : 'WhatsApp enquiries to answer', note: 'Reply to the buyer in one tap', hot: true, go: () => onOpen({ screen: 'admin-buyers', segment: 'enquiries' }), testId: 'need-enquiries' }] : []),
+    ...((summary.requestsWaiting ?? 0) > 0 ? [{ key: 'req', n: summary.requestsWaiting!, title: summary.requestsWaiting === 1 ? 'Client request to answer' : 'Client requests to answer', note: 'A private viewing, a bespoke piece or a reserve', hot: true, go: () => onNavigate('admin-requests'), testId: 'need-requests' }] : []),
     ...(summary.messagesFailed > 0 ? [{ key: 'msg', n: summary.messagesFailed, title: summary.messagesFailed === 1 ? 'WhatsApp message failed' : 'WhatsApp messages failed', note: 'Sign-in codes or alerts that did not arrive', hot: false, go: () => onNavigate('admin-messages'), testId: 'need-messages' }] : [])
   ];
 
@@ -54,6 +55,7 @@ export const AdminHubScreen: React.FC<AdminHubScreenProps> = ({ analytics, summa
 
   const tiles: Array<{ icon: string; label: string; note: string; go: () => void; locked?: boolean; testId: string }> = [
     { icon: 'layers', label: 'New collection', note: 'Group designs for buyers', go: () => onNavigate('add-category'), testId: 'tile-new-collection' },
+    { icon: 'clock', label: 'Client requests', note: 'Viewings, bespoke, reserves', go: () => onNavigate('admin-requests'), testId: 'tile-requests' },
     { icon: 'share', label: 'Share store', note: 'Link and QR for buyers', go: onShare, testId: 'tile-share' },
     { icon: 'down', label: 'PDF catalogue', note: flags.pdfCatalogue ? 'Pick · share on WhatsApp' : 'Pro feature', go: () => onNavigate('admin-pdf'), locked: !flags.pdfCatalogue, testId: 'tile-pdf' },
     { icon: 'trend', label: 'Insights', note: flags.insights ? 'Views, orders, buyers' : 'Pro feature', go: () => onNavigate('admin-insights'), locked: !flags.insights, testId: 'tile-insights' }

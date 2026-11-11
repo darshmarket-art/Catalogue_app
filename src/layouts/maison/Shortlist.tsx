@@ -9,6 +9,7 @@ import { Tile } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
 import { getLang, hn, pur, t, tn, ts, useLang } from '../../i18n';
+import { openService, pieceOf } from '../../services';
 
 /**
  * Maison's Shortlist: the hearted designs as the same square tiles as the catalogue, with one summary bar (designs, net total, Order all,
@@ -21,6 +22,17 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
   const [confirmClear, setConfirmClear] = useState(false); // two taps, so one stray tap does not wipe the list
   const [open, setOpen] = useState<Product | null>(null);
   const [cartFor, setCartFor] = useState<Product | null>(null);
+  // Compare: tap two pieces, then they open side by side.
+  const [comparing, setComparing] = useState(false);
+  const [picked, setPicked] = useState<Product[]>([]);
+  const pick = (p: Product) => {
+    const next = picked.some((x) => x.sku === p.sku) ? picked.filter((x) => x.sku !== p.sku) : [...picked, p].slice(-2);
+    if (next.length === 2) {
+      openService({ kind: 'compare', pieces: [next[0], next[1]] });
+      setComparing(false);
+      setPicked([]);
+    } else setPicked(next);
+  };
 
   const items = useMemo(() => shortlist.map((sku) => products.find((p) => p.sku === sku)).filter((p): p is Product => Boolean(p)), [products, shortlist]);
   const totalNet = parseFloat(items.reduce((sum, p) => sum + p.netWt, 0).toFixed(3));
@@ -70,6 +82,13 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
         </button>
       </header>
 
+      <div className="mx-wish-tools" data-testid="selection-tools">
+        <button type="button" className="mx-cta" data-testid="selection-share" onClick={() => openService({ kind: 'share', pieces: items.map(pieceOf) })}>{t('Share as a presentation')}</button>
+        {items.length > 1 && <button type="button" className="mx-cta" data-testid="selection-compare" aria-pressed={comparing} onClick={() => { setComparing(!comparing); setPicked([]); }}>{t(comparing ? 'Cancel compare' : 'Compare two')}</button>}
+        <button type="button" className="mx-cta" data-testid="selection-viewing" onClick={() => openService({ kind: 'viewing', pieces: items.slice(0, 12).map(pieceOf) })}>{t('View these in person')}</button>
+      </div>
+      {comparing && <p className="mx-note mx-center-note" role="status" style={{ paddingTop: 0 }}>{t(picked.length === 0 ? 'Tap two pieces to see them side by side.' : 'Now tap one more piece.')}</p>}
+
       <div className="mx-cat-body">
         <div className="mx-pgrid large">
           {items.map((p, i) => (
@@ -81,7 +100,8 @@ export const Shortlist: React.FC<KitProps<'Shortlist'>> = ({ products, shortlist
               testId="shortlist-item"
               hitTestId="shortlist-open"
               heartLabel={t('Remove {name} from shortlist', { name: hn(p.title, p.titleHi) })}
-              onOpen={(photo) => withTransition(() => setOpen(p), photo)}
+              current={comparing && picked.some((x) => x.sku === p.sku)}
+              onOpen={(photo) => (comparing ? pick(p) : withTransition(() => setOpen(p), photo))}
               onHeart={() => onRemove(p)}
               onAdd={canOrder ? () => setCartFor(p) : undefined}
             />

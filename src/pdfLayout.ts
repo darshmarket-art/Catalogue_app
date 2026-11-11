@@ -105,7 +105,19 @@ export function storePalette(): Palette {
   const fallback = PALETTES.ivory;
   if (typeof document === 'undefined') return fallback;
   try {
-    const root = document.querySelector<HTMLElement>('[data-layout]') ?? document.documentElement;
+    const live = document.querySelector<HTMLElement>('[data-layout]') ?? document.documentElement;
+    // The owner's console stays light on the dark looks, so the store's own look is read from a hidden stand-in that carries it.
+    const look = document.documentElement.dataset.storeLook;
+    let standIn: HTMLElement | null = null;
+    if (live.dataset.layout === 'maison' && look && look !== 'ivory' && document.documentElement.dataset.mxTheme !== look) {
+      standIn = document.createElement('div');
+      standIn.dataset.layout = 'maison';
+      standIn.dataset.role = 'buyer';
+      standIn.dataset.mxTheme = look;
+      standIn.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;width:0;height:0;overflow:hidden';
+      document.body.appendChild(standIn);
+    }
+    const root = standIn ?? live;
     const cs = getComputedStyle(root);
     const probe = document.createElement('i');
     probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none';
@@ -125,6 +137,7 @@ export function storePalette(): Palette {
       ? { g: read('--mx-ground'), s: read('--mx-surface'), i: read('--mx-ink'), m: read('--mx-muted'), h: read('--mx-hair'), a: read('--mx-accent'), dp: read('--mx-deep'), dpf: read('--mx-deep-fg'), tile: read('--mx-tile'), gold: read('--mx-accent') }
       : { g: read('--em-card'), s: read('--em-bg'), i: read('--em-ink'), m: read('--em-mut'), h: read('--em-line'), a: read('--em-primary'), dp: read('--em-deep'), dpf: read('--em-on-primary'), tile: read('--em-tint'), gold: read('--em-gold') };
     probe.remove();
+    standIn?.remove();
     const p: Palette = {
       g: t.g ?? fallback.g, s: t.s ?? fallback.s, i: t.i ?? fallback.i, m: t.m ?? fallback.m, h: t.h ?? fallback.h, a: t.a ?? fallback.a,
       dp: t.dp ?? fallback.dp, dpf: t.dpf ?? fallback.dpf, tile: t.tile ?? fallback.tile

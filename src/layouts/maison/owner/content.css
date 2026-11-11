@@ -54,7 +54,7 @@
 
   /* ---------- chips, tags, notes, cards ---------- */
   & .chip { min-height: 40px; padding: 0 16px; border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); font-family: var(--mx-sans); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; }
-  & .chip.on { background: var(--mx-ink); border-color: var(--mx-ink); color: #fff; }
+  & .chip.on { background: var(--mx-ink); border-color: var(--mx-ink); color: var(--mx-ground); }
   & :is(.tag, .pro) { border: 1px solid var(--mx-line); background: transparent; color: var(--mx-ink); font-size: 0.625rem; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; padding: 3px 8px; }
   & :is(.tag.over, .tag.gold) { background: #fff; }
   & .tag.bad { color: #8a2b22; border-color: #8a2b22; }

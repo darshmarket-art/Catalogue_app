@@ -9,9 +9,9 @@ import { t, ts, useLang } from '../../i18n';
 
 // The owner's four tabs (plus Store, and the buyer pages they preview) carry the brand and profile bar; everything else is a sub-page with a back button.
 const ADMIN_TAB_SCREENS: ActiveScreen[] = ['admin-hub', 'orders', 'catalogue', 'admin-buyers', 'admin-store', 'categories'];
-const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+const ADMIN_SUB_SCREENS: ActiveScreen[] = ['new-product', 'add-category', 'admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-requests', 'admin-password'];
 /** Sub-pages opened from Store go back to Store. */
-const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-requests', 'admin-password'];
 const TAB_SCREENS: ActiveScreen[] = ['categories', 'catalogue', 'shortlist', 'orders'];
 
 const TITLES: Partial<Record<ActiveScreen, string>> = {
@@ -30,6 +30,7 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-alerts': 'WA Lighthouse',
   'admin-messages': 'Message log',
   'admin-insights': 'Insights',
+  'admin-requests': 'Client requests',
   'admin-password': 'Change password',
   about: 'About us',
 };

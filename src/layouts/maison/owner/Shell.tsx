@@ -14,7 +14,7 @@ import './maison-owner.css';
 /** Screens an owner sees that are buyer pages (View as a buyer): the bar says so and goes back to Store. */
 const PREVIEW: ActiveScreen[] = ['categories', 'about', 'shortlist'];
 const TAB_SCREENS: ActiveScreen[] = ['admin-hub', 'orders', 'catalogue', 'admin-buyers', 'admin-store'];
-const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-password'];
+const STORE_CHILDREN: ActiveScreen[] = ['admin-about', 'admin-plan', 'admin-alerts', 'admin-messages', 'admin-insights', 'admin-requests', 'admin-password'];
 const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-hub': 'Today',
   orders: 'Orders',
@@ -27,6 +27,7 @@ const TITLES: Partial<Record<ActiveScreen, string>> = {
   'admin-alerts': 'WA Lighthouse',
   'admin-messages': 'Message log',
   'admin-insights': 'Insights',
+  'admin-requests': 'Client requests',
   'admin-password': 'Change password'
 };
 

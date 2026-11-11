@@ -5,6 +5,7 @@ import { merchant } from '../../merchant';
 import { PoweredByAntarixs } from '../../components/AntarixsBrand';
 import { LegalLinks } from '../../components/LegalLinks';
 import { Reveal } from '../../components/Reveal';
+import { openService } from '../../services';
 import { Icon, Ph, type KitProps } from '../emergent/ui';
 import { CollectionsBrowser } from '../emergent/CollectionsBrowser';
 import { recentSkus } from '../../recent';
@@ -248,6 +249,15 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
           </Reveal>
         </section>
       ))}
+
+      <section className="mx-serv" data-testid="mx-services">
+        <Reveal><span className="mx-ey">{t('At your service')}</span><h2 className="mx-serv-h">{t('The house, on your terms')}</h2></Reveal>
+        <div className="mx-serv-rows">
+          <Reveal><button type="button" data-testid="home-viewing" onClick={() => openService({ kind: 'viewing' })}><Icon n="clock" size={20} /><span><b>{t('Private viewing')}</b><small>{t('In the boutique or on a video call, with your pieces laid out.')}</small></span><Icon n="next" size={16} /></button></Reveal>
+          <Reveal delay={90}><button type="button" data-testid="home-bespoke" onClick={() => openService({ kind: 'bespoke' })}><Icon n="edit" size={20} /><span><b>{t('Bespoke atelier')}</b><small>{t('Tell us what you have in mind. The atelier answers with a sketch.')}</small></span><Icon n="next" size={16} /></button></Reveal>
+          <Reveal delay={180}><button type="button" data-testid="home-care" onClick={() => openService({ kind: 'care' })}><Icon n="shield" size={20} /><span><b>{t('Size guide and care')}</b><small>{t('Ring and bangle sizes, cleaning, resizing and repair.')}</small></span><Icon n="next" size={16} /></button></Reveal>
+        </div>
+      </section>
 
       {viewed.length > 0 && (
         <section className="mx-sec" data-testid="recently-viewed">

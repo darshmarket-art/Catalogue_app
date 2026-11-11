@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Category, Product, Purity } from '../../types';
 import { merchant } from '../../merchant';
 import { sector } from '../../sector';
@@ -11,7 +11,9 @@ import { CartSheet } from './CartSheet';
 import { fmtG2 } from './ui';
 import { useDesktop } from '../emergent/useDesktop';
 import { getLang, hn, pur, t, tl, ts } from '../../i18n';
-import { SIZES_FULL, SIZES_THUMB } from '../../photoSrcSet';
+import { SIZES_FULL, SIZES_THUMB, SIZES_GRID } from '../../photoSrcSet';
+import { openService, pieceOf } from '../../services';
+import { RESERVE_HOURS } from '../../../shared/requests';
 
 interface Props extends Behaviour {
   purities: Purity[];
@@ -22,6 +24,35 @@ interface Props extends Behaviour {
   onAddToOrder: (product: Product, quantity: number, purity?: string) => void;
 }
 
+/** "Complete the set": the pieces the owner paired with this one. Tapping one opens it. */
+const Pairs: React.FC<{ skus: string[] }> = ({ skus }) => {
+  const [items, setItems] = useState<Product[]>([]);
+  const key = skus.join(',');
+  useEffect(() => {
+    let live = true;
+    setItems([]);
+    if (skus.length) api.getProductsBySku(skus).then((list) => live && setItems(skus.map((s) => list.find((p) => p.sku === s)).filter((p): p is Product => Boolean(p)))).catch(() => {});
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  if (items.length === 0) return null;
+  return (
+    <section className="mx-pairs" data-testid="piece-pairs">
+      <span className="mx-ey">{t('Complete the set')}</span>
+      <h2 className="mx-pairs-h">{t('Pairs well with')}</h2>
+      <div className="mx-pairs-row">
+        {items.map((p, i) => (
+          <button key={p.sku} type="button" className="mx-pair" data-testid="pair-open" onClick={() => window.dispatchEvent(new CustomEvent('ax-open-design', { detail: p.sku }))}>
+            <span className="mx-pair-im"><Ph src={p.image} tone={i} className="mx-fill" sizes={SIZES_GRID} alt="" /></span>
+            <span className="mx-pt">{hn(p.title, p.titleHi)}</span>
+            <span className="mx-ey">{fmtG2(p.netWt)}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 /**
  * Maison's design page: a page under the masthead, not a sheet. Desktop: breadcrumb, a thumbnail rail, one large photo on a soft ground and a
  * narrow info column that stays in view while the page scrolls. Phones: a full-width gallery with dots, the details, and the actions
@@ -30,6 +61,7 @@ interface Props extends Behaviour {
 export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, categories, hearted, onToggleShortlist, onClose, onEdit, onAddToOrder, position, onStep }) => {
   const desk = useDesktop();
   const { canOrder, slide, setSlide, cartOpen, setCartOpen, zoomFrom, setZoomFrom, scroller, closeRef, pageRef, canStep, step } = useProductDetail({ product, isAdmin, onClose, position, onStep });
+  const [certOpen, setCertOpen] = useState(false);
   if (!product) return null;
   const slides = product.images.length ? product.images : [product.image ?? ''];
   const name = hn(product.title, product.titleHi);
@@ -66,6 +98,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
   return (
     <div className="mx-pd" role="dialog" aria-modal="true" aria-label={name}>
       {zoomFrom !== null && <PhotoViewer images={slides} start={zoomFrom} title={name} onClose={() => setZoomFrom(null)} />}
+      {certOpen && product.certificate && <PhotoViewer images={[product.certificate]} start={0} title={t('Certificate')} onClose={() => setCertOpen(false)} />}
       <div ref={pageRef} className="mx-pd-scroll em-pd-swipe" onScroll={trackStack}>
         <nav className="mx-crumbs" aria-label="Breadcrumb">
           <button ref={closeRef} type="button" className="mx-back" aria-label={t('Close')} onClick={onClose}>
@@ -143,10 +176,35 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
                 ))}
               </dl>
             </details>
+            {product.story && (
+              <details className="mx-acc" data-testid="piece-story">
+                <summary>{t('The story of the piece')}</summary>
+                <p className="mx-pd-desc" style={{ whiteSpace: 'pre-line' }}>{product.story}</p>
+              </details>
+            )}
+            {product.certificate && (
+              <details className="mx-acc" data-testid="piece-certificate">
+                <summary>{t('Certificate')}</summary>
+                <button type="button" className="mx-cert" onClick={() => setCertOpen(true)} aria-label={t('Open the certificate')}>
+                  <img src={product.certificate} alt="" loading="lazy" />
+                  <span className="mx-cta">{t('Open the certificate')}</span>
+                </button>
+              </details>
+            )}
+            {!isAdmin && (
+              <div className="mx-services" data-testid="piece-services">
+                <button type="button" data-testid="svc-viewing" onClick={() => openService({ kind: 'viewing', pieces: [pieceOf(product)] })}><Icon n="clock" size={16} /><span>{t('Book a private viewing')}</span><Icon n="next" size={14} /></button>
+                <button type="button" data-testid="svc-reserve" onClick={() => openService({ kind: 'reserve', piece: pieceOf(product) })}><Icon n="lock" size={16} /><span>{t('Reserve for {n} hours', { n: RESERVE_HOURS })}</span><Icon n="next" size={14} /></button>
+                <button type="button" data-testid="svc-hint" onClick={() => openService({ kind: 'share', pieces: [pieceOf(product)], hint: true })}><Icon n="share" size={16} /><span>{t('Drop a hint')}</span><Icon n="next" size={14} /></button>
+                <button type="button" data-testid="svc-sizes" onClick={() => openService({ kind: 'sizes' })}><Icon n="grid" size={16} /><span>{t('Size guide')}</span><Icon n="next" size={14} /></button>
+                <button type="button" data-testid="svc-care" onClick={() => openService({ kind: 'care' })}><Icon n="shield" size={16} /><span>{t('Care and service')}</span><Icon n="next" size={14} /></button>
+              </div>
+            )}
             <p className="mx-note mx-guar"><Icon n="shield" size={14} />{guarantee}</p>
             <span className="mx-ey mx-zoomhint">{t('Tap a photo to zoom')}</span>
           </div>
         </div>
+        {product.pairs?.length ? <Pairs skus={product.pairs} /> : null}
       </div>
 
       <div className="mx-pd-bar">

@@ -22,6 +22,7 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { noteApiCall } from './bugReport';
 import type { StoneSpec } from '../shared/stoneSpec';
+import type { ClientRequest, RequestStatus, SharedSelection } from '../shared/requests';
 import type { AiCreditsInfo, ModelShotResult, RenderResult, RenderStatus } from './aiRender';
 
 // Build-time API origin for native builds (e.g. https://app.example.com); empty on web = same origin.
@@ -382,6 +383,31 @@ export const api = {
   /** English to Hindi (Google Translate on the server), in the same order. */
   async translateHindi(texts: string[]): Promise<string[]> {
     return (await post('/api/v1/about/hindi', { texts })).data.texts;
+  },
+
+  /** Owner picks the colour look of the Maison layout. */
+  async setLook(look: string): Promise<string> {
+    return (await request('/api/v1/admin/look', { method: 'PUT', body: JSON.stringify({ look }) })).data.look;
+  },
+  /** A private viewing, a bespoke request or a 48-hour reserve. Visitors of a public store send their name and phone with it. */
+  async sendRequest(body: Record<string, unknown>): Promise<{ id: string; status: string; expiresAt?: string }> {
+    return (await post('/api/v1/requests', body)).data;
+  },
+  async myRequests(): Promise<ClientRequest[]> {
+    return (await request('/api/v1/requests/mine')).data;
+  },
+  async adminRequests(): Promise<ClientRequest[]> {
+    return (await request('/api/v1/admin/requests')).data;
+  },
+  async setRequestStatus(id: string, status: RequestStatus, adminNote?: string): Promise<ClientRequest> {
+    return (await request(`/api/v1/admin/requests/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status, ...(adminNote !== undefined ? { adminNote } : {}) }) })).data;
+  },
+  /** Turns pieces into one private link that opens without sign-in for 14 days. */
+  async createShare(skus: string[], note: string, showWeights: boolean): Promise<{ token: string; expiresAt: string }> {
+    return (await post('/api/v1/shares', { skus, note, showWeights })).data;
+  },
+  async getShare(token: string): Promise<SharedSelection> {
+    return (await request(`/api/v1/shares/${encodeURIComponent(token)}`)).data;
   },
 
   /** Owner picks the storefront layout ('emergent' or 'maison'). */

@@ -34,6 +34,12 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
   const [huid, setHuid] = useState(editing?.huid ?? '');
   const [stockStatus, setStockStatus] = useState(editing?.stockStatus ?? sector.stockStatuses[0].key);
   const [description, setDescription] = useState(editing?.description ?? '');
+  const [story, setStory] = useState(editing?.story ?? '');
+  const [pairs, setPairs] = useState<string[]>(editing?.pairs ?? []);
+  const [pairDraft, setPairDraft] = useState('');
+  const [pairMsg, setPairMsg] = useState<string | null>(null);
+  const [certificate, setCertificate] = useState<string | null>(editing?.certificate ?? null);
+  const [certBusy, setCertBusy] = useState(false);
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? editing.images.map((url) => ({ ref: url, url })) : []);
   const [extra, setExtra] = useState<Record<string, string>>(Object.fromEntries(Object.entries(editing?.extra ?? {}).map(([k, v]) => [k, String(v)])));
   const [uploading, setUploading] = useState(false);
@@ -82,6 +88,9 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
         stoneWt: stone,
         ...(huid.trim() ? { huid: huid.trim() } : {}),
         ...(description.trim() ? { description: description.trim() } : {}),
+        ...(story.trim() ? { story: story.trim() } : {}),
+        ...(pairs.length ? { pairs } : {}),
+        ...(certificate ? { certificate } : {}),
         stockStatus,
         images: photos.map((p) => p.ref),
         extra: extraOut
@@ -94,6 +103,29 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
     } else {
       setIsSaving(false);
     }
+  };
+
+  const addPair = async () => {
+    const s = pairDraft.trim();
+    if (!s || pairs.includes(s)) return void setPairDraft('');
+    if (s === (sku.trim() || editing?.sku)) return void setPairMsg('A piece cannot pair with itself.');
+    try {
+      const found = await api.getProductsBySku([s]);
+      if (!found.some((p) => p.sku === s)) return void setPairMsg(`No piece has the SKU "${s}".`);
+      setPairs([...pairs, s]);
+      setPairDraft('');
+    } catch (e) {
+      setPairMsg(errorText(e, 'NewProductScreen pair', 'Could not check that SKU.'));
+    }
+  };
+  const uploadCert = async (file: File) => {
+    setCertBusy(true);
+    try {
+      setCertificate((await api.uploadPhoto(file)).url);
+    } catch (e) {
+      setPairMsg(errorText(e, 'NewProductScreen certificate', 'The certificate could not be uploaded.'));
+    }
+    setCertBusy(false);
   };
 
   const handleDelete = async () => {
@@ -193,6 +225,40 @@ export const NewProductScreen: React.FC<NewProductScreenProps> = ({ categories, 
       <Field label="Description (optional)" htmlFor="np-desc" hint="Searchable: a few words on the motif, finish or occasion help buyers find it.">
         <textarea id="np-desc" data-testid="np-description" className="inp" style={{ minHeight: 84, padding: '12px 15px', alignItems: 'flex-start', resize: 'vertical' }} maxLength={600} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Antique temple work with a matte finish, bridal set" />
       </Field>
+
+      <Field label="The story of the piece (optional)" htmlFor="np-story" hint="Shown on the piece's page under its details: where the idea came from, how it is made.">
+        <textarea id="np-story" data-testid="np-story" className="inp" style={{ minHeight: 84, padding: '12px 15px', resize: 'vertical' }} maxLength={1200} value={story} onChange={(e) => setStory(e.target.value)} />
+      </Field>
+
+      <div>
+        <span className="lab">Pairs well with (optional)</span>
+        <div className="em-row" style={{ gap: 8 }}>
+          <input className="inp" style={{ minHeight: 48, flex: 1 }} aria-label="SKU of a piece that pairs well" data-testid="np-pair-input" value={pairDraft} onChange={(e) => { setPairDraft(e.target.value); setPairMsg(null); }} placeholder="SKU of the matching earrings, ring…" />
+          <button type="button" className="em-btn sec" data-testid="np-pair-add" style={{ minHeight: 48 }} disabled={!pairDraft.trim() || pairs.length >= 6} onClick={() => void addPair()}>Add</button>
+        </div>
+        {pairMsg && <p className="hint" role="alert" style={{ margin: '6px 0 0', color: 'var(--em-bad, #b5472b)' }}>{pairMsg}</p>}
+        {pairs.length > 0 && (
+          <div className="em-row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 8 }} data-testid="np-pairs">
+            {pairs.map((s) => (
+              <span key={s} className="tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{s}<button type="button" className="lnk" style={{ minHeight: 32 }} aria-label={`Remove ${s}`} onClick={() => setPairs(pairs.filter((x) => x !== s))}>×</button></span>
+            ))}
+          </div>
+        )}
+        <p className="hint" style={{ margin: '6px 0 0' }}>Up to six pieces that belong with this one. Buyers see them as "Complete the set".</p>
+      </div>
+
+      <div>
+        <span className="lab">Certificate (optional)</span>
+        <div className="em-row" style={{ gap: 12, alignItems: 'center' }}>
+          {certificate && <img src={certificate} alt="Certificate" style={{ width: 56, height: 72, objectFit: 'cover', border: '1px solid var(--em-line, #dedbd6)' }} data-testid="np-cert-thumb" />}
+          <label className="em-btn sec" style={{ minHeight: 44, padding: '8px 16px', fontSize: '0.875rem', cursor: certBusy ? 'wait' : 'pointer' }}>
+            {certBusy ? 'Uploading…' : certificate ? 'Replace' : 'Upload a photo of the certificate'}
+            <input type="file" accept="image/png,image/jpeg,image/webp" data-testid="np-cert-input" disabled={certBusy} style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void uploadCert(f); }} />
+          </label>
+          {certificate && <button type="button" className="lnk" onClick={() => setCertificate(null)}>Remove</button>}
+        </div>
+        <p className="hint" style={{ margin: '6px 0 0' }}>Hallmark card or stone report. Buyers open it from the piece.</p>
+      </div>
 
 
       <Field label={editing ? 'SKU' : 'SKU (optional)'} htmlFor="np-sku">

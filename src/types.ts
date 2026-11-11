@@ -17,6 +17,10 @@ export interface Product {
   leadDays?: number;
   huid?: string;
   description?: string;
+  /** A few lines about the piece; SKUs that belong with it; a private link to its certificate photo. */
+  story?: string;
+  pairs?: string[];
+  certificate?: string;
   /** Hindi name and description (optional; the name is shown in automatic Hindi otherwise). */
   titleHi?: string;
   descriptionHi?: string;
@@ -42,6 +46,8 @@ export interface Category {
   subtitle: string;
   nameHi?: string;
   subtitleHi?: string;
+  /** A few lines about the collection, shown at the top of its page. */
+  story?: string;
   designCount: number;
   avgNetWt: string;
   image: string;
@@ -174,6 +180,8 @@ export interface AdminSummary {
   newOrders: number;
   enquiriesWaiting: number;
   messagesFailed: number;
+  /** Private viewings, bespoke requests and reserves nobody has answered yet. */
+  requestsWaiting?: number;
 }
 
 export interface BuyerRow {
@@ -227,5 +235,6 @@ export type ActiveScreen =
   | 'admin-alerts'
   | 'admin-messages'
   | 'admin-insights'
+  | 'admin-requests'
   | 'admin-password'
   | 'plans';

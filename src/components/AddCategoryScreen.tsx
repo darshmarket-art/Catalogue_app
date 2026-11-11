@@ -44,6 +44,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
     }
   };
   const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');
+  const [story, setStory] = useState(editing?.story ?? '');
   const [nameHi, setNameHi] = useState(editing?.nameHi ?? '');
   const [photos, setPhotos] = useState<PhotoItem[]>(editing ? [{ ref: editing.image, url: editing.image }] : []);
   const [uploading, setUploading] = useState(false);
@@ -79,6 +80,7 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
         name: name.trim(),
         tag,
         ...(subtitle.trim() ? { subtitle: subtitle.trim() } : {}),
+        ...(story.trim() ? { story: story.trim() } : {}),
         ...(nameHi.trim() ? { nameHi: nameHi.trim() } : {}),
         image: photos[0].ref,
         ...(Number.isFinite(min) ? { minTargetWt: min } : {}),
@@ -201,6 +203,10 @@ export const AddCategoryScreen: React.FC<AddCategoryScreenProps> = ({ purityOpti
 
       <Field label="Short description (optional)" htmlFor="ac-sub">
         <input id="ac-sub" className="inp" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Nakshi work, Mayur motifs" />
+      </Field>
+
+      <Field label="The story of the collection (optional)" htmlFor="ac-story" hint="A few lines shown at the top of the collection's page.">
+        <textarea id="ac-story" data-testid="ac-story" className="inp" style={{ minHeight: 84, padding: '12px 15px', resize: 'vertical' }} maxLength={1200} value={story} onChange={(e) => setStory(e.target.value)} />
       </Field>
 
       <div className="grid2">

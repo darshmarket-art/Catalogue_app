@@ -57,6 +57,7 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
           <h1 className="mx-h2" data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : narrowed ? current : t('All designs')}</h1>
           {searchQuery ? <button type="button" aria-label={t('Clear search')} className="mx-x" onClick={() => setSearchQuery('')}><Icon n="x" size={16} /></button>
             : col && hn(col.subtitle, col.subtitleHi) ? <p className="mx-note">{hn(col.subtitle, col.subtitleHi)}</p> : null}
+          {!searchQuery && col?.story && <p className="mx-col-story" data-testid="collection-story">{col.story}</p>}
         </div>
       )}
       {!desk && (

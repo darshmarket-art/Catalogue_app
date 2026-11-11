@@ -29,6 +29,22 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [status, setStatus] = useState<'all' | OrderStatus>('all');
+  const [again, setAgain] = useState<{ poId: string; state: 'busy' | 'done' | 'part' } | null>(null);
+
+  // Order again: every line of a past order goes into the current order (designs no longer in the catalogue are skipped).
+  const orderAgain = async (order: PastOrder) => {
+    setAgain({ poId: order.poId, state: 'busy' });
+    let missed = 0;
+    for (const line of order.items) {
+      try {
+        await api.addOrderItem({ sku: line.sku, batchQty: line.batchQty, purity: line.purity });
+      } catch {
+        missed++;
+      }
+    }
+    window.dispatchEvent(new Event('ax-orders-changed'));
+    setAgain({ poId: order.poId, state: missed ? 'part' : 'done' });
+  };
 
   const cancel = async (poId: string) => {
     if (confirming !== poId) {
@@ -104,6 +120,11 @@ const PastOrders: React.FC<{ orders: PastOrder[] | null; onCancel: (poId: string
                 ) : (
                   <button type="button" className="mx-btn sec sm" disabled={busy === order.poId} onClick={() => cancel(order.poId)}>
                     {t(busy === order.poId ? 'Cancelling…' : confirming === order.poId ? 'Tap again to cancel' : 'Cancel order')}
+                  </button>
+                )}
+                {order.status !== 'new' && (
+                  <button type="button" className="mx-cta" data-testid="order-again" disabled={again?.poId === order.poId && again.state === 'busy'} onClick={() => void orderAgain(order)}>
+                    {again?.poId === order.poId ? t(again.state === 'busy' ? 'Adding…' : again.state === 'done' ? 'Added to your order' : 'Added what is still available') : t('Order again')}
                   </button>
                 )}
                 <span className="mx-po-t"><span className="mx-ey">{t('Net total')}</span> {fmtG(order.totalNetGrams)}</span>
