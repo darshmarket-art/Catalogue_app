@@ -5,6 +5,7 @@ import { Ph } from '../emergent/ui';
 import { hn, t, tn, ts } from '../../i18n';
 import { SIZES_FULL } from '../../photoSrcSet';
 import { Card } from './ui';
+import { withTransition } from '../../viewTransition';
 import { useImmersive } from './look';
 
 /*
@@ -51,7 +52,7 @@ export const TagPage: React.FC<{ tag: string; cols: Category[]; cover?: string; 
   // would otherwise close the layer it had just opened.
   const [armed, setArmed] = useState(false);
   useEffect(() => { const id = setTimeout(() => setArmed(true)); return () => clearTimeout(id); }, []);
-  useBackLayer(armed, () => setOpenTag(null));
+  useBackLayer(armed, () => withTransition(() => setOpenTag(null)));
   const ban = useRef<HTMLDivElement>(null);
   const name = ts(tag);
   const count = tn(cols.length, '{n} collection', '{n} collections');
@@ -59,7 +60,7 @@ export const TagPage: React.FC<{ tag: string; cols: Category[]; cover?: string; 
   return (
     <div className={`mx-tagp${im ? ' mx-im' : ''}`} data-testid="mx-tag-page">
       <div className="mx-tagp-ban" data-mx-float="" ref={ban}>
-        <Ph src={cover} className="mx-fill" sizes={SIZES_FULL} priority eager alt="" style={{ viewTransitionName: 'product-photo' } as React.CSSProperties} />
+        <Ph src={cover} className="mx-fill" sizes={SIZES_FULL} priority eager alt="" style={im ? undefined : ({ viewTransitionName: 'product-photo' } as React.CSSProperties)} />
       </div>
       <div className="mx-tagp-intro">
         <nav className="mx-trail" aria-label="Breadcrumb">

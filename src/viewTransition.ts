@@ -10,7 +10,15 @@ export function withTransition(update: () => void, source?: Element | null) {
   if (!doc.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return update();
   const el = source as HTMLElement | null | undefined;
   if (el) el.style.setProperty('view-transition-name', 'product-photo');
-  const t = doc.startViewTransition(() => flushSync(update));
+  const t = doc.startViewTransition(() => {
+    // The old screen has been captured with the source named. It must not keep the name into the new screen: the tile stays in the page under
+    // the design page, whose photo carries the same name, and two elements with one name make the browser skip the whole transition.
+    el?.style.removeProperty('view-transition-name');
+    flushSync(update);
+    // The new screen's own fade-in (and the design page's) would run inside the transition's fade, so the page dipped twice and the old one
+    // showed through for half a second: the transition is the only animation.
+    document.querySelectorAll<HTMLElement>('[data-layout="maison"] main, [data-layout="maison"] .mx-pd').forEach((el) => el.style.setProperty('animation', 'none'));
+  });
   // An aborted transition (tab switched mid-flight, hidden page) rejects these promises: that is fine, the update already ran.
   void t.ready.catch(() => {});
   void t.updateCallbackDone.catch(() => {});

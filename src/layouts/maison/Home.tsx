@@ -138,7 +138,8 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     const only = im ? groups.find(([g]) => g === tag)?.[1] : undefined;
     if (only?.length === 1) return openCollection(only[0].name);
     homeY.current = window.scrollY;
-    withTransition(() => { setOpenTag(tag); window.scrollTo(0, 0); }, photo);
+    // Noir: the card is a tall photograph and the page's banner is not the same shape, so it is not flown across (it stretched on the way)
+    withTransition(() => { setOpenTag(tag); window.scrollTo(0, 0); }, im ? null : photo);
   };
 
   const heroes = useMemo(() => {

@@ -120,6 +120,9 @@
   & .mx-booked .mx-bag-act .mx-btn { min-height: 52px; }
   & .mx-booked .mx-bag-act .mx-btn.lt:not(.sec) { background: var(--mx-deep-fg); color: var(--mx-deep); }
   & .mx-booked .mx-bag-act .mx-cta { align-self: center; margin-top: 10px; color: color-mix(in srgb, var(--mx-deep-fg) 78%, transparent); }
+  /* while the moment plays, the same words on the page underneath stay unseen (they showed for a split second before the moment drew them
+     again); they come back as the moment starts to fade, or at once when it is skipped */
+  & .mx-booked.playing > .mx-pl-body { animation: mx-pl-hold 2.3s steps(1, end) both; }
   & .mx-booked.playing > .mx-bag-act { opacity: 0; }
   & .mx-booked:not(.playing) > .mx-bag-act { animation: mx-rise-in 0.7s var(--mx-ease) both; }
 }
@@ -133,6 +136,7 @@
 [data-layout="maison"] .mx-pl .mx-pl-body > :is(.mx-ey, .mx-display) { animation: mx-pl-rise 0.6s var(--mx-ease) 1.05s backwards; }
 [data-layout="maison"] .mx-pl .mx-pl-body > .mx-lede { animation: mx-pl-rise 0.6s var(--mx-ease) 1.2s backwards; }
 [data-layout="maison"] .mx-pl .mx-pl-th { animation: mx-pl-pop 0.5s var(--mx-ease) calc(1.35s + var(--i, 0) * 80ms) backwards; }
+@keyframes mx-pl-hold { from { visibility: hidden; } to { visibility: visible; } }
 @keyframes mx-pl-draw { to { stroke-dashoffset: 0; } }
 @keyframes mx-pl-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes mx-pl-pop { from { opacity: 0; transform: translateY(10px) scale(0.92); } to { opacity: 1; transform: none; } }
@@ -269,9 +273,11 @@
     & .mx-cat.mx-im .mx-pgrid { gap: 2px; }
     & .mx-cat.mx-im .mx-ptile { background: var(--mx-ground); }
     & .mx-cat.mx-im .mx-ptile .mx-cta { display: none; }
-    & .mx-cat.mx-im .mx-qadd { position: absolute; right: 8px; bottom: 8px; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid color-mix(in srgb, var(--mx-ink) 34%, transparent); background: color-mix(in srgb, var(--mx-ground) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: var(--mx-ink); cursor: pointer; }
+    & .mx-cat.mx-im .mx-qadd { position: absolute; right: 8px; bottom: 8px; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid color-mix(in srgb, var(--mx-ink) 34%, transparent); background: color-mix(in srgb, var(--mx-ground) 86%, transparent); color: var(--mx-ink); cursor: pointer; }
     & .mx-cat.mx-im .mx-qadd:active { background: var(--mx-ink); color: var(--mx-ground); }
     & .mx-cat.mx-im .mx-pbody { padding: 12px 12px 22px; }
+    /* tiles come in with a short rise, opacity and a few pixels only (the 3D entrance of the other looks ran for over a second on every open) */
+    & .mx-cat.mx-im .mx-pgrid .mx-ptile:nth-child(-n+10) { animation: mx-tile-rise 0.42s var(--mx-ease) calc(var(--i, 0) * 35ms) backwards; }
     & .mx-cat.mx-im .mx-pt { font-weight: 400; }
   }
 }
@@ -285,3 +291,13 @@ html[data-mx-theme="noir"] [data-layout="maison"][data-role="buyer"] :is(.mx-pd-
   [data-layout="maison"] .mx-hero.im .mx-hero-dots button.on > i::after { animation: none; transform: none; }
   [data-layout="maison"] .mx-idx-cols { animation: none; }
 }
+
+/* ============ 6. Screen changes: fade through, never a double exposure ============
+ * A change run as a View Transition used to cross-dissolve the old page over the new one, so for a moment both layouts were on screen at once,
+ * and the new page then faded in a second time. Now the old page fades out first and the new one fades in after it; only opacity moves. The
+ * tapped design's photo still flies to the design page (the product-photo group in maison.css). */
+html:has([data-layout="maison"])::view-transition-old(root) { animation: mx-vt-out 0.13s ease-in both; mix-blend-mode: normal; }
+html:has([data-layout="maison"])::view-transition-new(root) { animation: mx-vt-in 0.24s ease-out 0.09s both; mix-blend-mode: normal; }
+@keyframes mx-vt-out { to { opacity: 0; } }
+@keyframes mx-vt-in { from { opacity: 0; } }
+@keyframes mx-tile-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
