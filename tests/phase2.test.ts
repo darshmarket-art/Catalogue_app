@@ -757,6 +757,26 @@ describe('store logo and map pin (About us)', () => {
     expect((await request(app).get('/api/config')).body.data.brand.logoUrl).toBe(up.body.data.logoUrl);
   });
 
+  it('the Welcome photo: an admin uploads it, it is served publicly as a JPEG, the store config points at it, and it can be removed', async () => {
+    const sharp = (await import('sharp')).default;
+    const app = await build();
+    const auth = await admin(app);
+    const png = await sharp({ create: { width: 3000, height: 2000, channels: 4, background: { r: 170, g: 119, b: 51, alpha: 0.5 } } }).png().toBuffer();
+    expect((await request(app).put('/api/admin/brand/cover').set('Content-Type', 'image/png').send(png)).status).toBe(401);
+    expect((await request(app).put('/api/admin/brand/cover').set(auth).set('Content-Type', 'image/png').send(Buffer.from('not an image'))).status).toBe(415);
+    expect((await request(app).get('/brand/cover')).status).toBe(404);
+    const up = await request(app).put('/api/admin/brand/cover').set(auth).set('Content-Type', 'image/png').send(png);
+    expect(up.status).toBe(200);
+    expect(up.body.data.cover).toMatch(/^\/brand\/cover\?v=\d+$/);
+    const img = await request(app).get('/brand/cover');
+    expect(img.headers['content-type']).toBe('image/jpeg');
+    expect((await sharp(img.body).metadata()).width).toBe(1800);
+    expect((await request(app).get('/api/config')).body.data.welcome.cover).toBe(up.body.data.cover);
+    expect((await request(app).delete('/api/admin/brand/cover')).status).toBe(401);
+    expect((await request(app).delete('/api/admin/brand/cover').set(auth)).status).toBe(200);
+    expect((await request(app).get('/api/config')).body.data.welcome.cover).toBeUndefined();
+  });
+
   it('the About us address and map pin become the store contact address and pin', async () => {
     const app = await build();
     const auth = await admin(app);

@@ -17,7 +17,8 @@
  *   --mx-overlay   gradient under card captions;  --mx-scrim: behind drawers;  --mx-glass: text box over hero photos
  *   --mx-focus     keyboard focus ring (= accent);  --mx-danger / --mx-ok  error and success
  *   --mx-btn-bg / --mx-btn-fg   solid buttons and chips;  --mx-deep / --mx-deep-fg  dark bands (footer, welcome, cart bar) and their text
- *   --mx-photo-fg  text over photographs (always light)
+ *   --mx-photo-fg  text over photographs (always light);  --mx-shade  the dark laid over photographs under that text (always dark)
+ *   --mx-deep-accent  the accent on deep bands (Welcome, order placed, footer): the look's own accent can be the band's colour
  * Presets: set data-mx-theme on <html> (or on the [data-layout] element) to "ivory" (default, ivory/ink), "midnight" or "garnet".
  * A store theme can be chosen later by setting that one attribute. Legacy names --mx-paper/--mx-stone/--mx-mut/--mx-line stay as aliases.
  *
@@ -46,6 +47,8 @@
   --mx-btn-fg: var(--mx-ground);
   --mx-deep: #1b1b1b;
   --mx-deep-fg: #ffffff;
+  --mx-deep-accent: #d8cbb0;
+  --mx-shade: #0a0908;
   --mx-photo-fg: #ffffff;
   --mx-fixed: #e6e3de;
   /* legacy aliases (owner screens) */
@@ -71,17 +74,17 @@
 :is(html[data-mx-theme="midnight"] [data-layout="maison"], [data-layout="maison"][data-mx-theme="midnight"], html[data-mx-theme="midnight"]:has([data-layout="maison"])) {
   --mx-ground: #0f1420; --mx-surface: #151b2b; --mx-ink: #ece7dc; --mx-muted: #9aa0ae; --mx-hair: #2a3247; --mx-accent-0: #d6b66a;
   --mx-tile: #1c2336; --mx-scrim: color-mix(in srgb, #000 60%, transparent); --mx-glass: color-mix(in srgb, #05070d 55%, transparent);
-  --mx-danger: #e0735a; --mx-ok: #5fb583; --mx-deep: #080b13; --mx-deep-fg: #ece7dc; --mx-fixed: #1c2336;
+  --mx-danger: #e0735a; --mx-ok: #5fb583; --mx-deep: #080b13; --mx-deep-fg: #ece7dc; --mx-deep-accent: #d6b66a; --mx-fixed: #1c2336;
 }
 :is(html[data-mx-theme="noir"] [data-layout="maison"], [data-layout="maison"][data-mx-theme="noir"], html[data-mx-theme="noir"]:has([data-layout="maison"])) {
   /* Noir: near-black ground, ivory ink, champagne gold accent (the luxury look) */
   --mx-ground: #0d0c0a; --mx-surface: #171512; --mx-ink: #f3eee4; --mx-muted: #aaa397; --mx-hair: #2e2a24; --mx-accent-0: #c9a961;
   --mx-tile: #1b1916; --mx-scrim: color-mix(in srgb, #000 62%, transparent); --mx-glass: color-mix(in srgb, #050504 55%, transparent);
-  --mx-danger: #e0735a; --mx-ok: #5fb583; --mx-deep: #050504; --mx-deep-fg: #f3eee4; --mx-fixed: #1b1916;
+  --mx-danger: #e0735a; --mx-ok: #5fb583; --mx-deep: #050504; --mx-deep-fg: #f3eee4; --mx-deep-accent: #c9a961; --mx-fixed: #1b1916;
 }
 :is(html[data-mx-theme="garnet"] [data-layout="maison"], [data-layout="maison"][data-mx-theme="garnet"], html[data-mx-theme="garnet"]:has([data-layout="maison"])) {
   --mx-ground: #fbf6f3; --mx-surface: #f2e7e2; --mx-ink: #2a1118; --mx-muted: #7a5f64; --mx-hair: #e3d0cb; --mx-accent-0: #8c1d3a;
-  --mx-btn-bg: #8c1d3a; --mx-btn-fg: #fbf6f3; --mx-tile: #ead9d3; --mx-deep: #3a0f1c; --mx-deep-fg: #fbf6f3; --mx-fixed: #ead9d3;
+  --mx-btn-bg: #8c1d3a; --mx-btn-fg: #fbf6f3; --mx-tile: #ead9d3; --mx-deep: #3a0f1c; --mx-deep-fg: #fbf6f3; --mx-deep-accent: #e6c9a2; --mx-fixed: #ead9d3;
   --mx-danger: #b3402a;
 }
 /* The Maison ground sits behind everything: the Classic body gradient, plum corner and grain never show (overscroll, fast scroll, unpainted gaps). */
@@ -233,7 +236,7 @@ html:is([data-mx-theme="midnight"], [data-mx-theme="noir"]) [data-layout="maison
   & .mx-serv-rows small { font-family: var(--mx-sans); font-size: 0.875rem; color: var(--mx-muted); }
   & .mx-serv-rows button:hover b { color: var(--mx-accent); }
   @media (min-width: 1024px) { & .mx-serv { padding: 88px 48px 80px; } & .mx-serv-rows { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 40px; margin: 0 auto; } & .mx-serv > .ax-rv:first-child { max-width: 1240px; margin: 0 auto; } }
-  & .mx-foot { background: var(--mx-btn-bg); color: var(--mx-btn-fg); padding: 64px 24px calc(40px + var(--sab)); }
+  & .mx-foot { background: var(--mx-deep); color: var(--mx-deep-fg); padding: 64px 24px calc(40px + var(--sab)); }
   & .mx-foot .mx-ey, & .mx-foot .mx-note { color: color-mix(in srgb, var(--mx-deep-fg) 60%, transparent); }
   & .mx-foot a { color: var(--mx-deep-fg); }
   & .mx-foot-in { display: grid; gap: 36px; max-width: 1240px; margin: 0 auto; }
@@ -245,22 +248,11 @@ html:is([data-mx-theme="midnight"], [data-mx-theme="noir"]) [data-layout="maison
   & .mx-foot-b { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 24px 0; max-width: 1240px; margin: 40px auto 0; border-top: 1px solid color-mix(in srgb, var(--mx-deep-fg) 25%, transparent); }
 
   /* ---------- Welcome ---------- */
-  & .mx-welcome { min-height: 100dvh; background: var(--mx-btn-bg); color: var(--mx-btn-fg); display: flex; flex-direction: column; padding: calc(24px + var(--sat)) 24px calc(24px + var(--sab)); position: relative; }
-  & .mx-w-lang { position: absolute; top: calc(12px + var(--sat)); right: 12px; }
-  & .mx-w-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px; padding: 56px 0 40px; }
-  & .mx-w-hero .mx-ey, & .mx-welcome .mx-note { color: color-mix(in srgb, var(--mx-deep-fg) 62%, transparent); }
-  & .mx-w-hero .mx-display { color: var(--mx-deep-fg); font-size: clamp(3rem, 12vw, 9rem); }
-  & .mx-w-hero .mx-lede { max-width: 30ch; color: color-mix(in srgb, var(--mx-deep-fg) 80%, transparent); font-size: clamp(1.125rem, 2vw, 1.5rem); }
-  & .mx-w-hero .mx-btn { margin-top: 18px; min-width: 260px; }
-  & .mx-w-mark { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--mx-deep-fg) 40%, transparent); }
   & .mx-w-feats { list-style: none; margin: 0 auto; padding: 0; width: 100%; max-width: 1240px; display: grid; grid-template-columns: 1fr; border-top: 1px solid color-mix(in srgb, var(--mx-deep-fg) 20%, transparent); }
   & .mx-w-feats li { display: grid; grid-template-columns: 44px 1fr; column-gap: 12px; padding: 18px 0; border-bottom: 1px solid color-mix(in srgb, var(--mx-deep-fg) 20%, transparent); }
   & .mx-w-feats b { font-family: var(--mx-serif); font-size: 1.25rem; font-weight: 400; }
   & .mx-w-feats li > span:last-child { grid-column: 2; font-size: 0.8125rem; opacity: 0.68; margin-top: 4px; line-height: 1.5; }
   & .mx-num { font-family: var(--mx-sans); font-size: 0.6875rem; letter-spacing: 0.2em; opacity: 0.6; padding-top: 6px; grid-row: span 2; }
-  & .mx-w-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 28px; font-size: 0.75rem; color: color-mix(in srgb, var(--mx-deep-fg) 55%, transparent); text-align: center; }
-  & .mx-w-foot a { color: color-mix(in srgb, var(--mx-deep-fg) 80%, transparent); }
-  & .mx-welcome .em-lang { background: none; border: 1px solid color-mix(in srgb, var(--mx-deep-fg) 30%, transparent); }
 
   /* ---------- About ---------- */
   & .mx-about { padding-bottom: calc(48px + var(--sab)); }
@@ -325,13 +317,13 @@ html:is([data-mx-theme="midnight"], [data-mx-theme="noir"]) [data-layout="maison
   & :is(.mx-hit, .mx-gal > button, .mx-cs-ph, .mx-line-ph, .mx-mega-ph, .mx-rail button) .em-ph { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; max-height: none; background: var(--mx-tile); }
   & :is(.mx-hit, .mx-gal > button, .mx-cs-ph, .mx-line-ph, .mx-mega-ph, .mx-rail button) .em-ph img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--mx-ease); }
   & .mx-heart.big { top: 12px; left: auto; right: 10px; background: color-mix(in srgb, var(--mx-ground) 90%, transparent); }
-  & .mx-ed { grid-column: 1 / -1; min-height: 240px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 12px; background: var(--mx-btn-bg); color: var(--mx-btn-fg); border: 0; text-align: left; cursor: pointer; }
+  & .mx-ed { grid-column: 1 / -1; min-height: 240px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 12px; background: var(--mx-deep); color: var(--mx-deep-fg); border: 0; text-align: left; cursor: pointer; }
   & .mx-ed .mx-ey { color: color-mix(in srgb, var(--mx-deep-fg) 70%, transparent); }
   & .mx-more { display: flex; justify-content: center; padding: 40px 0; }
   & .mx-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 56px 24px; text-align: center; }
   & .mx-empty .mx-lede { max-width: 28ch; }
   & .mx-cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 20px calc(10px + var(--sab)); background: var(--mx-btn-bg); color: var(--mx-btn-fg); }
-  & .mx-cartbar .mx-ey { color: color-mix(in srgb, var(--mx-deep-fg) 85%, transparent); }
+  & .mx-cartbar .mx-ey { color: color-mix(in srgb, var(--mx-btn-fg) 85%, transparent); }
   & .mx-cartbar .mx-btn { min-height: 40px; padding: 0 20px; }
   & .mx-cat:has(.mx-cartbar) { padding-bottom: 96px; }
 
@@ -442,7 +434,7 @@ html:is([data-mx-theme="midnight"], [data-mx-theme="noir"]) [data-layout="maison
   & .mx-status { flex: none; padding: 6px 10px; border: 1px solid var(--mx-hair); font-size: 0.6875rem; letter-spacing: 0.18em; text-transform: uppercase; }
   & .mx-status.s-new { background: var(--mx-btn-bg); color: var(--mx-btn-fg); border-color: var(--mx-ink); }
   & .mx-alert { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--mx-danger); color: var(--mx-danger); font-size: 0.875rem; }
-  & .mx-booked { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 48px 24px; text-align: center; background: var(--mx-btn-bg); color: var(--mx-btn-fg); }
+  & .mx-booked { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 48px 24px; text-align: center; background: var(--mx-deep); color: var(--mx-deep-fg); }
   & .mx-booked .mx-ey { color: color-mix(in srgb, var(--mx-deep-fg) 70%, transparent); }
   & .mx-booked .mx-lede { max-width: 34ch; color: color-mix(in srgb, var(--mx-deep-fg) 85%, transparent); }
   & .mx-booked .mx-bag-act { width: min(360px, 100%); }
@@ -882,27 +874,7 @@ html:is([data-mx-theme="midnight"], [data-mx-theme="noir"]) [data-layout="maison
 [data-layout="maison"][data-role] main:is(.animate-page-in, .animate-page-forward, .animate-page-back, .animate-fade-in) { animation: var(--mx-xition-name) var(--mx-xition-dur) var(--mx-xition-ease) both; }
 @keyframes mx-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* ---------- order placed: a full-screen moment (about 2.7s) ----------
- * 0.0 page in, 0.25 ring draws, 0.95 tick draws, 1.15 words rise in, 1.7 the designs glide into the Orders icon, 2.3 page out. Tap skips. */
-[data-layout="maison"] .mx-pl { position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 32px 24px; text-align: center; cursor: pointer; background: var(--mx-btn-bg); color: var(--mx-btn-fg); animation: mx-fade 0.3s ease-out both, mx-pl-out 0.4s ease-in-out 2.3s forwards; }
-[data-layout="maison"] .mx-pl-mark { width: 96px; height: 96px; overflow: visible; fill: none; stroke: var(--mx-deep-fg); stroke-width: 1.5; stroke-linecap: butt; stroke-linejoin: round; }
-[data-layout="maison"] .mx-pl-ring { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mx-pl-draw 0.8s cubic-bezier(0.65, 0, 0.35, 1) 0.25s forwards; }
-[data-layout="maison"] .mx-pl-tick { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mx-pl-draw 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0.95s forwards; }
-[data-layout="maison"] .mx-pl-txt { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: min(92vw, 760px); animation: mx-pl-rise 0.6s var(--mx-ease) 1.15s backwards; }
-[data-layout="maison"] .mx-pl .mx-ey { color: color-mix(in srgb, var(--mx-deep-fg) 70%, transparent); }
-[data-layout="maison"] .mx-pl .mx-lede { color: color-mix(in srgb, var(--mx-deep-fg) 85%, transparent); }
-[data-layout="maison"] .mx-pl-row { display: flex; gap: 12px; min-height: 56px; animation: mx-fade 0.4s ease-out 1.3s backwards; }
-[data-layout="maison"] .mx-pl-th { width: 56px; height: 56px; }
-[data-layout="maison"] .mx-pl-in { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; background: var(--mx-tile); will-change: transform, opacity; animation: mx-pl-glide 0.6s cubic-bezier(0.4, 0, 0.2, 1) calc(1.7s + var(--i, 0) * 70ms) forwards; }
-@keyframes mx-pl-draw { to { stroke-dashoffset: 0; } }
-@keyframes mx-pl-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes mx-pl-glide { 60% { opacity: 1; } to { opacity: 0; transform: translate3d(var(--dx, 0), var(--dy, -200px), 0) scale(0.2); } }
-@keyframes mx-pl-out { to { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  [data-layout="maison"] .mx-pl { animation: none; }
-  [data-layout="maison"] .mx-pl :is(.mx-pl-ring, .mx-pl-tick, .mx-pl-txt, .mx-pl-row, .mx-pl-in) { animation: none; stroke-dashoffset: 0; }
-  [data-layout="maison"] .mx-pl-row { display: none; }
-}
+/* The order-placed moment and the Welcome page live in immersive.css. */
 
 /* First-load entrance (hero, tiles, menus): layered 3D (rotateX/rotateY over translateZ), staggered; transform and opacity only. `backwards` so the
  * resting style (and the hover tilt) is never pinned by the animation. */

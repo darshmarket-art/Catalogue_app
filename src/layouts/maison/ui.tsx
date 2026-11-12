@@ -44,10 +44,10 @@ export const Drawer: React.FC<{ label: string; onClose: () => void; testId?: str
 export const fmtG2 = (n: number) => `${n.toFixed(2)} ${getLang() === 'hi' ? 'ग्राम' : 'g'}`;
 
 /** A tag or collection card on phones: a photo (square on phones), the name in capitals under it, a count under that. The photo element is passed on for the view transition. */
-export const Card: React.FC<{ name: string; sub: string; src?: string; tone: number; testId?: string; onOpen: (photo: Element | null) => void }> = ({ name, sub, src, tone, testId, onOpen }) => (
+export const Card: React.FC<{ name: string; sub: string; src?: string; tone: number; testId?: string; no?: string; onOpen: (photo: Element | null) => void }> = ({ name, sub, src, tone, testId, no, onOpen }) => (
   <Reveal delay={(tone % 2) * 140}>
     <button type="button" className="mx-card" data-testid={testId} onClick={(e) => onOpen(e.currentTarget.querySelector('.em-ph'))}>
-      <span className="mx-card-im"><Ph src={src} tone={tone} className="mx-fill" sizes={SIZES_GRID} alt="" /></span>
+      <span className="mx-card-im"><Ph src={src} tone={tone} className="mx-fill" sizes={SIZES_GRID} alt="" />{no && <i className="mx-card-no" aria-hidden="true">{no}</i>}</span>
       <span className="mx-card-nm">{name}</span>
       <span className="mx-card-sub">{sub}</span>
     </button>
@@ -95,6 +95,11 @@ export const Tile: React.FC<TileProps> = ({ prod, index, hearted = false, onOpen
         {onHeart && (
           <button type="button" className={`mx-heart${hearted ? ' on' : ''}`} aria-pressed={hearted} aria-label={heartLabel ?? t(hearted ? 'Remove {name} from shortlist' : 'Add {name} to shortlist', { name })} onClick={onHeart}>
             <Icon n="heart" size={18} fill={hearted} />
+          </button>
+        )}
+        {onAdd && (
+          <button type="button" className="mx-qadd" data-testid="card-quick-add" aria-label={t('Add {name} to cart', { name })} onClick={onAdd}>
+            <Icon n="plus" size={18} />
           </button>
         )}
       </div>

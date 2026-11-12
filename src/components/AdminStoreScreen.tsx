@@ -7,7 +7,7 @@ import { Notice } from './ui';
 import { OrderNotificationsToggle } from './OrderNotificationsToggle';
 import { AiCreditsCard } from './AiCredits';
 import { errorText } from '../bugReport';
-import { merchant } from '../merchant';
+import { coverSrc, merchant } from '../merchant';
 import { notify } from '../notify';
 import { DEFAULT_LAYOUT, LAYOUTS, LOOK_NAMES, MAISON_LOOKS, type LayoutId, type MaisonLook } from '../../shared/layouts';
 
@@ -44,6 +44,29 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
       })
       .catch((e) => setError(errorText(e, 'AdminStoreScreen', 'Could not change the look.')))
       .finally(() => setSavingLook(false));
+  };
+
+  // The Welcome photo: the one photograph shown to visitors before they sign in.
+  const [cover, setCover] = useState(coverSrc());
+  const [savingCover, setSavingCover] = useState(false);
+  const putCover = (file: File | undefined) => {
+    if (!file || savingCover) return;
+    setSavingCover(true);
+    setError(null);
+    api
+      .uploadCover(file)
+      .then((u) => { merchant.welcome.cover = u; setCover(coverSrc()); notify('The Welcome photo is live.'); })
+      .catch((e) => setError(errorText(e, 'AdminStoreScreen', 'Could not upload the photo.')))
+      .finally(() => setSavingCover(false));
+  };
+  const dropCover = () => {
+    if (savingCover) return;
+    setSavingCover(true);
+    api
+      .removeCover()
+      .then(() => { delete merchant.welcome.cover; setCover(undefined); notify('The Welcome photo is removed.'); })
+      .catch((e) => setError(errorText(e, 'AdminStoreScreen', 'Could not remove the photo.')))
+      .finally(() => setSavingCover(false));
   };
 
   const pickLayout = (id: LayoutId) => {
@@ -121,7 +144,23 @@ export const AdminStoreScreen: React.FC<Props> = ({ summary, onNavigate, onShare
                 </button>
               ))}
             </div>
-            <p className="em-mut" style={{ fontSize: '0.75rem', margin: 0 }}>Noir is black, ivory and champagne gold. Buyers see the look; this console stays light. Use View as a buyer to see it. The PDF catalogue follows it too.</p>
+            <p className="em-mut" style={{ fontSize: '0.75rem', margin: 0 }}>Noir is the immersive look: black, ivory and champagne gold, full-screen chapters on Home and its own way through categories and collections. Buyers see the look; this console stays light. Use View as a buyer to see it. The PDF catalogue follows it too.</p>
+            <div className="em-ey" style={{ marginTop: 8 }}>Welcome photo</div>
+            <div className="em-card" data-testid="store-cover" style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 10 }}>
+              <span style={{ width: 72, height: 96, flex: 'none', background: 'var(--em-tint)', border: '1px solid var(--em-line)', overflow: 'hidden', display: 'block' }}>
+                {cover && <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+              </span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                <span className="em-mut" style={{ fontSize: '0.75rem' }}>The photograph behind your first page, seen before a buyer signs in. Anyone with the link can see it, so choose one you are happy to show. A tall photo works best.</span>
+                <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <label className="em-btn sec" style={{ minHeight: 36, padding: '0 14px', fontSize: '0.8125rem', cursor: 'pointer' }}>
+                    {savingCover ? 'Saving…' : cover ? 'Replace photo' : 'Choose a photo'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" data-testid="store-cover-input" hidden disabled={savingCover} onChange={(e) => { putCover(e.target.files?.[0]); e.target.value = ''; }} />
+                  </label>
+                  {cover && <button type="button" className="em-link" data-testid="store-cover-remove" disabled={savingCover} onClick={dropCover}>Remove</button>}
+                </span>
+              </span>
+            </div>
           </>
         )}
         <Group title="Alerts">

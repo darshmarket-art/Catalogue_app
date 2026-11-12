@@ -17,20 +17,23 @@ import { groupByTag, useTagList } from '../../tagList';
 import { useTagCovers } from '../../tagCovers';
 import { withTransition } from '../../viewTransition';
 import { TagPage, registerHomeSearch, setOpenTag, tagCover, useOpenTag } from './TagPage';
+import { useImmersive } from './look';
 
 const FEW = 6;
 const AUTOPLAY_MS = 6500;
 /** Phones show the wide banner cropped to a full screen, so it is drawn about twice the screen height wide; desktop is full width as before. */
 const HERO_SIZES = `(max-width: 1023.98px) 200svh, ${SIZES_FULL}`;
 
-interface Slide { id: string; image?: string; title: string; open: () => void }
+/** `eyebrow` and `sub` are the chapter's small line above and the sentence under the title (Noir's chapters). */
+interface Slide { id: string; image?: string; title: string; open: () => void; eyebrow?: string; sub?: string }
+const two = (n: number) => String(n).padStart(2, '0');
 
 /**
  * The hero: the store's banners as full-width slides in a scroll-snap strip. The browser does the finger tracking, momentum and snapping;
  * autoplay glides with scrollTo. A copy of the first slide sits after the last, so the loop is a glide forward and then an unseen reset
  * (no rewind, no jump). Autoplay pauses on hover, focus, touch and in a hidden tab, and is off for reduced motion.
  */
-const Hero: React.FC<{ slides: Slide[]; loading: boolean; cap?: boolean }> = ({ slides, loading, cap }) => {
+const Hero: React.FC<{ slides: Slide[]; loading: boolean; cap?: boolean; chapters?: boolean }> = ({ slides, loading, cap, chapters }) => {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [idx, setIdx] = useState(0);
@@ -66,14 +69,15 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean; cap?: boolean }> = ({ 
       go(Math.round(el.scrollLeft / el.clientWidth) + 1);
     }, AUTOPLAY_MS);
     return () => window.clearInterval(tick);
-  }, [n, reduce, go]);
+    // chapters: the clock restarts with every slide, so the bar that fills under the photo and the glide stay together
+  }, [n, reduce, go, chapters ? idx : 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hold = (v: boolean) => () => { paused.current = v; };
   return (
-    <section className="mx-hero" data-mx-float="" aria-roledescription="carousel" aria-label={slides[0]?.title} data-testid="mx-hero" onMouseEnter={hold(true)} onMouseLeave={hold(false)} onFocus={hold(true)} onBlur={hold(false)} onTouchStart={hold(true)} onTouchEnd={hold(false)}>
+    <section className={`mx-hero${chapters ? ' im' : ''}`} data-mx-float="" aria-roledescription="carousel" aria-label={slides[0]?.title} data-testid="mx-hero" onMouseEnter={hold(true)} onMouseLeave={hold(false)} onFocus={hold(true)} onBlur={hold(false)} onTouchStart={hold(true)} onTouchEnd={hold(false)}>
       <div className="mx-hero-strip" ref={ref} onScroll={onScroll}>
         {loop.map((sl, i) => (
-          <div key={sl.id} className="mx-slide" role="group" aria-roledescription="slide" aria-label={`${(i % n) + 1} / ${n}`} aria-hidden={i >= n || undefined}>
+          <div key={sl.id} className={`mx-slide${i % n === idx ? ' on' : ''}`} role="group" aria-roledescription="slide" aria-label={`${(i % n) + 1} / ${n}`} aria-hidden={i >= n || undefined}>
             <div className="mx-hero-media">
               <div className="mx-hero-img">
                 {loading ? <span className="em-ph em-skel mx-fill" /> : <Ph src={sl.image} tone={i} className="mx-fill" sizes={HERO_SIZES} priority={i === 0} eager alt="" />}
@@ -81,8 +85,10 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean; cap?: boolean }> = ({ 
               <button type="button" className="mx-hero-hit" aria-label={sl.title} tabIndex={i >= n ? -1 : undefined} onClick={sl.open} />
               {cap && (
                 <div className="mx-hero-cap" aria-hidden="true">
+                  {chapters && sl.eyebrow && <span className="mx-ey">{sl.eyebrow}</span>}
                   <h2>{sl.title}</h2>
-                  <span className="mx-btn lt">{t('Shop now')}</span>
+                  {chapters && sl.sub && <p>{sl.sub}</p>}
+                  {chapters ? <span className="mx-cta lt">{t('Discover')}</span> : <span className="mx-btn lt">{t('Shop now')}</span>}
                 </div>
               )}
             </div>
@@ -91,7 +97,8 @@ const Hero: React.FC<{ slides: Slide[]; loading: boolean; cap?: boolean }> = ({ 
       </div>
       {n > 1 && (
         <div className="mx-hero-dots" role="group" aria-label={t('Banners')}>
-          {slides.map((sl, i) => <button key={sl.id} type="button" className={i === idx ? 'on' : ''} aria-label={`Banner ${i + 1}`} aria-current={i === idx || undefined} onClick={() => go(i)} />)}
+          {slides.map((sl, i) => <button key={sl.id} type="button" className={i === idx ? 'on' : i < idx ? 'was' : ''} aria-label={`Banner ${i + 1}`} aria-current={i === idx || undefined} onClick={() => go(i)}>{chapters && <i key={i === idx ? `run-${idx}` : 'idle'} />}</button>)}
+          {chapters && <span className="mx-hero-no" aria-hidden="true">{two(idx + 1)} <i>/</i> {two(n)}</span>}
         </div>
       )}
     </section>
@@ -108,6 +115,8 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
   const [browsing, setBrowsing] = useState(false);
   // Phones (below 1024px) get the Shop by tag cards and tag pages; desktop keeps its page exactly as it was.
   const desk = useDesktop();
+  // Noir on phones is the immersive layout: chapters, a gallery of categories, featured collections (see immersive.css).
+  const im = useImmersive() && !desk;
   const tagOrder = useTagList();
   const covers = useTagCovers();
   const groups = groupByTag(categories.filter((c) => c.designCount > 0).sort((a, b) => b.designCount - a.designCount), tagOrder);
@@ -123,11 +132,14 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
     if (wasTag.current && !tagGroup) window.scrollTo(0, homeY.current);
     wasTag.current = Boolean(tagGroup);
   }, [tagGroup]);
+  const openCollection = (name: string) => withTransition(() => onFilterCategoryInCatalogue(name));
   const openTagPage = (tag: string, photo: Element | null) => {
+    // Noir: a category with one collection opens that collection (a page listing a single card is a wasted tap).
+    const only = im ? groups.find(([g]) => g === tag)?.[1] : undefined;
+    if (only?.length === 1) return openCollection(only[0].name);
     homeY.current = window.scrollY;
     withTransition(() => { setOpenTag(tag); window.scrollTo(0, 0); }, photo);
   };
-  const openCollection = (name: string) => withTransition(() => onFilterCategoryInCatalogue(name));
 
   const heroes = useMemo(() => {
     const chosen = categories.filter((c) => typeof c.heroOrder === 'number').sort((a, b) => (a.heroOrder as number) - (b.heroOrder as number));
@@ -152,6 +164,15 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
       }))
     : [{ id: 'store', image: heroes[0]?.image, title: ts(merchant.brand.name), open: () => onNavigate('catalogue') }];
   const features = banners.slice(1, 3);
+  // Noir's chapters: the banners first, then the collections the owner put forward (hero order), five at most, each with its own line.
+  const chapterOf = (c: Category): Slide => ({ id: `col-${c.id}`, image: c.image, title: hn(c.name, c.nameHi), sub: hn(c.subtitle, c.subtitleHi), open: () => onFilterCategoryInCatalogue(c.name) });
+  const chapters: Slide[] = !im ? [] : [
+    ...(banners.length > 0 ? slides.map((sl, i) => ({ ...sl, sub: hn(categories.find((c) => c.name === banners[i]?.category)?.subtitle ?? '', categories.find((c) => c.name === banners[i]?.category)?.subtitleHi) })) : []),
+    ...heroes.filter((c) => c.image && c.designCount > 0 && !banners.some((b) => b.category === c.name)).map(chapterOf)
+  ].slice(0, 5).map((sl, i) => ({ ...sl, eyebrow: t('Chapter {n}', { n: two(i + 1) }) }));
+  const heroSlides = chapters.length > 0 ? chapters : slides;
+  // and the collections shown in full under the gallery: the first three the hero did not already use up
+  const featured = !im ? [] : heroes.filter((c) => c.image && c.designCount > 0).slice(0, 3);
 
   const { contact } = merchant;
   const links = [
@@ -177,35 +198,54 @@ export const Home: React.FC<KitProps<'Categories'>> = ({ categories, products, b
 
   if (tagGroup)
     return (
-      <div className="mx-home">
+      <div className={`mx-home${im ? ' mx-im' : ''}`}>
         <TagPage tag={tagGroup[0]} cols={tagGroup[1]} cover={tagCover(covers[tagGroup[0]], tagGroup[1], products)} onCollection={openCollection} onAll={onFilterTagInCatalogue ? () => withTransition(() => onFilterTagInCatalogue(tagGroup[0])) : allDesigns} />
       </div>
     );
 
   return (
-    <div className="mx-home">
+    <div className={`mx-home${im ? ' mx-im' : ''}`}>
       <h1 className="em-sr">{ts(merchant.brand.name)}</h1>
-      <Hero slides={slides} loading={loading} cap={!desk} />
+      <Hero slides={heroSlides} loading={loading} cap={!desk} chapters={im} />
 
       {statement && (
         <section className="mx-state" data-testid="mx-statement">
+          {im && <Reveal><span className="mx-ey">{t('The house')}</span></Reveal>}
           <Reveal><h2>{ts(merchant.brand.name)}</h2></Reveal>
           <Reveal delay={120}><p>{statement}</p></Reveal>
+          {im && <Reveal delay={200}><button type="button" className="mx-cta" data-testid="mx-our-story" onClick={() => onNavigate('about')}>{t('Our story')}</button></Reveal>}
         </section>
       )}
 
       {!desk && (
         <section className="mx-shop" data-testid="mx-shop-by">
+          {im && <Reveal><span className="mx-ey">{t('Explore')}</span></Reveal>}
           <Reveal><h2 className="mx-shop-h">{t('Shop by Category')}</h2></Reveal>
           {!loading && groups.length === 0 && <p className="mx-note">{t('No collections have been added yet.')}</p>}
           <div className="mx-cards">
             {groups.map(([tag, cs], i) => (
-              <Card key={tag} testId="mx-tag-card" name={ts(tag)} sub={tn(cs.length, '{n} collection', '{n} collections')} src={tagCover(covers[tag], cs, products)} tone={i} onOpen={(ph) => openTagPage(tag, ph)} />
+              <Card key={tag} testId="mx-tag-card" no={im ? two(i + 1) : undefined} name={ts(tag)} sub={cs.length === 1 && im ? tn(cs[0].designCount, '{n} design', '{n} designs') : tn(cs.length, '{n} collection', '{n} collections')} src={tagCover(covers[tag], cs, products)} tone={i} onOpen={(ph) => openTagPage(tag, ph)} />
             ))}
           </div>
           <Reveal><button type="button" className="mx-shop-all" data-testid="mx-all-designs" onClick={allDesigns}>{t('View all designs')}</button></Reveal>
         </section>
       )}
+
+      {featured.map((c, i) => (
+        <section key={c.id} className={`mx-chap${i % 2 ? ' alt' : ''}`} data-testid="mx-chapter">
+          <Reveal>
+            <button type="button" aria-label={t('Open {name}', { name: hn(c.name, c.nameHi) })} onClick={() => openCollection(c.name)}>
+              <span className="mx-chap-im"><Ph src={c.image} tone={i + 2} className="mx-fill" sizes={SIZES_FULL} alt="" /></span>
+              <span className="mx-chap-tx">
+                <span className="mx-ey">{t('Collection')} · {tn(c.designCount, '{n} design', '{n} designs')}</span>
+                <span className="mx-chap-h">{hn(c.name, c.nameHi)}</span>
+                {(c.story || hn(c.subtitle, c.subtitleHi)) && <span className="mx-chap-p">{(c.story ?? '').split('\n')[0] || hn(c.subtitle, c.subtitleHi)}</span>}
+                <span className="mx-cta">{t('Discover')}</span>
+              </span>
+            </button>
+          </Reveal>
+        </section>
+      ))}
 
       {fresh.length > 0 && (
         <section className="mx-sec" data-testid="mx-new-in">

@@ -1,5 +1,6 @@
 import type { LayoutKit } from '../props';
 import './maison.css';
+import './immersive.css';
 import './owner/content.css';
 import { Header as BuyerHeader } from './Header';
 import { OwnerHeader, OwnerNav } from './owner/Shell';

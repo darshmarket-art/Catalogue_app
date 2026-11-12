@@ -21,6 +21,12 @@ export const logoSrc = (): string => {
   return u.startsWith('/') ? `${u}&store=${encodeURIComponent(merchant.id)}` : u;
 };
 
+/** The Welcome photo's address (the owner's own upload), or nothing. Same store rule as the logo. */
+export const coverSrc = (): string | undefined => {
+  const u = merchant.welcome.cover;
+  return u ? `${u}&store=${encodeURIComponent(merchant.id)}` : undefined;
+};
+
 /** After an upload: every BrandMark on screen switches to the new logo. */
 export const setLogo = (logoUrl: string) => {
   merchant.brand.logoUrl = logoUrl;

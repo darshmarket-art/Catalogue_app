@@ -372,6 +372,19 @@ export const api = {
     }
   },
 
+  /** Uploads the Welcome photo (the photograph behind the first, signed-out page). Returns its new address. */
+  async uploadCover(file: File): Promise<string> {
+    const res = await apiFetch(API_BASE + '/api/v1/admin/brand/cover', { method: 'PUT', headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) }, body: file });
+    const json = await parseJson(res);
+    if (!res.ok || json.status === 'error') throw new ApiError(res.status, json.message || 'The photo could not be uploaded.');
+    return json.data.cover;
+  },
+  /** Takes the Welcome photo away again. */
+  async removeCover(): Promise<void> {
+    const res = await apiFetch(API_BASE + '/api/v1/admin/brand/cover', { method: 'DELETE', headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
+    if (!res.ok) throw new ApiError(res.status, 'The photo could not be removed.');
+  },
+
   /** Uploads the store logo (any photo; the server keeps a 512 px PNG). Returns its new address. */
   async uploadLogo(file: File): Promise<string> {
     const res = await apiFetch(API_BASE + '/api/v1/admin/brand/logo', { method: 'PUT', headers: { 'Content-Type': file.type, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) }, body: file });

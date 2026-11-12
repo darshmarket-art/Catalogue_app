@@ -384,4 +384,12 @@ export const HI: Record<string, string> = {
   'Terms & conditions': 'नियम और शर्तें',
   'Privacy policy': 'गोपनीयता नीति',
   'By continuing you agree to:': 'जारी रखकर आप इनसे सहमत होते हैं:',
+  'Step {n} of {m}': 'चरण {n} / {m}',
+  'Chapter {n}': 'अध्याय {n}',
+  'The house': 'हमारा घराना',
+  'Our story': 'हमारी कहानी',
+  Explore: 'देखिए',
+  Discover: 'देखें',
+  Category: 'श्रेणी',
+  'Continue browsing': 'देखना जारी रखें',
 };

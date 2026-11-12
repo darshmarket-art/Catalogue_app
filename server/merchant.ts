@@ -188,7 +188,9 @@ export const merchantSchema = z.object({
 
   welcome: z.object({
     features: z.array(feature).min(1).max(4),
-    footerLine: text(120).optional()
+    footerLine: text(120).optional(),
+    /** The photograph behind the first, signed-out page (Maison): uploaded by the owner, served at /brand/cover?v=…. */
+    cover: z.string().regex(/^\/brand\/cover\?v=\d+$/).optional()
   }),
 
   onboarding: z.object({

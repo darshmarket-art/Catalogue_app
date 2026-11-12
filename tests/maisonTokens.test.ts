@@ -11,8 +11,21 @@ describe('Maison theme tokens', () => {
   it('has no hard-coded colour outside the token block', () => {
     expect(body.match(COLOUR)).toBeNull();
   });
+  it('the second sheet (Welcome, sign-in, order placed, Noir) has no hard-coded colour either', () => {
+    expect(fs.readFileSync(`${dir}/immersive.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').match(COLOUR)).toBeNull();
+  });
+  it('dark bands pair the deep ground with its own text: never the button colour, which is light on the dark looks', () => {
+    // The Welcome page and the order-placed page were blank in Noir: light text on the light button colour.
+    const all = css + fs.readFileSync(`${dir}/immersive.css`, 'utf8');
+    for (const band of ['.mx-welcome', '.mx-booked', '.mx-foot', '.mx-pl']) {
+      const rule = all.split('\n').find((l) => new RegExp(`${band.replace('.', '\\.')} \\{`).test(l) && l.includes('background'));
+      expect(rule, band).toBeTruthy();
+      expect(rule, band).toContain('var(--mx-deep)');
+      expect(rule, band).not.toContain('--mx-btn-bg');
+    }
+  });
   it('buyer TSX has no hard-coded colour', () => {
-    for (const f of ['Header', 'Home', 'Catalogue', 'ProductDetail', 'Shortlist', 'Orders', 'Profile', 'ui', 'Welcome', 'About', 'CartSheet']) {
+    for (const f of ['Header', 'Home', 'Catalogue', 'ProductDetail', 'Shortlist', 'Orders', 'Profile', 'ui', 'Welcome', 'About', 'CartSheet', 'Placed', 'TagPage']) {
       expect(fs.readFileSync(`${dir}/${f}.tsx`, 'utf8').match(COLOUR), f).toBeNull();
     }
   });

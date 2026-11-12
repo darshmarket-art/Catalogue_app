@@ -7,7 +7,7 @@ import { Icon, Ph, fmtG, type KitProps } from '../emergent/ui';
 import { getLang, hn, pur, t, tErr, tl, tn, ts, useLang } from '../../i18n';
 import { errorText } from '../../bugReport';
 import { SIZES_THUMB } from '../../photoSrcSet';
-import { Placed } from './Placed';
+import { Placed, PlacedBody } from './Placed';
 
 const when = (iso: string) => new Date(iso).toLocaleString(getLang() === 'hi' ? 'hi-IN' : 'en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 const STATUS_FILTERS: Array<{ key: 'all' | OrderStatus; label: string }> = [
@@ -155,7 +155,8 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   const [tab, setTab] = useState<'current' | 'past'>(initialTab);
   const [history, setHistory] = useState<PastOrder[] | null>(null);
   const [note, setNote] = useState('');
-  const [moment, setMoment] = useState<Array<string | undefined> | null>(null); // the order-placed page while it plays (the photos that fly to Orders)
+  const [moment, setMoment] = useState(false); // the order-placed moment while it plays
+  const [bookedPhotos, setBookedPhotos] = useState<Array<string | undefined>>([]); // the designs just ordered (the bag is empty by then)
 
   useEffect(() => {
     if (tab === 'past') api.getOrderHistory().then(setHistory);
@@ -179,7 +180,8 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
     const photos = orders.map((o) => o.image);
     const result = await onConfirmOrder(note.trim() || undefined);
     if (!result) return;
-    setMoment(photos);
+    setBookedPhotos(photos);
+    setMoment(true);
     setNote('');
     setIsBooked(true);
     setBookedGrams(result.totalNetGrams);
@@ -190,21 +192,22 @@ export const Orders: React.FC<OrdersProps> = ({ orders, onRemoveItem, onChangeQt
   const waLink = `https://wa.me/${merchant.contact.whatsapp}?text=${encodeURIComponent(bookedMessage)}`;
 
   if (confirmedPO && tab === 'current' && orders.length === 0) {
+    const line = tl(merchant.orders.bookedNote) ? `${t('Your order is booked,')} ${tl(merchant.orders.bookedNote)}` : undefined;
+    const actions = (
+      <div className="mx-bag-act">
+        <a href={waLink} target="_blank" rel="noreferrer" className="mx-btn lt">
+          <Icon n="wa" size={16} />
+          <span>{t('Send order on WhatsApp')}</span>
+        </a>
+        <button type="button" className="mx-btn lt sec" onClick={() => { setConfirmedPO(null); setIsBooked(false); setTab('past'); }}>{t('View past orders')}</button>
+        <button type="button" className="mx-cta lt" data-testid="booked-continue" onClick={onNavigateCatalogue}>{t('Continue browsing')}</button>
+      </div>
+    );
     return (
-      <div className="mx-page mx-booked">
-        {moment && <Placed poId={confirmedPO} grams={bookedGrams} images={moment} onDone={() => setMoment(null)} />}
-        <span className="mx-ey">{confirmedPO}</span>
-        <h1 className="mx-display">{t(sector.copy.orders.bookedBanner)}</h1>
-        <p className="mx-lede">
-          {t('{w} net.', { w: fmtG(bookedGrams) })} {tl(merchant.orders.bookedNote) ? `${t('Your order is booked,')} ${tl(merchant.orders.bookedNote)}` : t('We will confirm on WhatsApp shortly.')}
-        </p>
-        <div className="mx-bag-act">
-          <a href={waLink} target="_blank" rel="noreferrer" className="mx-btn lt">
-            <Icon n="wa" size={16} />
-            <span>{t('Send order on WhatsApp')}</span>
-          </a>
-          <button type="button" className="mx-btn lt sec" onClick={() => { setConfirmedPO(null); setIsBooked(false); setTab('past'); }}>{t('View past orders')}</button>
-        </div>
+      <div className={`mx-page mx-booked${moment ? ' playing' : ''}`} data-testid="order-booked">
+        {moment && <Placed poId={confirmedPO} grams={bookedGrams} images={bookedPhotos} line={line} onDone={() => setMoment(false)}>{actions}</Placed>}
+        <PlacedBody poId={confirmedPO} grams={bookedGrams} images={bookedPhotos} line={line} />
+        {actions}
       </div>
     );
   }

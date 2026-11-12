@@ -13,7 +13,8 @@ import { hn, pur, t, tn, ts } from '../../i18n';
 import { Drawer, Tile } from './ui';
 import { ProductDetail } from './ProductDetail';
 import { CartSheet } from './CartSheet';
-import { tagCover } from './TagPage';
+import { setOpenTag, tagCover } from './TagPage';
+import { useImmersive } from './look';
 import { useTagCovers } from '../../tagCovers';
 
 /** After this many tiles an editorial tile (the way into the collections) sits in the grid, as the Maison pages do. */
@@ -40,11 +41,17 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
   const covers = useTagCovers();
   const banner = col ? col.image : tagFilter ? tagCover(covers[tagFilter], categories.filter((c) => c.tag === tagFilter), items) : undefined;
   const narrowing = active.length + (sort !== 'newest' ? 1 : 0);
+  // Phones: the way back up (Home / category) above the title, and the category's other collections as a rail to move sideways.
+  const im = useImmersive();
+  const trailTag = col?.tag ?? tagFilter ?? null;
+  const sibs = trailTag ? categories.filter((c) => c.tag === trailTag && c.designCount > 0) : [];
+  const toHome = () => { setOpenTag(null); onNavigate?.('categories'); };
+  const toTag = () => { if (!trailTag) return; setOpenTag(trailTag); window.scrollTo(0, 0); onNavigate?.('categories'); };
   const cols = !desk ? 'large' : view === 'list' ? 'list' : view === 'grid3' ? 'compact' : 'large';
   void purityTitle;
 
   return (
-    <div className="mx-cat">
+    <div className={`mx-cat${im ? ' mx-im' : ''}`}>
       {addedNotice && <Toast>{t('Added {name} to your order', { name: addedNotice })}</Toast>}
       {/* Phones, as swarovski.com's listing: the collection's photo under the floating masthead, a title block, then the sticky results bar. */}
       {!desk && banner && !searchQuery && (
@@ -54,10 +61,26 @@ export const Catalogue: React.FC<KitProps<'Catalogue'>> = (props) => {
       )}
       {!desk && (
         <div className="mx-tagp-intro">
+          {!searchQuery && onNavigate && (
+            <nav className="mx-trail" aria-label="Breadcrumb" data-testid="mx-trail">
+              <button type="button" onClick={toHome}>{t('Home')}</button>
+              {trailTag && col && sibs.length > 1 && <><i aria-hidden="true">/</i><button type="button" data-testid="mx-trail-tag" onClick={toTag}>{ts(trailTag)}</button></>}
+              {!narrowed && <><i aria-hidden="true">/</i><span>{t('Catalogue')}</span></>}
+            </nav>
+          )}
           <h1 className="mx-h2" data-testid="collection-current">{searchQuery ? `“${searchQuery}”` : narrowed ? current : t('All designs')}</h1>
           {searchQuery ? <button type="button" aria-label={t('Clear search')} className="mx-x" onClick={() => setSearchQuery('')}><Icon n="x" size={16} /></button>
             : col && hn(col.subtitle, col.subtitleHi) ? <p className="mx-note">{hn(col.subtitle, col.subtitleHi)}</p> : null}
           {!searchQuery && col?.story && <p className="mx-col-story" data-testid="collection-story">{col.story}</p>}
+        </div>
+      )}
+      {!desk && !searchQuery && sibs.length > 1 && (
+        <div className="mx-sibs" role="group" aria-label={ts(trailTag ?? '')} data-testid="mx-sibs">
+          {sibs.map((c) => (
+            <button key={c.id} type="button" className={c.name === categoryFilter ? 'on' : ''} aria-pressed={c.name === categoryFilter} onClick={() => c.name !== categoryFilter && onCategoryChange(c.name)}>
+              {hn(c.name, c.nameHi)}
+            </button>
+          ))}
         </div>
       )}
       {!desk && (

@@ -65,7 +65,7 @@ const DeskHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, c
   );
 
   return (
-    <header className={`mx-top${menu ? ' open' : ''}`}>
+    <header className={`mx-top${menu ? ' open' : ''}${sub ? ' sub' : ''}`}>
       <div className="mx-bar">
         <div className="mx-side">
           {sub ? (
@@ -152,7 +152,7 @@ const TagIndex: React.FC<{ groups: Groups; desk?: boolean; onCol: (n: string) =>
  * Over a banner (Home, a tag page, a collection) it floats (clear, a dark gradient behind it, light icons) until most of the banner has scrolled
  * away: one passive scroll listener sets one attribute and CSS fades the rest.
  */
-const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, currentMerchant, onLogout, onOpenOrders, categories = [], shortlistCount = 0, orderCount }) => {
+const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, currentMerchant, onLogout, onOpenOrders, categories = [], shortlistCount = 0, orderCount, onOpenCollection }) => {
   useLang();
   const [profile, setProfile] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -179,10 +179,18 @@ const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, 
   const go = (s: ActiveScreen) => { setProfile(false); setSearching(false); onNavigate(s); };
   const closeSearch = useCallback(() => setSearching(false), []);
   const tagOrder = useTagList();
-  const tags = groupByTag(categories.filter((c) => c.designCount > 0), tagOrder).map(([tag]) => tag);
+  const groups = groupByTag(categories.filter((c) => c.designCount > 0).sort((a, b) => b.designCount - a.designCount), tagOrder);
+  const tags = groups.map(([tag]) => tag);
   const badge = shortlistCount + (orderCount ?? 0);
+  // The menu is also the index of the catalogue: categories, and under each its collections.
+  const browse = {
+    groups,
+    onTag: (tag: string) => { setProfile(false); setOpenTag(tag); window.scrollTo(0, 0); onNavigate('categories'); },
+    onCollection: (name: string) => { setProfile(false); onOpenCollection?.(name); },
+    onAll: () => { setOpenTag(null); go('catalogue'); }
+  };
   return (
-    <header ref={top} className={`mx-top mx-ph${searching ? ' srch' : ''}`}>
+    <header ref={top} className={`mx-top mx-ph${searching ? ' srch' : ''}${sub ? ' sub' : ''}`}>
       <div className="mx-bar">
         <div className="mx-side">
           {sub ? (
@@ -222,7 +230,7 @@ const PhoneHeader: React.FC<KitProps<'Header'>> = ({ currentScreen, onNavigate, 
         />
       )}
       {profile && currentMerchant && (
-        <ProfilePanel buyer={currentMerchant} shortlistCount={shortlistCount} orderCount={orderCount ?? 0} onClose={() => setProfile(false)} onOpenOrders={(tab) => { setProfile(false); onOpenOrders(tab); }} onGo={go} onLogout={() => { setProfile(false); onLogout(); }} />
+        <ProfilePanel buyer={currentMerchant} shortlistCount={shortlistCount} orderCount={orderCount ?? 0} browse={browse} onClose={() => setProfile(false)} onOpenOrders={(tab) => { setProfile(false); onOpenOrders(tab); }} onGo={go} onLogout={() => { setProfile(false); onLogout(); }} />
       )}
     </header>
   );

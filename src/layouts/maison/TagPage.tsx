@@ -5,6 +5,7 @@ import { Ph } from '../emergent/ui';
 import { hn, t, tn, ts } from '../../i18n';
 import { SIZES_FULL } from '../../photoSrcSet';
 import { Card } from './ui';
+import { useImmersive } from './look';
 
 /*
  * Phone navigation state shared by the masthead and Home (phones only; desktop never reads it).
@@ -54,12 +55,16 @@ export const TagPage: React.FC<{ tag: string; cols: Category[]; cover?: string; 
   const ban = useRef<HTMLDivElement>(null);
   const name = ts(tag);
   const count = tn(cols.length, '{n} collection', '{n} collections');
+  const im = useImmersive();
   return (
-    <div className="mx-tagp" data-testid="mx-tag-page">
+    <div className={`mx-tagp${im ? ' mx-im' : ''}`} data-testid="mx-tag-page">
       <div className="mx-tagp-ban" data-mx-float="" ref={ban}>
         <Ph src={cover} className="mx-fill" sizes={SIZES_FULL} priority eager alt="" style={{ viewTransitionName: 'product-photo' } as React.CSSProperties} />
       </div>
       <div className="mx-tagp-intro">
+        <nav className="mx-trail" aria-label="Breadcrumb">
+          <button type="button" onClick={() => { setOpenTag(null); window.scrollTo(0, 0); }}>{t('Home')}</button><i aria-hidden="true">/</i><span>{t('Category')}</span>
+        </nav>
         <h1 className="mx-h2">{name}</h1>
       </div>
       <div className="mx-sbar">
@@ -71,6 +76,7 @@ export const TagPage: React.FC<{ tag: string; cols: Category[]; cover?: string; 
           <Card
             key={c.id}
             testId="mx-col-card"
+            no={im ? String(i + 1).padStart(2, '0') : undefined}
             name={hn(c.name, c.nameHi)}
             sub={tn(c.designCount, '{n} design', '{n} designs')}
             src={c.image}

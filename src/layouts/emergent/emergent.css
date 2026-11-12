@@ -1204,3 +1204,9 @@ html.native :is([data-layout="emergent"],[data-layout="maison"]) .dock.low > .ca
 /* Today's two columns exist only at desktop width (the wrappers add no box below it). */
 @media (max-width: 1023.98px) { :is([data-layout="emergent"],[data-layout="maison"]) :is(.hub-cols, .hub-need, .hub-side) { display: contents; } }
 @media (min-width: 1024px) { :is([data-layout="emergent"],[data-layout="maison"])[data-role="buyer"] :is(.hub-cols, .hub-need, .hub-side) { display: contents; } }
+
+/* sign-in: the step marks are Maison's (Classic shows the title alone); a refused code jolts the six boxes once */
+:is([data-layout="emergent"],[data-layout="maison"]) .em-steps { display: none; }
+:is([data-layout="emergent"],[data-layout="maison"]) .em-code.no { animation: em-code-no 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+@keyframes em-code-no { 15%, 55% { transform: translateX(-7px); } 35%, 75% { transform: translateX(7px); } 90% { transform: translateX(-3px); } }
+@media (prefers-reduced-motion: reduce) { :is([data-layout="emergent"],[data-layout="maison"]) .em-code.no { animation: none; } }

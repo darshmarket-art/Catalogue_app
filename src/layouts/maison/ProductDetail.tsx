@@ -159,7 +159,7 @@ export const ProductDetail: React.FC<Props> = ({ product, isAdmin, purities, cat
                 </button>
               </div>
             )}
-            {desk ? <span className="mx-ey">{category} · {product.sku}</span> : <span className="mx-ey" data-testid="mx-pd-eyebrow">{col?.tag ? `${ts(col.tag)} / ${category}` : category}</span>}
+            {desk ? <span className="mx-ey">{category} · {product.sku}</span> : <span className="mx-ey" data-testid="mx-pd-eyebrow">{col?.tag && ts(col.tag).trim().toLowerCase() !== category.trim().toLowerCase() ? `${ts(col.tag)} / ${category}` : category}</span>}
             <h1 className="mx-pd-title">{name}</h1>
             <div className="mx-tags">
               <StockPill status={product.stockStatus} />
