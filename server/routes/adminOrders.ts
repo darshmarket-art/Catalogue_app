@@ -15,9 +15,13 @@ export function adminOrderRoutes(store: Store, media: Media, requireAdmin: Reque
   router.get(
     '/',
     handler(async (req, res) => {
-      const { limit, status } = parse(orderListSchema, req.query);
+      const { limit, status, buyer } = parse(orderListSchema, req.query);
       // Newest first; the status filter is applied afterwards so Firestore needs no composite index.
-      const recent = await store.list('purchaseOrders', { orderBy: { field: 'timestamp', direction: 'desc' }, limit: 500 });
+      // One buyer's orders are asked for by their id (an equality filter on its own, as the buyer's own history uses), then sorted here: taking
+      // them out of the store's latest orders instead would lose a regular buyer's orders once the store had booked many since.
+      const recent = buyer
+        ? (await store.list('purchaseOrders', { where: [{ field: 'retailerId', op: '==', value: buyer }] })).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
+        : await store.list('purchaseOrders', { orderBy: { field: 'timestamp', direction: 'desc' }, limit: 500 });
       const data = (status ? recent.filter((o) => o.status === status) : recent)
         .slice(0, limit)
         .map((o) => ({ ...o, items: (o.items ?? []).map((i: Record<string, any>) => media.presentItem(i)) }));

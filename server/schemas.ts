@@ -99,7 +99,9 @@ export const orderStatusSchema = z.object({ status: z.enum(ORDER_STATUSES) });
 
 export const orderListSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
-  status: z.enum(ORDER_STATUSES).optional()
+  status: z.enum(ORDER_STATUSES).optional(),
+  /** Only this buyer's orders (their phone, which is their id). */
+  buyer: z.string().regex(/^\d{10,15}$/).optional()
 });
 
 export const paginationSchema = z.object({

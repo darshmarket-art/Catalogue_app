@@ -656,8 +656,9 @@ export const api = {
     return post('/api/v1/orders/confirm', note?.trim() ? { note: note.trim() } : undefined);
   },
 
-  async getAdminOrders(): Promise<AdminOrder[]> {
-    return (await request('/api/v1/admin/orders?limit=100')).data;
+  /** The store's latest orders, or with `buyer` (their phone) that one buyer's own orders. */
+  async getAdminOrders(buyer?: string): Promise<AdminOrder[]> {
+    return (await request(`/api/v1/admin/orders?limit=100${buyer ? `&buyer=${encodeURIComponent(buyer)}` : ''}`)).data;
   },
 
   async setOrderStatus(poId: string, status: OrderStatus): Promise<void> {

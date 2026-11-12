@@ -658,6 +658,12 @@ describe('admin orders', () => {
       itemCount: 1
     });
     expect(res.body.data[0].buyer.password).toBeUndefined();
+
+    // one buyer's card asks for that buyer's orders alone, however many the store has booked since
+    const one = await request(app).get(`/api/admin/orders?buyer=${retailer(1).phone}`).set('Authorization', `Bearer ${admin}`);
+    expect(one.body.data.map((o: any) => o.poId)).toEqual([po1]);
+    expect((await request(app).get('/api/admin/orders?buyer=nobody').set('Authorization', `Bearer ${admin}`)).status).toBe(400);
+    expect((await request(app).get('/api/admin/orders?buyer=919999999999').set('Authorization', `Bearer ${admin}`)).body.data).toEqual([]);
   });
 
   it('changes status, records it in the audit log, and rejects bad input', async () => {

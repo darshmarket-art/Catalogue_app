@@ -15,7 +15,7 @@ const BuyerSheet: React.FC<{ buyer: BuyerRow; removing: boolean; busy: boolean; 
   const [enquiries, setEnquiries] = useState<EnquiryRow[] | null>(null);
   const digits = buyer.phone.replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1');
   useEffect(() => {
-    if (flags.orders) api.getAdminOrders().then((all) => setOrders(all.filter((o) => o.buyer?.phone === buyer.phone))).catch(() => setOrders([]));
+    if (flags.orders) api.getAdminOrders(buyer.phone).then(setOrders).catch(() => setOrders([]));
     if (flags.enquiries) api.getEnquiries().then((all) => setEnquiries(all.filter((e) => e.buyerPhone === buyer.phone))).catch(() => setEnquiries([]));
   }, [buyer.phone, flags.orders, flags.enquiries]);
   return (
