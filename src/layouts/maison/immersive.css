@@ -221,6 +221,13 @@
     & .mx-im .mx-shop .mx-cards::-webkit-scrollbar { display: none; }
     & .mx-im .mx-shop .mx-cards > * { flex: 0 0 74%; min-width: 0; scroll-snap-align: start; }
     & .mx-im .mx-shop .mx-cards > :only-child { flex-basis: 100%; }
+    /* the gallery moves sideways and nothing else: no vertical play inside the rail (cards waiting to be revealed sat 28px low, which made the
+       rail itself scrollable up and down), no rise as a card comes into view, no zoom under the finger */
+    & .mx-im .mx-shop .mx-cards { overflow-y: hidden; touch-action: pan-x pan-y; }
+    & .mx-im .mx-shop .mx-cards > .ax-rv { opacity: 1; transform: none; transition: none; }
+    & .mx-im .mx-shop .mx-card:active .mx-card-im .em-ph img { transform: none; }
+    & .mx-im .mx-strip { overflow-y: hidden; }
+    & .mx-im .mx-strip .mx-ptile:active { transform: none; }
     & .mx-im .mx-shop .mx-card { position: relative; display: block; padding: 0; text-align: left; }
     & .mx-im .mx-shop .mx-card-im { aspect-ratio: 3 / 4; }
     & .mx-im .mx-shop .mx-card-im::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(to top, color-mix(in srgb, var(--mx-shade) 92%, transparent), transparent); pointer-events: none; }
