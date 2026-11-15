@@ -8,6 +8,10 @@ on:
       base_domain:
         description: Platform domain (the app opens https://app.<base_domain>)
         default: antarixs.com
+      play_bundle:
+        description: Also build a signed release .aab for Google Play (needs the ANDROID_KEYSTORE_* secrets)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -70,4 +74,31 @@ jobs:
         with:
           name: antarixs-debug-apk-${{ github.run_number }}
           path: ${{ env.APK }}
+          retention-days: 30
+      # Play upload: versionCode is the run number (always grows), versionName is package.json's version.
+      # The keystore is the Play UPLOAD key (PKCS12, alias "upload"); Google re-signs with the app signing key.
+      - name: Signed Play bundle
+        if: inputs.play_bundle
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          [ -n "$KS_B64" ] || { echo "ANDROID_KEYSTORE_B64 is not set"; exit 1; }
+          printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.p12"
+          V=$(node -p "require('./package.json').version")
+          sed -i -E "s/versionCode [0-9]+/versionCode $GITHUB_RUN_NUMBER/; s/versionName \"[^\"]*\"/versionName \"$V\"/" android/app/build.gradle
+          (cd android && ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload.p12" \
+            -Pandroid.injected.signing.store.password="$KS_PW" \
+            -Pandroid.injected.signing.key.alias=upload \
+            -Pandroid.injected.signing.key.password="$KS_PW")
+          rm "$RUNNER_TEMP/upload.p12"
+          cp android/app/build/outputs/bundle/release/app-release.aab "antarixs-$V-$GITHUB_RUN_NUMBER.aab"
+          echo "AAB=antarixs-$V-$GITHUB_RUN_NUMBER.aab" >> "$GITHUB_ENV"
+          echo "- Play bundle: \`antarixs-$V-$GITHUB_RUN_NUMBER.aab\` (versionCode $GITHUB_RUN_NUMBER, signed with the upload key)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: inputs.play_bundle
+        with:
+          name: antarixs-play-aab-${{ github.run_number }}
+          path: ${{ env.AAB }}
           retention-days: 30
