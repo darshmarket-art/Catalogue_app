@@ -2,7 +2,7 @@
 // Pure helpers for scripts/build-platform-app.ts and its test. The store apps are separate (scripts/storeApp.ts).
 import { MARK_COLORS, antarixsIconSvg, markSvgInner } from '../shared/antarixsMark.ts';
 
-export const PLATFORM_APP_ID = 'com.antarixssolution.antarixs';
+export const PLATFORM_APP_ID = 'com.antarixs.app';
 export const PLATFORM_APP_NAME = 'Antarixs';
 
 /** https://app.<base domain>; the server sends "/" on to the welcome page. */

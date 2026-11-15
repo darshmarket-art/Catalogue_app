@@ -12,7 +12,7 @@ const systemBars = { insetsHandling: 'css', initialViewportFitValueHint: 'cover'
 // The app host and the stores under it ([store].<base domain>) stay inside the app, so the remembered store opens in the app. See scripts/build-platform-app.ts.
 function platformConfig(url: string): CapacitorConfig {
   return {
-    appId: 'com.antarixssolution.antarixs',
+    appId: 'com.antarixs.app',
     appName: 'Antarixs',
     webDir: 'dist',
     server: { url, androidScheme: 'https', allowNavigation: [new URL(url).host, '*.' + new URL(url).host.replace(/^app./, '')], errorPath: 'offline.html' },
