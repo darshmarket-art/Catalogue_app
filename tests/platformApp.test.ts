@@ -11,7 +11,7 @@ describe('Antarixs onboarding app', () => {
     expect(() => platformUrl('localhost')).toThrow();
   });
   it('has its own app id, apart from every store app', () => {
-    expect(PLATFORM_APP_ID).toBe('com.antarixs.app');
+    expect(PLATFORM_APP_ID).toBe('com.antarixssolution.antarixs');
   });
   it('draws the mark on a tile', () => {
     const svg = platformIconSvg();
